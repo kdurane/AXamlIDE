@@ -1,0 +1,221 @@
+# AXaxmlIDE feature roadmap
+
+## Goal
+
+Build a lightweight, approachable IDE for Avalonia and C# projects. Keep the
+familiar Visual Studio feel while borrowing useful workflow ideas from Visual
+Studio, JetBrains Rider, and VS Code with C# Dev Kit. This is a staged roadmap,
+not a promise to reproduce every feature of those products.
+
+Use the checklist to coordinate work between an agent and the project owner:
+check items off only when implemented and verified. Keep debugger and other
+large features behind the workspace, editor, and language-service foundations
+they depend on.
+
+Settings-window rule: whenever a new option is deemed user-configurable, add
+it to the appropriate section of the Settings window as part of that feature,
+and persist it through the settings model where appropriate. Do not add
+one-off preference controls to the main toolbar.
+
+## Architecture direction
+
+- Do not add a DI container by default. Keep application composition explicit
+  until multiple windows, service lifetimes, or test seams create a concrete
+  need for one.
+- Put application actions and state in view models, expose user commands with
+  CommunityToolkit.Mvvm, and bind XAML controls to those commands.
+- For new features, prefer commands and bindings over adding code-behind event
+  handlers; use code-behind only where the behavior needs direct control/UI
+  coordination.
+- Keep control-specific event handling, dialogs, editor rendering, pointer
+  placement, and flyout behavior in views. Do not force those interactions into
+  view models just to eliminate event handlers.
+- Extract cohesive, reusable workflows into focused classes under `Services/`
+  and call them from view models. Prefer feature-oriented types over splitting
+  large files into partial classes without changing their responsibilities.
+
+## Local project dependencies
+
+The solution keeps its MSBuild host and XAML completion engine projects under
+`Projects/`, so they can be opened and edited alongside the IDE without relying
+on sibling checkouts. The completion engine is a focused copy of the engine
+sources used by the Avalonia Visual Studio extension; its namespaces are under
+`AXaxmlIDE.XamlCompletion`, and its projects target .NET 10. Keep its MIT
+license in `Projects/CompletionEngine/LICENSE.md` when modifying or distributing
+those sources.
+
+## Current baseline
+
+The codebase already includes:
+
+- [x] Open folders, `.sln` and `.slnx` solutions; show project files in a
+  solution tree with a full-row hit target and double-click-to-open behavior.
+- [x] Open, edit, save, and close documents in tabs; track unsaved edits and
+  prompt before closing a solution.
+- [x] Build and run a project, with build and console output panes.
+- [x] Show language-server diagnostics in the editor and Problems pane.
+- [x] Provide completion, hover information, and signature help for supported
+  C# and AXAML contexts.
+- [x] Preview Avalonia AXAML while editing.
+- [x] Select a TextMate editor theme/font, adjust font size with Ctrl+mouse
+  wheel or the toolbar, and toggle line numbers/current-line highlighting.
+- [x] Store breakpoint locations on open documents; this is not yet a debugger.
+- [x] Persist whether Solution Explorer is docked on the left or right in the
+  user settings file.
+
+## Roadmap
+
+### 0. Stabilize workspace and settings foundations
+
+Do these first: later navigation, layout, and debugging features need reliable
+workspace state and predictable settings.
+
+- [x] Add a typed settings model and persistent storage for editor appearance:
+  theme, font family and size, line numbers, and current-line highlighting.
+- [x] Load settings at startup and apply changes immediately; changes are saved
+  to the user's application-data `AXaxmlIDE/settings.json`.
+- [x] Define user-wide versus workspace-specific settings and their precedence.
+  Phase 0 implements user-wide settings; if workspace settings are introduced,
+  `.axaxmlide/settings.json` will override user defaults.
+- [x] Handle missing, invalid, or outdated settings explicitly and safely.
+  Missing files use defaults; malformed/unsupported files and invalid values
+  produce a status-bar warning and fall back to defaults or the affected field.
+  Settings schema version 1 migrates to the current schema with a default
+  explorer side; older schemas default format-on-save to off.
+- [ ] Persist useful session state such as the last workspace and open documents
+  only after document recovery and unsaved-change behavior are defined.
+- [x] Add tests for settings defaults, load/save round trips, and invalid files.
+
+### 1. Make everyday navigation and search efficient
+
+- [x] Add solution-wide literal text search with result locations and navigation.
+  Search includes unsaved text in open documents, skips common build/dependency
+  folders and binary files, and reports unreadable and oversized files.
+- [x] Add a deliberate replace workflow to file/content search. Replace All
+  prepares a plan, asks for confirmation, treats replacement text literally,
+  leaves open documents dirty for review/save, writes closed files while
+  retaining detected encoding, and refuses plans over 5,000 matches. Files
+  changed after preview are not overwritten.
+- [x] Add Quick Open by file name (Ctrl+P) and workspace symbol search (Ctrl+T).
+  Results are capped to keep the picker responsive and exclude common generated
+  and dependency folders.
+- [x] Add Go to Definition (F12), Find All References (Shift+F12), and Rename
+  Symbol (Ctrl+R) where the active language server advertises support. Multiple
+  navigation results can be selected; rename changes are confirmed and opened
+  unsaved for review.
+- [x] Add Solution Explorer context actions to open files, copy paths, refresh
+  folders/projects/solutions, and build or run projects.
+- [x] Add a Find in Files menu command and Ctrl+Shift+F shortcut.
+- [x] Add menu/keyboard entry points for Find in Files, Quick Open, workspace
+  symbols, Go to Definition, Find All References, and Rename Symbol. Commands
+  are capability-checked and report when the active server doesn't support
+  them.
+
+### 2. Complete the editing and language-service workflow
+
+- [x] Request LSP code actions for the caret/selection and diagnostics; show
+  quick fixes and refactorings through Ctrl+Period, the editor context menu,
+  and a wider gutter lightbulb hit target. Both lightbulbs open the same compact
+  flyout of 10-point actions without descriptions. Hovering a diagnostic with
+  available actions opens that flyout at the pointer with the diagnostic message
+  as its header, instead of a competing tooltip. Unresolved actions are resolved
+  before application, original diagnostic metadata is sent to the server, text
+  edits update the editor and remain unsaved for review, legacy and modern
+  server commands are supported, and server commands can apply edits through
+  LSP workspace/applyEdit.
+- [ ] Unify completion suggestions with diagnostics and code actions so related
+  fixes/refactorings are discoverable from completion as well as diagnostic
+  hover.
+- [x] Add an explicit Format Document command where supported by the language
+  server; formatting changes remain unsaved for review.
+- [x] Add format-on-save where supported, controlled by the persisted
+  "Format documents on save when supported" editor setting. Older settings
+  schemas migrate with the option disabled. Formatting edits are applied to
+  the open document before saving.
+- [ ] Improve completion UX with snippets, filtering, commit characters, and
+  consistent C# / AXAML behavior.
+- [x] Add navigation between Problems and source locations, including
+  next/previous diagnostic commands (F8 / Shift+F8).
+- [ ] Surface unsupported or unavailable language-server capabilities instead
+  of presenting nonfunctional commands.
+- [x] Add AXAML Go to Definition for resolved metadata types by opening
+  decompiled, read-only source; show a status-bar message when a type cannot be
+  resolved or decompiled. ILSpy powers the decompilation; unresolved and
+  unsupported cases report a clear status message.
+
+### 3. Improve editor layout and tab workflows
+
+- [ ] Support multiple editor groups/split views with independent active tabs.
+- [ ] Allow dragging a tab into a separate window, and dragging it back.
+- [ ] Preserve document identity, edits, diagnostics, and caret/scroll position
+  when moving a tab between groups or windows.
+- [ ] Save and restore editor layout and tab state using the settings/session
+  foundations above.
+- [ ] Add tab navigation, pinning, and predictable close behavior for groups of
+  tabs.
+
+### 4. Build a debugger on top of the project and breakpoint foundations
+
+This is intentionally later work. First settle project selection, run
+configuration, process lifecycle, and breakpoint persistence.
+
+- [ ] Define launch profiles and startup-project selection, including support
+  for applicable `launchSettings.json` profiles.
+- [ ] Introduce a debugger adapter/protocol boundary rather than coupling debug
+  UI directly to process launching. Initial direction: use the Debug Adapter
+  Protocol (DAP) to communicate with an external adapter.
+  [NetCoreDbg](https://github.com/Samsung/netcoredbg) is the initial
+  MIT-licensed backend and is installed separately as a standalone executable.
+  No maintained MIT NuGet DAP client was identified, so keep the client
+  transport narrow and in-app rather than adding an adapter/server-side
+  protocol package such as
+  [Microsoft.VisualStudio.Shared.VSCodeDebugProtocol](https://www.nuget.org/packages/Microsoft.VisualStudio.Shared.VSCodeDebugProtocol).
+  The initial integration discovers `netcoredbg` on `PATH` or through
+  `AXAXMLIDE_NETCOREDBG_PATH`; ordinary Run remains independent of it.
+- [ ] Connect editor breakpoints to the debug session and show verified,
+  unverified, and disabled breakpoint states.
+- [ ] Add stepping, continue/pause, stop, and entry-point controls.
+- [ ] Add Call Stack, Locals/Variables, Watch, and Debug Console panes.
+- [ ] Add exception settings and process attach after launch-and-debug works
+  reliably for a selected project.
+- [ ] Test debugger behavior against small console and Avalonia sample projects.
+
+The initial integration starts NetCoreDbg for a built .NET assembly, sends open
+C# document breakpoints, supports continue/stop, and navigates to the top stack
+frame when execution pauses. It is not yet a complete debugger: verified
+breakpoint rendering, step controls, locals, watch, launch profiles, and
+end-to-end validation across supported platforms remain outstanding. Ordinary
+Run remains available without NetCoreDbg.
+
+### 5. Polish and broaden project workflows
+
+- [ ] Add project/solution creation and common Avalonia project templates.
+- [ ] Improve build/test feedback, including test discovery and running tests.
+- [ ] Add recent workspaces, clearer progress/status, and actionable setup errors.
+- [ ] Review accessibility, keyboard navigation, and performance on larger
+  solutions.
+
+## Working order
+
+1. Complete the settings/workspace foundations in phase 0.
+2. Deliver search and navigation in phase 1, then the code-action/editor loop in
+   phase 2.
+3. Add editor groups and detachable tabs in phase 3 after document/session state
+   is dependable.
+4. Start debugger implementation only after launch configuration and breakpoint
+   behavior are specified and tested.
+5. Use phase 5 to round out project workflows and polish based on real usage.
+
+Each item should be split into a small implementation issue before work starts.
+For cross-cutting changes, include acceptance criteria and focused tests with
+the issue.
+
+## Reference feature guides
+
+These references informed the roadmap; they are examples of established
+workflows, not a requirement for exact feature parity.
+
+- [VS Code: Getting started with C# and C# Dev Kit](https://code.visualstudio.com/docs/csharp/get-started)
+- [VS Code: C# debugging](https://code.visualstudio.com/docs/csharp/debugging)
+- [Visual Studio: Find and replace text](https://learn.microsoft.com/en-us/visualstudio/ide/finding-and-replacing-text?view=vs-2022)
+- [JetBrains Rider features](https://www.jetbrains.com/rider/features/)

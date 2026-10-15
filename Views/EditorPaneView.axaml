@@ -1,0 +1,59 @@
+<UserControl
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    mc:Ignorable="d"
+    x:Class="AXaxmlIDE.Views.EditorPaneView"
+    x:DataType="vm:EditorPaneViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:edit="using:AvaloniaEdit"
+    xmlns:editing="using:AvaloniaEdit.Editing"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXaxmlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <edit:TextEditor
+        FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+        FontSize="13"
+        FontWeight="Light"
+        Grid.Column="0"
+        HorizontalScrollBarVisibility="Auto"
+        Margin="0"
+        Name="Editor"
+        ShowLineNumbers="True"
+        VerticalScrollBarVisibility="Visible">
+        <edit:TextEditor.ContextFlyout>
+            <MenuFlyout>
+                <MenuItem
+                    Command="{Binding CopyMouseCommand}"
+                    CommandParameter="{Binding #Editor.TextArea}"
+                    Header="Copy"
+                    InputGesture="ctrl+C" />
+                <MenuItem
+                    Command="{Binding CutMouseCommand}"
+                    CommandParameter="{Binding #Editor.TextArea}"
+                    Header="Cut"
+                    InputGesture="ctrl+X" />
+                <MenuItem
+                    Command="{Binding PasteMouseCommand}"
+                    CommandParameter="{Binding #Editor.TextArea}"
+                    Header="Paste"
+                    InputGesture="ctrl+V" />
+                <MenuItem Header="-" />
+                <!-- <MenuItem Click="OnCodeActionsClick" Header="Quick Actions..." /> -->
+                <MenuItem Command="{Binding FormatActiveDocumentCommand}" Header="Format Document" />
+                <MenuItem Header="-" />
+                <MenuItem
+                    Command="{Binding SelectAllMouseCommand}"
+                    CommandParameter="{Binding #Editor.TextArea}"
+                    Header="Select All"
+                    InputGesture="ctrl+A" />
+            </MenuFlyout>
+        </edit:TextEditor.ContextFlyout>
+        <edit:TextEditor.Styles>
+            <Style Selector="editing|LineNumberMargin">
+                <Setter Property="MinWidthInDigits" Value="3" />
+            </Style>
+        </edit:TextEditor.Styles>
+    </edit:TextEditor>
+</UserControl>

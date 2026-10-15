@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- ExcludeAssets="runtime" is deliberate: we compile against these, but at
+             runtime MSBuildLocator.RegisterDefaults() swaps in the real assemblies
+             from whatever .NET SDK is actually installed on the machine running
+             this. Shipping our own copies would just create a second version
+             conflict, the very thing this whole project exists to avoid. -->
+        <PackageReference Include="Microsoft.Build" Version="18.9.6" ExcludeAssets="runtime" />
+        <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
+    </ItemGroup>
+
+</Project>

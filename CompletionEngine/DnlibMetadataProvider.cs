@@ -1,0 +1,120 @@
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using AXaxmlIDE.CompletionEngine.AssemblyMetadata;
+using AXaxmlIDE.Models;
+using dnlib.DotNet;
+
+namespace AXaxmlIDE.CompletionEngine;
+
+public class DnlibMetadataProvider : IMetadataProvider
+{
+    public IMetadataReaderSession GetMetadata(IEnumerable<string> paths)
+    {
+        return new DnlibMetadataProviderSession([.. paths]);
+    }
+}
+
+internal class DnlibMetadataProviderSession : IMetadataReaderSession
+{
+    private readonly ModuleContext _modCtx;
+    private readonly Dictionary<ITypeDefOrRef, ITypeDefOrRef> _baseTypes = [];
+    private readonly Dictionary<ITypeDefOrRef, TypeDef> _baseTypeDefs = [];
+    public string? TargetAssemblyName { get; private set; }
+    public IReadOnlyCollection<IAssemblyInformation> Assemblies { get; }
+    public DnlibMetadataProviderSession(string[] directoryPath)
+    {
+        var asmResolver = new AssemblyResolver()
+        {
+            EnableTypeDefCache = false,
+            UseGAC = false
+        };
+        var resolver = new Resolver(asmResolver)
+        {
+            ProjectWinMDRefs = false
+        };
+        _modCtx = new ModuleContext(asmResolver, resolver);
+        asmResolver.DefaultModuleContext = _modCtx;
+
+        if (directoryPath == null || directoryPath.Length == 0)
+        {
+            TargetAssemblyName = null;
+            Assemblies = [];
+        }
+        else
+        {
+            TargetAssemblyName = System.Reflection.AssemblyName.GetAssemblyName(directoryPath[0]).ToString();
+            Assemblies = LoadAssemblies(_modCtx, directoryPath).Select(a => new AssemblyWrapper(a, this)).ToList();
+        }
+    }
+
+    public TypeDef? GetTypeDef(ITypeDefOrRef type)
+    {
+        switch (type)
+        {
+            case null:
+                return null;
+            case TypeDef typeDef:
+                return typeDef;
+        }
+
+        if (_baseTypeDefs.TryGetValue(type, out var baseType))
+        {
+            return baseType;
+        }
+        else
+        {
+            return _baseTypeDefs[type] = type.ResolveTypeDef();
+        }
+    }
+
+    public ITypeDefOrRef GetBaseType(ITypeDefOrRef type)
+    {
+        if (_baseTypes.TryGetValue(type, out var baseType))
+        {
+            return baseType;
+        }
+        else
+        {
+            return _baseTypes[type] = type.GetBaseType();
+        }
+
+    }
+
+    private static List<AssemblyDef> LoadAssemblies(ModuleContext context, string[] lst)
+    {
+        var asmResovler = (AssemblyResolver)context.AssemblyResolver;
+
+        foreach (var path in lst)
+            asmResovler.PreSearchPaths.Add(path);
+
+        List<AssemblyDef> assemblies = [];
+
+        foreach (var asm in lst)
+        {
+            try
+            {
+                var creationOptions = new ModuleCreationOptions(context)
+                {
+                    TryToLoadPdbFromDisk = false
+                };
+                var def = AssemblyDef.Load(File.ReadAllBytes(asm), creationOptions);
+                asmResovler.AddToCache(def);
+                assemblies.Add(def);
+            }
+            catch
+            {
+                //Ignore
+            }
+        }
+
+        return assemblies;
+    }
+
+    public void Dispose()
+    {
+        _baseTypes.Clear();
+        _baseTypeDefs.Clear();
+        ((AssemblyResolver)_modCtx.AssemblyResolver).Clear();
+    }
+}
