@@ -1,9 +1,10 @@
-<Window
+﻿<Window
     Height="440"
     MinHeight="380"
     MinWidth="500"
     Title="Settings"
     Width="560"
+    Background="{DynamicResource ThemeBackgroundBrush}"
     WindowStartupLocation="CenterOwner"
     x:Class="AXaxmlIDE.Views.SettingsWindow"
     x:DataType="vm:MainWindowViewModel"

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -12,16 +10,13 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
-using AvaloniaEdit.Folding;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
-using AXaxmlIDE.CompletionEngine.Parsing;
 using AXaxmlIDE.Enums;
 using AXaxmlIDE.Lsp;
 using AXaxmlIDE.Models;
@@ -29,6 +24,8 @@ using AXaxmlIDE.Services;
 using AXaxmlIDE.ViewModels;
 using TextMateSharp.Grammars;
 using ICSharpCode.Decompiler;
+using static AXaxmlIDE.Helpers.LspHelpers;
+using AXaxmlIDE.EditorFeatures;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
 
@@ -36,15 +33,10 @@ namespace AXaxmlIDE.Views;
 
 public partial class MainWindow : Window
 {
-    private FoldingManager? _foldingManager;
-    private FoldingCaretMargin? _foldingCaretMargin;
     private readonly TextMate.Installation _textMate;
-    private CompletionWindow? _completionWindow;
-    private OverloadInsightWindow? _insightWindow;
     private readonly CustomMargin? _customMargin;
     private readonly CodeActionMargin _codeActionMargin;
     private readonly RegistryOptions? _registryOptions;
-    private readonly OccurrenceRenderer _occurrenceRenderer = new();
     private readonly AvaloniaPreviewProcess _previewProcess = new();
     private readonly DispatcherTimer _previewUpdateTimer =
         new() { Interval = TimeSpan.FromMilliseconds(300) };
@@ -57,26 +49,26 @@ public partial class MainWindow : Window
 
     private readonly DiagnosticRenderer _diagnosticRenderer = new();
     private OpenDocument? _active;
-    private TextDocument? _occurrenceDocument;
-    private int _signatureHelpSequence;
-    private CancellationTokenSource? _signatureHelpCts;
 
     private bool _treeOnRight;
     private bool _explorerVisible = true;
 
-    // Hover: the pointer rests on an offset, a debounce timer fires, the server is asked.
-    private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
-    private CancellationTokenSource? _hoverCts;
-    private int _hoverOffset = -1;
-    private (int Start, int End)? _tipRange; // non-null while our tooltip is open
-    private bool _tipOpen;
-
-    // Completion
-    private int _completionSeq;
+    private readonly DialogService _dialogs;
+    private readonly EditorContext _ctx;
+    private readonly FoldingController _folding;
+    private readonly OccurrenceController _occurrences;
+    private readonly WorkspaceEditService _edits;
+    private readonly CodeActionController _codeActions;
+    private readonly HoverController _hover;
+    private readonly SignatureHelpController _signature;
+    private readonly CompletionController _completion;
+    private readonly TypingController _typing;
 
     public MainWindow()
     {
         InitializeComponent();
+        _ctx = new EditorContext(Editor, () => ViewModel);
+        _dialogs = new DialogService(this);
 
         // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
         FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
@@ -84,33 +76,27 @@ public partial class MainWindow : Window
         FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
-        Editor.TextArea.TextView.BackgroundRenderers.Add(_occurrenceRenderer);
+        _occurrences = new OccurrenceController(_ctx);
         Editor.TextArea.Caret.PositionChanged += (_, _) =>
         {
             UpdateStatus();
-            //UpdateOutlineSelection();
-            if (_insightWindow?.IsVisible == true && _active is { } doc)
-                _ = RequestSignatureHelpAsync(doc, triggerCharacter: null, isRetrigger: true);
         };
-        Editor.TextArea.SelectionChanged += (_, _) => UpdateOccurrenceHighlights();
+
         Editor.HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Visible;
-        Editor.TextArea.TextEntering += OnTextEntering;
-        Editor.TextArea.TextEntered += OnTextEntered;
         //Editor.TextArea.RightClickMovesCaret = true;
         Editor.Options.EnableTextDragDrop = true;
         Editor.Options.CompletionAcceptAction = CompletionAcceptAction.DoubleTapped;
 
-        // handledEventsToo: the text area marks pointer events handled while selecting.
-        Editor.AddHandler(PointerMovedEvent, OnEditorPointerMoved,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Bubble, true);
 
         _customMargin = new CustomMargin();
-        Editor.TextArea.LeftMargins.Insert(0, _customMargin);
-        _codeActionMargin = new CodeActionMargin(
-            (line, anchor) => ShowCodeActionsAsync(line, anchor),
-            () => _active?.Client?.SupportsCodeActions == true);
         Editor.TextArea.LeftMargins.Insert(1, _codeActionMargin);
+        _edits = new WorkspaceEditService(_ctx);
+        _codeActions = new CodeActionController(_ctx, _edits);
+        _hover = new HoverController(_ctx, _codeActions);
+        _signature = new SignatureHelpController(_ctx);
+        _completion = new CompletionController(_ctx, _hover);
+        _typing = new TypingController(_ctx, _hover, _completion, _signature);
 
         var settingsStore = new EditorSettingsStore();
         var settingsLoad = settingsStore.Load();
@@ -120,7 +106,7 @@ public partial class MainWindow : Window
         _textMate = Editor.InstallTextMate(registryOptions);
         _textMate.AppliedTheme += TextMateInstallationOnAppliedTheme;
         //_textMate.SetTheme(ThemeCatalog.Find(settings.Theme.ToString()).Load(registryOptions));
-        var viewModel = new MainWindowViewModel(_textMate, registryOptions, settings, settingsStore,StorageProvider,this);
+        var viewModel = new MainWindowViewModel(_textMate, registryOptions, settings, settingsStore, StorageProvider, this);
         _textMate.SetTheme(viewModel.SelectedTheme.Load(registryOptions));
         DataContext = viewModel;
         viewModel.EditorSettingsChanged += ApplyEditorSettings;
@@ -129,14 +115,13 @@ public partial class MainWindow : Window
         viewModel.DiagnosticsChanged += OnDiagnosticsChanged;
         viewModel.NavigateToProblemRequested += NavigateToProblem;
         viewModel.DebugLocationChanged += NavigateToDebugLocation;
-        viewModel.WorkspaceEditRequested = ApplyServerWorkspaceEditAsync;
+        viewModel.WorkspaceEditRequested = _edits.ApplyServerEditAsync;
         ApplyEditorSettings();
         ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
         if (settingsLoad.Warnings.Count > 0)
             viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
 
-        Editor.PointerExited += (_, _) => HideTip(resetOffset: true);
-        _hoverTimer.Tick += OnHoverTimer;
+
         _previewUpdateTimer.Tick += OnPreviewUpdateTimer;
         _previewFitTimer.Tick += OnPreviewFitTimer;
         _outlineTimer.Tick += OnOutlineTimer;
@@ -158,17 +143,13 @@ public partial class MainWindow : Window
             _customMargin?.SetDocument(null);
             viewModel.Dispose();
             _textMate.Dispose();
+            _folding?.Dispose();
         };
 
         UpdateStatus();
 
-        _foldingTimer.Tick += (_, _) =>
-        {
-            _foldingTimer.Stop();
-
-            if (_active is { } doc)
-                UpdateFolding(doc);
-        };
+        _folding = new FoldingController(_ctx);
+        _ctx.TextChanged += _ => OnActiveDocumentChanged();
     }
 
     private void ApplyEditorSettings()
@@ -216,6 +197,9 @@ public partial class MainWindow : Window
             ViewModel.ShowStatusMessage($"Couldn't open '{node.FullPath}': {ex.Message}");
         }
     }
+
+    private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
+        => await _codeActions.ShowCodeActionsAsync(anchor: Editor);
 
     private void OnFileTreePointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -412,9 +396,7 @@ public partial class MainWindow : Window
 
     private void OnTabSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        HideTip(resetOffset: true);
-        _completionWindow?.Close();
-        CloseSignatureInsight();
+        _hover.Hide(resetOffset: true);
 
         if (_active is { } prev) // save view state of the tab we're leaving
         {
@@ -425,22 +407,10 @@ public partial class MainWindow : Window
 
         // FoldingManager installs document-bound generators; detach them while
         // the old document is still attached to the editor.
-        ConfigureFolding(null);
+        _ctx.Detach();
         _active = DocTabs.SelectedItem as OpenDocument;
         ViewModel.ActiveDocument = _active;
         _customMargin?.SetDocument(_active);
-        _codeActionMargin.SetDocument(_active);
-        if (_occurrenceDocument is not null)
-        {
-            _occurrenceDocument.Changed -= OnOccurrenceDocumentChanged;
-            _occurrenceDocument.Changed -= OnActiveDocumentChanged;
-        }
-        _occurrenceDocument = _active?.Document;
-        if (_occurrenceDocument is not null)
-        {
-            _occurrenceDocument.Changed += OnOccurrenceDocumentChanged;
-            _occurrenceDocument.Changed += OnActiveDocumentChanged;
-        }
 
         if (_active is null)
         {
@@ -450,7 +420,7 @@ public partial class MainWindow : Window
             Editor.Document = new TextDocument();
             Editor.IsReadOnly = false;
             _diagnosticRenderer.Segments = null;
-            _occurrenceRenderer.Update(null, null);
+            _ctx.Attach(null);
             SetGrammarForFile("");
             UpdateStatus();
             return;
@@ -462,11 +432,10 @@ public partial class MainWindow : Window
         UpdatePreviewPaneVisibility(doc);
         Editor.Document = doc.Document; // TextMate re-binds on DocumentChanged
         Editor.IsReadOnly = doc.IsReadOnly;
-        ConfigureFolding(doc);
+        _ctx.Attach(doc);
         _diagnosticRenderer.Segments = doc.Diagnostics;
         SetGrammarForFile(doc.Path);
         Editor.CaretOffset = Math.Min(doc.CaretOffset, doc.Document.TextLength);
-        UpdateOccurrenceHighlights();
 
         // Scrolling needs a layout pass first.
         Dispatcher.UIThread.Post(() =>
@@ -540,7 +509,7 @@ public partial class MainWindow : Window
             return;
 
         var editorPoint = e.GetPosition(Editor);
-        if (editorPoint.X >= 0 && editorPoint.Y >= 0
+        if (editorPoint is { X: >= 0, Y: >= 0 }
             && editorPoint.X < Editor.Bounds.Width && editorPoint.Y < Editor.Bounds.Height)
         {
             var nextSize = ViewModel.EditorFontSize + (e.Delta.Y > 0 ? 1 : -1);
@@ -550,14 +519,12 @@ public partial class MainWindow : Window
         }
 
         var previewPoint = e.GetPosition(PreviewViewport);
-        if (PreviewViewport.IsVisible
-            && previewPoint.X >= 0 && previewPoint.Y >= 0
-            && previewPoint.X < PreviewViewport.Bounds.Width
-            && previewPoint.Y < PreviewViewport.Bounds.Height)
-        {
-            StepPreviewZoom(e.Delta.Y > 0 ? 1 : -1);
-            e.Handled = true;
-        }
+        if (!PreviewViewport.IsVisible
+            || !(previewPoint.X >= 0) || !(previewPoint.Y >= 0)
+            || !(previewPoint.X < PreviewViewport.Bounds.Width)
+            || !(previewPoint.Y < PreviewViewport.Bounds.Height)) return;
+        StepPreviewZoom(e.Delta.Y > 0 ? 1 : -1);
+        e.Handled = true;
     }
 
     private void StepPreviewZoom(int direction)
@@ -791,8 +758,8 @@ public partial class MainWindow : Window
         });
     }
 
-    private readonly DispatcherTimer _foldingTimer =
-        new() { Interval = TimeSpan.FromMilliseconds(250) };
+    // private readonly DispatcherTimer _foldingTimer =
+    //     new() { Interval = TimeSpan.FromMilliseconds(250) };
 
     private void OnTabCloseClick(object? sender, RoutedEventArgs e)
     {
@@ -812,7 +779,7 @@ public partial class MainWindow : Window
 
         if (doc.IsDirty)
         {
-            switch (await AskSaveAsync(doc))
+            switch (await _dialogs.AskSaveAsync(doc))
             {
                 case SaveChoice.Cancel: return;
                 case SaveChoice.Save: await ViewModel.SaveDocumentAsync(doc); break;
@@ -825,55 +792,6 @@ public partial class MainWindow : Window
             DocTabs.SelectedIndex = Math.Min(index, ViewModel.Documents.Count - 1);
     }
 
-    private async Task<SaveChoice> AskSaveAsync(OpenDocument doc)
-    {
-        var result = SaveChoice.Cancel; // closing the window with the X = cancel
-
-        var dialog = new Window
-        {
-            Title = "Unsaved changes",
-            Width = 380,
-            SizeToContent = SizeToContent.Height,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-
-        dialog.Content = new StackPanel
-        {
-            Margin = new Thickness(16),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = $"Save changes to {doc.Title}?", TextWrapping = TextWrapping.Wrap },
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Children =
-                    {
-                        Make("Save", SaveChoice.Save),
-                        Make("Don't save", SaveChoice.Discard),
-                        Make("Cancel", SaveChoice.Cancel)
-                    }
-                }
-            }
-        };
-
-        await dialog.ShowDialog(this);
-        return result;
-
-        Button Make(string text, SaveChoice choice)
-        {
-            var b = new Button { Content = text, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
-            b.Click += (_, _) =>
-            {
-                result = choice;
-                dialog.Close();
-            };
-            return b;
-        }
-    }
 
     private void OnWindowKeyDown(object? sender, KeyEventArgs e)
     {
@@ -918,12 +836,12 @@ public partial class MainWindow : Window
             case { KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift), Key: Key.Space }:
                 {
                     if (_active is { } activeDocument)
-                        _ = RequestSignatureHelpAsync(activeDocument, triggerCharacter: null);
+                        _ = _signature.RequestAsync(activeDocument, triggerCharacter: null);
                     e.Handled = true;
                     return;
                 }
             case { KeyModifiers: KeyModifiers.Control, Key: Key.OemPeriod }:
-                _ = ShowCodeActionsAsync();
+                _ = _codeActions.ShowCodeActionsAsync();
                 e.Handled = true;
                 return;
         }
@@ -953,7 +871,7 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
             case Key.Space when _active is { Sync: not null } doc:
-                _ = ShowCompletionAsync(doc, triggerChar: null);
+                _ = _completion.ShowCompletionAsync(doc, triggerChar: null);
                 e.Handled = true;
                 break;
         }
@@ -983,198 +901,7 @@ public partial class MainWindow : Window
     private void OnSignatureHelpClick(object? sender, RoutedEventArgs e)
     {
         if (_active is { } document)
-            _ = RequestSignatureHelpAsync(document, triggerCharacter: null);
-    }
-
-    private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
-        => await ShowCodeActionsAsync(anchor: Editor);
-
-    private async Task<bool> ShowCodeActionsAsync(
-        int? requestedLine = null,
-        Control? anchor = null,
-        string? diagnosticHeader = null,
-        bool showAtPointer = false)
-    {
-        if (_active is not { Client: { } client, Sync: { } sync } document)
-        {
-            ViewModel.ShowStatusMessage("Open a document with an active language server to request quick actions.");
-            return false;
-        }
-
-        if (!client.SupportsCodeActions)
-        {
-            ViewModel.ShowStatusMessage("The active language server does not support quick actions.");
-            return false;
-        }
-
-        try
-        {
-            sync.Flush();
-            var startOffset = Editor.SelectionLength > 0
-                ? Editor.SelectionStart
-                : requestedLine is { } lineNumber
-                    ? document.Document.GetLineByNumber(lineNumber).Offset
-                    : document.Document.GetLineByOffset(Editor.CaretOffset).Offset;
-            var endOffset = Editor.SelectionLength > 0
-                ? Editor.SelectionStart + Editor.SelectionLength
-                : requestedLine is { } requestedLineNumber
-                    ? document.Document.GetLineByNumber(requestedLineNumber).EndOffset
-                    : document.Document.GetLineByOffset(Editor.CaretOffset).EndOffset;
-            var start = document.Document.GetLocation(startOffset);
-            var end = document.Document.GetLocation(endOffset);
-            var range = new LspRange(start.Line - 1, start.Column - 1, end.Line - 1, end.Column - 1);
-            var diagnostics = document.Diagnostics.Select(segment =>
-            {
-                var diagnosticStart = document.Document.GetLocation(segment.StartOffset);
-                var diagnosticEnd = document.Document.GetLocation(segment.EndOffset);
-                return new LspDiagnostic(
-                    diagnosticStart.Line - 1, diagnosticStart.Column - 1,
-                    diagnosticEnd.Line - 1, diagnosticEnd.Column - 1,
-                    segment.Severity, segment.Message, segment.RawDiagnostic);
-            }).Where(diagnostic => RangesOverlap(
-                range,
-                new LspRange(
-                    diagnostic.StartLine,
-                    diagnostic.StartChar,
-                    diagnostic.EndLine,
-                    diagnostic.EndChar)))
-                .ToArray();
-            var actions = await client.CodeActionsAsync(document.Uri, range, diagnostics);
-            if (!ReferenceEquals(document, _active))
-                return false;
-            if (actions.Count == 0)
-            {
-                ViewModel.ShowStatusMessage("No quick actions are available at the caret or selection.");
-                return false;
-            }
-
-            var header = diagnosticHeader ?? string.Join(
-                Environment.NewLine,
-                diagnostics.Select(diagnostic => diagnostic.Message).Distinct(StringComparer.Ordinal));
-            HideTip(resetOffset: true);
-            ShowCodeActionFlyout(actions, client, anchor ?? Editor, header, showAtPointer);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            ViewModel.ShowStatusMessage($"Quick action failed: {ex.Message}");
-            return false;
-        }
-    }
-
-    private static bool RangesOverlap(LspRange first, LspRange second)
-    {
-        var firstStart = (first.StartLine, first.StartChar);
-        var firstEnd = (first.EndLine, first.EndChar);
-        var secondStart = (second.StartLine, second.StartChar);
-        var secondEnd = (second.EndLine, second.EndChar);
-        return Compare(firstStart, secondEnd) <= 0 && Compare(secondStart, firstEnd) <= 0;
-
-        static int Compare((int Line, int Character) a, (int Line, int Character) b)
-            => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Character.CompareTo(b.Character);
-    }
-
-    private void ShowCodeActionFlyout(IReadOnlyList<LspCodeAction> actions, LspClient client,
-        Control anchor, string? diagnosticHeader, bool showAtPointer)
-    {
-        var flyout = new MenuFlyout();
-        if (!string.IsNullOrWhiteSpace(diagnosticHeader))
-        {
-            flyout.Items.Add(new MenuItem
-            {
-                IsEnabled = false,
-                FontSize = 10,
-                Padding = new Thickness(8, 6),
-                Header = new TextBlock
-                {
-                    Text = diagnosticHeader,
-                    FontSize = 10,
-                    FontWeight = FontWeight.SemiBold,
-                    Foreground = Brushes.Salmon,
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 360
-                }
-            });
-            flyout.Items.Add(new Separator());
-        }
-
-        foreach (var action in actions)
-        {
-            var item = new MenuItem
-            {
-                FontSize = 10,
-                Padding = new Thickness(8, 4),
-                Header = new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                    {
-                        new PathIcon
-                        {
-                            Data = Geometry.Parse(
-                                "M12 2a7 7 0 0 0-4 12.75V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.25A7 7 0 0 0 12 2m2 13.5V17h-4v-1.5l-.8-.55a5 5 0 1 1 5.6 0zM10 21h4v1h-4z"),
-                            Width = 14,
-                            Height = 14,
-                            Foreground = Brushes.DarkGoldenrod
-                        },
-                        new TextBlock
-                        {
-                            Text = action.Title,
-                            FontSize = 10,
-                            VerticalAlignment = VerticalAlignment.Center,
-                            TextWrapping = TextWrapping.Wrap
-                        }
-                    }
-                }
-            };
-            item.Click += async (_, _) => await ApplyCodeActionAsync(action, client);
-            flyout.Items.Add(item);
-        }
-
-        flyout.ShowAt(anchor, showAtPointer);
-    }
-
-    private async Task ApplyCodeActionAsync(LspCodeAction action, LspClient client)
-    {
-        try
-        {
-            var selected = client.SupportsCodeActionResolve
-                ? await client.ResolveCodeActionAsync(action)
-                : action;
-            var didWork = false;
-            if (selected.Edit is { } edit)
-            {
-                var replacements = ParseWorkspaceEdit(edit);
-                if (replacements.Count > 0)
-                {
-                    ApplyWorkspaceEdits(replacements);
-                    didWork = true;
-                }
-            }
-
-            if (selected.Command is { } command)
-            {
-                if (command.ValueKind != JsonValueKind.Object
-                    || !command.TryGetProperty("command", out var commandName)
-                    || commandName.GetString() is not { Length: > 0 } name)
-                    throw new InvalidOperationException($"Quick action '{selected.Title}' returned an invalid command.");
-
-                var arguments = command.TryGetProperty("arguments", out var values)
-                    ? values.Clone()
-                    : (JsonElement?)null;
-                await client.ExecuteCommandAsync(name, arguments);
-                didWork = true;
-            }
-
-            ViewModel.ShowStatusMessage(didWork
-                ? $"Applied '{selected.Title}'. Review and save modified documents."
-                : $"'{selected.Title}' did not contain an applicable edit or command.");
-        }
-        catch (Exception ex)
-        {
-            ViewModel.ShowStatusMessage($"Quick action failed: {ex.Message}");
-        }
+            _ = _signature.RequestAsync(document, triggerCharacter: null);
     }
 
     private void OnProblemClick(object? sender, TappedEventArgs e)
@@ -1230,7 +957,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var selectedPath = await ShowQuickOpenDialogAsync(files);
+            var selectedPath = await _dialogs.ShowQuickOpenDialogAsync(files);
             if (selectedPath is null)
                 return;
 
@@ -1242,77 +969,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task<string?> ShowQuickOpenDialogAsync(IReadOnlyList<string> files)
-    {
-        string? selectedPath = null;
-        var results = new ListBox { MaxHeight = 420, MinWidth = 560 };
-        var query = new TextBox { PlaceholderText = "Type a file name..." };
-        var window = new Window
-        {
-            Title = "Quick Open",
-            Width = 620,
-            SizeToContent = SizeToContent.Height,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
 
-        query.TextChanged += (_, _) => UpdateResults();
-        query.KeyDown += (_, args) =>
-        {
-            switch (args.Key)
-            {
-                case Key.Enter:
-                    args.Handled = true;
-                    AcceptSelection();
-                    break;
-                case Key.Down when results.ItemCount > 0:
-                    results.Focus();
-                    results.SelectedIndex = Math.Min(results.SelectedIndex + 1, results.ItemCount - 1);
-                    args.Handled = true;
-                    break;
-            }
-        };
-        results.DoubleTapped += (_, _) => AcceptSelection();
-        results.KeyDown += (_, args) =>
-        {
-            if (args.Key != Key.Enter) return;
-            args.Handled = true;
-            AcceptSelection();
-        };
-
-        UpdateResults();
-        window.Content = new StackPanel
-        {
-            Margin = new Thickness(12),
-            Spacing = 8,
-            Children = { query, results }
-        };
-        window.Opened += (_, _) => query.Focus();
-        await window.ShowDialog(this);
-        return selectedPath;
-
-        void UpdateResults()
-        {
-            var text = query.Text?.Trim() ?? "";
-            var filtered = files
-                .Where(path => text.Length == 0
-                               || Path.GetFileName(path).Contains(text, StringComparison.OrdinalIgnoreCase)
-                               || path.Contains(text, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(path => Path.GetFileName(path).Equals(text, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
-                .Take(100)
-                .ToArray();
-            results.ItemsSource = filtered;
-            results.SelectedIndex = filtered.Length > 0 ? 0 : -1;
-        }
-
-        void AcceptSelection()
-        {
-            if (results.SelectedItem is not string path) return;
-            selectedPath = path;
-            window.Close();
-        }
-    }
 
     private async Task SearchWorkspaceSymbolsAsync()
     {
@@ -1324,7 +981,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var query = await PromptForTextAsync("Go to Symbol", "Search types and members...");
+        var query = await _dialogs.PromptForTextAsync("Go to Symbol", "Search types and members...");
         if (string.IsNullOrWhiteSpace(query))
             return;
 
@@ -1337,7 +994,7 @@ public partial class MainWindow : Window
                 return;
             }
 
-            var selected = await PickLocationAsync(
+            var selected = await _dialogs.PickLocationAsync(
                 "Workspace Symbols",
                 symbols,
                 symbol => string.IsNullOrEmpty(symbol.ContainerName)
@@ -1436,69 +1093,12 @@ public partial class MainWindow : Window
 
         var selected = locations.Count == 1
             ? locations[0]
-            : await PickLocationAsync(title, locations, FormatLocation);
+            : await _dialogs.PickLocationAsync(title, locations, FormatLocation);
         if (selected is not null)
             await NavigateToLocationAsync(selected);
     }
 
-    private async Task<LspLocation?> PickLocationAsync(
-        string title,
-        IReadOnlyList<LspLocation> locations,
-        Func<LspLocation, string> display)
-    {
-        LspLocation? selected = null;
-        var list = new ListBox
-        {
-            MinWidth = 560,
-            MaxHeight = 420,
-            ItemsSource = locations.Select(display).ToArray()
-        };
-        var window = new Window
-        {
-            Title = title,
-            Width = 620,
-            SizeToContent = SizeToContent.Height,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Content = new StackPanel
-            {
-                Margin = new Thickness(12),
-                Spacing = 8,
-                Children =
-                {
-                    new TextBlock { Text = "Select a result to navigate." },
-                    list
-                }
-            }
-        };
 
-        list.SelectedIndex = 0;
-        list.DoubleTapped += (_, _) => Accept();
-        list.KeyDown += (_, args) =>
-        {
-            if (args.Key != Key.Enter) return;
-            args.Handled = true;
-            Accept();
-        };
-        await window.ShowDialog(this);
-        return selected;
-
-        void Accept()
-        {
-            if (list.SelectedIndex < 0 || list.SelectedIndex >= locations.Count)
-                return;
-            selected = locations[list.SelectedIndex];
-            window.Close();
-        }
-    }
-
-    private static string FormatLocation(LspLocation location)
-    {
-        var path = Uri.TryCreate(location.Uri, UriKind.Absolute, out var uri) && uri.IsFile
-            ? uri.LocalPath
-            : location.Uri;
-        return $"{Path.GetFileName(path)}  (line {location.Range.StartLine + 1})  —  {path}";
-    }
 
     private async Task NavigateToLocationAsync(LspLocation location)
     {
@@ -1536,7 +1136,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var newName = await PromptForTextAsync("Rename Symbol", "Enter the new symbol name...");
+        var newName = await _dialogs.PromptForTextAsync("Rename Symbol", "Enter the new symbol name...");
         if (string.IsNullOrWhiteSpace(newName))
             return;
 
@@ -1551,232 +1151,15 @@ public partial class MainWindow : Window
                 return;
             }
 
-            if (!await ConfirmRenameAsync(replacements))
+            if (!await _dialogs.ConfirmRenameAsync(replacements))
                 return;
 
-            ApplyWorkspaceEdits(replacements);
+            _edits.Apply(replacements);
             ViewModel.ShowStatusMessage($"Applied rename changes in {replacements.Count} file(s). Review and save the modified documents.");
         }
         catch (Exception ex)
         {
             ViewModel.ShowStatusMessage($"Rename failed: {ex.Message}");
-        }
-    }
-
-    private static Dictionary<string, List<(LspRange Range, string NewText)>> ParseWorkspaceEdit(JsonElement workspaceEdit)
-    {
-        var editsByPath = new Dictionary<string, List<(LspRange, string)>>(StringComparer.OrdinalIgnoreCase);
-
-        void AddEdits(string uriText, JsonElement edits)
-        {
-            if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri) || !uri.IsFile)
-                throw new InvalidOperationException($"Rename returned a non-file URI: {uriText}");
-            if (edits.ValueKind != JsonValueKind.Array)
-                throw new InvalidOperationException("Rename returned an invalid edit list.");
-
-            var path = Path.GetFullPath(uri.LocalPath);
-            if (!editsByPath.TryGetValue(path, out var pathEdits))
-                editsByPath[path] = pathEdits = [];
-            foreach (var edit in edits.EnumerateArray())
-            {
-                if (!edit.TryGetProperty("range", out var range)
-                    || !edit.TryGetProperty("newText", out var newText))
-                    throw new InvalidOperationException("Rename returned an unsupported text edit.");
-                pathEdits.Add((ParseLspRange(range), newText.GetString() ?? ""));
-            }
-        }
-
-        if (workspaceEdit.ValueKind != JsonValueKind.Object)
-            return editsByPath;
-
-        if (workspaceEdit.TryGetProperty("changes", out var changes)
-            && changes.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var file in changes.EnumerateObject())
-                AddEdits(file.Name, file.Value);
-        }
-
-        if (workspaceEdit.TryGetProperty("documentChanges", out var documentChanges)
-            && documentChanges.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var change in documentChanges.EnumerateArray())
-            {
-                if (!change.TryGetProperty("textDocument", out var textDocument)
-                    || !textDocument.TryGetProperty("uri", out var uri)
-                    || !change.TryGetProperty("edits", out var edits))
-                    throw new InvalidOperationException("Rename returned an unsupported resource operation.");
-                AddEdits(uri.GetString() ?? "", edits);
-            }
-        }
-
-        return editsByPath;
-    }
-
-    private static LspRange ParseLspRange(JsonElement range)
-    {
-        var start = range.GetProperty("start");
-        var end = range.GetProperty("end");
-        return new LspRange(
-            start.GetProperty("line").GetInt32(),
-            start.GetProperty("character").GetInt32(),
-            end.GetProperty("line").GetInt32(),
-            end.GetProperty("character").GetInt32());
-    }
-
-    private void ApplyWorkspaceEdits(Dictionary<string, List<(LspRange Range, string NewText)>> changes)
-    {
-        var prepared = new List<(OpenDocument Document, List<(int Start, int End, string Text)> Edits)>();
-        foreach (var (path, textEdits) in changes)
-        {
-            var document = ViewModel.OpenDocument(path);
-            if (document.IsReadOnly)
-                throw new InvalidOperationException($"Cannot apply an edit to read-only document '{path}'.");
-            var offsets = textEdits.Select(edit =>
-            {
-                var start = document.OffsetOf(edit.Range.StartLine, edit.Range.StartChar);
-                var end = document.OffsetOf(edit.Range.EndLine, edit.Range.EndChar);
-                return end < start ? throw new InvalidOperationException($"Rename returned an invalid range for '{path}'.") : (Start: start, End: end, Text: edit.NewText);
-            }).OrderByDescending(edit => edit.Start).ToList();
-
-            for (var index = 1; index < offsets.Count; index++)
-                if (offsets[index - 1].Start < offsets[index].End)
-                    throw new InvalidOperationException($"Rename returned overlapping edits for '{path}'.");
-
-            prepared.Add((document, offsets));
-        }
-
-        foreach (var (document, edits) in prepared)
-            foreach (var edit in edits)
-                document.Document.Replace(edit.Start, edit.End - edit.Start, edit.Text);
-
-        if (prepared.FirstOrDefault(item => ReferenceEquals(item.Document, _active)) is not
-            { Document: { } activeDocument, Edits.Count: > 0 } activeEdit) return;
-        {
-            Editor.CaretOffset = Math.Clamp(
-                activeEdit.Edits.Min(edit => edit.Start),
-                0,
-                activeDocument.Document.TextLength);
-            Editor.TextArea.Caret.BringCaretToView();
-            Editor.Focus();
-        }
-    }
-
-    private Task<bool> ApplyServerWorkspaceEditAsync(JsonElement workspaceEdit)
-        => Dispatcher.UIThread.InvokeAsync(() =>
-        {
-            try
-            {
-                var changes = ParseWorkspaceEdit(workspaceEdit);
-                if (changes.Count == 0)
-                    return false;
-                ApplyWorkspaceEdits(changes);
-                ViewModel.ShowStatusMessage("Applied language-server edits. Review and save modified documents.");
-                return true;
-            }
-            catch (Exception ex)
-            {
-                ViewModel.ShowStatusMessage($"Couldn't apply language-server edits: {ex.Message}");
-                return false;
-            }
-        }).GetTask();
-
-    private async Task<bool> ConfirmRenameAsync(
-        IReadOnlyDictionary<string, List<(LspRange Range, string NewText)>> changes)
-    {
-        var confirmed = false;
-        var dialog = new Window
-        {
-            Title = "Confirm Rename",
-            Width = 460,
-            SizeToContent = SizeToContent.Height,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        dialog.Content = new StackPanel
-        {
-            Margin = new Thickness(16),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock
-                {
-                    Text = $"Apply language-server rename edits in {changes.Count} file(s)? Changed files will be opened and left unsaved for review.",
-                    TextWrapping = TextWrapping.Wrap
-                },
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Children =
-                    {
-                        Make("Apply Rename", true),
-                        Make("Cancel", false)
-                    }
-                }
-            }
-        };
-        await dialog.ShowDialog(this);
-        return confirmed;
-
-        Button Make(string text, bool accept)
-        {
-            var button = new Button { Content = text, MinWidth = 90 };
-            button.Click += (_, _) =>
-            {
-                confirmed = accept;
-                dialog.Close();
-            };
-            return button;
-        }
-    }
-
-    private async Task<string?> PromptForTextAsync(string title, string placeholder)
-    {
-        string? value = null;
-        var textBox = new TextBox { PlaceholderText = placeholder, MinWidth = 360 };
-        var dialog = new Window
-        {
-            Title = title,
-            Width = 420,
-            SizeToContent = SizeToContent.Height,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        textBox.KeyDown += (_, args) =>
-        {
-            if (args.Key != Key.Enter) return;
-            args.Handled = true;
-            Accept();
-        };
-        var search = new Button { Content = "Search", MinWidth = 80 };
-        search.Click += (_, _) => Accept();
-        var cancel = new Button { Content = "Cancel", MinWidth = 80 };
-        cancel.Click += (_, _) => dialog.Close();
-        dialog.Content = new StackPanel
-        {
-            Margin = new Thickness(16),
-            Spacing = 12,
-            Children =
-            {
-                textBox,
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Children = { search, cancel }
-                }
-            }
-        };
-        dialog.Opened += (_, _) => textBox.Focus();
-        await dialog.ShowDialog(this);
-        return value;
-
-        void Accept()
-        {
-            value = textBox.Text;
-            dialog.Close();
         }
     }
 
@@ -1819,7 +1202,7 @@ public partial class MainWindow : Window
         e.Handled = true;
         await ViewModel.ReplaceWorkspaceCommand.ExecuteAsync(true);
     }
-    
+
     private void OnSearchResultClick(object? sender, RoutedEventArgs e)
     {
         if ((sender as Control)?.Tag is not WorkspaceSearchResult result)
@@ -1859,520 +1242,11 @@ public partial class MainWindow : Window
     private void OnDiagnosticsChanged(OpenDocument document)
     {
         if (!ReferenceEquals(document, _active)) return;
-        _codeActionMargin.SetDocument(document);
+        _codeActions.RefreshMargin(document);
         Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
         UpdateStatus();
     }
-
-    // ============================================================ hover tooltip
-
-    // Pointer moves are cheap: just note where it is and restart the debounce. The server
-    // is only asked once the pointer has rested for a moment.
-    private void OnEditorPointerMoved(object? sender, PointerEventArgs e)
-    {
-        if (_active is not { } doc || Editor.GetPositionFromPoint(e.GetPosition(Editor)) is not { } pos)
-        {
-            HideTip(resetOffset: true);
-            return;
-        }
-
-        var offset = doc.Document.GetOffset(pos.Location);
-
-        // Still over what the open tooltip is about: leave it alone.
-        if (_tipRange is { } range && offset >= range.Start && offset <= range.End) return;
-        if (offset == _hoverOffset) return;
-
-        _hoverOffset = offset;
-        HideTip();
-        _hoverTimer.Start();
-    }
-
-    private async void OnHoverTimer(object? sender, EventArgs e)
-    {
-        _hoverTimer.Stop();
-        if (_active is not { } doc || _hoverOffset < 0) return;
-
-        var offset = _hoverOffset;
-
-        // Diagnostics are local and instant; the server's hover text is added if it has any.
-        var segments = doc.Diagnostics.FindSegmentsContaining(offset).ToList();
-        var diagText = string.Join(Environment.NewLine, segments.Select(d => d.Message));
-        (int Start, int End)? range = segments.Count > 0 ? (segments[0].StartOffset, segments[0].EndOffset) : null;
-
-        if (segments.Count > 0 && doc.Client?.SupportsCodeActions == true)
-        {
-            var diagnosticHeader = string.Join(
-                Environment.NewLine,
-                segments.Select(segment => segment.Message).Distinct(StringComparer.Ordinal));
-            var lineNumber = doc.Document.GetLineByOffset(offset).LineNumber;
-            if (await ShowCodeActionsAsync(lineNumber, Editor, diagnosticHeader, showAtPointer: true))
-                return;
-            if (!ReferenceEquals(doc, _active) || offset != _hoverOffset)
-                return;
-        }
-
-        string? hoverText = null;
-        var hoverIsMarkdown = false;
-
-        if (doc.LanguageId == "axaml")
-        {
-            var cts = _hoverCts = new CancellationTokenSource();
-            try
-            {
-                hoverText = await ViewModel.GetXamlHoverAsync(doc.Path, doc.Document.Text, offset);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[AXAML hover] {ex}");
-            }
-
-            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(doc, _active))
-                return;
-        }
-        else if (doc is { Client: { } client, Sync: { } sync })
-        {
-            sync.Flush(); // the server has to see what's on screen
-
-            var cts = _hoverCts = new CancellationTokenSource();
-            var loc = doc.Document.GetLocation(offset);
-
-            try
-            {
-                var hover = await client.HoverAsync(doc.Uri, loc.Line - 1, loc.Column - 1, cts.Token);
-                if (hover is not null)
-                {
-                    hoverText = hover.Text;
-                    hoverIsMarkdown = hover.IsMarkdown;
-                    if (hover.Range is { } r)
-                        range = (doc.OffsetOf(r.StartLine, r.StartChar), doc.OffsetOf(r.EndLine, r.EndChar));
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[{doc.LanguageId} hover] {ex}");
-            }
-
-            // The pointer moved on, or the tab changed, while we were waiting.
-            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(doc, _active))
-                return;
-        }
-
-        ShowTip(diagText, hoverText, hoverIsMarkdown, range ?? (offset, offset));
-    }
-
-    private void ShowTip(string diagnostics, string? hover, bool hoverIsMarkdown, (int Start, int End) range)
-    {
-        var panel = new StackPanel { Spacing = 8, MaxWidth = 520 };
-
-        if (diagnostics.Length > 0)
-            panel.Children.Add(new TextBlock
-            {
-                Text = diagnostics,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.Salmon
-            });
-
-        if (!string.IsNullOrEmpty(hover))
-        {
-            Control hoverContent;
-            if (_active?.LanguageId == "axaml")
-            {
-                hoverContent = new TextBlock
-                {
-                    Text = hoverIsMarkdown ? MarkdownContentRenderer.ToPlainText(hover) : hover,
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 520,
-                    Foreground = Brushes.Gainsboro
-                };
-            }
-            else if (hoverIsMarkdown)
-            {
-                var renderedMarkdown = MarkdownContentRenderer.Render(hover);
-                if (renderedMarkdown is Panel { Children.Count: 0 })
-                {
-                    Debug.WriteLine($"[{_active?.LanguageId} hover] Markdown contained no renderable blocks.");
-                    hoverContent = new TextBlock
-                    {
-                        Text = hover,
-                        TextWrapping = TextWrapping.Wrap,
-                        Foreground = Brushes.Gainsboro
-                    };
-                }
-                else
-                    hoverContent = renderedMarkdown;
-            }
-            else
-                hoverContent = new TextBlock
-                {
-                    Text = hover,
-                    TextWrapping = TextWrapping.Wrap,
-                    Foreground = Brushes.Gainsboro
-                };
-
-            panel.Children.Add(hoverContent);
-        }
-
-        if (panel.Children.Count == 0) return;
-
-        var background = new SolidColorBrush(Color.Parse("#2b2b2b"));
-        var tooltipContent = new Border
-        {
-            Background = background,
-            BorderBrush = new SolidColorBrush(Color.Parse("#555555")),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(10),
-            Child = new ScrollViewer
-            {
-                MaxWidth = 536,
-                MaxHeight = 420,
-                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                Content = panel
-            }
-        };
-
-        ToolTip.SetTip(Editor, tooltipContent);
-        ToolTip.SetPlacement(Editor, PlacementMode.Pointer);
-        ToolTip.SetIsOpen(Editor, true);
-
-        _tipOpen = true;
-        _tipRange = range;
-    }
-
-    private void HideTip(bool resetOffset = false)
-    {
-        _hoverTimer.Stop();
-        _hoverCts?.Cancel(); // abandons an in-flight hover request (and tells the server)
-        if (resetOffset) _hoverOffset = -1;
-
-        if (!_tipOpen) return;
-
-        ToolTip.SetIsOpen(Editor, false);
-        ToolTip.SetTip(Editor, null);
-        _tipOpen = false;
-        _tipRange = null;
-    }
-
-    // ============================================================== completion
-
-    private static bool IsNameStart(char c) => char.IsLetter(c) || c == '_';
-
-    // Characters that are part of an AXAML name (Grid.Row, x:Name, local-thing).
-    private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or '.' or ':' or '-';
-
-    private static int WordStart(TextDocument doc, int offset)
-    {
-        while (offset > 0 && IsNameChar(doc.GetCharAt(offset - 1))) offset--;
-        return offset;
-    }
-
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
-
-    private void OnOccurrenceDocumentChanged(object? sender, DocumentChangeEventArgs e)
-        => UpdateOccurrenceHighlights();
-
-    private void UpdateOccurrenceHighlights()
-    {
-        var selection = Editor.TextArea.Selection;
-        var selectedText = selection.IsEmpty
-            ? null
-            : Editor.SelectedText;
-
-        _occurrenceRenderer.Update(_active?.Document, selectedText);
-        Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
-    }
-
-    // Typing something that isn't part of a name (=, space, >, ...) commits the selected item.
-    private void OnTextEntering(object? sender, TextInputEventArgs e)
-    {
-        if (_completionWindow is { } window && !string.IsNullOrEmpty(e.Text) && !IsNameChar(e.Text[0]))
-            window.CompletionList.RequestInsertion(e);
-    }
-
-    private void OnTextEntered(object? sender, TextInputEventArgs e)
-    {
-        HideTip(resetOffset: true);
-
-        if (e.Text == ")")
-        {
-            CloseSignatureInsight();
-            return;
-        }
-
-        if (_active is not { } doc || string.IsNullOrEmpty(e.Text))
-            return;
-
-        if (doc.LanguageId == "axaml" && e.Text == ">")
-            TryInsertXamlClosingTag(doc.Document);
-        else if (doc.LanguageId == "csharp" && e.Text == "{")
-            TryInsertClosingBrace(doc.Document);
-
-        var client = doc.Client;
-        var xamlTrigger = doc.LanguageId == "axaml"
-            && (IsNameStart(e.Text[0]) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
-
-        if (doc.LanguageId == "axaml" && _completionWindow is null
-            && (xamlTrigger || client?.CompletionTriggerCharacters.Contains(e.Text) == true))
-            _ = ShowCompletionAsync(doc, triggerChar: e.Text);
-        else if (client is not null && doc.Sync is not null
-                 && client.CompletionTriggerCharacters.Contains(e.Text))
-            _ = ShowCompletionAsync(doc, triggerChar: e.Text);
-        else if (client is not null && doc.Sync is not null
-                 && _completionWindow is null && IsNameStart(e.Text[0]))
-            _ = ShowCompletionAsync(doc, triggerChar: null);
-
-        if (client is null || doc.Sync is null)
-            return;
-
-        if (client.SignatureHelpTriggerCharacters.Contains(e.Text))
-        {
-            _ = RequestSignatureHelpAsync(doc, e.Text);
-        }
-        else if (client.SignatureHelpRetriggerCharacters.Contains(e.Text))
-        {
-            _ = RequestSignatureHelpAsync(doc, e.Text, isRetrigger: true);
-        }
-        else if (e.Text == "(")
-        {
-            _ = RequestSignatureHelpAsync(doc, triggerCharacter: null);
-        }
-        else if (e.Text == "," && _insightWindow?.IsVisible == true)
-        {
-            _ = RequestSignatureHelpAsync(doc, e.Text, isRetrigger: true);
-        }
-        else if (_insightWindow?.IsVisible == true)
-        {
-            _ = RequestSignatureHelpAsync(doc, triggerCharacter: null, isRetrigger: true);
-        }
-    }
-
-    private void TryInsertXamlClosingTag(TextDocument document)
-    {
-        var caret = Editor.CaretOffset;
-        if (caret < 2 || document.GetCharAt(caret - 1) != '>')
-            return;
-
-        var textBeforeDelimiter = document.Text.AsMemory(0, caret - 1);
-        var parser = XmlParser.Parse(textBeforeDelimiter);
-        if (parser.IsInClosingTag
-            || parser.TagName is not { Length: > 0 } tagName
-            || parser.State is not (XmlParser.ParserState.StartElement
-                or XmlParser.ParserState.InsideElement
-                or XmlParser.ParserState.StartAttribute
-                or XmlParser.ParserState.BeforeAttributeValue
-                or XmlParser.ParserState.AttributeValue
-                or XmlParser.ParserState.AfterAttributeValue))
-            return;
-
-        var charBeforeEnd = caret - 2;
-        while (charBeforeEnd >= 0 && char.IsWhiteSpace(document.GetCharAt(charBeforeEnd)))
-            charBeforeEnd--;
-        if (charBeforeEnd >= 0 && document.GetCharAt(charBeforeEnd) == '/')
-            return;
-
-        var closingTag = $"</{tagName}>";
-        var afterEnd = caret;
-        while (afterEnd < document.TextLength && char.IsWhiteSpace(document.GetCharAt(afterEnd)))
-            afterEnd++;
-        if (document.Text.AsSpan(afterEnd).StartsWith(closingTag, StringComparison.Ordinal))
-            return;
-
-        document.Insert(caret, closingTag);
-        Editor.CaretOffset = caret;
-    }
-
-    private void TryInsertClosingBrace(TextDocument document)
-    {
-        var caret = Editor.CaretOffset;
-        if (caret < document.TextLength && document.GetCharAt(caret) == '}')
-            return;
-
-        document.Insert(caret, "}");
-        Editor.CaretOffset = caret;
-    }
-
-    private async Task ShowCompletionAsync(OpenDocument doc, string? triggerChar)
-    {
-        var seq = ++_completionSeq;
-        var caret = Editor.CaretOffset;
-
-        if (doc.LanguageId == "axaml")
-        {
-            var requestedText = doc.Document.Text;
-            try
-            {
-                var result = await ViewModel.GetXamlCompletionsAsync(doc.Path, requestedText, caret);
-                if (result is { Completions.Count: > 0 }
-                    && seq == _completionSeq
-                    && ReferenceEquals(doc, _active)
-                    && Editor.CaretOffset == caret
-                    && doc.Document.Text == requestedText)
-                {
-                    var engineStart = Math.Clamp((int)result.StartPosition, 0, caret);
-                    var engineWindow = new CompletionWindow(Editor.TextArea) { StartOffset = engineStart };
-                    foreach (var completion in result.Completions)
-                    {
-                        Action? retrigger = completion.TriggerCompletionAfterInsert
-                            ? () => Dispatcher.UIThread.Post(() =>
-                            {
-                                if (ReferenceEquals(doc, _active))
-                                    _ = ShowCompletionAsync(doc, triggerChar: null);
-                            })
-                            : null;
-                        engineWindow.CompletionList.CompletionData.Add(
-                            new XamlEngineCompletionData(completion, retrigger));
-                    }
-
-                    ShowCompletionWindow(engineWindow, doc.Document, engineStart, caret);
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[AXAML completion] {ex}");
-                ViewModel.ShowStatusMessage($"AXAML completion unavailable: {ex.Message}");
-            }
-        }
-
-        if (doc.Client is not { } client || doc.Sync is null) return;
-
-        doc.Sync.Flush(); // the server has to see what's on screen
-        var loc = doc.Document.GetLocation(caret);
-        IReadOnlyList<LspCompletionItem> items;
-        try
-        {
-            items = await client.CompletionAsync(doc.Uri, loc.Line - 1, loc.Column - 1, triggerChar);
-        }
-        catch (Exception)
-        {
-            return; // server error or exited: just no popup
-        }
-
-        // Nothing to show, a newer request superseded this one, the tab changed, or the caret went backwards.
-        if (items.Count == 0 || seq != _completionSeq
-                             || !ReferenceEquals(doc, _active) || Editor.CaretOffset < caret)
-            return;
-
-        // The server knows where the word being completed starts; otherwise walk back over name characters.
-        var start = items[0].Edit is { } first
-            ? doc.OffsetOf(first.Range.StartLine, first.Range.StartChar)
-            : WordStart(doc.Document, caret);
-        start = Math.Min(start, caret);
-
-        var window = new CompletionWindow(Editor.TextArea) { StartOffset = start };
-
-        var rank = 0;
-        foreach (var item in items.OrderBy(i => i.SortText ?? i.Label, StringComparer.Ordinal))
-        {
-            var editStart = item.Edit is { } edit
-                ? doc.OffsetOf(edit.Range.StartLine, edit.Range.StartChar)
-                : start;
-            window.CompletionList.CompletionData.Add(new LspCompletionData(item, editStart, priority: -rank++));
-        }
-
-        ShowCompletionWindow(window, doc.Document, start, caret);
-    }
-
-    private void ShowCompletionWindow(CompletionWindow window, TextDocument document, int start, int caret)
-    {
-        _completionWindow?.Close();
-        HideTip(resetOffset: true);
-
-        window.Closed += (_, _) =>
-        {
-            if (ReferenceEquals(_completionWindow, window)) _completionWindow = null;
-        };
-
-        _completionWindow = window;
-        window.Show();
-
-        // Anything already typed after the word start becomes the initial filter.
-        if (caret > start)
-            window.CompletionList.SelectItem(document.GetText(start, caret - start));
-    }
-
-    private async Task RequestSignatureHelpAsync(OpenDocument doc, string? triggerCharacter, bool isRetrigger = false)
-    {
-        if (!ReferenceEquals(doc, _active) || doc.Client is not { } client || doc.Sync is null)
-            return;
-
-        doc.Sync.Flush();
-        var requestId = ++_signatureHelpSequence;
-        _signatureHelpCts?.Cancel();
-        var cancellation = _signatureHelpCts = new CancellationTokenSource();
-        var location = doc.Document.GetLocation(Editor.CaretOffset);
-
-        try
-        {
-            var help = await client.SignatureHelpAsync(
-                doc.Uri,
-                location.Line - 1,
-                location.Column - 1,
-                triggerCharacter,
-                isRetrigger,
-                cancellation.Token);
-
-            if (cancellation.IsCancellationRequested
-                || requestId != _signatureHelpSequence
-                || !ReferenceEquals(doc, _active))
-                return;
-
-            if (help is null)
-            {
-                CloseSignatureInsight();
-                return;
-            }
-
-            var items = help.Signatures.Select(signature =>
-            {
-                var activeParameter = help.ActiveParameter ?? signature.ActiveParameter;
-                var contentParts = new List<string>();
-                if (signature.Documentation is { Length: > 0 } documentation)
-                    contentParts.Add(documentation);
-
-                if (activeParameter is not ({ } parameterIndex and >= 0)
-                    || parameterIndex >= signature.Parameters.Count)
-                    return new SignatureInsightItem(
-                        signature.Label,
-                        string.Join(Environment.NewLine + Environment.NewLine, contentParts));
-                var parameter = signature.Parameters[parameterIndex];
-                var parameterText = $"Active parameter: {parameter.Label}";
-                if (!string.IsNullOrWhiteSpace(parameter.Documentation))
-                    parameterText += Environment.NewLine + parameter.Documentation;
-                contentParts.Add(parameterText);
-
-                return new SignatureInsightItem(
-                    signature.Label,
-                    string.Join(Environment.NewLine + Environment.NewLine, contentParts));
-            }).ToArray();
-
-            ShowSignatureInsight(items, help.ActiveSignature);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Signature help failed: {ex}");
-            if (requestId == _signatureHelpSequence)
-                CloseSignatureInsight();
-        }
-        finally
-        {
-            if (ReferenceEquals(_signatureHelpCts, cancellation))
-                _signatureHelpCts = null;
-            cancellation.Dispose();
-        }
-    }
 
     // ============================================================== status bar
 
@@ -2384,60 +1258,10 @@ public partial class MainWindow : Window
         DiagStatus.Text = _active is null ? "" : $"{_active.ErrorCount} errors, {_active.WarningCount} warnings";
     }
 
-    private void ConfigureFolding(OpenDocument? doc)
-    {
-        if (_foldingCaretMargin is not null)
-        {
-            Editor.TextArea.LeftMargins.Remove(_foldingCaretMargin);
-            _foldingCaretMargin = null;
-        }
 
-        // Remove folding from the previously active document.
-        if (_foldingManager is not null)
-        {
-            FoldingManager.Uninstall(_foldingManager);
-            _foldingManager = null;
-        }
-
-        if (doc is null || !IsFoldableFile(doc.Path))
-            return;
-
-        _foldingManager = FoldingManager.Install(Editor.TextArea);
-        var defaultMargin = Editor.TextArea.LeftMargins.OfType<FoldingMargin>().FirstOrDefault();
-        if (defaultMargin is not null)
-            Editor.TextArea.LeftMargins.Remove(defaultMargin);
-        _foldingCaretMargin = new FoldingCaretMargin(_foldingManager);
-        Editor.TextArea.LeftMargins.Add(_foldingCaretMargin);
-
-        UpdateFolding(doc);
-    }
-
-    private void UpdateFolding(OpenDocument doc)
-    {
-        if (!ReferenceEquals(doc, _active) || _foldingManager is null)
-            return;
-
-        if (doc.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
-        {
-            new XmlFoldingStrategy().UpdateFoldings(_foldingManager, doc.Document);
-        }
-        else
-        {
-            _foldingManager.UpdateFoldings(CSharpFoldingStrategy.CreateFoldings(doc.Document), -1);
-        }
-
-        _foldingCaretMargin?.InvalidateVisual();
-    }
-
-    private static bool IsFoldableFile(string path)
-        => path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase)
-           || path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
-
-    private void OnActiveDocumentChanged(object? sender, DocumentChangeEventArgs e)
+    private void OnActiveDocumentChanged()
     {
         if (_active is not { } doc) return;
-        _foldingTimer.Stop();
-        _foldingTimer.Start();
         if (doc.LanguageId == "csharp")
             QueueOutlineUpdate();
         if (!doc.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase)) return;
@@ -2445,35 +1269,6 @@ public partial class MainWindow : Window
         _previewUpdateTimer.Start();
     }
 
-    private void ShowSignatureInsight(IReadOnlyList<SignatureInsightItem> items, int activeSignature = 0)
-    {
-        if (items.Count == 0)
-        {
-            CloseSignatureInsight();
-            return;
-        }
-
-        if (_insightWindow is null)
-        {
-            _insightWindow = new OverloadInsightWindow(Editor.TextArea);
-            _insightWindow.Closed += (_, _) => _insightWindow = null;
-        }
-
-        _insightWindow.Provider = new SignatureOverloadProvider(
-            items,
-            Math.Clamp(activeSignature, 0, items.Count - 1));
-
-        if (!_insightWindow.IsVisible)
-            _insightWindow.Show();
-    }
-
-    private void CloseSignatureInsight()
-    {
-        _signatureHelpSequence++;
-        _signatureHelpCts?.Cancel();
-        _insightWindow?.Close();
-        _insightWindow = null;
-    }
 
     private void TextMateInstallationOnAppliedTheme(object? sender, TextMate.Installation e)
     {

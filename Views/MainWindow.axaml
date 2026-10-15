@@ -293,6 +293,7 @@
                         <edit:TextEditor
                             FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
                             FontSize="13"
+                            LineNumbersMargin="10,0"
                             FontWeight="Light"
                             Grid.Column="0"
                             HorizontalScrollBarVisibility="Auto"

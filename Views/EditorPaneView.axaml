@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d"
@@ -56,4 +56,4 @@
             </Style>
         </edit:TextEditor.Styles>
     </edit:TextEditor>
-</UserControl>
+    </UserControl>

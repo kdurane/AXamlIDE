@@ -7,3 +7,18 @@
 /projectSettingsUpdater.xml
 /.idea.AXaxmlIDE.iml
 /*.dll
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+
+# User-specific files
+*.user
+*.suo
+
+# Build and test artefacts
+TestResults/
+artifacts/
