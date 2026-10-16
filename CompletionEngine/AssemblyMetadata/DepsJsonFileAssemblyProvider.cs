@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace AXaxmlIDE.CompletionEngine.AssemblyMetadata
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata
 {
     public class DepsJsonFileAssemblyProvider : IAssemblyProvider
     {
@@ -27,8 +27,8 @@ namespace AXaxmlIDE.CompletionEngine.AssemblyMetadata
 
             var depsPath = Path.Combine(directory,
                 Path.GetFileNameWithoutExtension(path) + ".deps.json");
-            return File.Exists(depsPath) 
-                ? DepsJsonAssemblyListLoader.ParseFile(depsPath) 
+            return File.Exists(depsPath)
+                ? DepsJsonAssemblyListLoader.ParseFile(depsPath)
                 : Directory.GetFiles(directory).Where(f => f.EndsWith(".dll") || f.EndsWith(".exe"));
         }
 

@@ -1,7 +1,8 @@
-﻿namespace AXaxmlIDE.CompletionEngine.Manipulation;
-
-public enum ManipulationType
+﻿namespace AXamlIDE.CompletionEngine.Manipulation
 {
-    Insert,
-    Delete
+    public enum ManipulationType
+    {
+        Insert,
+        Delete
+    }
 }

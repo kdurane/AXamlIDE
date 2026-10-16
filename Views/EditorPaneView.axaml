@@ -1,16 +1,16 @@
 <UserControl
-    x:Class="AXaxmlIDE.Views.EditorPaneView"
+    x:Class="AXamlIDE.Views.EditorPaneView"
     x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:edit="using:AvaloniaEdit"
     xmlns:editing="using:AvaloniaEdit.Editing"
-    xmlns:vm="using:AXaxmlIDE.ViewModels"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-        Moved verbatim from MainWindow.axaml (the edit:TextEditor named "Editor").
-        DataContext is inherited from MainWindow (MainWindowViewModel), so the context-menu
-        command bindings are unchanged. That coupling goes away when the view model is split.
+    Moved verbatim from MainWindow.axaml (the edit:TextEditor named "Editor").
+    DataContext is inherited from MainWindow (MainWindowViewModel), so the context-menu
+    command bindings are unchanged. That coupling goes away when the view model is split.
     -->
     <edit:TextEditor
         FontFamily="Cascadia Code,Consolas,Menlo,Monospace"

@@ -1,17 +1,18 @@
 using Avalonia.Controls;
-using AXaxmlIDE.ViewModels;
+using AXamlIDE.ViewModels;
 
-namespace AXaxmlIDE.Views;
-
-public partial class SettingsWindow : Window
+namespace AXamlIDE.Views
 {
-    public SettingsWindow()
+    public partial class SettingsWindow : Window
     {
-        InitializeComponent();
-    }
+        public SettingsWindow()
+        {
+            InitializeComponent();
+        }
 
-    public SettingsWindow(SettingsViewModel viewModel) : this()
-    {
-        DataContext = viewModel;
+        public SettingsWindow(SettingsViewModel viewModel) : this()
+        {
+            DataContext = viewModel;
+        }
     }
 }

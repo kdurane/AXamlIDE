@@ -1,16 +1,16 @@
 <UserControl
-    x:Class="AXaxmlIDE.Views.PreviewPaneView"
+    x:Class="AXamlIDE.Views.PreviewPaneView"
     x:DataType="vm:PreviewPaneViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:controls="using:AXaxmlIDE.Controls"
-    xmlns:vm="using:AXaxmlIDE.ViewModels"
+    xmlns:controls="using:AXamlIDE.Controls"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
         Moved verbatim from MainWindow.axaml (the Grid named "PreviewPane").
         Only changes: the message TextBlock/Border now bind to the view model instead of
         being poked from code-behind. If your MainWindow.axaml maps the "controls" prefix
-        to a different namespace than AXaxmlIDE.Controls, copy that mapping here.
+        to a different namespace than AXamlIDE.Controls, copy that mapping here.
     -->
     <Grid RowDefinitions="Auto,*">
         <Border

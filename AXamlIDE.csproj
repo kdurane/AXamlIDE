@@ -9,13 +9,11 @@
     <ItemGroup>
         <Compile Remove="tests/**/*.cs" />
         <Compile Remove="Projects/**/*.cs" />
-        <ProjectReference Include="Projects/AXaxmlIDE.msbuildhost/AXaxmlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
-<!--        <ProjectReference Include="Projects/CompletionEngine/AXaxmlIDE.CompletionEngine/AXaxmlIDE.CompletionEngine.csproj" />-->
-<!--        <ProjectReference Include="Projects/CompletionEngine/AXaxmlIDE.CompletionEngine.DnlibMetadataProvider/AXaxmlIDE.CompletionEngine.DnlibMetadataProvider.csproj" />-->
+        <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
     </ItemGroup>
     <Target Name="CopyMsBuildHost" AfterTargets="Build">
         <ItemGroup>
-            <HostFiles Include="Projects/AXaxmlIDE.msbuildhost/bin/$(Configuration)/$(TargetFramework)/**/*.*" />
+            <HostFiles Include="Projects/AXamlIDE.msbuildhost/bin/$(Configuration)/$(TargetFramework)/**/*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(HostFiles)" DestinationFiles="@(HostFiles->'$(OutDir)msbuildhost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     </Target>

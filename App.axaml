@@ -1,8 +1,8 @@
 <Application
     RequestedThemeVariant="Dark"
-    x:Class="AXaxmlIDE.App"
+    x:Class="AXamlIDE.App"
     xmlns="https://github.com/avaloniaui"
-    xmlns:local="using:AXaxmlIDE"
+    xmlns:local="using:AXamlIDE"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--  "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options.  -->
 

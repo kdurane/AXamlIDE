@@ -6,10 +6,10 @@
     Width="560"
     Background="{DynamicResource ThemeBackgroundBrush}"
     WindowStartupLocation="CenterOwner"
-    x:Class="AXaxmlIDE.Views.SettingsWindow"
+    x:Class="AXamlIDE.Views.SettingsWindow"
     x:DataType="vm:SettingsViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:vm="clr-namespace:AXaxmlIDE.ViewModels"
+    xmlns:vm="clr-namespace:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid Margin="20" RowDefinitions="Auto,*">

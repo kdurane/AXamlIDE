@@ -10,550 +10,551 @@ using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.TextMate;
-using AXaxmlIDE.Enums;
-using AXaxmlIDE.Models;
-using AXaxmlIDE.Services;
-using AXaxmlIDE.ViewModels;
+using AXamlIDE.Enums;
+using AXamlIDE.Models;
+using AXamlIDE.Services;
+using AXamlIDE.ViewModels;
 using TextMateSharp.Grammars;
-using static AXaxmlIDE.EditorFeatures.TextMateController;
+using static AXamlIDE.EditorFeatures.TextMateController;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
 
-namespace AXaxmlIDE.Views;
-
-public partial class MainWindow : Window
+namespace AXamlIDE.Views
 {
-    private readonly DispatcherTimer _outlineTimer =
-        new() { Interval = TimeSpan.FromMilliseconds(300) };
-    private readonly PreviewPaneViewModel _preview;
-    private OpenDocument? _active;
-    private bool _treeOnRight;
-    private bool _explorerVisible = true;
-    private readonly DialogService _dialogs;
-
-    public MainWindow()
+    public partial class MainWindow : Window
     {
-        InitializeComponent();
+        private readonly DispatcherTimer _outlineTimer =
+            new() { Interval = TimeSpan.FromMilliseconds(300) };
+        private readonly PreviewPaneViewModel _preview;
+        private OpenDocument? _active;
+        private bool _treeOnRight;
+        private bool _explorerVisible = true;
+        private readonly DialogService _dialogs;
 
-        _dialogs = new DialogService(this);
-
-        var settingsStore = new EditorSettingsStore();
-        var settingsLoad = settingsStore.Load();
-        var settings = settingsLoad.Settings;
-        var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
-        var settingsVm = new SettingsViewModel(settings, settingsStore);
-        var workspace = new WorkspaceModel();
-        var xaml = new XamlLanguageService(workspace);
-
-        EditorPane.Initialize(registryOptions, () => ViewModel, _dialogs, doc => DocTabs.SelectedItem = doc, xaml, settingsVm);
-        EditorPane.ThemeApplied += ApplyThemeColorsToWindow;
-        EditorPane.StatusChanged += UpdateStatus;
-        EditorPane.Context.TextChanged += _ => OnActiveDocumentChanged();
-
-        _preview = new PreviewPaneViewModel(xaml.GetPreviewTargetAsync);
-        PreviewPane.DataContext = _preview;
-
-        // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
-        FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
-        FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
-        FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
-
-        var viewModel = new MainWindowViewModel(settingsVm, StorageProvider, this, workspace, xaml);
-        EditorPane.TextMateInstallation.SetTheme(settingsVm.SelectedTheme.Load(registryOptions));
-        DataContext = viewModel;
-
-        settingsVm.ThemeChanged += theme => EditorPane.TextMateInstallation.SetTheme(theme.Load(registryOptions));
-        settingsVm.EditorSettingsChanged += EditorPane.ApplyEditorSettings;
-        settingsVm.SolutionExplorerSideChanged += ApplySolutionExplorerSide;
-        settingsVm.StatusMessageChanged += viewModel.ShowStatusMessage;
-        viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
-        viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
-        viewModel.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
-        viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
-
-        EditorPane.ApplyEditorSettings();
-        ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
-
-        if (settingsLoad.Warnings.Count > 0)
-            viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
-
-        _outlineTimer.Tick += OnOutlineTimer;
-        viewModel.DocumentLanguageClientAttached += OnDocumentLanguageClientAttached;
-
-        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
-
-        Closed += (_, _) =>
+        public MainWindow()
         {
-            _outlineTimer.Stop();
-            _preview.Dispose();
-            EditorPane.Shutdown();
-            viewModel.Dispose();
-            EditorPane.TextMateInstallation.Dispose();
-        };
+            InitializeComponent();
 
-        UpdateStatus();
-    }
+            _dialogs = new DialogService(this);
 
-    // ================================================================== tree
+            var settingsStore = new EditorSettingsStore();
+            var settingsLoad = settingsStore.Load();
+            var settings = settingsLoad.Settings;
+            var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
+            var settingsVm = new SettingsViewModel(settings, settingsStore);
+            var workspace = new WorkspaceModel();
+            var xaml = new XamlLanguageService(workspace);
 
-    private async void OnNodeExpanded(object? sender, RoutedEventArgs e)
-    {
-        if (e.Source is not TreeViewItem { DataContext: ProjectTreeNode { NeedsPopulating: true } node })
-            return;
+            EditorPane.Initialize(registryOptions, () => ViewModel, _dialogs, doc => DocTabs.SelectedItem = doc, xaml, settingsVm);
+            EditorPane.ThemeApplied += ApplyThemeColorsToWindow;
+            EditorPane.StatusChanged += UpdateStatus;
+            EditorPane.Context.TextChanged += _ => OnActiveDocumentChanged();
 
-        await node.PopulateAsync();
-    }
+            _preview = new PreviewPaneViewModel(xaml.GetPreviewTargetAsync);
+            PreviewPane.DataContext = _preview;
 
-    private void OnTreeDoubleTapped(object? sender, TappedEventArgs e)
-    {
-        var item = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
+            // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
+            FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
+            FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+            FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
 
-        var node = item?.DataContext as ProjectTreeNode
-                   ?? FileTree.SelectedItem as ProjectTreeNode;
-        if (node is not { Kind: NodeKind.File }
-            || string.IsNullOrEmpty(node.FullPath))
-            return;
+            var viewModel = new MainWindowViewModel(settingsVm, StorageProvider, this, workspace, xaml);
+            EditorPane.TextMateInstallation.SetTheme(settingsVm.SelectedTheme.Load(registryOptions));
+            DataContext = viewModel;
 
-        e.Handled = true;
-        if (node.Children.Count > 0 && item != null)
-        {
-            item.IsExpanded = true;
-            node.IsExpanded = true;
-        }
+            settingsVm.ThemeChanged += theme => EditorPane.TextMateInstallation.SetTheme(theme.Load(registryOptions));
+            settingsVm.EditorSettingsChanged += EditorPane.ApplyEditorSettings;
+            settingsVm.SolutionExplorerSideChanged += ApplySolutionExplorerSide;
+            settingsVm.StatusMessageChanged += viewModel.ShowStatusMessage;
+            viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
+            viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
+            viewModel.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
+            viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
 
-        try
-        {
-            DocTabs.SelectedItem = ViewModel.OpenDocument(node.FullPath);
-        }
-        catch (Exception ex)
-        {
-            ViewModel.ShowStatusMessage($"Couldn't open '{node.FullPath}': {ex.Message}");
-        }
-    }
+            EditorPane.ApplyEditorSettings();
+            ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
 
-    private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
-        => await EditorPane.CodeActions.ShowCodeActionsAsync(anchor: EditorPane.EditorControl);
+            if (settingsLoad.Warnings.Count > 0)
+                viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
 
-    private void OnFileTreePointerPressed(object? sender, PointerPressedEventArgs e)
-    {
-        var point = e.GetCurrentPoint(FileTree);
-        if (!point.Properties.IsRightButtonPressed)
-            return;
+            _outlineTimer.Tick += OnOutlineTimer;
+            viewModel.DocumentLanguageClientAttached += OnDocumentLanguageClientAttached;
 
-        var control = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
-        if (control is not { DataContext: ProjectTreeNode node })
-            return;
+            AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
-        control.IsSelected = true;
-        var menu = new ContextMenu();
-        if (node.Kind == NodeKind.File)
-            menu.Items.Add(CreateTreeMenuItem("Open", () => OpenTreeFile(node)));
-        if (!string.IsNullOrEmpty(node.FullPath))
-            menu.Items.Add(CreateTreeMenuItem("Copy Path", () => CopyTreePathAsync(node)));
-        if (node.Kind is NodeKind.Directory or NodeKind.Solution or NodeKind.Project or NodeKind.Folder)
-            menu.Items.Add(CreateTreeMenuItem("Refresh", () => RefreshTreeNodeAsync(node)));
-        if (node.Kind == NodeKind.Project
-            || node.Kind == NodeKind.File && node.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-        {
-            menu.Items.Add(new Separator());
-            menu.Items.Add(new MenuItem
+            Closed += (_, _) =>
             {
-                Header = "Build",
-                Command = ViewModel.BuildProjectCommand,
-                CommandParameter = node
-            });
-            menu.Items.Add(new MenuItem
-            {
-                Header = "Run",
-                Command = ViewModel.RunProjectCommand,
-                CommandParameter = node
-            });
-            menu.Items.Add(new MenuItem
-            {
-                Header = "Start Debugging",
-                Command = ViewModel.StartDebuggingCommand,
-                CommandParameter = node
-            });
-        }
+                _outlineTimer.Stop();
+                _preview.Dispose();
+                EditorPane.Shutdown();
+                viewModel.Dispose();
+                EditorPane.TextMateInstallation.Dispose();
+            };
 
-        if (menu.Items.Count == 0)
-            return;
-
-        control.ContextMenu = menu;
-        menu.Open(control);
-        e.Handled = true;
-    }
-
-    private MenuItem CreateTreeMenuItem(string header, Func<Task> action)
-    {
-        var item = new MenuItem { Header = header };
-        item.Click += async (_, _) => await action();
-        return item;
-    }
-
-    private Task OpenTreeFile(ProjectTreeNode node)
-    {
-        try
-        {
-            DocTabs.SelectedItem = ViewModel.OpenDocument(node.FullPath);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-        {
-            ViewModel.ShowStatusMessage($"Couldn't open '{node.FullPath}': {ex.Message}");
-        }
-        return Task.CompletedTask;
-    }
-
-    private async Task CopyTreePathAsync(ProjectTreeNode node)
-    {
-        try
-        {
-            var clipboard = GetTopLevel(this)?.Clipboard;
-            if (clipboard is null)
-                throw new InvalidOperationException("The clipboard is unavailable.");
-            var transfer = new DataTransfer();
-            transfer.Add(DataTransferItem.CreateText(node.FullPath));
-            await clipboard.SetDataAsync(transfer);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or IOException)
-        {
-            ViewModel.ShowStatusMessage($"Couldn't copy path: {ex.Message}");
-        }
-    }
-
-    private async Task RefreshTreeNodeAsync(ProjectTreeNode node)
-    {
-        try
-        {
-            if ((node.Kind is NodeKind.Directory or NodeKind.Solution)
-                && ReferenceEquals(node, ViewModel.WorkspaceRoots.FirstOrDefault()))
-                ViewModel.RefreshWorkspace();
-            else
-                await ViewModel.RefreshWorkspaceNodeAsync(node);
-        }
-        catch (Exception ex)
-        {
-            ViewModel.ShowStatusMessage($"Couldn't refresh '{node.Name}': {ex.Message}");
-        }
-    }
-
-    private void ApplySolutionExplorerSide(bool treeOnRight)
-    {
-        _treeOnRight = treeOnRight;
-        ContentGrid.ColumnDefinitions.Clear();
-        if (_treeOnRight)
-        {
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 4 : 0, GridUnitType.Pixel));
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 260 : 0, GridUnitType.Pixel));
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(30, GridUnitType.Pixel));
-
-            Grid.SetColumn(EditorHost, 0);
-            Grid.SetColumn(Splitter, 1);
-            Grid.SetColumn(ExplorerPane, 2);
-            Grid.SetColumn(ActivityBar, 3);
-        }
-        else
-        {
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(30, GridUnitType.Pixel));
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 260 : 0, GridUnitType.Pixel));
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 4 : 0, GridUnitType.Pixel));
-            ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-
-            Grid.SetColumn(ExplorerPane, 1);
-            Grid.SetColumn(Splitter, 2);
-            Grid.SetColumn(EditorHost, 3);
-            Grid.SetColumn(ActivityBar, 0);
-        }
-
-        ExplorerPane.IsVisible = _explorerVisible;
-        Splitter.IsVisible = _explorerVisible;
-        ActivityBar.IsVisible = true;
-    }
-
-    private void OnToggleExplorerClick(object? sender, RoutedEventArgs e)
-    {
-        _explorerVisible = !_explorerVisible;
-        ApplySolutionExplorerSide(_treeOnRight);
-    }
-
-
-    private void OnDocumentLanguageClientAttached(OpenDocument document)
-    {
-        if (ReferenceEquals(document, _active))
-            Dispatcher.UIThread.Post(QueueOutlineUpdate);
-    }
-
-    private void QueueOutlineUpdate()
-    {
-        _outlineTimer.Stop();
-        _outlineTimer.Start();
-    }
-
-    private void OnOutlineTimer(object? sender, EventArgs e)
-    {
-        _outlineTimer.Stop();
-        if (_active is { } document)
-            _ = ViewModel.UpdateDocumentOutlineAsync(document);
-        else
-            ViewModel.ClearDocumentOutline();
-    }
-
-
-    private void OnOutlineSelectionChanged(object? sender, SelectionChangedEventArgs e)
-        => EditorPane.Navigator.ToSelectedOutlineItem();
-
-    // ================================================================= tabs
-
-    private void OnTabSelectionChanged(object? sender, SelectionChangedEventArgs e)
-    {
-        _active = DocTabs.SelectedItem as OpenDocument;
-        ViewModel.ActiveDocument = _active;
-
-        EditorPane.SetDocument(_active);
-
-        ViewModel.ClearDocumentOutline();
-
-        if (_active is null)
-        {
-            _outlineTimer.Stop();
-            _preview.SetDocument(null);
             UpdateStatus();
-            return;
         }
 
-        QueueOutlineUpdate();
-        UpdatePreviewPaneVisibility(_active);
-        _preview.SetDocument(_active);
-        UpdateStatus();
-    }
+        // ================================================================== tree
 
-    private void UpdatePreviewPaneVisibility(OpenDocument? document)
-    {
-        var visible = document?.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase) == true;
-        DocumentSurface.ColumnDefinitions[1].Width = visible
-            ? new GridLength(4)
-            : new GridLength(0);
-        DocumentSurface.ColumnDefinitions[2].Width = visible
-            ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(0);
-        DocumentSurface.ColumnDefinitions[2].MinWidth = visible ? 280 : 0;
-        PreviewSplitter.IsVisible = visible;
-        PreviewPane.IsVisible = visible;
-    }
-
-    private void OnTabCloseClick(object? sender, RoutedEventArgs e)
-    {
-        if ((sender as Control)?.Tag is OpenDocument doc) TryClose(doc);
-    }
-
-    private void OnTabPointerReleased(object? sender, PointerReleasedEventArgs e)
-    {
-        if (e.InitialPressMouseButton == MouseButton.Middle
-            && (sender as Control)?.DataContext is OpenDocument doc)
-            TryClose(doc);
-    }
-
-    private async void TryClose(OpenDocument doc)
-    {
-        var index = ViewModel.Documents.IndexOf(doc);
-
-        if (doc.IsDirty)
+        private async void OnNodeExpanded(object? sender, RoutedEventArgs e)
         {
-            switch (await _dialogs.AskSaveAsync(doc))
+            if (e.Source is not TreeViewItem { DataContext: ProjectTreeNode { NeedsPopulating: true } node })
+                return;
+
+            await node.PopulateAsync();
+        }
+
+        private void OnTreeDoubleTapped(object? sender, TappedEventArgs e)
+        {
+            var item = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
+
+            var node = item?.DataContext as ProjectTreeNode
+                       ?? FileTree.SelectedItem as ProjectTreeNode;
+            if (node is not { Kind: NodeKind.File }
+                || string.IsNullOrEmpty(node.FullPath))
+                return;
+
+            e.Handled = true;
+            if (node.Children.Count > 0 && item != null)
             {
-                case SaveChoice.Cancel: return;
-                case SaveChoice.Save: await ViewModel.SaveDocumentAsync(doc); break;
+                item.IsExpanded = true;
+                node.IsExpanded = true;
+            }
+
+            try
+            {
+                DocTabs.SelectedItem = ViewModel.OpenDocument(node.FullPath);
+            }
+            catch (Exception ex)
+            {
+                ViewModel.ShowStatusMessage($"Couldn't open '{node.FullPath}': {ex.Message}");
             }
         }
 
-        ViewModel.CloseDocument(doc);
+        private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
+            => await EditorPane.CodeActions.ShowCodeActionsAsync(anchor: EditorPane.EditorControl);
 
-        if (ViewModel.Documents.Count > 0 && DocTabs.SelectedItem is null)
-            DocTabs.SelectedIndex = Math.Min(index, ViewModel.Documents.Count - 1);
-    }
-
-
-    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
-    {
-        switch (e)
+        private void OnFileTreePointerPressed(object? sender, PointerPressedEventArgs e)
         {
-            case { Key: Key.F8, KeyModifiers: KeyModifiers.None }:
-                ViewModel.NavigateDiagnosticCommand.Execute(true);
-                e.Handled = true;
+            var point = e.GetCurrentPoint(FileTree);
+            if (!point.Properties.IsRightButtonPressed)
                 return;
-            case { Key: Key.F8, KeyModifiers: KeyModifiers.Shift }:
-                ViewModel.NavigateDiagnosticCommand.Execute(false);
-                e.Handled = true;
+
+            var control = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
+            if (control is not { DataContext: ProjectTreeNode node })
                 return;
-            case { Key: Key.F12, KeyModifiers: KeyModifiers.None }:
-                _ = EditorPane.Navigation.GoToDefinitionAsync();
-                e.Handled = true;
-                return;
-            case { Key: Key.F12, KeyModifiers: KeyModifiers.Shift }:
-                _ = EditorPane.Navigation.FindReferencesAsync();
-                e.Handled = true;
-                return;
-            case { Key: Key.F, KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift) }:
-                ShowFindInFiles();
-                e.Handled = true;
-                return;
-            case { Key: Key.F5, KeyModifiers: KeyModifiers.None }:
-                ViewModel.StartDebuggingCommand.Execute(ViewModel.SelectedWorkspaceNode);
-                e.Handled = true;
-                return;
-            case { Key: Key.F5, KeyModifiers: KeyModifiers.Control }:
-                ViewModel.RunProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
-                e.Handled = true;
-                return;
-            case { Key: Key.F5, KeyModifiers: KeyModifiers.Shift }:
-                ViewModel.StopRunningProjectCommand.Execute(null);
-                e.Handled = true;
-                return;
-            case { Key: Key.B, KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift) }:
-                ViewModel.BuildProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
-                e.Handled = true;
-                return;
-            case { KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift), Key: Key.Space }:
+
+            control.IsSelected = true;
+            var menu = new ContextMenu();
+            if (node.Kind == NodeKind.File)
+                menu.Items.Add(CreateTreeMenuItem("Open", () => OpenTreeFile(node)));
+            if (!string.IsNullOrEmpty(node.FullPath))
+                menu.Items.Add(CreateTreeMenuItem("Copy Path", () => CopyTreePathAsync(node)));
+            if (node.Kind is NodeKind.Directory or NodeKind.Solution or NodeKind.Project or NodeKind.Folder)
+                menu.Items.Add(CreateTreeMenuItem("Refresh", () => RefreshTreeNodeAsync(node)));
+            if (node.Kind == NodeKind.Project
+                || node.Kind == NodeKind.File && node.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                menu.Items.Add(new Separator());
+                menu.Items.Add(new MenuItem
                 {
-                    if (_active is { } activeDocument)
-                        _ = EditorPane.SignatureHelp.RequestAsync(activeDocument, triggerCharacter: null);
+                    Header = "Build",
+                    Command = ViewModel.BuildProjectCommand,
+                    CommandParameter = node
+                });
+                menu.Items.Add(new MenuItem
+                {
+                    Header = "Run",
+                    Command = ViewModel.RunProjectCommand,
+                    CommandParameter = node
+                });
+                menu.Items.Add(new MenuItem
+                {
+                    Header = "Start Debugging",
+                    Command = ViewModel.StartDebuggingCommand,
+                    CommandParameter = node
+                });
+            }
+
+            if (menu.Items.Count == 0)
+                return;
+
+            control.ContextMenu = menu;
+            menu.Open(control);
+            e.Handled = true;
+        }
+
+        private MenuItem CreateTreeMenuItem(string header, Func<Task> action)
+        {
+            var item = new MenuItem { Header = header };
+            item.Click += async (_, _) => await action();
+            return item;
+        }
+
+        private Task OpenTreeFile(ProjectTreeNode node)
+        {
+            try
+            {
+                DocTabs.SelectedItem = ViewModel.OpenDocument(node.FullPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                ViewModel.ShowStatusMessage($"Couldn't open '{node.FullPath}': {ex.Message}");
+            }
+            return Task.CompletedTask;
+        }
+
+        private async Task CopyTreePathAsync(ProjectTreeNode node)
+        {
+            try
+            {
+                var clipboard = GetTopLevel(this)?.Clipboard;
+                if (clipboard is null)
+                    throw new InvalidOperationException("The clipboard is unavailable.");
+                var transfer = new DataTransfer();
+                transfer.Add(DataTransferItem.CreateText(node.FullPath));
+                await clipboard.SetDataAsync(transfer);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or IOException)
+            {
+                ViewModel.ShowStatusMessage($"Couldn't copy path: {ex.Message}");
+            }
+        }
+
+        private async Task RefreshTreeNodeAsync(ProjectTreeNode node)
+        {
+            try
+            {
+                if ((node.Kind is NodeKind.Directory or NodeKind.Solution)
+                    && ReferenceEquals(node, ViewModel.WorkspaceRoots.FirstOrDefault()))
+                    ViewModel.RefreshWorkspace();
+                else
+                    await ViewModel.RefreshWorkspaceNodeAsync(node);
+            }
+            catch (Exception ex)
+            {
+                ViewModel.ShowStatusMessage($"Couldn't refresh '{node.Name}': {ex.Message}");
+            }
+        }
+
+        private void ApplySolutionExplorerSide(bool treeOnRight)
+        {
+            _treeOnRight = treeOnRight;
+            ContentGrid.ColumnDefinitions.Clear();
+            if (_treeOnRight)
+            {
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 4 : 0, GridUnitType.Pixel));
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 260 : 0, GridUnitType.Pixel));
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(30, GridUnitType.Pixel));
+
+                Grid.SetColumn(EditorHost, 0);
+                Grid.SetColumn(Splitter, 1);
+                Grid.SetColumn(ExplorerPane, 2);
+                Grid.SetColumn(ActivityBar, 3);
+            }
+            else
+            {
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(30, GridUnitType.Pixel));
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 260 : 0, GridUnitType.Pixel));
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(_explorerVisible ? 4 : 0, GridUnitType.Pixel));
+                ContentGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+
+                Grid.SetColumn(ExplorerPane, 1);
+                Grid.SetColumn(Splitter, 2);
+                Grid.SetColumn(EditorHost, 3);
+                Grid.SetColumn(ActivityBar, 0);
+            }
+
+            ExplorerPane.IsVisible = _explorerVisible;
+            Splitter.IsVisible = _explorerVisible;
+            ActivityBar.IsVisible = true;
+        }
+
+        private void OnToggleExplorerClick(object? sender, RoutedEventArgs e)
+        {
+            _explorerVisible = !_explorerVisible;
+            ApplySolutionExplorerSide(_treeOnRight);
+        }
+
+
+        private void OnDocumentLanguageClientAttached(OpenDocument document)
+        {
+            if (ReferenceEquals(document, _active))
+                Dispatcher.UIThread.Post(QueueOutlineUpdate);
+        }
+
+        private void QueueOutlineUpdate()
+        {
+            _outlineTimer.Stop();
+            _outlineTimer.Start();
+        }
+
+        private void OnOutlineTimer(object? sender, EventArgs e)
+        {
+            _outlineTimer.Stop();
+            if (_active is { } document)
+                _ = ViewModel.UpdateDocumentOutlineAsync(document);
+            else
+                ViewModel.ClearDocumentOutline();
+        }
+
+
+        private void OnOutlineSelectionChanged(object? sender, SelectionChangedEventArgs e)
+            => EditorPane.Navigator.ToSelectedOutlineItem();
+
+        // ================================================================= tabs
+
+        private void OnTabSelectionChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            _active = DocTabs.SelectedItem as OpenDocument;
+            ViewModel.ActiveDocument = _active;
+
+            EditorPane.SetDocument(_active);
+
+            ViewModel.ClearDocumentOutline();
+
+            if (_active is null)
+            {
+                _outlineTimer.Stop();
+                _preview.SetDocument(null);
+                UpdateStatus();
+                return;
+            }
+
+            QueueOutlineUpdate();
+            UpdatePreviewPaneVisibility(_active);
+            _preview.SetDocument(_active);
+            UpdateStatus();
+        }
+
+        private void UpdatePreviewPaneVisibility(OpenDocument? document)
+        {
+            var visible = document?.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase) == true;
+            DocumentSurface.ColumnDefinitions[1].Width = visible
+                ? new GridLength(4)
+                : new GridLength(0);
+            DocumentSurface.ColumnDefinitions[2].Width = visible
+                ? new GridLength(1, GridUnitType.Star)
+                : new GridLength(0);
+            DocumentSurface.ColumnDefinitions[2].MinWidth = visible ? 280 : 0;
+            PreviewSplitter.IsVisible = visible;
+            PreviewPane.IsVisible = visible;
+        }
+
+        private void OnTabCloseClick(object? sender, RoutedEventArgs e)
+        {
+            if ((sender as Control)?.Tag is OpenDocument doc) TryClose(doc);
+        }
+
+        private void OnTabPointerReleased(object? sender, PointerReleasedEventArgs e)
+        {
+            if (e.InitialPressMouseButton == MouseButton.Middle
+                && (sender as Control)?.DataContext is OpenDocument doc)
+                TryClose(doc);
+        }
+
+        private async void TryClose(OpenDocument doc)
+        {
+            var index = ViewModel.Documents.IndexOf(doc);
+
+            if (doc.IsDirty)
+            {
+                switch (await _dialogs.AskSaveAsync(doc))
+                {
+                    case SaveChoice.Cancel: return;
+                    case SaveChoice.Save: await ViewModel.SaveDocumentAsync(doc); break;
+                }
+            }
+
+            ViewModel.CloseDocument(doc);
+
+            if (ViewModel.Documents.Count > 0 && DocTabs.SelectedItem is null)
+                DocTabs.SelectedIndex = Math.Min(index, ViewModel.Documents.Count - 1);
+        }
+
+
+        private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+        {
+            switch (e)
+            {
+                case { Key: Key.F8, KeyModifiers: KeyModifiers.None }:
+                    ViewModel.NavigateDiagnosticCommand.Execute(true);
                     e.Handled = true;
                     return;
-                }
-            case { KeyModifiers: KeyModifiers.Control, Key: Key.OemPeriod }:
-                _ = EditorPane.CodeActions.ShowCodeActionsAsync();
-                e.Handled = true;
+                case { Key: Key.F8, KeyModifiers: KeyModifiers.Shift }:
+                    ViewModel.NavigateDiagnosticCommand.Execute(false);
+                    e.Handled = true;
+                    return;
+                case { Key: Key.F12, KeyModifiers: KeyModifiers.None }:
+                    _ = EditorPane.Navigation.GoToDefinitionAsync();
+                    e.Handled = true;
+                    return;
+                case { Key: Key.F12, KeyModifiers: KeyModifiers.Shift }:
+                    _ = EditorPane.Navigation.FindReferencesAsync();
+                    e.Handled = true;
+                    return;
+                case { Key: Key.F, KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift) }:
+                    ShowFindInFiles();
+                    e.Handled = true;
+                    return;
+                case { Key: Key.F5, KeyModifiers: KeyModifiers.None }:
+                    ViewModel.StartDebuggingCommand.Execute(ViewModel.SelectedWorkspaceNode);
+                    e.Handled = true;
+                    return;
+                case { Key: Key.F5, KeyModifiers: KeyModifiers.Control }:
+                    ViewModel.RunProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
+                    e.Handled = true;
+                    return;
+                case { Key: Key.F5, KeyModifiers: KeyModifiers.Shift }:
+                    ViewModel.StopRunningProjectCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                case { Key: Key.B, KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift) }:
+                    ViewModel.BuildProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
+                    e.Handled = true;
+                    return;
+                case { KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift), Key: Key.Space }:
+                    {
+                        if (_active is { } activeDocument)
+                            _ = EditorPane.SignatureHelp.RequestAsync(activeDocument, triggerCharacter: null);
+                        e.Handled = true;
+                        return;
+                    }
+                case { KeyModifiers: KeyModifiers.Control, Key: Key.OemPeriod }:
+                    _ = EditorPane.CodeActions.ShowCodeActionsAsync();
+                    e.Handled = true;
+                    return;
+            }
+
+            if (e.KeyModifiers != KeyModifiers.Control) return;
+
+            switch (e.Key)
+            {
+                case Key.P:
+                    _ = EditorPane.Navigation.QuickOpenAsync();
+                    e.Handled = true;
+                    break;
+                case Key.T:
+                    _ = EditorPane.Navigation.SearchWorkspaceSymbolsAsync();
+                    e.Handled = true;
+                    break;
+                case Key.R:
+                    _ = EditorPane.Navigation.RenameSymbolAsync();
+                    e.Handled = true;
+                    break;
+                case Key.S when _active is not null:
+                    ViewModel.SaveActiveDocumentCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+                case Key.W when _active is { } doc:
+                    TryClose(doc);
+                    e.Handled = true;
+                    break;
+                case Key.Space when _active is { Sync: not null } doc:
+                    _ = EditorPane.Completion.ShowCompletionAsync(doc, triggerChar: null);
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        // ================================================================== LSP
+
+        private void OnSignatureHelpClick(object? sender, RoutedEventArgs e)
+        {
+            if (_active is { } document)
+                _ = EditorPane.SignatureHelp.RequestAsync(document, triggerCharacter: null);
+        }
+
+        private void OnProblemClick(object? sender, TappedEventArgs e)
+        {
+            if ((sender as ListBox)?.SelectedItem is ProblemItem problem)
+                EditorPane.Navigator.ToProblem(problem);
+        }
+
+
+        private void OnFindInFilesClick(object? sender, RoutedEventArgs e) => ShowFindInFiles();
+
+        private void ShowFindInFiles()
+        {
+            ToolTabs.SelectedIndex = 4;
+            FindInFilesQuery.Focus();
+            FindInFilesQuery.SelectAll();
+        }
+
+        private async void OnWorkspaceSymbolsClick(object? sender, RoutedEventArgs e)
+            => await EditorPane.Navigation.SearchWorkspaceSymbolsAsync();
+
+        private async void OnGoToDefinitionClick(object? sender, RoutedEventArgs e)
+            => await EditorPane.Navigation.GoToDefinitionAsync();
+
+        private async void OnFindReferencesClick(object? sender, RoutedEventArgs e)
+            => await EditorPane.Navigation.FindReferencesAsync();
+
+        private async void OnRenameSymbolClick(object? sender, RoutedEventArgs e)
+            => await EditorPane.Navigation.RenameSymbolAsync();
+
+
+        private async void OnFindInFilesKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter)
                 return;
+
+            e.Handled = true;
+            await ViewModel.SearchWorkspaceCommand.ExecuteAsync(true);
         }
 
-        if (e.KeyModifiers != KeyModifiers.Control) return;
-
-        switch (e.Key)
+        private async void OnReplaceWorkspaceKeyDown(object? sender, KeyEventArgs e)
         {
-            case Key.P:
-                _ = EditorPane.Navigation.QuickOpenAsync();
-                e.Handled = true;
-                break;
-            case Key.T:
-                _ = EditorPane.Navigation.SearchWorkspaceSymbolsAsync();
-                e.Handled = true;
-                break;
-            case Key.R:
-                _ = EditorPane.Navigation.RenameSymbolAsync();
-                e.Handled = true;
-                break;
-            case Key.S when _active is not null:
-                ViewModel.SaveActiveDocumentCommand.Execute(null);
-                e.Handled = true;
-                break;
-            case Key.W when _active is { } doc:
-                TryClose(doc);
-                e.Handled = true;
-                break;
-            case Key.Space when _active is { Sync: not null } doc:
-                _ = EditorPane.Completion.ShowCompletionAsync(doc, triggerChar: null);
-                e.Handled = true;
-                break;
+            if (e.Key != Key.Enter)
+                return;
+
+            e.Handled = true;
+            await ViewModel.ReplaceWorkspaceCommand.ExecuteAsync(true);
         }
-    }
 
-    // ================================================================== LSP
-
-    private void OnSignatureHelpClick(object? sender, RoutedEventArgs e)
-    {
-        if (_active is { } document)
-            _ = EditorPane.SignatureHelp.RequestAsync(document, triggerCharacter: null);
-    }
-
-    private void OnProblemClick(object? sender, TappedEventArgs e)
-    {
-        if ((sender as ListBox)?.SelectedItem is ProblemItem problem)
-            EditorPane.Navigator.ToProblem(problem);
-    }
-
-
-    private void OnFindInFilesClick(object? sender, RoutedEventArgs e) => ShowFindInFiles();
-
-    private void ShowFindInFiles()
-    {
-        ToolTabs.SelectedIndex = 4;
-        FindInFilesQuery.Focus();
-        FindInFilesQuery.SelectAll();
-    }
-
-    private async void OnWorkspaceSymbolsClick(object? sender, RoutedEventArgs e)
-        => await EditorPane.Navigation.SearchWorkspaceSymbolsAsync();
-
-    private async void OnGoToDefinitionClick(object? sender, RoutedEventArgs e)
-        => await EditorPane.Navigation.GoToDefinitionAsync();
-
-    private async void OnFindReferencesClick(object? sender, RoutedEventArgs e)
-        => await EditorPane.Navigation.FindReferencesAsync();
-
-    private async void OnRenameSymbolClick(object? sender, RoutedEventArgs e)
-        => await EditorPane.Navigation.RenameSymbolAsync();
-
-
-    private async void OnFindInFilesKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter)
-            return;
-
-        e.Handled = true;
-        await ViewModel.SearchWorkspaceCommand.ExecuteAsync(true);
-    }
-
-    private async void OnReplaceWorkspaceKeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key != Key.Enter)
-            return;
-
-        e.Handled = true;
-        await ViewModel.ReplaceWorkspaceCommand.ExecuteAsync(true);
-    }
-
-    private void OnSearchResultClick(object? sender, RoutedEventArgs e)
-    {
-        if (sender is Control { Tag: WorkspaceSearchResult result })
-            EditorPane.Navigator.ToSearchResult(result);
-    }
-
-    private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
-
-    // ============================================================== status bar
-
-    private void UpdateStatus()
-    {
-        var caret = EditorPane.EditorControl.TextArea.Caret;
-        ViewModel.ActiveCaretOffset = caret.Offset;
-        CaretStatus.Text = _active is null ? "" : $"Ln {caret.Line}, Col {caret.Column}";
-        DiagStatus.Text = _active is null ? "" : $"{_active.ErrorCount} errors, {_active.WarningCount} warnings";
-    }
-
-
-    private void OnActiveDocumentChanged()
-    {
-        if (_active is not { } doc) return;
-        if (doc.LanguageId == "csharp")
-            QueueOutlineUpdate();
-    }
-
-
-    private void ApplyThemeColorsToWindow(TextMate.Installation e)
-    {
-        if (!ApplyBrushAction(e, "statusBar.background", brush => StatusBar.Background = brush))
+        private void OnSearchResultClick(object? sender, RoutedEventArgs e)
         {
-            StatusBar.Background = Brushes.Purple;
+            if (sender is Control { Tag: WorkspaceSearchResult result })
+                EditorPane.Navigator.ToSearchResult(result);
         }
 
-        if (!ApplyBrushAction(e, "statusBar.foreground", brush => LspStatus.Foreground = brush))
+        private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
+
+        // ============================================================== status bar
+
+        private void UpdateStatus()
         {
-            LspStatus.Foreground = Brushes.White;
+            var caret = EditorPane.EditorControl.TextArea.Caret;
+            ViewModel.ActiveCaretOffset = caret.Offset;
+            CaretStatus.Text = _active is null ? "" : $"Ln {caret.Line}, Col {caret.Column}";
+            DiagStatus.Text = _active is null ? "" : $"{_active.ErrorCount} errors, {_active.WarningCount} warnings";
         }
 
-        //Applying the Editor background to the whole window for demo sake.
-        ApplyBrushAction(e, "editor.background", brush => Background = brush);
-        ApplyBrushAction(e, "editor.foreground", brush => Foreground = brush);
+
+        private void OnActiveDocumentChanged()
+        {
+            if (_active is not { } doc) return;
+            if (doc.LanguageId == "csharp")
+                QueueOutlineUpdate();
+        }
+
+
+        private void ApplyThemeColorsToWindow(TextMate.Installation e)
+        {
+            if (!ApplyBrushAction(e, "statusBar.background", brush => StatusBar.Background = brush))
+            {
+                StatusBar.Background = Brushes.Purple;
+            }
+
+            if (!ApplyBrushAction(e, "statusBar.foreground", brush => LspStatus.Foreground = brush))
+            {
+                LspStatus.Foreground = Brushes.White;
+            }
+
+            //Applying the Editor background to the whole window for demo sake.
+            ApplyBrushAction(e, "editor.background", brush => Background = brush);
+            ApplyBrushAction(e, "editor.foreground", brush => Foreground = brush);
+        }
     }
 }

@@ -1,10 +1,11 @@
-﻿namespace AXaxmlIDE.CompletionEngine.AssemblyMetadata;
-
-public class MetadataReader(IMetadataProvider provider)
+﻿namespace AXamlIDE.CompletionEngine.AssemblyMetadata
 {
-    public Metadata? GetForTargetAssembly(IAssemblyProvider assemblyProvider)
+    public class MetadataReader(IMetadataProvider provider)
     {
-        using var session = provider.GetMetadata(assemblyProvider.GetAssemblies());
-        return MetadataConverter.ConvertMetadata(session);
+        public Metadata? GetForTargetAssembly(IAssemblyProvider assemblyProvider)
+        {
+            using var session = provider.GetMetadata(assemblyProvider.GetAssemblies());
+            return MetadataConverter.ConvertMetadata(session);
+        }
     }
 }

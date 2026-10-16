@@ -2,104 +2,105 @@ using System;
 using System.Linq;
 using Avalonia.Threading;
 using AvaloniaEdit.Folding;
-using AXaxmlIDE.Models;
-using AXaxmlIDE.Services;
+using AXamlIDE.Models;
+using AXamlIDE.Services;
 
-namespace AXaxmlIDE.EditorFeatures;
-
-/// <summary>
-/// Code folding for the shared editor. Body is the old ConfigureFolding / UpdateFolding /
-/// IsFoldableFile from MainWindow plus the 250ms debounce timer that used to be poked
-/// from OnActiveDocumentChanged.
-/// </summary>
-public sealed class FoldingController : IDisposable
+namespace AXamlIDE.EditorFeatures
 {
-    private readonly EditorContext _ctx;
-
-    private readonly DispatcherTimer _timer =
-        new() { Interval = TimeSpan.FromMilliseconds(250) };
-
-    private FoldingManager? _foldingManager;
-    private FoldingCaretMargin? _foldingCaretMargin;
-
-    public FoldingController(EditorContext ctx)
+    /// <summary>
+    /// Code folding for the shared editor. Body is the old ConfigureFolding / UpdateFolding /
+    /// IsFoldableFile from MainWindow plus the 250ms debounce timer that used to be poked
+    /// from OnActiveDocumentChanged.
+    /// </summary>
+    public sealed class FoldingController : IDisposable
     {
-        _ctx = ctx;
+        private readonly EditorContext _ctx;
 
-        // FoldingManager installs document-bound generators; detach them while
-        // the old document is still attached to the editor.
-        _ctx.Detaching += _ => Uninstall();
-        _ctx.Attached += Configure;
-        _ctx.TextChanged += _ =>
+        private readonly DispatcherTimer _timer =
+            new() { Interval = TimeSpan.FromMilliseconds(250) };
+
+        private FoldingManager? _foldingManager;
+        private FoldingCaretMargin? _foldingCaretMargin;
+
+        public FoldingController(EditorContext ctx)
         {
-            _timer.Stop();
-            _timer.Start();
-        };
+            _ctx = ctx;
 
-        _timer.Tick += (_, _) =>
-        {
-            _timer.Stop();
-            if (_ctx.Active is { } doc)
-                Update(doc);
-        };
-    }
+            // FoldingManager installs document-bound generators; detach them while
+            // the old document is still attached to the editor.
+            _ctx.Detaching += _ => Uninstall();
+            _ctx.Attached += Configure;
+            _ctx.TextChanged += _ =>
+            {
+                _timer.Stop();
+                _timer.Start();
+            };
 
-    public void Dispose() => _timer.Stop();
-
-    private void Uninstall()
-    {
-        var editor = _ctx.Editor;
-
-        if (_foldingCaretMargin is not null)
-        {
-            editor.TextArea.LeftMargins.Remove(_foldingCaretMargin);
-            _foldingCaretMargin = null;
+            _timer.Tick += (_, _) =>
+            {
+                _timer.Stop();
+                if (_ctx.Active is { } doc)
+                    Update(doc);
+            };
         }
 
-        // Remove folding from the previously active document.
-        if (_foldingManager is not null)
+        public void Dispose() => _timer.Stop();
+
+        private void Uninstall()
         {
-            FoldingManager.Uninstall(_foldingManager);
-            _foldingManager = null;
-        }
-    }
+            var editor = _ctx.Editor;
 
-    private void Configure(OpenDocument? doc)
-    {
-        Uninstall();
+            if (_foldingCaretMargin is not null)
+            {
+                editor.TextArea.LeftMargins.Remove(_foldingCaretMargin);
+                _foldingCaretMargin = null;
+            }
 
-        if (doc is null || !IsFoldableFile(doc.Path))
-            return;
-
-        var editor = _ctx.Editor;
-        _foldingManager = FoldingManager.Install(editor.TextArea);
-        var defaultMargin = editor.TextArea.LeftMargins.OfType<FoldingMargin>().FirstOrDefault();
-        if (defaultMargin is not null)
-            editor.TextArea.LeftMargins.Remove(defaultMargin);
-        _foldingCaretMargin = new FoldingCaretMargin(_foldingManager);
-        editor.TextArea.LeftMargins.Add(_foldingCaretMargin);
-
-        Update(doc);
-    }
-
-    private void Update(OpenDocument doc)
-    {
-        if (!ReferenceEquals(doc, _ctx.Active) || _foldingManager is null)
-            return;
-
-        if (doc.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
-        {
-            new XmlFoldingStrategy().UpdateFoldings(_foldingManager, doc.Document);
-        }
-        else
-        {
-            _foldingManager.UpdateFoldings(CSharpFoldingStrategy.CreateFoldings(doc.Document), -1);
+            // Remove folding from the previously active document.
+            if (_foldingManager is not null)
+            {
+                FoldingManager.Uninstall(_foldingManager);
+                _foldingManager = null;
+            }
         }
 
-        _foldingCaretMargin?.InvalidateVisual();
-    }
+        private void Configure(OpenDocument? doc)
+        {
+            Uninstall();
 
-    private static bool IsFoldableFile(string path)
-        => path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase)
-           || path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
+            if (doc is null || !IsFoldableFile(doc.Path))
+                return;
+
+            var editor = _ctx.Editor;
+            _foldingManager = FoldingManager.Install(editor.TextArea);
+            var defaultMargin = editor.TextArea.LeftMargins.OfType<FoldingMargin>().FirstOrDefault();
+            if (defaultMargin is not null)
+                editor.TextArea.LeftMargins.Remove(defaultMargin);
+            _foldingCaretMargin = new FoldingCaretMargin(_foldingManager);
+            editor.TextArea.LeftMargins.Add(_foldingCaretMargin);
+
+            Update(doc);
+        }
+
+        private void Update(OpenDocument doc)
+        {
+            if (!ReferenceEquals(doc, _ctx.Active) || _foldingManager is null)
+                return;
+
+            if (doc.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
+            {
+                new XmlFoldingStrategy().UpdateFoldings(_foldingManager, doc.Document);
+            }
+            else
+            {
+                _foldingManager.UpdateFoldings(CSharpFoldingStrategy.CreateFoldings(doc.Document), -1);
+            }
+
+            _foldingCaretMargin?.InvalidateVisual();
+        }
+
+        private static bool IsFoldableFile(string path)
+            => path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase)
+               || path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
+    }
 }

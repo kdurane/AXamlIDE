@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AXaxmlIDE.CompletionEngine.AssemblyMetadata;
-
-public interface IMetadataProvider
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata
 {
-    IMetadataReaderSession GetMetadata(IEnumerable<string> paths);
-}
+    public interface IMetadataProvider
+    {
+        IMetadataReaderSession GetMetadata(IEnumerable<string> paths);
+    }
 
-public interface IMetadataReaderSession : IDisposable
-{
-    string? TargetAssemblyName { get; }
-    IReadOnlyCollection<IAssemblyInformation> Assemblies { get; }
+    public interface IMetadataReaderSession : IDisposable
+    {
+        string? TargetAssemblyName { get; }
+        IReadOnlyCollection<IAssemblyInformation> Assemblies { get; }
+    }
 }

@@ -1,3 +1,4 @@
-namespace AXaxmlIDE.Models;
-
-public sealed record SignatureInsightItem(string Header, string Content);
+namespace AXamlIDE.Models
+{
+          public sealed record SignatureInsightItem(string Header, string Content);
+}

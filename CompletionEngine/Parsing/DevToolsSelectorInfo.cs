@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Text;
 
-namespace AXaxmlIDE.CompletionEngine.Parsing;
-
-public record struct DevToolsSelectorInfo(Range ElementType, Range Namespace, Range AssemblyName = default)
+namespace AXamlIDE.CompletionEngine.Parsing
 {
-    public static string GetFullName(char[] buffer, DevToolsSelectorInfo info)
+    public record struct DevToolsSelectorInfo(Range ElementType, Range Namespace, Range AssemblyName = default)
     {
-        var sb = new StringBuilder();
-        if (info.Namespace.Start.Value < info.Namespace.End.Value)
+        public static string GetFullName(char[] buffer, DevToolsSelectorInfo info)
         {
-            sb.Append(buffer[info.Namespace]);
-            sb.Append('.');
+            var sb = new StringBuilder();
+            if (info.Namespace.Start.Value < info.Namespace.End.Value)
+            {
+                sb.Append(buffer[info.Namespace]);
+                sb.Append('.');
+            }
+            sb.Append(buffer[info.ElementType]);
+            return sb.ToString();
         }
-        sb.Append(buffer[info.ElementType]);
-        return sb.ToString();
     }
 }

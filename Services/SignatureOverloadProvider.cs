@@ -2,58 +2,59 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using AvaloniaEdit.CodeCompletion;
-using AXaxmlIDE.Models;
+using AXamlIDE.Models;
 
-namespace AXaxmlIDE.Services;
-
-public sealed class SignatureOverloadProvider : IOverloadProvider
+namespace AXamlIDE.Services
 {
-    private readonly IReadOnlyList<SignatureInsightItem> _items;
-    private int _selectedIndex;
-
-    public SignatureOverloadProvider(
-        IReadOnlyList<SignatureInsightItem> items,
-        int selectedIndex = 0)
+    public sealed class SignatureOverloadProvider : IOverloadProvider
     {
-        _items = items;
-        SelectedIndex = selectedIndex;
-    }
+        private readonly IReadOnlyList<SignatureInsightItem> _items;
+        private int _selectedIndex;
 
-    public int SelectedIndex
-    {
-        get => _selectedIndex;
-        set
+        public SignatureOverloadProvider(
+            IReadOnlyList<SignatureInsightItem> items,
+            int selectedIndex = 0)
         {
-            var index = Math.Clamp(value, 0, Count - 1);
-            if (_selectedIndex == index)
-                return;
-
-            _selectedIndex = index;
-            OnPropertyChanged(nameof(SelectedIndex));
-            OnPropertyChanged(nameof(CurrentHeader));
-            OnPropertyChanged(nameof(CurrentContent));
-            OnPropertyChanged(nameof(CurrentIndexText));
+            _items = items;
+            SelectedIndex = selectedIndex;
         }
-    }
 
-    public int Count => _items.Count;
+        public int SelectedIndex
+        {
+            get => _selectedIndex;
+            set
+            {
+                var index = Math.Clamp(value, 0, Count - 1);
+                if (_selectedIndex == index)
+                    return;
 
-    public string CurrentIndexText =>
-        $"{SelectedIndex + 1} of {Count}";
+                _selectedIndex = index;
+                OnPropertyChanged(nameof(SelectedIndex));
+                OnPropertyChanged(nameof(CurrentHeader));
+                OnPropertyChanged(nameof(CurrentContent));
+                OnPropertyChanged(nameof(CurrentIndexText));
+            }
+        }
 
-    public object CurrentHeader =>
-        _items[SelectedIndex].Header;
+        public int Count => _items.Count;
 
-    public object CurrentContent =>
-        _items[SelectedIndex].Content;
+        public string CurrentIndexText =>
+            $"{SelectedIndex + 1} of {Count}";
 
-    public event PropertyChangedEventHandler? PropertyChanged;
+        public object CurrentHeader =>
+            _items[SelectedIndex].Header;
 
-    private void OnPropertyChanged(
-        [System.Runtime.CompilerServices.CallerMemberName]
-        string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(
-            this, new PropertyChangedEventArgs(propertyName));
+        public object CurrentContent =>
+            _items[SelectedIndex].Content;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void OnPropertyChanged(
+            [System.Runtime.CompilerServices.CallerMemberName]
+                  string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(
+                this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

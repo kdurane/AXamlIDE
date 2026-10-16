@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 
-namespace AXaxmlIDE.Interfaces;
-
-public interface INamespaceTrasformation
+namespace AXamlIDE.Interfaces
 {
-    public IEnumerable<char> Apply(IEnumerable<char> input);
+    public interface INamespaceTrasformation
+    {
+        public IEnumerable<char> Apply(IEnumerable<char> input);
+    }
 }

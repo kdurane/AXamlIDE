@@ -2,15 +2,13 @@
     Title="AXxamlIde"
     d:DesignHeight="800"
     d:DesignWidth="1200"
-    x:Class="AXaxmlIDE.Views.MainWindow"
+    x:Class="AXamlIDE.Views.MainWindow"
     x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:edit="using:AvaloniaEdit"
-    xmlns:editing="using:AvaloniaEdit.Editing"
-    xmlns:local="clr-namespace:AXaxmlIDE.Models"
-    xmlns:views="using:AXaxmlIDE.Views"
-    xmlns:vm="clr-namespace:AXaxmlIDE.ViewModels"
+    xmlns:local="clr-namespace:AXamlIDE.Models"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="clr-namespace:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid RowDefinitions="auto,*,Auto">

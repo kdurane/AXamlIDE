@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace AXaxmlIDE.CompletionEngine.AssemblyMetadata
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata
 {
     public interface IAssemblyProvider
     {

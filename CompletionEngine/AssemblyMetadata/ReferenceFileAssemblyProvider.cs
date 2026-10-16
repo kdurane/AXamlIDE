@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace AXaxmlIDE.CompletionEngine.AssemblyMetadata
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata
 {
     public class ReferenceFileAssemblyProvider : IAssemblyProvider
     {

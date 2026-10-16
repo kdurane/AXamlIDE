@@ -1,19 +1,20 @@
 ﻿using System.Collections.Generic;
-using AXaxmlIDE.Interfaces;
+using AXamlIDE.Interfaces;
 
-namespace AXaxmlIDE.CompletionEngine.NamespaceTrasformations;
-
-internal class ReplaceDot(char sobstituion) : INamespaceTrasformation
+namespace AXamlIDE.CompletionEngine.NamespaceTrasformations
 {
-    public IEnumerable<char> Apply(IEnumerable<char> input)
+    internal class ReplaceDot(char sobstituion) : INamespaceTrasformation
     {
-        foreach (var c in input)
+        public IEnumerable<char> Apply(IEnumerable<char> input)
         {
-            if (c == '.')
-                yield return sobstituion;
-            else
+            foreach (var c in input)
             {
-                yield return c;
+                if (c == '.')
+                    yield return sobstituion;
+                else
+                {
+                    yield return c;
+                }
             }
         }
     }

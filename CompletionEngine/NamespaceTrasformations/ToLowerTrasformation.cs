@@ -1,16 +1,17 @@
 ﻿using System.Collections.Generic;
-using AXaxmlIDE.Interfaces;
+using AXamlIDE.Interfaces;
 
-namespace AXaxmlIDE.CompletionEngine.NamespaceTrasformations;
-
-internal class ToLowerTrasformation : INamespaceTrasformation
+namespace AXamlIDE.CompletionEngine.NamespaceTrasformations
 {
-    public IEnumerable<char> Apply(IEnumerable<char> input)
+    internal class ToLowerTrasformation : INamespaceTrasformation
     {
-        foreach (char c in input)
+        public IEnumerable<char> Apply(IEnumerable<char> input)
         {
-            yield return char.ToLowerInvariant(c);
+            foreach (char c in input)
+            {
+                yield return char.ToLowerInvariant(c);
+            }
         }
     }
-}
 
+}

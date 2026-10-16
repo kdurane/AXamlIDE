@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Avalonia: AXaxmlIDE",
+            "name": "Avalonia: AXamlIDE",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/AXaxmlIDE.csproj"
+            "projectPath": "${workspaceFolder}/AXamlIDE.csproj"
         }
     ]
 }
