@@ -1,14 +1,11 @@
 using System;
 using System.IO;
 using Avalonia.Threading;
-using AXamlIDE.Helpers;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
-using AXamlIDE.Services;
-using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
     /// <summary>
     /// Every "go to this place in the editor" move. These were scattered through MainWindow as
     /// NavigateToProblem, NavigateToDebugLocation, OnSearchResultClick, OnOutlineSelectionChanged
@@ -152,4 +149,3 @@ namespace AXamlIDE.EditorFeatures
             }
         }
     }
-}

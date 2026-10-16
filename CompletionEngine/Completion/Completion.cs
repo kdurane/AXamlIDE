@@ -1,8 +1,8 @@
 ﻿using System;
 // ReSharper disable InconsistentNaming
 
-namespace AXamlIDE.CompletionEngine.Completion
-{
+namespace AXamlIDE.CompletionEngine.Completion;
+
     [Flags]
     public enum CompletionKind
     {
@@ -65,4 +65,3 @@ namespace AXamlIDE.CompletionEngine.Completion
 
         public bool TriggerCompletionAfterInsert { get; init; }
     }
-}

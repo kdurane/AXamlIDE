@@ -5,8 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 
-namespace AXamlIDE.CompletionEngine.AssemblyMetadata
-{
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
     public static class DepsJsonAssemblyListLoader
     {
         private record Library(string PackageName, string LibraryPath, string DllName);
@@ -78,4 +77,3 @@ namespace AXamlIDE.CompletionEngine.AssemblyMetadata
             }
         }
     }
-}

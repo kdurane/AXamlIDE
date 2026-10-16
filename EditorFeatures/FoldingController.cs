@@ -5,8 +5,7 @@ using AvaloniaEdit.Folding;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
     /// <summary>
     /// Code folding for the shared editor. Body is the old ConfigureFolding / UpdateFolding /
     /// IsFoldableFile from MainWindow plus the 250ms debounce timer that used to be poked
@@ -103,4 +102,3 @@ namespace AXamlIDE.EditorFeatures
             => path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase)
                || path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
     }
-}

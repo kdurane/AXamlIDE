@@ -51,7 +51,7 @@ namespace AXamlIDE.ViewModels
         public ObservableCollection<ThemeViewModel> AvailableThemes { get; } =
         [
             .. Enum.GetValues<ThemeName>().Select(ThemeViewModel.BuiltIn),
-                  ThemeViewModel.Custom("AxamlDark", "AXAML Dark", "avares://AXaxmlIDE/Assets/axaml-dark.json"),
+                  ThemeViewModel.Custom("AxamlDark", "AXAML Dark", "avares://AXamlIDE/Assets/axaml-dark.json"),
               ];
 
         public ObservableCollection<string> AvailableEditorFontFamilies { get; }

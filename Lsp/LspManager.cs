@@ -6,8 +6,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     /// <summary>
     /// Owns one LspClient per configured server. Servers start lazily the first time a document
     /// of one of their languages is attached, once per workspace. Everything here runs on the
@@ -206,4 +206,3 @@ namespace AXamlIDE.Lsp
                 state.Client?.Dispose();
         }
     }
-}

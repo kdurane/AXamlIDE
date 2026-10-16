@@ -5,8 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AXamlIDE.Models
-{
+namespace AXamlIDE.Models;
     public enum NodeKind { Directory, File, Solution, Project, Folder, Placeholder }
 
     /// <summary>
@@ -159,7 +158,7 @@ namespace AXamlIDE.Models
             => new(Path.GetFileNameWithoutExtension(solutionPath), solutionPath, NodeKind.Solution,
                 () => projects.Select(p => CreateProject(p.Name, p.Path, host)));
 
-        public static ProjectTreeNode CreateProject(string name, string csprojPath, MsBuildHostClient host)
+        private static ProjectTreeNode CreateProject(string name, string csprojPath, MsBuildHostClient host)
             => new(name, csprojPath, NodeKind.Project, () => SolutionLoader.LoadProjectItems(host, csprojPath));
 
         /// <summary>Folders under a project are fully known once the project has been evaluated
@@ -172,4 +171,3 @@ namespace AXamlIDE.Models
             return node;
         }
     }
-}

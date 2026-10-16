@@ -8,8 +8,8 @@ using AXamlIDE.Services;
 using ICSharpCode.Decompiler;
 using static AXamlIDE.Helpers.LspHelpers;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
     /// <summary>
     /// The user-invokable navigation commands: Go to Definition, Find References, Rename,
     /// Go to Symbol and Quick Open. Replaces the matching block in MainWindow. Bodies are
@@ -263,4 +263,3 @@ namespace AXamlIDE.EditorFeatures
             return (location.Line - 1, location.Column - 1);
         }
     }
-}

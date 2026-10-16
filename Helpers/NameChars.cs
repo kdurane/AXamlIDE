@@ -1,8 +1,7 @@
 using System;
 using AvaloniaEdit.Document;
 
-namespace AXamlIDE.Helpers
-{
+namespace AXamlIDE.Helpers;
           /// <summary>
           /// Name-character helpers used by completion / typing.
           /// In MainWindow add:  using static AXamlIDE.Helpers.NameChars;
@@ -20,4 +19,3 @@ namespace AXamlIDE.Helpers
                               return offset;
                     }
           }
-}

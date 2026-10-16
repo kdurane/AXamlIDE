@@ -1,5 +1,5 @@
-namespace AXamlIDE.Interfaces
-{
+namespace AXamlIDE.Interfaces;
+
     /// <summary>
     /// Abstracts text change from editor
     /// </summary>
@@ -25,4 +25,3 @@ namespace AXamlIDE.Interfaces
         /// </summary>
         string OldText { get; }
     }
-}

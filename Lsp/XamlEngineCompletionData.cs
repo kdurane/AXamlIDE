@@ -6,8 +6,8 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AXamlIDE.CompletionEngine.Completion;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     public sealed class XamlEngineCompletionData(Completion completion, Action? triggerCompletion = null) : ICompletionData
     {
         public IImage? Image => null;
@@ -50,12 +50,10 @@ namespace AXamlIDE.Lsp
         }
 
         private bool ShouldInsertElementPair(TextArea textArea, int start, EventArgs insertionRequestEventArgs)
-            => completion.Kind == CompletionKind.Class
-               && completion.RecommendedCursorOffset is null
+            => completion is { Kind: CompletionKind.Class, RecommendedCursorOffset: null }
                && string.Equals(completion.InsertText, completion.DisplayText, StringComparison.Ordinal)
                && completion.InsertText.Length > 0
                && completion.InsertText[0] is not ('/' or '!')
                && (start == 0 || textArea.Document.GetCharAt(start - 1) == '<')
                && insertionRequestEventArgs is not TextInputEventArgs { Text: ">" };
     }
-}

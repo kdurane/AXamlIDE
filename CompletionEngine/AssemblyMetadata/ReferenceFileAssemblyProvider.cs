@@ -2,8 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace AXamlIDE.CompletionEngine.AssemblyMetadata
-{
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
     public class ReferenceFileAssemblyProvider : IAssemblyProvider
     {
         private readonly string _path;
@@ -61,4 +60,3 @@ namespace AXamlIDE.CompletionEngine.AssemblyMetadata
             return result;
         }
     }
-}

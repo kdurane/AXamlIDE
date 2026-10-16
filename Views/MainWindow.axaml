@@ -28,29 +28,29 @@
                 </MenuItem>
                 <MenuItem Header="_Build">
                     <MenuItem
-                        Command="{Binding BuildProjectCommand}"
+                        Command="{Binding Run.BuildProjectCommand}"
                         CommandParameter="{Binding SelectedWorkspaceNode}"
                         Header="_Build Project"
                         InputGesture="Ctrl+Shift+B" />
                     <MenuItem
-                        Command="{Binding RunProjectCommand}"
+                        Command="{Binding Run.RunProjectCommand}"
                         CommandParameter="{Binding SelectedWorkspaceNode}"
                         Header="Run Without _Debugging"
                         InputGesture="Ctrl+F5" />
                     <MenuItem
-                        Command="{Binding StartDebuggingCommand}"
+                        Command="{Binding Run.StartDebuggingCommand}"
                         CommandParameter="{Binding SelectedWorkspaceNode}"
                         Header="_Start Debugging"
                         InputGesture="F5" />
                     <MenuItem
-                        Command="{Binding ContinueDebuggingCommand}"
+                        Command="{Binding Run.ContinueDebuggingCommand}"
                         Header="_Continue"
-                        IsEnabled="{Binding IsDebugStopped}" />
+                        IsEnabled="{Binding Run.IsDebugStopped}" />
                     <MenuItem
-                        Command="{Binding StopRunningProjectCommand}"
+                        Command="{Binding Run.StopRunningProjectCommand}"
                         Header="_Stop"
                         InputGesture="Shift+F5"
-                        IsEnabled="{Binding IsRunning}" />
+                        IsEnabled="{Binding Run.IsRunning}" />
                 </MenuItem>
                 <MenuItem Header="_View">
                     <MenuItem Click="OnToggleExplorerClick" Header="Show/Hide _Explorer" />
@@ -307,7 +307,7 @@
                             FontSize="24"
                             FontWeight="SemiBold"
                             HorizontalAlignment="Center"
-                            Text="Welcome to AXaxmlIDE" />
+                            Text="Welcome to AXamlIDE" />
                         <TextBlock
                             Foreground="{DynamicResource ThemeForegroundBrush}"
                             HorizontalAlignment="Center"
@@ -374,6 +374,7 @@
                             </Grid>
 
                             <ListBox
+                                Background="#02ffffff"
                                 DoubleTapped="OnProblemClick"
                                 Grid.Row="1"
                                 ItemsSource="{Binding Problems}"
@@ -412,7 +413,7 @@
                     </TabItem>
                     <TabItem FontSize="11" Header="Output">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding BuildOutput}">
+                            <ItemsControl ItemsSource="{Binding Run.BuildOutput}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock
@@ -426,16 +427,16 @@
                     </TabItem>
                     <TabItem FontSize="11" Header="Debug">
                         <StackPanel Margin="10" Spacing="8">
-                            <TextBlock Text="{Binding DebugStatus}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Run.DebugStatus}" TextWrapping="Wrap" />
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <Button
-                                    Command="{Binding ContinueDebuggingCommand}"
+                                    Command="{Binding Run.ContinueDebuggingCommand}"
                                     Content="Continue"
-                                    IsEnabled="{Binding IsDebugStopped}" />
+                                    IsEnabled="{Binding Run.IsDebugStopped}" />
                                 <Button
-                                    Command="{Binding StopRunningProjectCommand}"
+                                    Command="{Binding Run.StopRunningProjectCommand}"
                                     Content="Stop"
-                                    IsEnabled="{Binding IsDebugging}" />
+                                    IsEnabled="{Binding Run.IsDebugging}" />
                             </StackPanel>
                             <TextBlock
                                 FontSize="11"
@@ -445,7 +446,7 @@
                     </TabItem>
                     <TabItem FontSize="11" Header="Console">
                         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding ConsoleOutput}">
+                            <ItemsControl ItemsSource="{Binding Run.ConsoleOutput}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock

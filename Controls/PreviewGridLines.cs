@@ -2,8 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace AXamlIDE.Controls
-{
+namespace AXamlIDE.Controls;
     public sealed class PreviewGridLines : Control
     {
         private static readonly Pen GridPen = new(
@@ -34,4 +33,3 @@ namespace AXamlIDE.Controls
             }
         }
     }
-}

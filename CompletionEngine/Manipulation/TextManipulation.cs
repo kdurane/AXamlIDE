@@ -1,5 +1,5 @@
-﻿namespace AXamlIDE.CompletionEngine.Manipulation
-{
+﻿namespace AXamlIDE.CompletionEngine.Manipulation;
+
     /// <summary>
     /// Represents edit to be applied to textbuffer
     /// For simplicity sake two types of manipulations are offered only - Insertion and Deletion
@@ -16,4 +16,3 @@
             return new TextManipulation(postition, postition + length, null, ManipulationType.Delete);
         }
     }
-}

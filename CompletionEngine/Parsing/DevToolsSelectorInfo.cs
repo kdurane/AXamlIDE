@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Text;
 
-namespace AXamlIDE.CompletionEngine.Parsing
-{
+namespace AXamlIDE.CompletionEngine.Parsing;
+
     public record struct DevToolsSelectorInfo(Range ElementType, Range Namespace, Range AssemblyName = default)
     {
         public static string GetFullName(char[] buffer, DevToolsSelectorInfo info)
@@ -17,4 +17,3 @@ namespace AXamlIDE.CompletionEngine.Parsing
             return sb.ToString();
         }
     }
-}

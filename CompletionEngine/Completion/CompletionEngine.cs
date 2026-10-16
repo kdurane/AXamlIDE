@@ -8,9 +8,9 @@ using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.CompletionEngine.Parsing;
 using AXamlIDE.Helpers;
 using AXamlIDE.Interfaces;
+// ReSharper disable PreferConcreteValueOverDefault
 
-namespace AXamlIDE.CompletionEngine.Completion
-{
+namespace AXamlIDE.CompletionEngine.Completion;
     public class CompletionEngine
     {
         private record struct ElementCompletionInfo(string DisplayText, string InsertText, string? Suffix, int? RecommendedCursorOffset, bool TriggerCompletionAfterInsert);
@@ -426,13 +426,13 @@ namespace AXamlIDE.CompletionEngine.Completion
                             else if (prop?.Type?.Name == typeof(Type).FullName)
                             {
                                 var cKind = CompletionKind.Class;
-                                if (state?.AttributeName?.Equals("TargetType") == true ||
-                                    state?.AttributeName?.Equals("Selector") == true)
+                                if (state.AttributeName?.Equals("TargetType") == true ||
+                                    state.AttributeName?.Equals("Selector") == true)
                                 {
                                     cKind |= CompletionKind.TargetTypeClass;
                                 }
 
-                                completions.AddRange(Helper.FilterTypeNames(state?.AttributeValue)
+                                completions.AddRange(Helper.FilterTypeNames(state.AttributeValue)
                                     .Select(x => new Completion(x, x, x, cKind)));
                             }
                             else if ((state.AttributeName == "xmlns" || state.AttributeName?.Contains("xmlns:") == true)
@@ -484,59 +484,59 @@ namespace AXamlIDE.CompletionEngine.Completion
                                 }
                             }
                             else switch (state.TagName)
+                            {
+                                case "Setter" when state.AttributeName is "Value" or "Property":
                                 {
-                                    case "Setter" when state.AttributeName is "Value" or "Property":
-                                        {
-                                            ProcessStyleSetter(state.AttributeName, state, completions, currentAssemblyName);
+                                    ProcessStyleSetter(state.AttributeName, state, completions, currentAssemblyName);
 
-                                            var isAttached = textToCursor.AsSpan().Slice(curStart, pos - curStart).IndexOf('.') != -1;
-                                            if (isAttached)
-                                                curStart = pos;
-                                            break;
-                                        }
-                                    case "On" when (state.AttributeName?.Equals("Options") == true):
-                                        {
-                                            var parentTag = state.GetParentTagName(1);
-                                            if (parentTag?.Equals("OnPlatform") == true)
-                                            {
-                                                // Built in types from:
-                                                //https://github.com/AvaloniaUI/Avalonia/blob/master/src/Markup/Avalonia.Markup.Xaml/MarkupExtensions/OnPlatformExtension.cs
-                                                completions.Add(new Completion("Windows", CompletionKind.Enum));
-                                                completions.Add(new Completion("macOS", CompletionKind.Enum));
-                                                completions.Add(new Completion("Linux", CompletionKind.Enum));
-                                                completions.Add(new Completion("Android", CompletionKind.Enum));
-                                                completions.Add(new Completion("IOS", CompletionKind.Enum));
-                                                completions.Add(new Completion("Browser", CompletionKind.Enum));
-                                            }
-                                            else if (parentTag?.Equals("OnFormFactor") == true)
-                                            {
-                                                completions.Add(new Completion("Desktop", CompletionKind.Enum));
-                                                completions.Add(new Completion("Mobile", CompletionKind.Enum));
-                                            }
-
-                                            break;
-                                        }
-                                    case "On":
-                                        {
-                                            if (state?.AttributeName?.Equals("Content") == true)
-                                            {
-                                                // For content, lets find the completions relevant to the property
-                                                var propertyTag = state.GetParentTagName(2)!;
-                                                var dotPos = propertyTag.IndexOf('.', StringComparison.Ordinal);
-                                                var typeName = propertyTag[..dotPos];
-                                                var compName = propertyTag[(dotPos + 1)..];
-
-                                                var property = Helper.LookupProperty(typeName, compName);
-
-                                                if (property?.Type?.HasHintValues == true)
-                                                {
-                                                    completions.AddRange(GetHintCompletions(property.Type, null, currentAssemblyName));
-                                                }
-                                            }
-
-                                            break;
-                                        }
+                                    var isAttached = textToCursor.AsSpan().Slice(curStart, pos - curStart).IndexOf('.') != -1;
+                                    if (isAttached)
+                                        curStart = pos;
+                                    break;
                                 }
+                                case "On" when (state.AttributeName?.Equals("Options") == true):
+                                {
+                                    var parentTag = state.GetParentTagName(1);
+                                    if (parentTag?.Equals("OnPlatform") == true)
+                                    {
+                                        // Built in types from:
+                                        //https://github.com/AvaloniaUI/Avalonia/blob/master/src/Markup/Avalonia.Markup.Xaml/MarkupExtensions/OnPlatformExtension.cs
+                                        completions.Add(new Completion("Windows", CompletionKind.Enum));
+                                        completions.Add(new Completion("macOS", CompletionKind.Enum));
+                                        completions.Add(new Completion("Linux", CompletionKind.Enum));
+                                        completions.Add(new Completion("Android", CompletionKind.Enum));
+                                        completions.Add(new Completion("IOS", CompletionKind.Enum));
+                                        completions.Add(new Completion("Browser", CompletionKind.Enum));
+                                    }
+                                    else if (parentTag?.Equals("OnFormFactor") == true)
+                                    {
+                                        completions.Add(new Completion("Desktop", CompletionKind.Enum));
+                                        completions.Add(new Completion("Mobile", CompletionKind.Enum));
+                                    }
+
+                                    break;
+                                }
+                                case "On":
+                                {
+                                    if (state.AttributeName?.Equals("Content") == true)
+                                    {
+                                        // For content, lets find the completions relevant to the property
+                                        var propertyTag = state.GetParentTagName(2)!;
+                                        var dotPos = propertyTag.IndexOf('.', StringComparison.Ordinal);
+                                        var typeName = propertyTag[..dotPos];
+                                        var compName = propertyTag[(dotPos + 1)..];
+
+                                        var property = Helper.LookupProperty(typeName, compName);
+
+                                        if (property?.Type?.HasHintValues == true)
+                                        {
+                                            completions.AddRange(GetHintCompletions(property.Type, null, currentAssemblyName));
+                                        }
+                                    }
+
+                                    break;
+                                }
+                            }
                         }
 
                         break;
@@ -701,7 +701,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                         var setterProperty = state.FindParentAttributeValue("Property", maxLevels: 0);
                         if (setterProperty is not null)
                         {
-                            if (setterProperty.Contains('.') == true)
+                            if (setterProperty.Contains('.'))
                             {
                                 var vals = setterProperty.Split('.');
                                 selectorTypeName = vals[0];
@@ -770,7 +770,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                     return Helper.FilterTypes(entered["$parent[".Length..])
                         .Select(v => new Completion(v.Key, $"$parent[{v.Key}].", v.Key, CompletionKind.Class));
                 }
-                else if (values[0].StartsWith("#"))
+                else if (values[0].StartsWith('#'))
                 {
                     if (fullText is null) return [];
                     var nameMatch = MetadataHelper.FindElementByNameRegex.Matches(fullText);
@@ -815,7 +815,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                         }
                 }
             }
-            else if (values[0].StartsWith("#"))
+            else if (values[0].StartsWith('#'))
             {
                 i = 1;
                 //todo: find the control type etc ???
@@ -937,7 +937,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                             }
                             else
                             {
-                                var prop = Helper.LookupProperty(state?.TagName, state?.AttributeName);
+                                var prop = Helper.LookupProperty(state.TagName, state.AttributeName);
                                 if (prop?.Type?.HasHintValues == true)
                                 {
                                     completions.AddRange(GetHintCompletions(prop.Type, null, currentAssemblyName));
@@ -955,7 +955,7 @@ namespace AXamlIDE.CompletionEngine.Completion
 
                         var ctorArgument = ext.AttributesCount == 0;
                         //skip ctor hints when some property is already set
-                        if (t != null && t.IsMarkupExtension && t.SupportCtorArgument != MetadataTypeCtorArgument.None && ctorArgument)
+                        if (t is { IsMarkupExtension: true } && t.SupportCtorArgument != MetadataTypeCtorArgument.None && ctorArgument)
                         {
                             if (t.SupportCtorArgument == MetadataTypeCtorArgument.HintValues)
                             {
@@ -1121,7 +1121,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                                 if (Helper.FilterTypes(ton)
                                     .Where(kvp => kvp.Value.TemplateParts.Any())
                                     .Select(kvp => kvp.Value)
-                                    .FirstOrDefault() is MetadataType ownerType)
+                                    .FirstOrDefault() is { } ownerType)
                                 {
                                     var parts = ownerType.TemplateParts;
                                     var fullName = GetFullName(parser);
@@ -1142,7 +1142,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                                         {
                                             x += fullName.Length + 1;
                                         }
-                                        completions.AddRange(parts!.Select(p => new Completion(p.Name, CompletionKind.Name | CompletionKind.Class, p.Type?.Name)
+                                        completions.AddRange(parts.Select(p => new Completion(p.Name, CompletionKind.Name | CompletionKind.Class, p.Type?.Name)
                                         {
                                             RecommendedCursorOffset = (p.Name.Length + (p.Type?.Name.Length > 0 ? p.Type.Name.Length + 3 : 0)),
                                             DeleteTextOffset = -x,
@@ -1180,7 +1180,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                 case SelectorStatement.TypeName:
                     {
                         var tn = parser.TypeName;
-                        if (GetFullName(parser) is string typeFullName)
+                        if (GetFullName(parser) is { } typeFullName)
                         {
                             var len = typeFullName.Length;
                             if (len > 0)
@@ -1189,7 +1189,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                                 {
                                     var ns = typeFullName[..(len - 1)];
 
-                                    if (Helper.Aliases?.TryGetValue(ns!, out var ans) == true
+                                    if (Helper.Aliases?.TryGetValue(ns, out var ans) == true
                                         && Helper.Metadata?.Namespaces.TryGetValue(ans, out var types) == true)
                                     {
                                         IEnumerable<MetadataType> ft = types.Values;
@@ -1221,7 +1221,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                 case SelectorStatement.Property:
                     {
                         var typeFullName = GetFullName(parser);
-                        if (Helper.LookupType(typeFullName) is MetadataType type)
+                        if (Helper.LookupType(typeFullName) is { } type)
                         {
                             var propertyName = parser.PropertyName;
                             var selectorElementProperties = MetadataHelper.FilterProperty(type,
@@ -1312,7 +1312,7 @@ namespace AXamlIDE.CompletionEngine.Completion
                 case SelectorStatement.Value:
                     {
                         var typeFullName = GetFullName(parser);
-                        if (Helper.LookupType(typeFullName) is MetadataType type)
+                        if (Helper.LookupType(typeFullName) is { } type)
                         {
                             var propertyName = parser.PropertyName;
                             var prop = MetadataHelper.FilterProperty(type,
@@ -1366,22 +1366,10 @@ namespace AXamlIDE.CompletionEngine.Completion
                 return typeFullName ?? string.Empty;
             }
 
-            string GetXmlnsFullName(MetadataType type, char namespaceSeparator = '|')
-            {
-                if (Helper.Metadata?.InverseNamespace.TryGetValue(type.FullName, out var ns) != true
-                    || string.IsNullOrEmpty(ns)) return type.Name!;
-                var alias = Helper.Aliases?.FirstOrDefault(a => Equals(a.Value, ns));
-                if (alias is not null && !string.IsNullOrEmpty(alias.Value.Key))
-                {
-                    return $"{alias.Value.Key}{namespaceSeparator}{type.Name}";
-                }
-                return type.Name!;
-            }
-
             string? GetTypeFromControlTheme()
             {
                 if (state.GetParentTagName(1)?.Equals("ControlTheme") != true) return default;
-                if (state.FindParentAttributeValue("TargetType", 1, maxLevels: 0) is string implicitSelectorTypeName)
+                if (state.FindParentAttributeValue("TargetType", 1, maxLevels: 0) is { } implicitSelectorTypeName)
                 {
                     return implicitSelectorTypeName;
                 }
@@ -1392,13 +1380,13 @@ namespace AXamlIDE.CompletionEngine.Completion
         string GetXmlnsFullName(MetadataType type, char namespaceSeparator = '|')
         {
             if (Helper.Metadata?.InverseNamespace.TryGetValue(type.FullName, out var ns) != true
-                || string.IsNullOrEmpty(ns)) return type.Name!;
+                || string.IsNullOrEmpty(ns)) return type.Name;
             var alias = Helper.Aliases?.FirstOrDefault(a => Equals(a.Value, ns));
             if (alias is not null && !string.IsNullOrEmpty(alias.Value.Key))
             {
                 return $"{alias.Value.Key}{namespaceSeparator}{type.Name}";
             }
-            return type.Name!;
+            return type.Name;
         }
 
         public static readonly IEnumerable<INamespaceTrasformation> Default =
@@ -1423,4 +1411,3 @@ namespace AXamlIDE.CompletionEngine.Completion
             return string.Concat(source);
         }
     }
-}

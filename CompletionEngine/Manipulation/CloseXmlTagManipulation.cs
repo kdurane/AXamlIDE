@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using AXamlIDE.CompletionEngine.Parsing;
 using AXamlIDE.Interfaces;
 
-namespace AXamlIDE.CompletionEngine.Manipulation
-{
+namespace AXamlIDE.CompletionEngine.Manipulation;
     public class CloseXmlTagManipulation(XmlParser state, ReadOnlyMemory<char> text, int position)
     {
         private readonly ReadOnlyMemory<char> _text = text;
@@ -92,4 +91,3 @@ namespace AXamlIDE.CompletionEngine.Manipulation
             return pos;
         }
     }
-}

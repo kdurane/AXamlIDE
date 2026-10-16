@@ -9,8 +9,8 @@ using System.Threading;
 using AvaloniaEdit.Document;
 using AXamlIDE.Lsp;
 
-namespace AXamlIDE.Models
-{
+namespace AXamlIDE.Models;
+
     /// <summary>Everything the IDE knows about one open file.</summary>
     public sealed class OpenDocument : INotifyPropertyChanged, IDisposable
     {
@@ -177,4 +177,3 @@ namespace AXamlIDE.Models
         private void Raise([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
-}

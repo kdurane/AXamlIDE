@@ -3,55 +3,54 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace AXamlIDE.CompletionEngine.AssemblyMetadata
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
+
+public class DepsJsonFileAssemblyProvider : IAssemblyProvider
 {
-    public class DepsJsonFileAssemblyProvider : IAssemblyProvider
+    private readonly string _path;
+    private readonly string _xamlPrimaryAssemblyPath;
+
+    public DepsJsonFileAssemblyProvider(string executablePath, string xamlPrimaryAssemblyPath)
     {
-        private readonly string _path;
-        private readonly string _xamlPrimaryAssemblyPath;
+        if (string.IsNullOrEmpty(executablePath))
+            throw new ArgumentNullException(nameof(executablePath));
+        _path = executablePath;
+        _xamlPrimaryAssemblyPath = xamlPrimaryAssemblyPath;
+    }
 
-        public DepsJsonFileAssemblyProvider(string executablePath, string xamlPrimaryAssemblyPath)
+    private static IEnumerable<string> GetAssemblies(string path)
+    {
+        if (Path.GetDirectoryName(path) is not { } directory)
         {
-            if (string.IsNullOrEmpty(executablePath))
-                throw new ArgumentNullException(nameof(executablePath));
-            _path = executablePath;
-            _xamlPrimaryAssemblyPath = xamlPrimaryAssemblyPath;
+            return [];
         }
 
-        private static IEnumerable<string> GetAssemblies(string path)
-        {
-            if (Path.GetDirectoryName(path) is not { } directory)
-            {
-                return [];
-            }
+        var depsPath = Path.Combine(directory,
+            Path.GetFileNameWithoutExtension(path) + ".deps.json");
+        return File.Exists(depsPath)
+            ? DepsJsonAssemblyListLoader.ParseFile(depsPath)
+            : Directory.GetFiles(directory).Where(f => f.EndsWith(".dll") || f.EndsWith(".exe"));
+    }
 
-            var depsPath = Path.Combine(directory,
-                Path.GetFileNameWithoutExtension(path) + ".deps.json");
-            return File.Exists(depsPath)
-                ? DepsJsonAssemblyListLoader.ParseFile(depsPath)
-                : Directory.GetFiles(directory).Where(f => f.EndsWith(".dll") || f.EndsWith(".exe"));
-        }
-
-        public IEnumerable<string> GetAssemblies()
+    public IEnumerable<string> GetAssemblies()
+    {
+        var result = new List<string>(300);
+        if (!string.IsNullOrEmpty(_xamlPrimaryAssemblyPath))
         {
-            var result = new List<string>(300);
-            if (!string.IsNullOrEmpty(_xamlPrimaryAssemblyPath))
-            {
-                result.Add(_xamlPrimaryAssemblyPath);
-            }
-            try
-            {
-                result.AddRange(GetAssemblies(_path));
-            }
-            catch (Exception ex) when
-                (ex is DirectoryNotFoundException or FileNotFoundException)
-            {
-            }
-            catch (Exception ex)
-            {
-                throw new IOException($"Failed to read file '{_path}'.", ex);
-            }
-            return result;
+            result.Add(_xamlPrimaryAssemblyPath);
         }
+        try
+        {
+            result.AddRange(GetAssemblies(_path));
+        }
+        catch (Exception ex) when
+            (ex is DirectoryNotFoundException or FileNotFoundException)
+        {
+        }
+        catch (Exception ex)
+        {
+            throw new IOException($"Failed to read file '{_path}'.", ex);
+        }
+        return result;
     }
 }

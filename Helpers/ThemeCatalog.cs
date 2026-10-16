@@ -7,8 +7,7 @@ using TextMateSharp.Grammars;
 using TextMateSharp.Internal.Themes.Reader;
 using TextMateSharp.Themes;
 
-namespace AXamlIDE.Helpers
-{
+namespace AXamlIDE.Helpers;
     public sealed record ThemeChoice(string Id, string Display, Func<RegistryOptions, IRawTheme> Load);
 
     public static class ThemeCatalog
@@ -44,4 +43,3 @@ namespace AXamlIDE.Helpers
             All.FirstOrDefault(t => t.Id == id)
             ?? All.First(t => t.Id == nameof(ThemeName.DarkPlus));
     }
-}

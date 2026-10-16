@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Xml;
 
-namespace AXamlIDE.Helpers
-{
+namespace AXamlIDE.Helpers;
+
     internal static class Utils
     {
-        private static readonly XmlReaderSettings s_xmlSettings = new()
+        private static readonly XmlReaderSettings SXmlSettings = new()
         {
             DtdProcessing = DtdProcessing.Ignore,
         };
 
         public static bool CheckAvaloniaRoot(string content)
         {
-            return CheckAvaloniaRoot(XmlReader.Create(new StringReader(content), s_xmlSettings));
+            return CheckAvaloniaRoot(XmlReader.Create(new StringReader(content), SXmlSettings));
         }
 
-        public static bool CheckAvaloniaRoot(XmlReader reader)
+        private static bool CheckAvaloniaRoot(XmlReader reader)
         {
             try
             {
@@ -31,11 +32,9 @@ namespace AXamlIDE.Helpers
                     return false;
                 do
                 {
-                    if (reader.Name == "xmlns")
-                    {
-                        reader.ReadAttributeValue();
-                        return reader.Value.ToLower(CultureInfo.InvariantCulture) == AvaloniaNamespace;
-                    }
+                    if (reader.Name != "xmlns") continue;
+                    reader.ReadAttributeValue();
+                    return reader.Value.ToLower(CultureInfo.InvariantCulture) == AvaloniaNamespace;
 
                 } while (reader.MoveToNextAttribute());
                 return false;
@@ -66,41 +65,25 @@ namespace AXamlIDE.Helpers
 
         public static TValue? GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dic, TKey key) where TKey : notnull
         {
-            if (!dic.TryGetValue(key, out var rv))
-                return default;
-            return rv;
+            return CollectionExtensions.GetValueOrDefault(dic, key);
         }
 
         public static TValue? GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> dic, params TKey[] keys) where TKey : notnull
         {
             TValue? rv = default;
-            var found = false;
-            for (int i = 0; i < keys.Length; i++)
-            {
-                if (dic.TryGetValue(keys[i], out rv))
-                {
-                    found = true;
-                    break;
-                }
-            }
+            var found = keys.Any(t => dic.TryGetValue(t, out rv));
             return found
                 ? rv
                 : default;
         }
 
-        public static bool TryGetValue<TKey, TValue>(this IDictionary<TKey, TValue> dic, Func<TKey, bool> keyMatch,
-#if NET6_0_OR_GREATER
-            [MaybeNullWhen(false)]
-#endif
-                  out TValue? value)
+        public static bool TryGetValue<TKey, TValue>(this IDictionary<TKey, TValue> dic, Func<TKey, bool> keyMatch, out TValue? value)
         {
             foreach (var kv in dic)
             {
-                if (keyMatch(kv.Key))
-                {
-                    value = kv.Value;
-                    return true;
-                }
+                if (!keyMatch(kv.Key)) continue;
+                value = kv.Value;
+                return true;
             }
             value = default;
             return false;
@@ -118,4 +101,3 @@ namespace AXamlIDE.Helpers
             return default;
         }
     }
-}

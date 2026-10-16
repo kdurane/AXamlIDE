@@ -1,7 +1,7 @@
-# AXaxmlIDE
+# AXamlIDE
 
 ## Project Overview
-AXaxmlIDE is an advanced IDE built with Avalonia and .NET for XML/AXAML development. It provides intelligent code completion, real-time syntax checking, and a customizable editor interface.
+AXamlIDE is an advanced IDE built with Avalonia and .NET for XML/AXAML development. It provides intelligent code completion, real-time syntax checking, and a customizable editor interface.
 
 ## Key Features
 - 🧠 Smart code completion with Dnlib metadata analysis

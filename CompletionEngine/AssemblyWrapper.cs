@@ -6,8 +6,8 @@ using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.Models;
 using dnlib.DotNet;
 
-namespace AXamlIDE.CompletionEngine
-{
+namespace AXamlIDE.CompletionEngine;
+    
     internal class AssemblyWrapper(AssemblyDef asm, DnlibMetadataProviderSession session) : IAssemblyInformation
     {
         public string Name => asm.Name;
@@ -199,47 +199,45 @@ namespace AXamlIDE.CompletionEngine
             {
                 _isVisbleTo = static (property, targetAssembly) =>
                 {
-                    if (property.DeclaringType.DefinitionAssembly is AssemblyDef assembly)
+                    if (property.DeclaringType.DefinitionAssembly is not AssemblyDef assembly) return false;
+                    if (string.Equals(targetAssembly.AssemblyName, assembly.GetFullNameWithPublicKeyToken(), StringComparison.OrdinalIgnoreCase))
                     {
-                        if (string.Equals(targetAssembly.AssemblyName, assembly.GetFullNameWithPublicKeyToken(), StringComparison.OrdinalIgnoreCase))
+                        return true;
+                    }
+
+                    var enumerator = assembly.GetVisibleTo().GetEnumerator();
+                    using IDisposable? enumerator1 = enumerator;
+                    var targetPublicKey = targetAssembly.PublicKey;
+                    var targetName = targetAssembly.Name;
+                    while (enumerator?.MoveNext() == true)
+                    {
+                        var current = enumerator.Current;
+                        if (!current.StartsWith(targetName, StringComparison.OrdinalIgnoreCase)) continue;
+                        if (string.IsNullOrEmpty(targetPublicKey)) return true;
+                        var startIndex = current.IndexOf("PublicKey", StringComparison.OrdinalIgnoreCase);
+                        if (startIndex <= -1) return true;
+                        startIndex += 9;
+                        if (startIndex > current.Length)
                         {
-                            return true;
+                            return false;
+                        }
+                        while (startIndex < current.Length && current[startIndex] is ' ' or '=')
+                        {
+                            startIndex++;
                         }
 
-                        var enumerator = assembly.GetVisibleTo()?.GetEnumerator();
-                        using IDisposable? enumerator1 = enumerator;
-                        var targetPublicKey = targetAssembly.PublicKey;
-                        var targetName = targetAssembly.Name;
-                        while (enumerator?.MoveNext() == true)
+                        if (targetPublicKey.Length != current.Length - startIndex)
                         {
-                            var current = enumerator.Current;
-                            if (!current.StartsWith(targetName, StringComparison.OrdinalIgnoreCase)) continue;
-                            if (string.IsNullOrEmpty(targetPublicKey)) return true;
-                            var startIndex = current.IndexOf("PublicKey", StringComparison.OrdinalIgnoreCase);
-                            if (startIndex <= -1) return true;
-                            startIndex += 9;
-                            if (startIndex > current.Length)
+                            return false;
+                        }
+                        for (var i = startIndex; i < current.Length; i++)
+                        {
+                            if (current[i] != targetPublicKey[i - startIndex])
                             {
                                 return false;
                             }
-                            while (startIndex < current.Length && current[startIndex] is ' ' or '=')
-                            {
-                                startIndex++;
-                            }
-
-                            if (targetPublicKey.Length != current.Length - startIndex)
-                            {
-                                return false;
-                            }
-                            for (var i = startIndex; i < current.Length; i++)
-                            {
-                                if (current[i] != targetPublicKey[i - startIndex])
-                                {
-                                    return false;
-                                }
-                            }
-                            return true;
                         }
+                        return true;
                     }
                     return false;
                 };
@@ -320,8 +318,8 @@ namespace AXamlIDE.CompletionEngine
         {
             _method = method;
             _parameters = new Lazy<IList<IParameterInformation>>(() =>
-                _method.Parameters.Skip(_method.IsStatic ? 0 : 1).Select(p => (IParameterInformation)new ParameterWrapper(p)).ToList() as
-                    IList<IParameterInformation>);
+            [.. _method.Parameters.Skip(_method.IsStatic ? 0 : 1).Select(IParameterInformation (p) => new ParameterWrapper(p))]);
+            
             if (_method.ReturnType is not null)
             {
                 QualifiedReturnTypeFullName = _method.ReturnType.DefinitionAssembly is null
@@ -360,4 +358,3 @@ namespace AXamlIDE.CompletionEngine
         public string TypeFullName => _param.Type.FullName;
         public string QualifiedTypeFullName { get; }
     }
-}

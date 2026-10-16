@@ -5,8 +5,8 @@ using AXamlIDE.Models;
 using AXamlIDE.Services;
 using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
     /// <summary>
     /// The small hub every editor controller shares: the TextEditor, the active document,
     /// and three events. MainWindow tells it when the tab changes; controllers listen.
@@ -107,4 +107,3 @@ namespace AXamlIDE.EditorFeatures
                 TextChanged?.Invoke(doc);
         }
     }
-}

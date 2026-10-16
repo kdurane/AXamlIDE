@@ -1,5 +1,5 @@
-﻿namespace AXamlIDE.CompletionEngine.AssemblyMetadata
-{
+﻿namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
+
     public class MetadataReader(IMetadataProvider provider)
     {
         public Metadata? GetForTargetAssembly(IAssemblyProvider assemblyProvider)
@@ -8,4 +8,3 @@
             return MetadataConverter.ConvertMetadata(session);
         }
     }
-}

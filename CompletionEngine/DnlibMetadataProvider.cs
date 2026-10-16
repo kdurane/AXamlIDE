@@ -5,8 +5,8 @@ using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.Models;
 using dnlib.DotNet;
 
-namespace AXamlIDE.CompletionEngine
-{
+namespace AXamlIDE.CompletionEngine;
+
     public class DnlibMetadataProvider : IMetadataProvider
     {
         public IMetadataReaderSession GetMetadata(IEnumerable<string> paths)
@@ -118,4 +118,3 @@ namespace AXamlIDE.CompletionEngine
             ((AssemblyResolver)_modCtx.AssemblyResolver).Clear();
         }
     }
-}

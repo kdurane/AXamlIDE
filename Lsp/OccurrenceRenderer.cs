@@ -1,12 +1,11 @@
 using System.Collections.Generic;
 using System.Linq;
-using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     public sealed class OccurrenceRenderer : IBackgroundRenderer
     {
         private static readonly IBrush HighlightBrush =
@@ -74,4 +73,3 @@ namespace AXamlIDE.Lsp
         private static bool IsIdentifierCharacter(char value)
             => char.IsLetterOrDigit(value) || value == '_';
     }
-}

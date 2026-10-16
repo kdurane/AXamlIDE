@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
-namespace AXamlIDE.CompletionEngine.Parsing
-{
+namespace AXamlIDE.CompletionEngine.Parsing;
+
     public class MarkupExtensionParser
     {
         private struct ParserState
@@ -211,4 +211,3 @@ namespace AXamlIDE.CompletionEngine.Parsing
             return $"State: {State}, ElementName: {ElementName}, AttributeName: {AttributeName}, AttributeValue: {AttributeValue}";
         }
     }
-}

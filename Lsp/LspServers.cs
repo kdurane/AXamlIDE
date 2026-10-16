@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     /// <summary>What the IDE currently has open: a root folder, and the .sln if one was opened.</summary>
     public sealed record LspWorkspace(string RootPath, string? SolutionPath);
 
@@ -38,8 +38,8 @@ namespace AXamlIDE.Lsp
         private static LspServerConfig Axaml { get; } = new(
             Id: "axsg-lsp",
             LanguageIds: ["axaml"],
-            ResolveCommand: () => FindTool("axsg-lsp", "AXAXMLIDE_LSP"),
-            InstallHint: "expected in ~/.dotnet/tools, or set AXAXMLIDE_LSP");
+            ResolveCommand: () => FindTool("axsg-lsp", "AXAMLIDE_LSP"),
+            InstallHint: "expected in ~/.dotnet/tools, or set AXAMLIDE_LSP");
 
         /// <summary>
         /// Microsoft's Roslyn language server (the engine behind the VS Code C# extension).
@@ -51,8 +51,8 @@ namespace AXamlIDE.Lsp
         private static LspServerConfig Roslyn { get; } = new(
             Id: "roslyn",
             LanguageIds: ["csharp"],
-            ResolveCommand: () => FindTool("roslyn-language-server", "AXAXMLIDE_ROSLYN"),
-            InstallHint: "dotnet tool install -g roslyn-language-server --prerelease, or set AXAXMLIDE_ROSLYN",
+            ResolveCommand: () => FindTool("roslyn-language-server", "AXAMLIDE_ROSLYN"),
+            InstallHint: "dotnet tool install -g roslyn-language-server --prerelease, or set AXAMLIDE_ROSLYN",
             BuildArgs: _ => ["--stdio", "--logLevel", "Information"],
             AfterInitialize: OpenRoslynWorkspace,
             WaitsForProjectInitialization: true);
@@ -65,8 +65,8 @@ namespace AXamlIDE.Lsp
         public static LspServerConfig CSharpLs { get; } = new(
             Id: "csharp-ls",
             LanguageIds: ["csharp"],
-            ResolveCommand: () => FindTool("csharp-ls", "AXAXMLIDE_CSHARP_LS"),
-            InstallHint: "dotnet tool install -g csharp-ls, or set AXAXMLIDE_CSHARP_LS",
+            ResolveCommand: () => FindTool("csharp-ls", "AXAMLIDE_CSHARP_LS"),
+            InstallHint: "dotnet tool install -g csharp-ls, or set AXAMLIDE_CSHARP_LS",
             BuildArgs: ws => ws.SolutionPath is { } sln
                 ? new[] { "--solution", sln }
                 : Array.Empty<string>());
@@ -151,4 +151,3 @@ namespace AXamlIDE.Lsp
             return null;
         }
     }
-}

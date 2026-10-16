@@ -1,7 +1,7 @@
 using TextMateSharp.Grammars;
 
-namespace AXamlIDE.Models
-{
+namespace AXamlIDE.Models;
+
     public sealed record EditorSettings
     {
         public const string DefaultFontFamily = "Cascadia Code,Consolas,Menlo,Monospace";
@@ -14,4 +14,3 @@ namespace AXamlIDE.Models
         public bool SolutionExplorerOnRight { get; init; }
         public bool FormatOnSave { get; init; }
     }
-}

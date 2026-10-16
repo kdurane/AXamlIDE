@@ -1,9 +1,7 @@
-namespace AXamlIDE.Enums
-{
+namespace AXamlIDE.Enums;
     public enum SaveChoice
     {
         Save,
         Discard,
         Cancel
     }
-}

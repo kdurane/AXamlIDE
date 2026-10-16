@@ -29,13 +29,13 @@ namespace AXamlIDE.Services
 
         public static string ResolveExecutablePath()
         {
-            var overridePath = Environment.GetEnvironmentVariable("AXAXMLIDE_NETCOREDBG_PATH");
+            var overridePath = Environment.GetEnvironmentVariable("AXAMLIDE_NETCOREDBG_PATH");
             if (!string.IsNullOrWhiteSpace(overridePath))
             {
                 if (File.Exists(overridePath))
                     return overridePath;
                 throw new FileNotFoundException(
-                    $"AXAXMLIDE_NETCOREDBG_PATH points to a missing file: '{overridePath}'.", overridePath);
+                    $"AXAMLIDE_NETCOREDBG_PATH points to a missing file: '{overridePath}'.", overridePath);
             }
 
             var executable = OperatingSystem.IsWindows() ? "netcoredbg.exe" : "netcoredbg";
@@ -51,7 +51,7 @@ namespace AXamlIDE.Services
             }
 
             throw new FileNotFoundException(
-                "NetCoreDbg was not found on PATH. Install the NetCoreDbg standalone executable or set AXAXMLIDE_NETCOREDBG_PATH.");
+                "NetCoreDbg was not found on PATH. Install the NetCoreDbg standalone executable or set AXAMLIDE_NETCOREDBG_PATH.");
         }
 
         public NetCoreDbgSession(string executablePath)
@@ -92,8 +92,8 @@ namespace AXamlIDE.Services
 
             using (await RequestAsync("initialize", new
             {
-                clientID = "AXaxmlIDE",
-                clientName = "AXaxmlIDE",
+                clientID = "AXamlIDE",
+                clientName = "AXamlIDE",
                 adapterID = "coreclr",
                 pathFormat = "path",
                 linesStartAt1 = true,

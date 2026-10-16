@@ -49,10 +49,10 @@ namespace AXamlIDE.Services
         private static string ResolveHostExecutablePath()
         {
             var executable = OperatingSystem.IsWindows()
-                ? "AXaxmlIDE.msbuildhost.exe"
-                : "AXaxmlIDE.msbuildhost";
+                ? "AXamlIDE.msbuildhost.exe"
+                : "AXamlIDE.msbuildhost";
 
-            var overridePath = Environment.GetEnvironmentVariable("AXAXMLIDE_HOST");
+            var overridePath = Environment.GetEnvironmentVariable("AXAMLIDE_HOST");
             if (!string.IsNullOrEmpty(overridePath) && System.IO.File.Exists(overridePath))
                 return overridePath;
 

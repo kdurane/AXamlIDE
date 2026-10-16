@@ -4,8 +4,8 @@ using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     /// <summary>Adapts one LSP CompletionItem to AvaloniaEdit's completion list.</summary>
     public sealed class LspCompletionData(LspCompletionItem item, int editStartOffset, double priority) : ICompletionData
     {
@@ -48,4 +48,3 @@ namespace AXamlIDE.Lsp
             textArea.Caret.Offset = start + newText.Length;
         }
     }
-}

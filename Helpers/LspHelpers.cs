@@ -4,8 +4,8 @@ using System.IO;
 using System.Text.Json;
 using AXamlIDE.Lsp;
 
-namespace AXamlIDE.Helpers
-{
+namespace AXamlIDE.Helpers;
+
     public static class LspHelpers
     {
         public static bool RangesOverlap(LspRange first, LspRange second)
@@ -88,4 +88,3 @@ namespace AXamlIDE.Helpers
                 end.GetProperty("character").GetInt32());
         }
     }
-}

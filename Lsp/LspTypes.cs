@@ -5,8 +5,8 @@ using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using AXamlIDE.Interfaces;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     // All positions are LSP style: 0-based line, 0-based UTF-16 character.
     public sealed record ContentChange(int StartLine, int StartChar, int EndLine, int EndChar, string Text);
 
@@ -123,4 +123,3 @@ namespace AXamlIDE.Lsp
         JsonElement? Edit,
         JsonElement? Command,
         JsonElement Raw);
-}

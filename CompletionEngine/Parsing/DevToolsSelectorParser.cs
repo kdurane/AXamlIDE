@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace AXamlIDE.CompletionEngine.Parsing
-{
+namespace AXamlIDE.CompletionEngine.Parsing;
+
     public class DevToolsSelectorParser
     {
         private enum SelectorInfoPart
@@ -69,4 +69,3 @@ namespace AXamlIDE.CompletionEngine.Parsing
             return selectorsInfo;
         }
     }
-}

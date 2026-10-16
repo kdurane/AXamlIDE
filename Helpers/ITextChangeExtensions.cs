@@ -4,8 +4,8 @@ using AXamlIDE.CompletionEngine.Manipulation;
 using AXamlIDE.Interfaces;
 // ReSharper disable InconsistentNaming
 
-namespace AXamlIDE.Helpers
-{
+namespace AXamlIDE.Helpers;
+
     public static class ITextChangeExtensions
     {
         /// <param name="textChange"></param>
@@ -46,4 +46,3 @@ namespace AXamlIDE.Helpers
             }
         }
     }
-}

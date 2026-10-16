@@ -8,8 +8,8 @@ using AXamlIDE.Helpers;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
     /// <summary>
     /// Applies LSP workspace edits (rename, code actions, server-initiated edits).
     /// Bodies are the old ApplyWorkspaceEdits / ApplyServerWorkspaceEditAsync from MainWindow.
@@ -75,4 +75,3 @@ namespace AXamlIDE.EditorFeatures
                 }
             }).GetTask();
     }
-}

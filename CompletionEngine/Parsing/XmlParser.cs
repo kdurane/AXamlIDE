@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace AXamlIDE.CompletionEngine.Parsing
-{
+namespace AXamlIDE.CompletionEngine.Parsing;
+
     public class XmlParser(ReadOnlyMemory<char> data, int start = 0)
     {
         public enum ParserState
@@ -411,4 +411,3 @@ namespace AXamlIDE.CompletionEngine.Parsing
             }
         }
     }
-}

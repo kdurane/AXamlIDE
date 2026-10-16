@@ -3,71 +3,78 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using dnlib.DotNet;
 
-namespace AXamlIDE.CompletionEngine
-{
+namespace AXamlIDE.CompletionEngine;
+    
     internal static class DnlibExtension
     {
-        /// <summary>
-        /// Determines whether the specified property is public.
-        /// </summary>
         /// <param name="property">The property.</param>
-        /// <returns><c>true</c> if the specified property is public; otherwise, <c>false</c>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPublic(this PropertyDef property)
+        extension(PropertyDef property)
         {
-            return property.GetMethod.IsPublic()
-                || property.SetMethod.IsPublic()
-                || property.OtherMethods?.Any(method => method.IsPublic()) == true;
+            /// <summary>
+            /// Determines whether the specified property is public.
+            /// </summary>
+            /// <returns><c>true</c> if the specified property is public; otherwise, <c>false</c>.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool IsPublic()
+            {
+                return property.GetMethod.IsPublic()
+                       || property.SetMethod.IsPublic()
+                       || property.OtherMethods?.Any(method => method.IsPublic()) == true;
+            }
+
+            /// <summary>
+            /// Determines whether the specified property is internal.
+            /// </summary>
+            /// <returns></returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool IsInternal()
+            {
+                return property.GetMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
+                       || property.SetMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
+                       || property.OtherMethods?.Any(method => method is { IsPrivate: true, Access: MethodAttributes.Assembly }) == true;
+            }
         }
 
-        /// <summary>
-        /// Determines whether the specified property is internal.
-        /// </summary>
-        /// <param name="property"></param>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInternal(this PropertyDef property)
-        {
-            return property.GetMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
-                || property.SetMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
-                || property.OtherMethods?.Any(method => method is { IsPrivate: true, Access: MethodAttributes.Assembly }) == true;
-        }
-
-        /// <summary>
-        /// Determines whether the specified event is public.
-        /// </summary>
         /// <param name="evt">The event.</param>
-        /// <returns><c>true</c> if the specified event is public; otherwise, <c>false</c>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPublic(this EventDef evt)
+        extension(EventDef evt)
         {
-            return evt.AddMethod?.IsPublic == true
-                || evt.RemoveMethod?.IsPublic == true
-                || evt.InvokeMethod?.IsPublic == true
-                || evt.OtherMethods?.Any(method => method.IsPublic) == true;
+            /// <summary>
+            /// Determines whether the specified event is public.
+            /// </summary>
+            /// <returns><c>true</c> if the specified event is public; otherwise, <c>false</c>.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool IsPublic()
+            {
+                return evt.AddMethod?.IsPublic == true
+                       || evt.RemoveMethod?.IsPublic == true
+                       || evt.InvokeMethod?.IsPublic == true
+                       || evt.OtherMethods?.Any(method => method.IsPublic) == true;
+            }
+
+            /// <summary>
+            /// Determines whether the specified event is internal.
+            /// </summary>
+            /// <returns><c>true</c> if the specified event is internal; otherwise, <c>false</c>.</returns>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool IsInternal()
+            {
+                return evt.AddMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
+                       || evt.RemoveMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
+                       || evt.InvokeMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
+                       || evt.OtherMethods?.Any(method => method is { IsPrivate: true, Access: MethodAttributes.Assembly }) == true;
+            }
         }
 
-        /// <summary>
-        /// Determines whether the specified event is internal.
-        /// </summary>
-        /// <param name="evt">The event.</param>
-        /// <returns><c>true</c> if the specified event is internal; otherwise, <c>false</c>.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsInternal(this EventDef evt)
+        extension(MethodDef methodDef)
         {
-            return evt.AddMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
-                || evt.RemoveMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
-                || evt.InvokeMethod is { IsPrivate: true, Access: MethodAttributes.Assembly }
-                || evt.OtherMethods?.Any(method => method is { IsPrivate: true, Access: MethodAttributes.Assembly }) == true;
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool IsPublic()
+                => methodDef?.IsPublic == true;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public bool IsPublicOrInternal()
+                => methodDef?.IsPublic == true || methodDef?.Access == MethodAttributes.Assembly;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPublic(this MethodDef methodDef)
-                    => methodDef?.IsPublic == true;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsPublicOrInternal(this MethodDef methodDef)
-            => methodDef?.IsPublic == true || methodDef?.Access == MethodAttributes.Assembly;
 
         public static IEnumerable<string> GetVisibleTo(this AssemblyDef assemblyDef)
         {
@@ -79,4 +86,3 @@ namespace AXamlIDE.CompletionEngine
             return result!;
         }
     }
-}

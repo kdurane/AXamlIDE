@@ -5,8 +5,8 @@ using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     public sealed class DiagnosticSegment : TextSegment
     {
         public string Message { get; init; } = "";
@@ -64,4 +64,3 @@ namespace AXamlIDE.Lsp
             dc.DrawGeometry(null, pen, geo);
         }
     }
-}

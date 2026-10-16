@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace AXamlIDE.CompletionEngine.AssemblyMetadata
+namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
+
+public interface IAssemblyProvider
 {
-    public interface IAssemblyProvider
-    {
-        IEnumerable<string> GetAssemblies();
-    }
+    IEnumerable<string> GetAssemblies();
 }

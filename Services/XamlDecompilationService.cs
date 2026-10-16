@@ -28,7 +28,7 @@ namespace AXamlIDE.Services
             var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(typeFullName)))[..12];
             var path = Path.Combine(
                 Path.GetTempPath(),
-                "AXaxmlIDE",
+                "AXamlIDE",
                 "Decompiled",
                 assemblyName,
                 $"{safeTypeName}-{hash}.cs");

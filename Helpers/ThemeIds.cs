@@ -2,8 +2,8 @@ using System;
 using System.Linq;
 using TextMateSharp.Grammars;
 
-namespace AXamlIDE.Helpers
-{
+namespace AXamlIDE.Helpers;
+
     public static class ThemeIds
     {
         public const string AxamlDark = "AxamlDark";
@@ -16,4 +16,3 @@ namespace AXamlIDE.Helpers
 
         public static bool IsKnown(string id) => Normalize(id) is not null;
     }
-}

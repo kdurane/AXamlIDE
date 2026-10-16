@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using AXamlIDE.Interfaces;
 
-namespace AXamlIDE.CompletionEngine.NamespaceTrasformations
-{
+namespace AXamlIDE.CompletionEngine.NamespaceTrasformations;
+
     internal class ReplaceDot(char sobstituion) : INamespaceTrasformation
     {
         public IEnumerable<char> Apply(IEnumerable<char> input)
@@ -18,4 +18,3 @@ namespace AXamlIDE.CompletionEngine.NamespaceTrasformations
             }
         }
     }
-}

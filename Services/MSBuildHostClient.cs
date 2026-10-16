@@ -21,7 +21,7 @@ namespace AXamlIDE
         {
             if (!File.Exists(hostExecutablePath))
                 throw new FileNotFoundException(
-                    "MSBuild host executable not found - build AXaxmlIDE.msbuildhost first.", hostExecutablePath);
+                    "MSBuild host executable not found - build AXamlIDE.msbuildhost first.", hostExecutablePath);
 
             _hostPath = hostExecutablePath;
             Start();

@@ -13,8 +13,8 @@ using System.Threading.Tasks;
 using AXamlIDE.Interfaces;
 // ReSharper disable SuggestVarOrType_SimpleTypes
 
-namespace AXamlIDE.Lsp
-{
+namespace AXamlIDE.Lsp;
+
     public sealed class LspException(string message) : Exception(message);
 
     /// <summary>
@@ -173,7 +173,7 @@ namespace AXamlIDE.Lsp
             var result = await RequestAsync("initialize", new
             {
                 processId = Environment.ProcessId,
-                clientInfo = new { name = "AXaxmlIDE", version = "0.1" },
+                clientInfo = new { name = "AXamlIDE", version = "0.1" },
                 rootUri,
                 workspaceFolders = new[] { new { uri = rootUri, name = Path.GetFileName(rootPath) } },
                 capabilities = new
@@ -249,8 +249,8 @@ namespace AXamlIDE.Lsp
                     && comp.TryGetProperty("triggerCharacters", out var trig)
                     && trig.ValueKind == JsonValueKind.Array)
                 {
-                    CompletionTriggerCharacters = trig.EnumerateArray()
-                        .Select(t => t.GetString() ?? "").Where(t => t.Length > 0).ToArray();
+                    CompletionTriggerCharacters =
+                    [.. trig.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => t.Length > 0)];
                 }
 
                 if (caps.TryGetProperty("signatureHelpProvider", out var signatureHelp)
@@ -920,12 +920,10 @@ namespace AXamlIDE.Lsp
             }
 
             var childContainerName = containerName is null ? name : $"{containerName}.{name}";
-            if (symbol.TryGetProperty("children", out var children)
-                && children.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var child in children.EnumerateArray())
-                    ParseDocumentSymbol(child, childContainerName, symbols);
-            }
+            if (!symbol.TryGetProperty("children", out var children)
+                || children.ValueKind != JsonValueKind.Array) return;
+            foreach (var child in children.EnumerateArray())
+                ParseDocumentSymbol(child, childContainerName, symbols);
         }
 
         public Task<JsonElement> RenameAsync(
@@ -1006,12 +1004,12 @@ namespace AXamlIDE.Lsp
             => RequestAsync("workspace/executeCommand", new
             {
                 command,
-                arguments = arguments is { } values && values.ValueKind == JsonValueKind.Array
+                arguments = arguments is { ValueKind: JsonValueKind.Array } values
                     ? values
                     : JsonEmptyArray
             }, ct);
 
-        public static LspCodeAction? ParseCodeAction(JsonElement action)
+        private static LspCodeAction? ParseCodeAction(JsonElement action)
         {
             if (action.ValueKind != JsonValueKind.Object || Str(action, "title") is not { } title)
                 return null;
@@ -1026,20 +1024,25 @@ namespace AXamlIDE.Lsp
             JsonElement? command = null;
             if (action.TryGetProperty("command", out var commandElement))
             {
-                if (commandElement.ValueKind == JsonValueKind.Object
-                    && Str(commandElement, "command") is { Length: > 0 })
-                    command = commandElement.Clone();
-                else if (commandElement.ValueKind == JsonValueKind.String
-                         && commandElement.GetString() is { Length: > 0 } legacyCommand)
+                switch (commandElement.ValueKind)
                 {
-                    var arguments = action.TryGetProperty("arguments", out var legacyArguments)
-                        ? legacyArguments.Clone()
-                        : JsonEmptyArray;
-                    command = JsonSerializer.SerializeToElement(new
+                    case JsonValueKind.Object
+                        when Str(commandElement, "command") is { Length: > 0 }:
+                        command = commandElement.Clone();
+                        break;
+                    case JsonValueKind.String
+                        when commandElement.GetString() is { Length: > 0 } legacyCommand:
                     {
-                        command = legacyCommand,
-                        arguments
-                    });
+                        var arguments = action.TryGetProperty("arguments", out var legacyArguments)
+                            ? legacyArguments.Clone()
+                            : JsonEmptyArray;
+                        command = JsonSerializer.SerializeToElement(new
+                        {
+                            command = legacyCommand,
+                            arguments
+                        });
+                        break;
+                    }
                 }
             }
 
@@ -1104,15 +1107,14 @@ namespace AXamlIDE.Lsp
         {
             if (!parameter.TryGetProperty("label", out var label))
                 return "";
-            if (label.ValueKind == JsonValueKind.String)
-                return label.GetString() ?? "";
-            if (label.ValueKind == JsonValueKind.Array
-                && label.GetArrayLength() == 2
-                && label[0].TryGetInt32(out var start)
-                && label[1].TryGetInt32(out var end)
-                && start >= 0 && end >= start && end <= signatureLabel.Length)
-                return signatureLabel[start..end];
-            return "";
+            return label.ValueKind switch
+            {
+                JsonValueKind.String => label.GetString() ?? "",
+                JsonValueKind.Array when label.GetArrayLength() == 2 && label[0].TryGetInt32(out var start) &&
+                                         label[1].TryGetInt32(out var end) && start >= 0 && end >= start &&
+                                         end <= signatureLabel.Length => signatureLabel[start..end],
+                _ => ""
+            };
         }
 
         private static IReadOnlyList<string> ReadStringArray(JsonElement element, string name)
@@ -1130,10 +1132,14 @@ namespace AXamlIDE.Lsp
 
         private static IReadOnlyList<LspLocation> ParseLocations(JsonElement result)
         {
-            if (result.ValueKind == JsonValueKind.Array)
-                return [.. result.EnumerateArray().Select(ParseLocationLink).OfType<LspLocation>()];
-            if (result.ValueKind == JsonValueKind.Object && result.TryGetProperty("uri", out _))
-                return [ParseLocation(result)];
+            switch (result.ValueKind)
+            {
+                case JsonValueKind.Array:
+                    return [.. result.EnumerateArray().Select(ParseLocationLink).OfType<LspLocation>()];
+                case JsonValueKind.Object when result.TryGetProperty("uri", out _):
+                    return [ParseLocation(result)];
+            }
+
             if (result.ValueKind == JsonValueKind.Object && result.TryGetProperty("targetUri", out _))
                 return [ParseLocationLink(result)!];
             return [];
@@ -1247,4 +1253,3 @@ namespace AXamlIDE.Lsp
         }
 
     }
-}

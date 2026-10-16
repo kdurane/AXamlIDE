@@ -8,8 +8,9 @@ using AvaloniaEdit.CodeCompletion;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
+
     /// <summary>
     /// Signature help popup (parameter hints). Replaces MainWindow's _insightWindow,
     /// _signatureHelpSequence, _signatureHelpCts, RequestSignatureHelpAsync,
@@ -145,4 +146,3 @@ namespace AXamlIDE.EditorFeatures
             _insightWindow = null;
         }
     }
-}

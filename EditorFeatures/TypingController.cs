@@ -5,8 +5,8 @@ using AvaloniaEdit.Document;
 using AXamlIDE.CompletionEngine.Parsing;
 using static AXamlIDE.Helpers.NameChars;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
     /// <summary>
     /// Reacts to typed characters: auto-closes XAML tags and C# braces, and decides when to
     /// open completion or signature help. Replaces MainWindow's OnTextEntering/OnTextEntered,
@@ -136,4 +136,3 @@ namespace AXamlIDE.EditorFeatures
             editor.CaretOffset = caret;
         }
     }
-}

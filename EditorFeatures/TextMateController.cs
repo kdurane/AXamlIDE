@@ -6,8 +6,8 @@ using Avalonia.Media;
 using AvaloniaEdit.TextMate;
 using TextMateSharp.Grammars;
 
-namespace AXamlIDE.EditorFeatures
-{
+namespace AXamlIDE.EditorFeatures;
+
     /// <summary>
     /// Grammar selection and the editor half of theme colouring. Replaces MainWindow's
     /// SetGrammarForFile, TextMateInstallationOnAppliedTheme, ApplyThemeColorsToEditor and
@@ -15,7 +15,7 @@ namespace AXamlIDE.EditorFeatures
     ///
     /// ApplyThemeColorsToWindow touched the status bar and the window itself, so it stays in
     /// MainWindow and subscribes to <see cref="ThemeApplied"/>. In MainWindow add
-    ///   using static AXaxmlIDE.EditorFeatures.TextMateController;
+    ///   using static AXamlIDE.EditorFeatures.TextMateController;
     /// so its remaining ApplyBrushAction calls compile unchanged.
     ///
     /// Construct it exactly where <c>_textMate.AppliedTheme += ...</c> used to be, i.e. BEFORE
@@ -131,4 +131,3 @@ namespace AXamlIDE.EditorFeatures
             return true;
         }
     }
-}

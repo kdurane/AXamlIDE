@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
@@ -68,7 +69,7 @@ namespace AXamlIDE.Views
             settingsVm.StatusMessageChanged += viewModel.ShowStatusMessage;
             viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
             viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
-            viewModel.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
+            viewModel.Run.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
             viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
 
             EditorPane.ApplyEditorSettings();
@@ -159,19 +160,19 @@ namespace AXamlIDE.Views
                 menu.Items.Add(new MenuItem
                 {
                     Header = "Build",
-                    Command = ViewModel.BuildProjectCommand,
+                    Command = ViewModel.Run.BuildProjectCommand,
                     CommandParameter = node
                 });
                 menu.Items.Add(new MenuItem
                 {
                     Header = "Run",
-                    Command = ViewModel.RunProjectCommand,
+                    Command = ViewModel.Run.RunProjectCommand,
                     CommandParameter = node
                 });
                 menu.Items.Add(new MenuItem
                 {
                     Header = "Start Debugging",
-                    Command = ViewModel.StartDebuggingCommand,
+                    Command = ViewModel.Run.StartDebuggingCommand,
                     CommandParameter = node
                 });
             }
@@ -344,13 +345,13 @@ namespace AXamlIDE.Views
 
         private void OnTabCloseClick(object? sender, RoutedEventArgs e)
         {
-            if ((sender as Control)?.Tag is OpenDocument doc) TryClose(doc);
+            if (sender is Control { Tag: OpenDocument doc }) TryClose(doc);
         }
 
         private void OnTabPointerReleased(object? sender, PointerReleasedEventArgs e)
         {
             if (e.InitialPressMouseButton == MouseButton.Middle
-                && (sender as Control)?.DataContext is OpenDocument doc)
+                && sender is Control { DataContext: OpenDocument doc })
                 TryClose(doc);
         }
 
@@ -399,19 +400,19 @@ namespace AXamlIDE.Views
                     e.Handled = true;
                     return;
                 case { Key: Key.F5, KeyModifiers: KeyModifiers.None }:
-                    ViewModel.StartDebuggingCommand.Execute(ViewModel.SelectedWorkspaceNode);
+                    ViewModel.Run.StartDebuggingCommand.Execute(ViewModel.SelectedWorkspaceNode);
                     e.Handled = true;
                     return;
                 case { Key: Key.F5, KeyModifiers: KeyModifiers.Control }:
-                    ViewModel.RunProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
+                    ViewModel.Run.RunProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
                     e.Handled = true;
                     return;
                 case { Key: Key.F5, KeyModifiers: KeyModifiers.Shift }:
-                    ViewModel.StopRunningProjectCommand.Execute(null);
+                    ViewModel.Run.StopRunningProjectCommand.Execute(null);
                     e.Handled = true;
                     return;
                 case { Key: Key.B, KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift) }:
-                    ViewModel.BuildProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
+                    ViewModel.Run.BuildProjectCommand.Execute(ViewModel.SelectedWorkspaceNode);
                     e.Handled = true;
                     return;
                 case { KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift), Key: Key.Space }:
@@ -468,7 +469,7 @@ namespace AXamlIDE.Views
 
         private void OnProblemClick(object? sender, TappedEventArgs e)
         {
-            if ((sender as ListBox)?.SelectedItem is ProblemItem problem)
+            if (sender is ListBox { SelectedItem: ProblemItem problem })
                 EditorPane.Navigator.ToProblem(problem);
         }
 
@@ -477,7 +478,7 @@ namespace AXamlIDE.Views
 
         private void ShowFindInFiles()
         {
-            ToolTabs.SelectedIndex = 4;
+            ToolTabs.SelectedIndex = ToolTab.Search;
             FindInFilesQuery.Focus();
             FindInFilesQuery.SelectAll();
         }

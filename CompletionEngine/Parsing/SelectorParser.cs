@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Globalization;
 
-namespace AXamlIDE.CompletionEngine.Parsing
-{
+namespace AXamlIDE.CompletionEngine.Parsing;
+
     internal enum SelectorStatement
     {
         Start,
@@ -341,8 +341,6 @@ namespace AXamlIDE.CompletionEngine.Parsing
                         break;
                     case SelectorStatement.End:
                         break;
-                    default:
-                        break;
                 }
             }
         }
@@ -514,8 +512,6 @@ namespace AXamlIDE.CompletionEngine.Parsing
                 }
                 r.Statement = SelectorStatement.Middle;
                 r.LastParsedPosition = r.Position;
-                return;
-
             }
             else if (identifier.SequenceEqual(NthLastChildKeyword.AsSpan()))
             {
@@ -719,18 +715,13 @@ namespace AXamlIDE.CompletionEngine.Parsing
         {
             var template = r.ParseIdentifier();
             const string TemplateKeyword = "template";
-            if (!template.SequenceEqual(TemplateKeyword.AsSpan()))
+            if (!template.SequenceEqual(TemplateKeyword.AsSpan()) || !r.TakeIf('/'))
             {
                 r.LastParsedPosition = r.Position;
                 r.IsError = true;
                 return;
             }
-            else if (!r.TakeIf('/'))
-            {
-                r.LastParsedPosition = r.Position;
-                r.IsError = true;
-                return;
-            }
+
             r.LastParsedPosition = r.Position;
             r.IsTemplate = true;
             (r.TemplateOwnerStart, r.TemplateOwnerEnd, r.NamespaceTemplateOwnerStart, r.NamespaceTemplateOwnerEnd) =
@@ -780,4 +771,3 @@ namespace AXamlIDE.CompletionEngine.Parsing
             return false;
         }
     }
-}

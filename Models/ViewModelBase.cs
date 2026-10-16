@@ -2,8 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace AXamlIDE.Models
-{
+namespace AXamlIDE.Models;
     public class ViewModelBase : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -19,4 +18,3 @@ namespace AXamlIDE.Models
         protected void RaisePropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
-}
