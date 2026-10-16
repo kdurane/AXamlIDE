@@ -14,7 +14,7 @@ namespace AXaxmlIDE;
 /// <summary>
 /// A custom margin that draws document-owned breakpoint markers.
 /// </summary>
-internal sealed class CustomMargin : AbstractMargin
+public sealed class CustomMargin : AbstractMargin
 {
     private readonly IBrush _defaultbackgroundBrush = Brushes.Transparent;
     private IBrush _backgroundBrush = new ImmutableSolidColorBrush(new Color(255, 51, 51, 51));

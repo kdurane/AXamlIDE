@@ -481,8 +481,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
                 throw new InvalidOperationException(
                     $"The language server returned overlapping edits for '{document.Path}'.");
 
-        foreach (var edit in offsets)
-            document.Document.Replace(edit.Start, edit.End - edit.Start, edit.NewText);
+        foreach (var (start, end, newText) in offsets)
+            document.Document.Replace(start, end - start, newText);
     }
 
     public void CloseDocument(OpenDocument document)

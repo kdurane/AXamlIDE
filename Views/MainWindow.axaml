@@ -4,8 +4,8 @@
     d:DesignWidth="1200"
     x:Class="AXaxmlIDE.Views.MainWindow"
     x:DataType="vm:MainWindowViewModel"
+    xmlns:views="using:AXaxmlIDE.Views"
     xmlns="https://github.com/avaloniaui"
-    xmlns:controls="clr-namespace:AXaxmlIDE.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:edit="using:AvaloniaEdit"
     xmlns:editing="using:AvaloniaEdit.Editing"
@@ -343,86 +343,90 @@
                             ResizeBehavior="PreviousAndNext"
                             ResizeDirection="Columns"
                             ShowsPreview="False" />
-                        <Grid
+                        <views:PreviewPaneView
                             Grid.Column="2"
                             IsVisible="False"
-                            Name="PreviewPane"
-                            RowDefinitions="Auto,*">
-                            <Border
-                                Background="#262626"
-                                Grid.Row="0"
-                                Padding="8,4">
-                                <StackPanel
-                                    HorizontalAlignment="Right"
-                                    Orientation="Horizontal"
-                                    Spacing="8">
-                                    <TextBlock
-                                        Foreground="{DynamicResource ThemeForegroundBrush}"
-                                        Text="Zoom"
-                                        VerticalAlignment="Center" />
-                                    <ComboBox
-                                        BorderThickness="0"
-                                        MinHeight="0"
-                                        MinWidth="90"
-                                        Name="PreviewZoomComboBox"
-                                        SelectedIndex="4">
-                                        <ComboBoxItem Content="800%" />
-                                        <ComboBoxItem Content="400%" />
-                                        <ComboBoxItem Content="200%" />
-                                        <ComboBoxItem Content="150%" />
-                                        <ComboBoxItem Content="100%" />
-                                        <ComboBoxItem Content="75%" />
-                                        <ComboBoxItem Content="50%" />
-                                        <ComboBoxItem Content="25%" />
-                                        <ComboBoxItem Content="12.5%" />
-                                        <ComboBoxItem Content="Fit to Width" />
-                                        <ComboBoxItem Content="Fit All" />
-                                    </ComboBox>
-                                    <TextBlock
-                                        Foreground="{DynamicResource ThemeForegroundBrush}"
-                                        Text="Theme"
-                                        VerticalAlignment="Center" />
-                                    <ComboBox
-                                        BorderThickness="0"
-                                        MinHeight="0"
-                                        MinWidth="80"
-                                        Name="PreviewThemeComboBox"
-                                        SelectedIndex="0">
-                                        <ComboBoxItem Content="No theme" />
-                                        <ComboBoxItem Content="Light" />
-                                        <ComboBoxItem Content="Dark" />
-                                    </ComboBox>
-                                </StackPanel>
-                            </Border>
-                            <Grid Grid.Row="1" Name="PreviewViewport">
-                                <controls:PreviewGridLines IsHitTestVisible="False" />
-                                <ScrollViewer
-                                    HorizontalContentAlignment="Center"
-                                    HorizontalScrollBarVisibility="Auto"
-                                    Name="PreviewScrollViewer"
-                                    VerticalContentAlignment="Center"
-                                    VerticalScrollBarVisibility="Auto">
-                                    <Image
-                                        HorizontalAlignment="Center"
-                                        Name="PreviewImage"
-                                        Stretch="None"
-                                        VerticalAlignment="Center" />
-                                </ScrollViewer>
-                                <Border
-                                    Background="{DynamicResource ThemeBackgroundBrush}"
-                                    HorizontalAlignment="Center"
-                                    MaxWidth="500"
-                                    Name="PreviewMessageHost"
-                                    Padding="12"
-                                    VerticalAlignment="Center">
-                                    <TextBlock
-                                        Foreground="White"
-                                        Name="PreviewMessage"
-                                        Text="Open an Avalonia AXAML file to start previewing."
-                                        TextWrapping="Wrap" />
-                                </Border>
-                            </Grid>
+                            Name="PreviewPane" />
+                        <!-- <Grid
+                        Grid.Column="2"
+                        IsVisible="False"
+                        Name="PreviewPane"
+                        RowDefinitions="Auto,*">
+                        <Border
+                        Background="#262626"
+                        Grid.Row="0"
+                        Padding="8,4">
+                        <StackPanel
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal"
+                        Spacing="8">
+                        <TextBlock
+                        Foreground="{DynamicResource ThemeForegroundBrush}"
+                        Text="Zoom"
+                        VerticalAlignment="Center" />
+                        <ComboBox
+                        BorderThickness="0"
+                        MinHeight="0"
+                        MinWidth="90"
+                        Name="PreviewZoomComboBox"
+                        SelectedIndex="4">
+                        <ComboBoxItem Content="800%" />
+                        <ComboBoxItem Content="400%" />
+                        <ComboBoxItem Content="200%" />
+                        <ComboBoxItem Content="150%" />
+                        <ComboBoxItem Content="100%" />
+                        <ComboBoxItem Content="75%" />
+                        <ComboBoxItem Content="50%" />
+                        <ComboBoxItem Content="25%" />
+                        <ComboBoxItem Content="12.5%" />
+                        <ComboBoxItem Content="Fit to Width" />
+                        <ComboBoxItem Content="Fit All" />
+                        </ComboBox>
+                        <TextBlock
+                        Foreground="{DynamicResource ThemeForegroundBrush}"
+                        Text="Theme"
+                        VerticalAlignment="Center" />
+                        <ComboBox
+                        BorderThickness="0"
+                        MinHeight="0"
+                        MinWidth="80"
+                        Name="PreviewThemeComboBox"
+                        SelectedIndex="0">
+                        <ComboBoxItem Content="No theme" />
+                        <ComboBoxItem Content="Light" />
+                        <ComboBoxItem Content="Dark" />
+                        </ComboBox>
+                        </StackPanel>
+                        </Border>
+                        <Grid Grid.Row="1" Name="PreviewViewport">
+                        <controls:PreviewGridLines IsHitTestVisible="False" />
+                        <ScrollViewer
+                        HorizontalContentAlignment="Center"
+                        HorizontalScrollBarVisibility="Auto"
+                        Name="PreviewScrollViewer"
+                        VerticalContentAlignment="Center"
+                        VerticalScrollBarVisibility="Auto">
+                        <Image
+                        HorizontalAlignment="Center"
+                        Name="PreviewImage"
+                        Stretch="None"
+                        VerticalAlignment="Center" />
+                        </ScrollViewer>
+                        <Border
+                        Background="{DynamicResource ThemeBackgroundBrush}"
+                        HorizontalAlignment="Center"
+                        MaxWidth="500"
+                        Name="PreviewMessageHost"
+                        Padding="12"
+                        VerticalAlignment="Center">
+                        <TextBlock
+                        Foreground="White"
+                        Name="PreviewMessage"
+                        Text="Open an Avalonia AXAML file to start previewing."
+                        TextWrapping="Wrap" />
+                        </Border>
                         </Grid>
+                        </Grid> -->
                     </Grid>
                 </Grid>
                 <Border
