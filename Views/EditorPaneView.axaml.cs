@@ -75,9 +75,11 @@ public partial class EditorPaneView : UserControl
         RegistryOptions registryOptions,
         Func<MainWindowViewModel> viewModel,
         DialogService dialogs,
-        Action<OpenDocument> activateDocument)
+        Action<OpenDocument> activateDocument,
+        XamlLanguageService xaml,
+        SettingsViewModel settings)
     {
-        _ctx = new EditorContext(Editor, viewModel) { ActivateDocument = activateDocument };
+        _ctx = new EditorContext(Editor, viewModel, xaml, settings) { ActivateDocument = activateDocument };
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
         _occurrences = new OccurrenceController(_ctx);
@@ -171,11 +173,11 @@ public partial class EditorPaneView : UserControl
 
     public void ApplyEditorSettings()
     {
-        var vm = _ctx.ViewModel;
-        Editor.FontFamily = new FontFamily(vm.EditorFontFamily);
-        Editor.FontSize = vm.EditorFontSize;
-        Editor.ShowLineNumbers = vm.ShowLineNumbers;
-        Editor.Options.HighlightCurrentLine = vm.HighlightCurrentLine;
+        var settings = _ctx.Settings;
+        Editor.FontFamily = new FontFamily(settings.EditorFontFamily);
+        Editor.FontSize = settings.EditorFontSize;
+        Editor.ShowLineNumbers = settings.ShowLineNumbers;
+        Editor.Options.HighlightCurrentLine = settings.HighlightCurrentLine;
     }
 
     /// <summary>Hook for MainWindowViewModel.DiagnosticsChanged.</summary>
@@ -194,13 +196,27 @@ public partial class EditorPaneView : UserControl
         if (e.KeyModifiers != KeyModifiers.Control)
             return;
 
-        var vm = _ctx.ViewModel;
-        var nextSize = vm.EditorFontSize + (e.Delta.Y > 0 ? 1 : -1);
-        vm.EditorFontSize = Math.Clamp(nextSize, 6, 72);
+        var settings = _ctx.Settings;
+        var nextSize = settings.EditorFontSize + (e.Delta.Y > 0 ? 1 : -1);
+        settings.EditorFontSize = Math.Clamp(nextSize, 6, 72);
         e.Handled = true;
     }
 
     // Context-menu "Quick Actions..." (the View menu has its own handler in MainWindow).
     private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
         => await CodeActions.ShowCodeActionsAsync(anchor: Editor);
+
+    // Clipboard commands for the context menu. These were CopyMouseCommand etc. on
+    // MainWindowViewModel, taking the TextArea (a view type) as a parameter.
+    private void OnCopyClick(object? sender, RoutedEventArgs e)
+        => ApplicationCommands.Copy.Execute(null, Editor.TextArea);
+
+    private void OnCutClick(object? sender, RoutedEventArgs e)
+        => ApplicationCommands.Cut.Execute(null, Editor.TextArea);
+
+    private void OnPasteClick(object? sender, RoutedEventArgs e)
+        => ApplicationCommands.Paste.Execute(null, Editor.TextArea);
+
+    private void OnSelectAllClick(object? sender, RoutedEventArgs e)
+        => ApplicationCommands.SelectAll.Execute(null, Editor.TextArea);
 }

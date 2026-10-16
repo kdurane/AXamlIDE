@@ -57,7 +57,7 @@ public sealed class CompletionController
             var requestedText = doc.Document.Text;
             try
             {
-                var result = await _ctx.ViewModel.GetXamlCompletionsAsync(doc.Path, requestedText, caret);
+                var result = await _ctx.Xaml.GetCompletionsAsync(doc.Path, requestedText, caret);
                 if (result is { Completions.Count: > 0 }
                     && seq == _completionSeq
                     && ReferenceEquals(doc, _ctx.Active)

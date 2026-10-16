@@ -7,6 +7,11 @@
     xmlns:vm="using:AXaxmlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!--
+        Moved verbatim from MainWindow.axaml (the edit:TextEditor named "Editor").
+        DataContext is inherited from MainWindow (MainWindowViewModel), so the context-menu
+        command bindings are unchanged. That coupling goes away when the view model is split.
+    -->
     <edit:TextEditor
         FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
         FontSize="13"
@@ -19,18 +24,15 @@
         <edit:TextEditor.ContextFlyout>
             <MenuFlyout>
                 <MenuItem
-                    Command="{Binding CopyMouseCommand}"
-                    CommandParameter="{Binding #Editor.TextArea}"
+                    Click="OnCopyClick"
                     Header="Copy"
                     InputGesture="ctrl+C" />
                 <MenuItem
-                    Command="{Binding CutMouseCommand}"
-                    CommandParameter="{Binding #Editor.TextArea}"
+                    Click="OnCutClick"
                     Header="Cut"
                     InputGesture="ctrl+X" />
                 <MenuItem
-                    Command="{Binding PasteMouseCommand}"
-                    CommandParameter="{Binding #Editor.TextArea}"
+                    Click="OnPasteClick"
                     Header="Paste"
                     InputGesture="ctrl+V" />
                 <MenuItem Header="-" />
@@ -38,8 +40,7 @@
                 <MenuItem Command="{Binding FormatActiveDocumentCommand}" Header="Format Document" />
                 <MenuItem Header="-" />
                 <MenuItem
-                    Command="{Binding SelectAllMouseCommand}"
-                    CommandParameter="{Binding #Editor.TextArea}"
+                    Click="OnSelectAllClick"
                     Header="Select All"
                     InputGesture="ctrl+A" />
             </MenuFlyout>

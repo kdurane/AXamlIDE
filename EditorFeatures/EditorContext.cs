@@ -2,6 +2,7 @@ using System;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AXaxmlIDE.Models;
+using AXaxmlIDE.Services;
 using AXaxmlIDE.ViewModels;
 
 namespace AXaxmlIDE.EditorFeatures;
@@ -21,13 +22,25 @@ public sealed class EditorContext
 
     private readonly Func<MainWindowViewModel> _viewModel;
 
-    public EditorContext(TextEditor editor, Func<MainWindowViewModel> viewModel)
+    public EditorContext(
+        TextEditor editor,
+        Func<MainWindowViewModel> viewModel,
+        XamlLanguageService xaml,
+        SettingsViewModel settings)
     {
         Editor = editor;
         _viewModel = viewModel;
+        Xaml = xaml;
+        Settings = settings;
     }
 
     public TextEditor Editor { get; }
+
+    /// <summary>Font, line numbers, highlight-line. The editor reads these here, not from the main VM.</summary>
+    public SettingsViewModel Settings { get; }
+
+    /// <summary>AXAML completion / hover / decompile. The editor no longer asks the view model for these.</summary>
+    public XamlLanguageService Xaml { get; }
 
     /// <summary>
     /// TEMPORARY coupling: controllers reach the view model through here so their bodies stay

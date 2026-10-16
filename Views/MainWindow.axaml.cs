@@ -9,17 +9,12 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using AvaloniaEdit.CodeCompletion;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
 using AXaxmlIDE.Enums;
-using AXaxmlIDE.Lsp;
 using AXaxmlIDE.Models;
 using AXaxmlIDE.Services;
 using AXaxmlIDE.ViewModels;
 using TextMateSharp.Grammars;
-using AXaxmlIDE.EditorFeatures;
 using static AXaxmlIDE.EditorFeatures.TextMateController;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
@@ -38,64 +33,67 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-            InitializeComponent();
+        InitializeComponent();
 
-    _dialogs = new DialogService(this);
+        _dialogs = new DialogService(this);
 
-    var settingsStore = new EditorSettingsStore();
-    var settingsLoad = settingsStore.Load();
-    var settings = settingsLoad.Settings;
-    var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
+        var settingsStore = new EditorSettingsStore();
+        var settingsLoad = settingsStore.Load();
+        var settings = settingsLoad.Settings;
+        var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
+        var settingsVm = new SettingsViewModel(settings, settingsStore);
+        var workspace = new WorkspaceModel();
+        var xaml = new XamlLanguageService(workspace);
 
-    EditorPane.Initialize(registryOptions, () => ViewModel, _dialogs, doc => DocTabs.SelectedItem = doc);
-    EditorPane.ThemeApplied += ApplyThemeColorsToWindow;
-    EditorPane.StatusChanged += UpdateStatus;
-    EditorPane.Context.TextChanged += _ => OnActiveDocumentChanged();
+        EditorPane.Initialize(registryOptions, () => ViewModel, _dialogs, doc => DocTabs.SelectedItem = doc, xaml, settingsVm);
+        EditorPane.ThemeApplied += ApplyThemeColorsToWindow;
+        EditorPane.StatusChanged += UpdateStatus;
+        EditorPane.Context.TextChanged += _ => OnActiveDocumentChanged();
 
-    _preview = new PreviewPaneViewModel(path => ViewModel.GetXamlPreviewTargetAsync(path));
-    PreviewPane.DataContext = _preview;
+        _preview = new PreviewPaneViewModel(xaml.GetPreviewTargetAsync);
+        PreviewPane.DataContext = _preview;
 
-    // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
-    FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
-    FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
-    FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
+        // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
+        FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
+        FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
 
-    var viewModel = new MainWindowViewModel(EditorPane.TextMateInstallation, registryOptions,
-        settings, settingsStore, StorageProvider, this);
-    EditorPane.TextMateInstallation.SetTheme(viewModel.SelectedTheme.Load(registryOptions));
-    DataContext = viewModel;
+        var viewModel = new MainWindowViewModel(settingsVm, StorageProvider, this, workspace, xaml);
+        EditorPane.TextMateInstallation.SetTheme(settingsVm.SelectedTheme.Load(registryOptions));
+        DataContext = viewModel;
 
-    viewModel.EditorSettingsChanged += EditorPane.ApplyEditorSettings;
-    viewModel.SolutionExplorerSideChanged += ApplySolutionExplorerSide;
-    viewModel.StatusMessageChanged += viewModel.ShowStatusMessage;
-    viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
-    viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
-    viewModel.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
-    viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
+        settingsVm.ThemeChanged += theme => EditorPane.TextMateInstallation.SetTheme(theme.Load(registryOptions));
+        settingsVm.EditorSettingsChanged += EditorPane.ApplyEditorSettings;
+        settingsVm.SolutionExplorerSideChanged += ApplySolutionExplorerSide;
+        settingsVm.StatusMessageChanged += viewModel.ShowStatusMessage;
+        viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
+        viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
+        viewModel.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
+        viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
 
-    EditorPane.ApplyEditorSettings();
-    ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
+        EditorPane.ApplyEditorSettings();
+        ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
 
-    if (settingsLoad.Warnings.Count > 0)
-        viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
+        if (settingsLoad.Warnings.Count > 0)
+            viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
 
-    _outlineTimer.Tick += OnOutlineTimer;
-    viewModel.DocumentLanguageClientAttached += OnDocumentLanguageClientAttached;
+        _outlineTimer.Tick += OnOutlineTimer;
+        viewModel.DocumentLanguageClientAttached += OnDocumentLanguageClientAttached;
 
-    AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
-    Closed += (_, _) =>
-    {
-        _outlineTimer.Stop();
-        _preview.Dispose();
-        EditorPane.Shutdown();
-        viewModel.Dispose();
-        EditorPane.TextMateInstallation.Dispose();
-    };
+        Closed += (_, _) =>
+        {
+            _outlineTimer.Stop();
+            _preview.Dispose();
+            EditorPane.Shutdown();
+            viewModel.Dispose();
+            EditorPane.TextMateInstallation.Dispose();
+        };
 
-    UpdateStatus();
+        UpdateStatus();
     }
-    
+
     // ================================================================== tree
 
     private async void OnNodeExpanded(object? sender, RoutedEventArgs e)

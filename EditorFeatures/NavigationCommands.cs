@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using AXaxmlIDE.Helpers;
 using AXaxmlIDE.Lsp;
 using AXaxmlIDE.Models;
 using AXaxmlIDE.Services;
-using AXaxmlIDE.ViewModels;
 using ICSharpCode.Decompiler;
 using static AXaxmlIDE.Helpers.LspHelpers;
 
@@ -142,7 +140,7 @@ public sealed class NavigationCommands
     {
         try
         {
-            var source = await _ctx.ViewModel.DecompileXamlTypeAsync(
+            var source = await _ctx.Xaml.DecompileTypeAsync(
                 document.Path, document.Document.Text, _ctx.Editor.CaretOffset);
             if (source is null)
             {

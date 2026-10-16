@@ -10,7 +10,7 @@ public partial class SettingsWindow : Window
         InitializeComponent();
     }
 
-    public SettingsWindow(MainWindowViewModel viewModel) : this()
+    public SettingsWindow(SettingsViewModel viewModel) : this()
     {
         DataContext = viewModel;
     }

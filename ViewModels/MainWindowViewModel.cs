@@ -46,46 +46,24 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private readonly DotNetProjectRunner _projectRunner = new();
     private NetCoreDbgSession? _debugSession;
     private string? _debugProjectPath;
-    private readonly XamlCompletionService _xamlCompletion = new();
     private readonly WorkspaceSearchService _workspaceSearch = new();
-    private readonly WorkspaceProjectResolver _projectResolver = new();
     private readonly ProblemNavigationService _problemNavigation = new();
-    private XamlPreviewTargetResolver? _previewTargetResolver;
-    private readonly XamlDecompilationService _xamlDecompilation = new();
-    private readonly ConcurrentDictionary<string, Lazy<Task<XamlPreviewTarget>>> _previewTargets =
-        new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _projectAssemblyNames =
-        new(StringComparer.OrdinalIgnoreCase);
-    private readonly TextMate.Installation _textMateInstallation;
-    private readonly RegistryOptions _registryOptions;
-    private readonly EditorSettingsStore _settingsStore;
-    private EditorSettings _editorSettings;
-    private readonly object _hostGate = new();
+    private readonly WorkspaceModel _workspace;
+    private readonly XamlLanguageService _xaml;
     private readonly Dictionary<OpenDocument, Action> _breakpointHandlers = [];
-    private MsBuildHostClient? _msbuildHost;
-    private string[] _solutionProjects = [];
-    private ThemeViewModel _selectedTheme;
     private bool _runStopRequested;
     private int _stoppedThreadId = 1;
     private CancellationTokenSource? _outlineRequestCts;
     private int _outlineRequestSequence;
     private readonly IStorageProvider _storageProvider;
 
-    public ObservableCollection<ProjectTreeNode> WorkspaceRoots { get; } = [];
+    public ObservableCollection<ProjectTreeNode> WorkspaceRoots => _workspace.WorkspaceRoots;
     public ObservableCollection<OpenDocument> Documents => _documents.Documents;
     public ObservableCollection<string> BuildOutput { get; } = [];
     public ObservableCollection<string> ConsoleOutput { get; } = [];
     public ObservableCollection<ProblemItem> Problems { get; } = [];
     public ObservableCollection<WorkspaceSearchResult> SearchResults { get; } = [];
     public ObservableCollection<DocumentOutlineItem> DocumentOutlineItems { get; } = [];
-    public ObservableCollection<ThemeViewModel> AvailableThemes { get; } =
- [
-     .. Enum.GetValues<ThemeName>().Select(ThemeViewModel.BuiltIn),
-    ThemeViewModel.Custom("AxamlDark", "AXAML Dark", "avares://AXaxmlIDE/Assets/axaml-dark.json"),
-];
-    public ObservableCollection<string> AvailableEditorFontFamilies { get; }
-    public ObservableCollection<double> AvailableEditorFontSizes { get; } =
-        [.. Enumerable.Range(6, 67).Select(size => (double)size)];
 
     [ObservableProperty] public partial int SelectedToolTabIndex { get; set; } = 1;
     [ObservableProperty] public partial object? SelectedDocTabItem { get; set; }
@@ -104,20 +82,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     public bool IsDebugging => _debugSession is not null;
     [ObservableProperty] public partial ProjectTreeNode? SelectedWorkspaceNode { get; set; }
     [ObservableProperty] public partial int ActiveCaretOffset { get; set; }
-    [ObservableProperty] public partial bool IsExpanded { get; set; }
     [ObservableProperty] public partial DocumentOutlineItem? SelectedDocumentOutlineItem { get; set; }
     public bool IsDocumentOutlineVisible => DocumentOutlineItems.Count > 0;
-
-    public bool FormatOnSave
-    {
-        get => _editorSettings.FormatOnSave;
-        set
-        {
-            if (_editorSettings.FormatOnSave == value)
-                return;
-            UpdateEditorSettings(_editorSettings with { FormatOnSave = value });
-        }
-    }
 
     partial void OnActiveDocumentChanged(OpenDocument? value)
     {
@@ -125,108 +91,23 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsWelcomeVisible));
     }
 
-    public ThemeViewModel SelectedTheme
-    {
-        get => _selectedTheme;
-        set
-        {
-            if (!SetProperty(ref _selectedTheme, value)) return;
-            _textMateInstallation.SetTheme(value.Load(_registryOptions));
-            UpdateEditorSettings(_editorSettings with { ThemeId = value.Id });
-        }
-    }
-
-    public string EditorFontFamily
-    {
-        get => _editorSettings.FontFamily;
-        set
-        {
-            if (string.Equals(_editorSettings.FontFamily, value, StringComparison.Ordinal))
-                return;
-            UpdateEditorSettings(_editorSettings with { FontFamily = value });
-        }
-    }
-
-    public double EditorFontSize
-    {
-        get => _editorSettings.FontSize;
-        set
-        {
-            if (Math.Abs(_editorSettings.FontSize - value) < 0.01)
-                return;
-            UpdateEditorSettings(_editorSettings with { FontSize = value });
-        }
-    }
-
-    public bool ShowLineNumbers
-    {
-        get => _editorSettings.ShowLineNumbers;
-        set
-        {
-            if (_editorSettings.ShowLineNumbers == value)
-                return;
-            UpdateEditorSettings(_editorSettings with { ShowLineNumbers = value });
-        }
-    }
-
-    public bool HighlightCurrentLine
-    {
-        get => _editorSettings.HighlightCurrentLine;
-        set
-        {
-            if (_editorSettings.HighlightCurrentLine == value)
-                return;
-            UpdateEditorSettings(_editorSettings with { HighlightCurrentLine = value });
-        }
-    }
-
-    public bool SolutionExplorerOnRight
-    {
-        get => _editorSettings.SolutionExplorerOnRight;
-        set
-        {
-            if (_editorSettings.SolutionExplorerOnRight == value)
-                return;
-            UpdateEditorSettings(_editorSettings with { SolutionExplorerOnRight = value });
-        }
-    }
-
-    public event Action? EditorSettingsChanged;
-    public event Action<bool>? SolutionExplorerSideChanged;
     public event Action<OpenDocument>? DocumentLanguageClientAttached;
-    public event Action<string>? StatusMessageChanged;
     public event Action<OpenDocument>? DiagnosticsChanged;
     public event Action<ProblemItem>? NavigateToProblemRequested;
     public event Action<string, int>? DebugLocationChanged;
     public Func<JsonElement, Task<bool>>? WorkspaceEditRequested { get; set; }
 
     private readonly Window _owner;
+    public SettingsViewModel Settings { get; }
 
-    public MainWindowViewModel(TextMate.Installation textMateInstallation, RegistryOptions registryOptions, EditorSettings settings, 
-        EditorSettingsStore settingsStore,IStorageProvider storageProvider,Window owner)
+    public MainWindowViewModel(SettingsViewModel settings, IStorageProvider storageProvider,
+    Window owner, WorkspaceModel workspace, XamlLanguageService xaml)
     {
-        _textMateInstallation = textMateInstallation;
-        _registryOptions = registryOptions;
-        _editorSettings = settings;
-        _settingsStore = settingsStore;
+        Settings = settings;
         _storageProvider = storageProvider;
         _owner = owner;
-        if (!AvailableEditorFontSizes.Contains(settings.FontSize))
-            AvailableEditorFontSizes.Add(settings.FontSize);
-        AvailableEditorFontFamilies =
-        [
-
-            .. new[]
-            {
-                settings.FontFamily,
-                EditorSettings.DefaultFontFamily,
-                "Consolas,Menlo,Monospace",
-                "Menlo,Monospace",
-                "Monospace"
-            }.Distinct(StringComparer.Ordinal)
-        ];
-        _selectedTheme = AvailableThemes.FirstOrDefault(t => t.Id == settings.ThemeId)
-                 ?? AvailableThemes.First(t => t.Id == nameof(ThemeName.DarkPlus));
+        _workspace = workspace;
+        _xaml = xaml;
         _projectRunner.OutputReceived += AppendProcessOutput;
 
         _documents.Opened += OnDocumentOpened;
@@ -320,6 +201,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    private MsBuildHostClient Host => _workspace.Host;
+    private string? FindProjectForDocument(string documentPath) => _workspace.FindProjectForDocument(documentPath);
+    private string? ResolveProjectPath(ProjectTreeNode? selection) => _workspace.ResolveProjectPath(selection);
+
     public void ClearDocumentOutline()
     {
         Interlocked.Increment(ref _outlineRequestSequence);
@@ -334,34 +219,11 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void OnDocumentOutlineItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
         => OnPropertyChanged(nameof(IsDocumentOutlineVisible));
 
-    private void UpdateEditorSettings(EditorSettings settings)
-    {
-        var explorerSideChanged = _editorSettings.SolutionExplorerOnRight != settings.SolutionExplorerOnRight;
-        _editorSettings = settings;
-        OnPropertyChanged(nameof(EditorFontFamily));
-        OnPropertyChanged(nameof(EditorFontSize));
-        OnPropertyChanged(nameof(ShowLineNumbers));
-        OnPropertyChanged(nameof(HighlightCurrentLine));
-        OnPropertyChanged(nameof(SolutionExplorerOnRight));
-        OnPropertyChanged(nameof(FormatOnSave));
-        EditorSettingsChanged?.Invoke();
-        if (explorerSideChanged)
-            SolutionExplorerSideChanged?.Invoke(settings.SolutionExplorerOnRight);
-
-        try
-        {
-            _settingsStore.Save(_editorSettings);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            StatusMessageChanged?.Invoke($"Couldn't save editor settings: {ex.Message}");
-        }
-    }
 
     private void OpenFolder(string path)
     {
-        _solutionProjects = [];
-        _previewTargets.Clear();
+        _workspace.SolutionProjects = [];
+        _xaml.ClearPreviewTargets();
         SelectedWorkspaceNode = null;
         var root = ProjectTreeNode.CreateDirectory(path);
         root.Populate();
@@ -373,10 +235,10 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
     private void OpenSolution(string path)
     {
         var root = SolutionLoader.LoadSolution(path, Host);
-        _previewTargets.Clear();
+        _xaml.ClearPreviewTargets();
         SelectedWorkspaceNode = null;
         root.Populate();
-        _solutionProjects =
+        _workspace.SolutionProjects =
         [
             .. root.Children
                 .Where(node => node.Kind == NodeKind.Project)
@@ -401,7 +263,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (FormatOnSave && document.Client?.SupportsDocumentFormatting == true)
+        if (Settings.FormatOnSave && document.Client?.SupportsDocumentFormatting == true)
             await FormatDocumentAsync(document, reportUnchanged: false);
 
         _documents.Save(document);
@@ -521,14 +383,14 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
 
     [RelayCommand]
-    private void RestartLanguageServices() 
+    private void RestartLanguageServices()
     {
         _languageServers.Restart();
         ReattachDocuments();
     }
 
     [RelayCommand]
-    private void ToggleSolutionExplorerSide() => SolutionExplorerOnRight = !SolutionExplorerOnRight;
+    private void ToggleSolutionExplorerSide() => Settings.SolutionExplorerOnRight = !Settings.SolutionExplorerOnRight;
 
     [RelayCommand]
     private void NavigateDiagnostic(bool forward)
@@ -578,7 +440,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         else
             OpenFolder(root.FullPath);
     }
-    
+
     [RelayCommand]
     private async Task SearchWorkspace()
     {
@@ -694,110 +556,6 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         return _workspaceSearch.ApplyReplacePlan(plan, openDocuments);
     }
 
-    public async Task<CompletionSet?> GetXamlCompletionsAsync(string documentPath, string text, int caretOffset)
-    {
-        var projectPath = FindProjectForDocument(documentPath);
-        if (projectPath is null)
-            throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = Host.GetProjectOutputPath(projectPath);
-        var assetsPath = Host.GetProjectAssetsFile(projectPath);
-        var assemblyNameTask = _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => Host.GetProjectAssemblyName(path)))).Value;
-        var assemblyName = await assemblyNameTask;
-        return await _xamlCompletion.GetCompletionsAsync(
-            projectPath, assemblyName, text, caretOffset, outputPath, assetsPath);
-    }
-
-    public async Task<string?> GetXamlHoverAsync(string documentPath, string text, int offset)
-    {
-        var projectPath = FindProjectForDocument(documentPath)
-            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = Host.GetProjectOutputPath(projectPath);
-        var assetsPath = Host.GetProjectAssetsFile(projectPath);
-        var assemblyName = await _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => Host.GetProjectAssemblyName(path)))).Value;
-        return await _xamlCompletion.GetHoverAsync(
-            projectPath, assemblyName, text, offset, outputPath, assetsPath);
-    }
-
-    private async Task<XamlCompletionService.NavigationTarget?> GetXamlNavigationTargetAsync(string documentPath, string text, int offset)
-    {
-        var projectPath = FindProjectForDocument(documentPath)
-            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = Host.GetProjectOutputPath(projectPath);
-        var assetsPath = Host.GetProjectAssetsFile(projectPath);
-        var assemblyName = await _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => Host.GetProjectAssemblyName(path)))).Value;
-        return await _xamlCompletion.GetNavigationTargetAsync(
-            projectPath, assemblyName, text, offset, outputPath, assetsPath);
-    }
-
-    public async Task<DecompiledSource?> DecompileXamlTypeAsync(string documentPath, string text, int offset)
-    {
-        var target = await GetXamlNavigationTargetAsync(documentPath, text, offset);
-        return target is null
-            ? null
-            : await _xamlDecompilation.DecompileTypeAsync(target.AssemblyPath, target.TypeFullName);
-    }
-
-    public Task<XamlPreviewTarget> GetXamlPreviewTargetAsync(string documentPath)
-    {
-        var projectPath = FindProjectForDocument(documentPath)
-            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-        var key = Path.GetFullPath(projectPath);
-        var projects = _solutionProjects.ToArray();
-        var workspaceRoot = WorkspaceRoots.FirstOrDefault()?.FullPath;
-        return GetCachedPreviewTargetAsync(key, projects, workspaceRoot);
-    }
-
-    private async Task<XamlPreviewTarget> GetCachedPreviewTargetAsync(
-        string projectPath,
-        string[] solutionProjects,
-        string? workspaceRoot)
-    {
-        while (true)
-        {
-            var entry = _previewTargets.GetOrAdd(projectPath, path =>
-                new Lazy<Task<XamlPreviewTarget>>(
-                    () => Task.Run(() => ResolvePreviewTarget(path, solutionProjects, workspaceRoot))));
-            XamlPreviewTarget target;
-            try
-            {
-                target = await entry.Value;
-            }
-            catch
-            {
-                RemovePreviewTarget(projectPath, entry);
-                throw;
-            }
-
-            if (target.IsCurrent)
-                return target;
-            RemovePreviewTarget(projectPath, entry);
-        }
-    }
-
-    private void RemovePreviewTarget(string projectPath, Lazy<Task<XamlPreviewTarget>> entry)
-    {
-        ((ICollection<KeyValuePair<string, Lazy<Task<XamlPreviewTarget>>>>)_previewTargets)
-            .Remove(new KeyValuePair<string, Lazy<Task<XamlPreviewTarget>>>(projectPath, entry));
-    }
-
-    private XamlPreviewTarget ResolvePreviewTarget(string xamlProjectPath, string[] solutionProjects, string? workspaceRoot)
-        => (_previewTargetResolver ??= new XamlPreviewTargetResolver(Host))
-            .Resolve(xamlProjectPath, solutionProjects, workspaceRoot);
-
-    private string? FindProjectForDocument(string documentPath)
-        => _projectResolver.FindProjectForDocument(
-            documentPath, _solutionProjects, WorkspaceRoots.FirstOrDefault()?.FullPath);
-
     private string? _startupProjectPath;   // set from a "Set as Startup Project" menu item
 
     private string? ResolveStartupProject(ProjectTreeNode? selection)
@@ -812,7 +570,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return selected;
 
         // 3. Otherwise, the only executable project in the workspace.
-        var exes = _solutionProjects.Where(IsRunnable).Distinct().ToList();
+        var exes = _workspace.SolutionProjects.Where(IsRunnable).Distinct().ToList();
         return exes.Count == 1 ? exes[0] : null;
     }
 
@@ -821,8 +579,8 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
            && (t.Equals("Exe", StringComparison.OrdinalIgnoreCase)
                || t.Equals("WinExe", StringComparison.OrdinalIgnoreCase));
 
-    
-    
+
+
     [RelayCommand]
     private async Task BuildProject(ProjectTreeNode? selection)
     {
@@ -865,7 +623,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             IsBusy = false;
         }
     }
-    
+
     [RelayCommand]
     private async Task RunProjectAsync(ProjectTreeNode? selection)
     {
@@ -1206,36 +964,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             AppendBuildOutput(message);
     }
 
-    private string? ResolveProjectPath(ProjectTreeNode? selection)
-        => _projectResolver.ResolveSelectedProject(selection, WorkspaceRoots);
-
     private static StringComparer PathComparer
         => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
     private static bool PathsEqual(string? left, string? right)
         => left is not null && right is not null && PathComparer.Equals(left, right);
 
-    private MsBuildHostClient Host
-    {
-        get
-        {
-            lock (_hostGate)
-                return _msbuildHost ??= new MsBuildHostClient(ResolveHostExecutablePath());
-        }
-    }
 
-    private static string ResolveHostExecutablePath()
-    {
-        var executable = OperatingSystem.IsWindows()
-            ? "AXaxmlIDE.msbuildhost.exe"
-            : "AXaxmlIDE.msbuildhost";
-
-        var overridePath = Environment.GetEnvironmentVariable("AXAXMLIDE_HOST");
-        if (!string.IsNullOrEmpty(overridePath) && File.Exists(overridePath))
-            return overridePath;
-
-        return Path.Combine(AppContext.BaseDirectory, "msbuildhost", executable);
-    }
 
     private void SetWorkspace(LspWorkspace workspace)
     {
@@ -1409,21 +1144,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         LspStatus = summary.Length > 0 ? summary : "language servers: idle";
     }
 
-    [RelayCommand]
-    private void CopyMouse(TextArea textArea) => ApplicationCommands.Copy.Execute(null, textArea);
 
-    [RelayCommand]
-    private void CutMouse(TextArea textArea) => ApplicationCommands.Cut.Execute(null, textArea);
-
-    [RelayCommand]
-    private void PasteMouse(TextArea textArea) => ApplicationCommands.Paste.Execute(null, textArea);
-
-    [RelayCommand]
-    private void SelectAllMouse(TextArea textArea) => ApplicationCommands.SelectAll.Execute(null, textArea);
-
-    [RelayCommand]
-    private void UndoMouse(TextArea textArea) => ApplicationCommands.Undo.Execute(null, textArea);
-    
     [RelayCommand]
     private async Task OpenFolder()
     {
@@ -1437,7 +1158,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
 
         OpenFolder(path);
     }
-    
+
     [RelayCommand]
     private async Task CloseSolutionClick()
     {
@@ -1453,7 +1174,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         foreach (var (document, choice) in decisions)
             if (choice == SaveChoice.Save)
                 await SaveDocumentAsync(document);
-        
+
         // HideTip(resetOffset: true);
         CloseSolution();
     }
@@ -1469,12 +1190,12 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         WorkspaceRoots.Clear();
         SelectedWorkspaceNode = null;
         Problems.Clear();
-        _solutionProjects = [];
-        _previewTargets.Clear();
+        _workspace.SolutionProjects = [];
+        _xaml.ClearPreviewTargets();
         ActiveDocument = null;
         _languageServers.ClearWorkspace();
     }
-    
+
     private async Task<SaveChoice> AskSaveAsync(OpenDocument doc)
     {
         var result = SaveChoice.Cancel; // closing the window with the X = cancel
@@ -1524,7 +1245,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return b;
         }
     }
-    
+
     [RelayCommand]
     private async Task OpenSolution()
     {
@@ -1547,7 +1268,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             ShowStatusMessage($"Couldn't open solution '{path}': {ex.Message}");
         }
     }
-    
+
     [RelayCommand]
     private async Task QuickOpenAsync()
     {
@@ -1564,17 +1285,17 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             if (selectedPath is null)
                 return;
 
-            SelectedDocTabItem= OpenDocument(selectedPath);
+            SelectedDocTabItem = OpenDocument(selectedPath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
         {
             ShowStatusMessage($"Quick Open failed: {ex.Message}");
         }
     }
-    
-    
-   
-       private async Task<string?> ShowQuickOpenDialogAsync(IReadOnlyList<string> files)
+
+
+
+    private async Task<string?> ShowQuickOpenDialogAsync(IReadOnlyList<string> files)
     {
         string? selectedPath = null;
         var results = new ListBox { MaxHeight = 420, MinWidth = 560 };
@@ -1645,7 +1366,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             window.Close();
         }
     }
-    
+
     [RelayCommand]
     private async Task ReplaceWorkspaceAsync()
     {
@@ -1666,7 +1387,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         await SearchWorkspace();
         SearchStatus = message;
     }
-    
+
     private async Task<bool> ConfirmWorkspaceReplaceAsync(WorkspaceReplacePlan plan)
     {
         var confirmed = false;
@@ -1723,13 +1444,13 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
             return button;
         }
     }
-    
+
     [RelayCommand]
     private async Task OpenSettings()
     {
-        await new SettingsWindow(this).ShowDialog(_owner);
+        await new SettingsWindow(Settings).ShowDialog(_owner);
     }
-    
+
 
     public void Dispose()
     {
@@ -1737,11 +1458,7 @@ public partial class MainWindowViewModel : ObservableObject, IDisposable
         _outlineRequestCts?.Dispose();
         DocumentOutlineItems.CollectionChanged -= OnDocumentOutlineItemsChanged;
         _languageServers.Dispose();
-        lock (_hostGate)
-        {
-            _msbuildHost?.Dispose();
-            _msbuildHost = null;
-        }
+        _workspace.Dispose();
         _debugSession?.Dispose();
         _debugSession = null;
         _projectRunner.Dispose();
