@@ -28,135 +28,82 @@ namespace AXaxmlIDE.Views;
 
 public partial class MainWindow : Window
 {
-    private readonly TextMate.Installation _textMate;
-    private readonly CustomMargin? _customMargin;
     private readonly DispatcherTimer _outlineTimer =
         new() { Interval = TimeSpan.FromMilliseconds(300) };
-
     private readonly PreviewPaneViewModel _preview;
-
-    private readonly DiagnosticRenderer _diagnosticRenderer = new();
     private OpenDocument? _active;
-
     private bool _treeOnRight;
     private bool _explorerVisible = true;
-
     private readonly DialogService _dialogs;
-    private readonly EditorContext _ctx;
-    private readonly FoldingController _folding;
-    private readonly OccurrenceController _occurrences;
-    private readonly WorkspaceEditService _edits;
-    private readonly CodeActionController _codeActions;
-    private readonly HoverController _hover;
-    private readonly SignatureHelpController _signature;
-    private readonly CompletionController _completion;
-    private readonly TypingController _typing;
-    private readonly EditorNavigator _navigator;
-    private readonly NavigationCommands _nav;
-    private readonly TextMateController _textMateController;
 
     public MainWindow()
     {
-        InitializeComponent();
-        _ctx = new EditorContext(Editor, () => ViewModel)
-        {
-            ActivateDocument = doc => DocTabs.SelectedItem = doc
-        };
-        _preview = new PreviewPaneViewModel(path => ViewModel.GetXamlPreviewTargetAsync(path));
-        PreviewPane.DataContext = _preview;
-        _dialogs = new DialogService(this);
+            InitializeComponent();
 
-        // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
-        FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
-        FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
-        FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
+    _dialogs = new DialogService(this);
 
-        var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
-    
-        Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
-        _occurrences = new OccurrenceController(_ctx);
-        Editor.TextArea.Caret.PositionChanged += (_, _) =>
-        {
-            UpdateStatus();
-        };
+    var settingsStore = new EditorSettingsStore();
+    var settingsLoad = settingsStore.Load();
+    var settings = settingsLoad.Settings;
+    var registryOptions = new RegistryOptions(ThemeName.DarkPlus);
 
-        Editor.HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Visible;
-        Editor.TextArea.RightClickMovesCaret = true;
-        Editor.Options.EnableTextDragDrop = true;
-        Editor.Options.CompletionAcceptAction = CompletionAcceptAction.DoubleTapped;
+    EditorPane.Initialize(registryOptions, () => ViewModel, _dialogs, doc => DocTabs.SelectedItem = doc);
+    EditorPane.ThemeApplied += ApplyThemeColorsToWindow;
+    EditorPane.StatusChanged += UpdateStatus;
+    EditorPane.Context.TextChanged += _ => OnActiveDocumentChanged();
 
-        AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Bubble, true);
+    _preview = new PreviewPaneViewModel(path => ViewModel.GetXamlPreviewTargetAsync(path));
+    PreviewPane.DataContext = _preview;
 
-        _customMargin = new CustomMargin();
-        _edits = new WorkspaceEditService(_ctx);
-        _codeActions = new CodeActionController(_ctx, _edits);
-        _hover = new HoverController(_ctx, _codeActions);
-        _navigator = new EditorNavigator(_ctx);
-        _nav = new NavigationCommands(_ctx, _dialogs, _edits, _navigator);
-        _signature = new SignatureHelpController(_ctx);
-        _completion = new CompletionController(_ctx, _hover);
-        _typing = new TypingController(_ctx, _hover, _completion, _signature);
+    // TreeViewItem.Expanded bubbles, so one handler on the TreeView catches every node.
+    FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
+    FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+    FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
 
-        var settingsStore = new EditorSettingsStore();
-        var settingsLoad = settingsStore.Load();
-        var settings = settingsLoad.Settings;
-        _textMate = Editor.InstallTextMate(registryOptions);
-        _textMateController = new TextMateController(_ctx, _textMate, registryOptions, _customMargin);
-        _textMateController.ThemeApplied += ApplyThemeColorsToWindow;
-        //_textMate.SetTheme(ThemeCatalog.Find(settings.Theme.ToString()).Load(registryOptions));
-        var viewModel = new MainWindowViewModel(_textMate, registryOptions, settings, settingsStore, StorageProvider, this);
-        _textMate.SetTheme(viewModel.SelectedTheme.Load(registryOptions));
-        DataContext = viewModel;
-        viewModel.EditorSettingsChanged += ApplyEditorSettings;
-        viewModel.SolutionExplorerSideChanged += ApplySolutionExplorerSide;
-        viewModel.StatusMessageChanged += viewModel.ShowStatusMessage;
-        viewModel.DiagnosticsChanged += OnDiagnosticsChanged;
-        viewModel.NavigateToProblemRequested += _navigator.ToProblem;
-        viewModel.DebugLocationChanged += _navigator.ToDebugLocation;
-        viewModel.WorkspaceEditRequested = _edits.ApplyServerEditAsync;
-        ApplyEditorSettings();
-        ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
-        if (settingsLoad.Warnings.Count > 0)
-            viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
+    var viewModel = new MainWindowViewModel(EditorPane.TextMateInstallation, registryOptions,
+        settings, settingsStore, StorageProvider, this);
+    EditorPane.TextMateInstallation.SetTheme(viewModel.SelectedTheme.Load(registryOptions));
+    DataContext = viewModel;
 
-        _outlineTimer.Tick += OnOutlineTimer;
-        viewModel.DocumentLanguageClientAttached += OnDocumentLanguageClientAttached;
+    viewModel.EditorSettingsChanged += EditorPane.ApplyEditorSettings;
+    viewModel.SolutionExplorerSideChanged += ApplySolutionExplorerSide;
+    viewModel.StatusMessageChanged += viewModel.ShowStatusMessage;
+    viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
+    viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
+    viewModel.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
+    viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
 
-        AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
+    EditorPane.ApplyEditorSettings();
+    ApplySolutionExplorerSide(settings.SolutionExplorerOnRight);
 
-        Closed += (_, _) =>
-        {
-            _outlineTimer.Stop();
-            _customMargin?.SetDocument(null);
-            viewModel.Dispose();
-            _textMate.Dispose();
-            _folding?.Dispose();
-            _preview.Dispose();
-        };
+    if (settingsLoad.Warnings.Count > 0)
+        viewModel.ShowStatusMessage(string.Join(" ", settingsLoad.Warnings));
 
-        UpdateStatus();
+    _outlineTimer.Tick += OnOutlineTimer;
+    viewModel.DocumentLanguageClientAttached += OnDocumentLanguageClientAttached;
 
-        _folding = new FoldingController(_ctx);
-        _ctx.TextChanged += _ => OnActiveDocumentChanged();
-    }
+    AddHandler(KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel);
 
-    private void ApplyEditorSettings()
+    Closed += (_, _) =>
     {
-        var settings = ViewModel.EditorFontFamily;
-        Editor.FontFamily = new FontFamily(settings);
-        Editor.FontSize = ViewModel.EditorFontSize;
-        Editor.ShowLineNumbers = ViewModel.ShowLineNumbers;
-        Editor.Options.HighlightCurrentLine = ViewModel.HighlightCurrentLine;
-    }
-    // ================================================================== tree
+        _outlineTimer.Stop();
+        _preview.Dispose();
+        EditorPane.Shutdown();
+        viewModel.Dispose();
+        EditorPane.TextMateInstallation.Dispose();
+    };
 
+    UpdateStatus();
+    }
+    
+    // ================================================================== tree
 
     private async void OnNodeExpanded(object? sender, RoutedEventArgs e)
     {
         if (e.Source is not TreeViewItem { DataContext: ProjectTreeNode { NeedsPopulating: true } node })
             return;
 
-        await node.PopulateAsync(); // project evaluation runs off the UI thread
+        await node.PopulateAsync();
     }
 
     private void OnTreeDoubleTapped(object? sender, TappedEventArgs e)
@@ -187,7 +134,7 @@ public partial class MainWindow : Window
     }
 
     private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
-        => await _codeActions.ShowCodeActionsAsync(anchor: Editor);
+        => await EditorPane.CodeActions.ShowCodeActionsAsync(anchor: EditorPane.EditorControl);
 
     private void OnFileTreePointerPressed(object? sender, PointerPressedEventArgs e)
     {
@@ -356,88 +303,31 @@ public partial class MainWindow : Window
 
 
     private void OnOutlineSelectionChanged(object? sender, SelectionChangedEventArgs e)
-        => _navigator.ToSelectedOutlineItem();
+        => EditorPane.Navigator.ToSelectedOutlineItem();
 
     // ================================================================= tabs
 
     private void OnTabSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        _hover.Hide(resetOffset: true);
-
-        if (_active is { } prev) // save view state of the tab we're leaving
-        {
-            prev.CaretOffset = Editor.CaretOffset;
-            prev.VerticalOffset = Editor.VerticalOffset;
-            prev.HorizontalOffset = Editor.HorizontalOffset;
-        }
-
-        // FoldingManager installs document-bound generators; detach them while
-        // the old document is still attached to the editor.
-        _ctx.Detach();
         _active = DocTabs.SelectedItem as OpenDocument;
         ViewModel.ActiveDocument = _active;
-        _customMargin?.SetDocument(_active);
+
+        EditorPane.SetDocument(_active);
+
+        ViewModel.ClearDocumentOutline();
 
         if (_active is null)
         {
             _outlineTimer.Stop();
-            ViewModel.ClearDocumentOutline();
             _preview.SetDocument(null);
-            Editor.Document = new TextDocument();
-            Editor.IsReadOnly = false;
-            _diagnosticRenderer.Segments = null;
-            _ctx.Attach(null);
-            _textMateController.SetGrammarForFile("");
             UpdateStatus();
             return;
         }
 
-        var doc = _active;
-        ViewModel.ClearDocumentOutline();
         QueueOutlineUpdate();
-        UpdatePreviewPaneVisibility(doc);
-        Editor.Document = doc.Document; // TextMate re-binds on DocumentChanged
-        Editor.IsReadOnly = doc.IsReadOnly;
-        _ctx.Attach(doc);
-        _diagnosticRenderer.Segments = doc.Diagnostics;
-        _textMateController.SetGrammarForFile(doc.Path);
-        Editor.CaretOffset = Math.Min(doc.CaretOffset, doc.Document.TextLength);
-
-        // Scrolling needs a layout pass first.
-        Dispatcher.UIThread.Post(() =>
-        {
-            Editor.ScrollToVerticalOffset(doc.VerticalOffset);
-            Editor.ScrollToHorizontalOffset(doc.HorizontalOffset);
-        }, DispatcherPriority.Loaded);
-
-        Editor.Focus();
+        UpdatePreviewPaneVisibility(_active);
+        _preview.SetDocument(_active);
         UpdateStatus();
-        _preview.SetDocument(doc);
-    }
-
-    private void NavigateToDebugLocation(string path, int line)
-    {
-        OpenDocument document;
-        try
-        {
-            document = ViewModel.OpenDocument(path);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            ViewModel.ShowStatusMessage($"Couldn't open the stopped source location: {ex.Message}");
-            return;
-        }
-
-        DocTabs.SelectedItem = document;
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (!ReferenceEquals(_active, document))
-                return;
-            var lineNumber = Math.Clamp(line, 1, document.Document.LineCount);
-            Editor.CaretOffset = document.Document.GetLineByNumber(lineNumber).Offset;
-            Editor.ScrollToLine(lineNumber);
-            Editor.Focus();
-        }, DispatcherPriority.Loaded);
     }
 
     private void UpdatePreviewPaneVisibility(OpenDocument? document)
@@ -453,28 +343,6 @@ public partial class MainWindow : Window
         PreviewSplitter.IsVisible = visible;
         PreviewPane.IsVisible = visible;
     }
-
-    private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
-    {
-        if (e.KeyModifiers != KeyModifiers.Control)
-            return;
-
-        var editorPoint = e.GetPosition(Editor);
-        if (editorPoint is { X: >= 0, Y: >= 0 }
-            && editorPoint.X < Editor.Bounds.Width && editorPoint.Y < Editor.Bounds.Height)
-        {
-            var nextSize = ViewModel.EditorFontSize + (e.Delta.Y > 0 ? 1 : -1);
-            ViewModel.EditorFontSize = Math.Clamp(nextSize, 6, 72);
-            e.Handled = true;
-            return;
-        }
-
-        e.Handled = true;
-    }
-
-
-    // private readonly DispatcherTimer _foldingTimer =
-    //     new() { Interval = TimeSpan.FromMilliseconds(250) };
 
     private void OnTabCloseClick(object? sender, RoutedEventArgs e)
     {
@@ -521,11 +389,11 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 return;
             case { Key: Key.F12, KeyModifiers: KeyModifiers.None }:
-                _ = _nav.GoToDefinitionAsync();
+                _ = EditorPane.Navigation.GoToDefinitionAsync();
                 e.Handled = true;
                 return;
             case { Key: Key.F12, KeyModifiers: KeyModifiers.Shift }:
-                _ = _nav.FindReferencesAsync();
+                _ = EditorPane.Navigation.FindReferencesAsync();
                 e.Handled = true;
                 return;
             case { Key: Key.F, KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift) }:
@@ -551,12 +419,12 @@ public partial class MainWindow : Window
             case { KeyModifiers: (KeyModifiers.Control | KeyModifiers.Shift), Key: Key.Space }:
                 {
                     if (_active is { } activeDocument)
-                        _ = _signature.RequestAsync(activeDocument, triggerCharacter: null);
+                        _ = EditorPane.SignatureHelp.RequestAsync(activeDocument, triggerCharacter: null);
                     e.Handled = true;
                     return;
                 }
             case { KeyModifiers: KeyModifiers.Control, Key: Key.OemPeriod }:
-                _ = _codeActions.ShowCodeActionsAsync();
+                _ = EditorPane.CodeActions.ShowCodeActionsAsync();
                 e.Handled = true;
                 return;
         }
@@ -566,15 +434,15 @@ public partial class MainWindow : Window
         switch (e.Key)
         {
             case Key.P:
-                _ = _nav.QuickOpenAsync();
+                _ = EditorPane.Navigation.QuickOpenAsync();
                 e.Handled = true;
                 break;
             case Key.T:
-                _ = _nav.SearchWorkspaceSymbolsAsync();
+                _ = EditorPane.Navigation.SearchWorkspaceSymbolsAsync();
                 e.Handled = true;
                 break;
             case Key.R:
-                _ = _nav.RenameSymbolAsync();
+                _ = EditorPane.Navigation.RenameSymbolAsync();
                 e.Handled = true;
                 break;
             case Key.S when _active is not null:
@@ -586,7 +454,7 @@ public partial class MainWindow : Window
                 e.Handled = true;
                 break;
             case Key.Space when _active is { Sync: not null } doc:
-                _ = _completion.ShowCompletionAsync(doc, triggerChar: null);
+                _ = EditorPane.Completion.ShowCompletionAsync(doc, triggerChar: null);
                 e.Handled = true;
                 break;
         }
@@ -597,13 +465,13 @@ public partial class MainWindow : Window
     private void OnSignatureHelpClick(object? sender, RoutedEventArgs e)
     {
         if (_active is { } document)
-            _ = _signature.RequestAsync(document, triggerCharacter: null);
+            _ = EditorPane.SignatureHelp.RequestAsync(document, triggerCharacter: null);
     }
 
     private void OnProblemClick(object? sender, TappedEventArgs e)
     {
         if ((sender as ListBox)?.SelectedItem is ProblemItem problem)
-            _navigator.ToProblem(problem);
+            EditorPane.Navigator.ToProblem(problem);
     }
 
 
@@ -617,16 +485,16 @@ public partial class MainWindow : Window
     }
 
     private async void OnWorkspaceSymbolsClick(object? sender, RoutedEventArgs e)
-        => await _nav.SearchWorkspaceSymbolsAsync();
+        => await EditorPane.Navigation.SearchWorkspaceSymbolsAsync();
 
     private async void OnGoToDefinitionClick(object? sender, RoutedEventArgs e)
-        => await _nav.GoToDefinitionAsync();
+        => await EditorPane.Navigation.GoToDefinitionAsync();
 
     private async void OnFindReferencesClick(object? sender, RoutedEventArgs e)
-        => await _nav.FindReferencesAsync();
+        => await EditorPane.Navigation.FindReferencesAsync();
 
     private async void OnRenameSymbolClick(object? sender, RoutedEventArgs e)
-        => await _nav.RenameSymbolAsync();
+        => await EditorPane.Navigation.RenameSymbolAsync();
 
 
     private async void OnFindInFilesKeyDown(object? sender, KeyEventArgs e)
@@ -650,23 +518,16 @@ public partial class MainWindow : Window
     private void OnSearchResultClick(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { Tag: WorkspaceSearchResult result })
-            _navigator.ToSearchResult(result);
+            EditorPane.Navigator.ToSearchResult(result);
     }
 
-    private void OnDiagnosticsChanged(OpenDocument document)
-    {
-        if (!ReferenceEquals(document, _active)) return;
-        _codeActions.RefreshMargin(document);
-        Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
-        UpdateStatus();
-    }
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
     // ============================================================== status bar
 
     private void UpdateStatus()
     {
-        var caret = Editor.TextArea.Caret;
+        var caret = EditorPane.EditorControl.TextArea.Caret;
         ViewModel.ActiveCaretOffset = caret.Offset;
         CaretStatus.Text = _active is null ? "" : $"Ln {caret.Line}, Col {caret.Column}";
         DiagStatus.Text = _active is null ? "" : $"{_active.ErrorCount} errors, {_active.WarningCount} warnings";

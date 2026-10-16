@@ -4,12 +4,12 @@
     d:DesignWidth="1200"
     x:Class="AXaxmlIDE.Views.MainWindow"
     x:DataType="vm:MainWindowViewModel"
-    xmlns:views="using:AXaxmlIDE.Views"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:edit="using:AvaloniaEdit"
     xmlns:editing="using:AvaloniaEdit.Editing"
     xmlns:local="clr-namespace:AXaxmlIDE.Models"
+    xmlns:views="using:AXaxmlIDE.Views"
     xmlns:vm="clr-namespace:AXaxmlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -182,16 +182,6 @@
                         FontWeight="DemiBold"
                         Text="Explorer"
                         VerticalAlignment="Center" />
-                    <!-- <Button
-                    Click="OnToggleExplorerClick"
-                    Grid.Column="1"
-                    Padding="4"
-                    ToolTip.Tip="Hide explorer">
-                    <PathIcon
-                    Data="{DynamicResource Icon.Close}"
-                    Height="16"
-                    Width="16" />
-                    </Button>-->
                 </Grid>
                 <TreeView
                     Foreground="{DynamicResource ThemeForegroundBrush}"
@@ -290,51 +280,7 @@
                             <ColumnDefinition Width="0" />
                             <ColumnDefinition Width="0" />
                         </Grid.ColumnDefinitions>
-                        <edit:TextEditor
-                            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
-                            FontSize="13"
-                            LineNumbersMargin="10,0"
-                            FontWeight="Light"
-                            Grid.Column="0"
-                            HorizontalScrollBarVisibility="Auto"
-                            Margin="0"
-                            Name="Editor"
-                            ShowLineNumbers="True"
-                            VerticalScrollBarVisibility="Visible">
-                            <edit:TextEditor.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuItem
-                                        Command="{Binding CopyMouseCommand}"
-                                        CommandParameter="{Binding #Editor.TextArea}"
-                                        Header="Copy"
-                                        InputGesture="ctrl+C" />
-                                    <MenuItem
-                                        Command="{Binding CutMouseCommand}"
-                                        CommandParameter="{Binding #Editor.TextArea}"
-                                        Header="Cut"
-                                        InputGesture="ctrl+X" />
-                                    <MenuItem
-                                        Command="{Binding PasteMouseCommand}"
-                                        CommandParameter="{Binding #Editor.TextArea}"
-                                        Header="Paste"
-                                        InputGesture="ctrl+V" />
-                                    <MenuItem Header="-" />
-                                    <MenuItem Click="OnCodeActionsClick" Header="Quick Actions..." />
-                                    <MenuItem Command="{Binding FormatActiveDocumentCommand}" Header="Format Document" />
-                                    <MenuItem Header="-" />
-                                    <MenuItem
-                                        Command="{Binding SelectAllMouseCommand}"
-                                        CommandParameter="{Binding #Editor.TextArea}"
-                                        Header="Select All"
-                                        InputGesture="ctrl+A" />
-                                </MenuFlyout>
-                            </edit:TextEditor.ContextFlyout>
-                            <edit:TextEditor.Styles>
-                                <Style Selector="editing|LineNumberMargin">
-                                    <Setter Property="MinWidthInDigits" Value="3" />
-                                </Style>
-                            </edit:TextEditor.Styles>
-                        </edit:TextEditor>
+                        <views:EditorPaneView Grid.Column="0" Name="EditorPane" />
                         <GridSplitter
                             Background="#FF555555"
                             Grid.Column="1"
@@ -347,86 +293,6 @@
                             Grid.Column="2"
                             IsVisible="False"
                             Name="PreviewPane" />
-                        <!-- <Grid
-                        Grid.Column="2"
-                        IsVisible="False"
-                        Name="PreviewPane"
-                        RowDefinitions="Auto,*">
-                        <Border
-                        Background="#262626"
-                        Grid.Row="0"
-                        Padding="8,4">
-                        <StackPanel
-                        HorizontalAlignment="Right"
-                        Orientation="Horizontal"
-                        Spacing="8">
-                        <TextBlock
-                        Foreground="{DynamicResource ThemeForegroundBrush}"
-                        Text="Zoom"
-                        VerticalAlignment="Center" />
-                        <ComboBox
-                        BorderThickness="0"
-                        MinHeight="0"
-                        MinWidth="90"
-                        Name="PreviewZoomComboBox"
-                        SelectedIndex="4">
-                        <ComboBoxItem Content="800%" />
-                        <ComboBoxItem Content="400%" />
-                        <ComboBoxItem Content="200%" />
-                        <ComboBoxItem Content="150%" />
-                        <ComboBoxItem Content="100%" />
-                        <ComboBoxItem Content="75%" />
-                        <ComboBoxItem Content="50%" />
-                        <ComboBoxItem Content="25%" />
-                        <ComboBoxItem Content="12.5%" />
-                        <ComboBoxItem Content="Fit to Width" />
-                        <ComboBoxItem Content="Fit All" />
-                        </ComboBox>
-                        <TextBlock
-                        Foreground="{DynamicResource ThemeForegroundBrush}"
-                        Text="Theme"
-                        VerticalAlignment="Center" />
-                        <ComboBox
-                        BorderThickness="0"
-                        MinHeight="0"
-                        MinWidth="80"
-                        Name="PreviewThemeComboBox"
-                        SelectedIndex="0">
-                        <ComboBoxItem Content="No theme" />
-                        <ComboBoxItem Content="Light" />
-                        <ComboBoxItem Content="Dark" />
-                        </ComboBox>
-                        </StackPanel>
-                        </Border>
-                        <Grid Grid.Row="1" Name="PreviewViewport">
-                        <controls:PreviewGridLines IsHitTestVisible="False" />
-                        <ScrollViewer
-                        HorizontalContentAlignment="Center"
-                        HorizontalScrollBarVisibility="Auto"
-                        Name="PreviewScrollViewer"
-                        VerticalContentAlignment="Center"
-                        VerticalScrollBarVisibility="Auto">
-                        <Image
-                        HorizontalAlignment="Center"
-                        Name="PreviewImage"
-                        Stretch="None"
-                        VerticalAlignment="Center" />
-                        </ScrollViewer>
-                        <Border
-                        Background="{DynamicResource ThemeBackgroundBrush}"
-                        HorizontalAlignment="Center"
-                        MaxWidth="500"
-                        Name="PreviewMessageHost"
-                        Padding="12"
-                        VerticalAlignment="Center">
-                        <TextBlock
-                        Foreground="White"
-                        Name="PreviewMessage"
-                        Text="Open an Avalonia AXAML file to start previewing."
-                        TextWrapping="Wrap" />
-                        </Border>
-                        </Grid>
-                        </Grid> -->
                     </Grid>
                 </Grid>
                 <Border
