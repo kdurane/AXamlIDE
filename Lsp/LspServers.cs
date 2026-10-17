@@ -134,7 +134,7 @@ namespace AXamlIDE.Lsp;
             if (!string.IsNullOrEmpty(overridePath))
                 return File.Exists(overridePath) ? overridePath : null;
 
-            var exe = OperatingSystem.IsWindows() ? name + ".exe" : name;
+            var exe = OperatingSystem.IsWindows() ? name + ".cmd" : name;
 
             var toolsDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".dotnet", "tools");

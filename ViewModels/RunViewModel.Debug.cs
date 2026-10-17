@@ -1,14 +1,15 @@
+using Avalonia.Controls.Documents;
+using Avalonia.Threading;
+using AXamlIDE.Models;
+using AXamlIDE.Services;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia.Threading;
-using AXamlIDE.Models;
-using AXamlIDE.Services;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 
 namespace AXamlIDE.ViewModels;
 
@@ -29,6 +30,11 @@ public partial class RunViewModel
     [ObservableProperty] public partial string DebugStatus { get; set; } = "No active debug session.";
 
     public bool IsDebugging => _debugSession is not null;
+
+    private DebugInspector? _inspector;
+
+    /// <summary>Snapshot at each stop (null when running/ended) - the editor uses it for inline values.</summary>
+    public event Action<StopSnapshot?>? DebugSnapshotChanged;
 
     /// <summary>The debuggee stopped at this file and line (the shell navigates the editor there).</summary>
     public event Action<string, int>? DebugLocationChanged;
@@ -79,6 +85,18 @@ public partial class RunViewModel
             var (programPath, workingDirectory) = await Task.Run(() => ResolveDebugProgram(projectPath));
             var session = new NetCoreDbgSession(NetCoreDbgSession.ResolveExecutablePath());
             _debugSession = session;
+            var inspector = new DebugInspector(session);
+            _inspector = inspector;
+            inspector.Output += AppendConsoleOutput;          // stack trace goes to the console pane
+            inspector.Stopped += snapshot => Dispatcher.UIThread.Post(() =>
+            {
+                if (!ReferenceEquals(_debugSession, session))
+                    return;
+                if (snapshot.Top is { Path: { } path } top && File.Exists(path))
+                    DebugLocationChanged?.Invoke(path, top.Line);   // navigate first so the doc is open...
+                DebugSnapshotChanged?.Invoke(snapshot);             // ...then show the values
+            });
+            inspector.Resumed += () => Dispatcher.UIThread.Post(() => DebugSnapshotChanged?.Invoke(null));
             _debugProjectPath = projectPath;
             OnPropertyChanged(nameof(IsDebugging));
             IsRunning = true;
@@ -181,6 +199,29 @@ public partial class RunViewModel
         }
     }
 
+    [RelayCommand] private Task StepOverAsync() => StepAsync(s => s.StepOverAsync(_stoppedThreadId), "step over");
+    [RelayCommand] private Task StepIntoAsync() => StepAsync(s => s.StepIntoAsync(_stoppedThreadId), "step into");
+    [RelayCommand] private Task StepOutAsync() => StepAsync(s => s.StepOutAsync(_stoppedThreadId), "step out");
+
+    private async Task StepAsync(Func<NetCoreDbgSession, Task> step, string what)
+    {
+        if (_debugSession is not { } session || !IsDebugStopped)
+            return;
+        // netcoredbg doesn't reliably send "continued" for steps, so flip state ourselves.
+        IsDebugStopped = false;
+        DebugStatus = "Stepping...";
+        DebugSnapshotChanged?.Invoke(null);
+        try
+        {
+            await step(session);
+        }
+        catch (Exception ex)
+        {
+            IsDebugStopped = true;
+            _showStatus($"Couldn't {what}: {ex.Message}");
+        }
+    }
+
     private async Task StopDebugSessionAsync(NetCoreDbgSession session)
     {
         DebugStatus = "Stopping debug session...";
@@ -204,6 +245,9 @@ public partial class RunViewModel
             return;
 
         _debugSession = null;
+        _inspector?.Detach();
+        _inspector = null;
+        DebugSnapshotChanged?.Invoke(null);
         _debugProjectPath = null;
         session.Dispose();
         OnPropertyChanged(nameof(IsDebugging));
@@ -220,10 +264,6 @@ public partial class RunViewModel
         if (!message.TryGetProperty("event", out var eventName))
             return;
 
-        // NOTE: this dumps every raw adapter message into the Console tab. Useful while the
-        // debugger is a proof of concept; it should go when the real debug UI lands.
-        AppendConsoleOutput(message.GetRawText());
-
         switch (eventName.GetString())
         {
             case "output":
@@ -231,25 +271,25 @@ public partial class RunViewModel
                     && outputBody.TryGetProperty("output", out var output))
                     AppendConsoleOutput(output.GetString() ?? string.Empty);
                 break;
-            case "stopped":
-                if (!message.TryGetProperty("body", out var stoppedBody))
-                    return;
-                var reason = stoppedBody.TryGetProperty("reason", out var reasonElement)
-                    ? reasonElement.GetString() ?? "breakpoint"
-                    : "breakpoint";
-                var threadId = stoppedBody.TryGetProperty("threadId", out var threadElement)
-                    ? threadElement.GetInt32()
-                    : 1;
-                _stoppedThreadId = threadId;
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (!ReferenceEquals(_debugSession, session))
-                        return;
-                    IsDebugStopped = true;
-                    DebugStatus = $"Paused ({reason}).";
-                });
-                _ = NavigateToTopFrameAsync(session, threadId);
-                break;
+            //case "stopped":
+            //    if (!message.TryGetProperty("body", out var stoppedBody))
+            //        return;
+            //    var reason = stoppedBody.TryGetProperty("reason", out var reasonElement)
+            //        ? reasonElement.GetString() ?? "breakpoint"
+            //        : "breakpoint";
+            //    var threadId = stoppedBody.TryGetProperty("threadId", out var threadElement)
+            //        ? threadElement.GetInt32()
+            //        : 1;
+            //    _stoppedThreadId = threadId;
+            //    Dispatcher.UIThread.Post(() =>
+            //    {
+            //        if (!ReferenceEquals(_debugSession, session))
+            //            return;
+            //        IsDebugStopped = true;
+            //        DebugStatus = $"Paused ({reason}).";
+            //    });
+            //    _ = NavigateToTopFrameAsync(session, threadId);
+            //    break;
             case "continued":
                 Dispatcher.UIThread.Post(() =>
                 {

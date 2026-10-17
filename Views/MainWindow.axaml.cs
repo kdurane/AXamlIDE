@@ -71,6 +71,7 @@ namespace AXamlIDE.Views
             viewModel.DiagnosticsChanged += EditorPane.OnDiagnosticsChanged;
             viewModel.NavigateToProblemRequested += EditorPane.Navigator.ToProblem;
             viewModel.Run.DebugLocationChanged += EditorPane.Navigator.ToDebugLocation;
+            viewModel.Run.DebugSnapshotChanged += EditorPane.Navigator.ShowDebugValues;
             viewModel.WorkspaceEditRequested = EditorPane.WorkspaceEdits.ApplyServerEditAsync;
 
             EditorPane.ApplyEditorSettings();

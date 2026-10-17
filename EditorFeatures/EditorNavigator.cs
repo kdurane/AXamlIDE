@@ -1,8 +1,10 @@
-using System;
-using System.IO;
 using Avalonia.Threading;
+using AXamlIDE.Editor;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
+using AXamlIDE.Services;
+using System;
+using System.IO;
 
 namespace AXamlIDE.EditorFeatures;
 
@@ -15,6 +17,36 @@ namespace AXamlIDE.EditorFeatures;
 public sealed class EditorNavigator(EditorContext ctx)
 {
     private readonly EditorContext _ctx = ctx;
+    private readonly DebugInlineValueGenerator _inlineValues = new();
+    private bool _inlineValuesAttached;
+    private StopSnapshot? _debugSnapshot;
+
+    /// <summary>Subscribed to RunViewModel.DebugSnapshotChanged (null = running/ended).</summary>
+    public void ShowDebugValues(StopSnapshot? snapshot)
+    {
+        _debugSnapshot = snapshot;
+        ApplyDebugValues();
+    }
+
+    /// <summary>Also call this whenever the active document changes while paused.</summary>
+    public void ApplyDebugValues()
+    {
+        var editor = _ctx.Editor;
+        if (!_inlineValuesAttached)
+        {
+            editor.TextArea.TextView.ElementGenerators.Add(_inlineValues);
+            _inlineValuesAttached = true;
+        }
+
+        if (_debugSnapshot?.Top is { Path: { } path } top
+            && _ctx.Active is { } active
+            && string.Equals(path, active.Path, StringComparison.Ordinal))
+            _inlineValues.Show(_debugSnapshot.Values, top.Line);
+        else
+            _inlineValues.Clear();
+
+        editor.TextArea.TextView.Redraw();
+    }
 
     /// <summary>Was NavigateToProblem (and the OnProblemClick target).</summary>
     public void ToProblem(ProblemItem problem)
@@ -41,6 +73,7 @@ public sealed class EditorNavigator(EditorContext ctx)
         try
         {
             document = _ctx.ViewModel.OpenDocument(path);
+
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -59,6 +92,7 @@ public sealed class EditorNavigator(EditorContext ctx)
             editor.CaretOffset = document.Document.GetLineByNumber(lineNumber).Offset;
             editor.ScrollToLine(lineNumber);
             editor.Focus();
+            ApplyDebugValues();
         }, DispatcherPriority.Loaded);
     }
 

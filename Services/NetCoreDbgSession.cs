@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace AXamlIDE.Services
 {
-    public sealed class NetCoreDbgSession : IDisposable
+    public  sealed partial class NetCoreDbgSession : IDisposable
     {
         private readonly Process _process;
         private readonly DebugAdapterTransport _transport;

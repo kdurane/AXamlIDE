@@ -1,0 +1,74 @@
+<UserControl
+    x:Class="AXamlIDE.Views.DebugToolbar"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Margin="0,12,0,0"
+    HorizontalAlignment="Center"
+    VerticalAlignment="Top"
+    xmlns:vm="clr-namespace:AXamlIDE.ViewModels"
+    x:DataType="vm:RunViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button.dbg">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border
+        x:Name="Root"
+        Padding="4"
+        Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+        BorderBrush="{DynamicResource SystemControlHighlightBaseLowBrush}"
+        BorderThickness="1"
+        BoxShadow="0 4 14 0 #55000000"
+        CornerRadius="6">
+        <StackPanel Orientation="Horizontal" Spacing="2">
+            <TextBlock
+                x:Name="Grip"
+                Margin="6,0"
+                VerticalAlignment="Center"
+                Cursor="SizeAll"
+                Opacity="0.5"
+                Text="⋮⋮" />
+
+            <Button
+                Classes="dbg"
+                Command="{Binding ContinueDebuggingCommand}"
+                Content="Continue"
+                IsEnabled="{Binding IsDebugStopped}"
+                ToolTip.Tip="Continue (F5)" />
+            <Button
+                Classes="dbg"
+                Command="{Binding StepOverCommand}"
+                Content="Over"
+                IsEnabled="{Binding IsDebugStopped}"
+                ToolTip.Tip="Step Over (F10)" />
+            <Button
+                Classes="dbg"
+                Command="{Binding StepIntoCommand}"
+                Content="Into"
+                IsEnabled="{Binding IsDebugStopped}"
+                ToolTip.Tip="Step Into (F11)" />
+            <Button
+                Classes="dbg"
+                Command="{Binding StepOutCommand}"
+                Content="Out"
+                IsEnabled="{Binding IsDebugStopped}"
+                ToolTip.Tip="Step Out (Shift+F11)" />
+
+            <Rectangle
+                Width="1"
+                Margin="4,2"
+                Fill="{DynamicResource SystemControlHighlightBaseLowBrush}" />
+
+            <Button
+                Classes="dbg"
+                Command="{Binding StopRunningProjectCommand}"
+                Content="Stop"
+                Foreground="IndianRed"
+                IsEnabled="{Binding IsDebugging}"
+                ToolTip.Tip="Stop (Shift+F5)" />
+        </StackPanel>
+    </Border>
+</UserControl>

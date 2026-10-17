@@ -272,7 +272,9 @@
                             ToolTip.Tip="Navigate to a C# type or member" />
                     </Grid>
 
-                    <Grid Grid.Row="1" Name="DocumentSurface">
+                    <Grid Grid.Row="1" Name="DocumentSurface">                    
+                        
+    <views:DebugToolbar DataContext="{Binding Run}" IsVisible="{Binding IsDebugging}" />
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition MinWidth="160" Width="*" />
                             <ColumnDefinition Width="0" />
