@@ -14,9 +14,11 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using AXamlIDE.Enums;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
@@ -37,7 +39,6 @@ namespace AXamlIDE.ViewModels
     {
         private readonly DocumentManager _documents = new();
         private readonly LspManager _languageServers = new(LspServers.Defaults);
-        private readonly WorkspaceSearchService _workspaceSearch = new();
         private readonly ProblemNavigationService _problemNavigation = new();
         private readonly WorkspaceModel _workspace;
         private readonly XamlLanguageService _xaml;
@@ -48,15 +49,10 @@ namespace AXamlIDE.ViewModels
         public ObservableCollection<ProjectTreeNode> WorkspaceRoots => _workspace.WorkspaceRoots;
         public ObservableCollection<OpenDocument> Documents => _documents.Documents;
         public ObservableCollection<ProblemItem> Problems { get; } = [];
-        public ObservableCollection<WorkspaceSearchResult> SearchResults { get; } = [];
         public ObservableCollection<DocumentOutlineItem> DocumentOutlineItems { get; } = [];
 
         [ObservableProperty] public partial int SelectedToolTabIndex { get; set; } = 1;
         [ObservableProperty] public partial object? SelectedDocTabItem { get; set; }
-        [ObservableProperty] public partial string SearchQuery { get; set; } = string.Empty;
-        [ObservableProperty] public partial string ReplaceText { get; set; } = string.Empty;
-        [ObservableProperty] private partial bool IsSearching { get; set; }
-        [ObservableProperty] public partial string SearchStatus { get; set; } = "Search the current workspace.";
         [ObservableProperty] public partial string LspStatus { get; set; } = "language servers: idle";
         [ObservableProperty] public partial OpenDocument? ActiveDocument { get; set; }
         public bool IsEditorVisible => ActiveDocument is not null;
@@ -75,20 +71,18 @@ namespace AXamlIDE.ViewModels
         public event Action<OpenDocument>? DocumentLanguageClientAttached;
         public event Action<OpenDocument>? DiagnosticsChanged;
         public event Action<ProblemItem>? NavigateToProblemRequested;
-        public event Action<string, int>? DebugLocationChanged;
         public Func<JsonElement, Task<bool>>? WorkspaceEditRequested { get; set; }
-
-        private readonly Window _owner;
         public SettingsViewModel Settings { get; }
         public RunViewModel Run { get; }
+        public SearchViewModel Search { get; }
+        private readonly IDialogService _dialogs;
 
-        public MainWindowViewModel(SettingsViewModel settings, IStorageProvider storageProvider,
-        Window owner, WorkspaceModel workspace, XamlLanguageService xaml)
+        public MainWindowViewModel(SettingsViewModel settings, WorkspaceModel workspace, XamlLanguageService xaml, IDialogService dialog)
         {
             Settings = settings;
-            _storageProvider = storageProvider;
-            _owner = owner;
             _workspace = workspace;
+            _dialogs = dialog;
+            Search = new SearchViewModel(workspace.WorkspaceRoots, _documents.Documents, dialog);
             _xaml = xaml;
             Run = new RunViewModel(workspace, _documents.Documents, () => SelectedWorkspaceNode, ShowStatusMessage);
             Run.ToolTabRequested += index => SelectedToolTabIndex = index;
@@ -157,7 +151,6 @@ namespace AXamlIDE.ViewModels
                     DocumentOutlineItems.Clear();
                     foreach (var item in items)
                         DocumentOutlineItems.Add(item);
-                    // SelectDocumentOutlineItem(ActiveCaretOffset);
                 });
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -375,16 +368,7 @@ namespace AXamlIDE.ViewModels
 
         public void ShowStatusMessage(string message) => LspStatus = message;
 
-        public async Task<IReadOnlyList<string>> GetWorkspaceFilesAsync()
-        {
-            if (WorkspaceRoots.FirstOrDefault() is not { } workspaceRoot)
-                return [];
-
-            var rootPath = workspaceRoot.Kind == NodeKind.Solution
-                ? Path.GetDirectoryName(workspaceRoot.FullPath)!
-                : workspaceRoot.FullPath;
-            return await _workspaceSearch.ListWorkspaceFilesAsync(rootPath);
-        }
+        public Task<IReadOnlyList<string>> GetWorkspaceFilesAsync() => Search.GetWorkspaceFilesAsync();
 
         public async Task RefreshWorkspaceNodeAsync(ProjectTreeNode node)
         {
@@ -403,120 +387,6 @@ namespace AXamlIDE.ViewModels
                 OpenFolder(root.FullPath);
         }
 
-        [RelayCommand]
-        private async Task SearchWorkspace()
-        {
-            if (IsSearching)
-                return;
-
-            SearchResults.Clear();
-            var query = SearchQuery;
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                SearchStatus = "Enter text to search for.";
-                return;
-            }
-
-            if (WorkspaceRoots.FirstOrDefault() is not { } workspaceRoot)
-            {
-                SearchStatus = "Open a folder or solution before searching.";
-                return;
-            }
-
-            var rootPath = workspaceRoot.Kind == NodeKind.Solution
-                ? Path.GetDirectoryName(workspaceRoot.FullPath)!
-                : workspaceRoot.FullPath;
-            var openDocuments = Documents.ToDictionary(
-                document => Path.GetFullPath(document.Path),
-                document => document.Document.Text,
-                StringComparer.OrdinalIgnoreCase);
-
-            IsSearching = true;
-            SearchStatus = "Searching...";
-            try
-            {
-                var summary = await _workspaceSearch.SearchAsync(rootPath, query, openDocuments);
-                foreach (var result in summary.Results)
-                    SearchResults.Add(result);
-
-                var status = summary.ResultLimitReached
-                    ? $"Showing the first {summary.Results.Count} results."
-                    : $"{summary.Results.Count} result(s).";
-                if (summary.SkippedLargeFiles > 0)
-                    status += $" Skipped {summary.SkippedLargeFiles} file(s) larger than 2 MB.";
-                if (summary.UnreadableFiles > 0)
-                    status += $" Couldn't read {summary.UnreadableFiles} file(s) or folder(s).";
-                SearchStatus = status;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                SearchStatus = $"Search failed: {ex.Message}";
-            }
-            finally
-            {
-                IsSearching = false;
-            }
-        }
-
-        private async Task<WorkspaceReplacePlan?> PrepareWorkspaceReplaceAsync()
-        {
-            if (IsSearching)
-            {
-                SearchStatus = "Wait for the current search to finish before replacing.";
-                return null;
-            }
-
-            var query = SearchQuery;
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                SearchStatus = "Enter text to search for before replacing.";
-                return null;
-            }
-
-            if (WorkspaceRoots.FirstOrDefault() is not { } workspaceRoot)
-            {
-                SearchStatus = "Open a folder or solution before replacing.";
-                return null;
-            }
-
-            var rootPath = workspaceRoot.Kind == NodeKind.Solution
-                ? Path.GetDirectoryName(workspaceRoot.FullPath)!
-                : workspaceRoot.FullPath;
-            var openDocuments = Documents.ToDictionary(
-                document => Path.GetFullPath(document.Path),
-                document => document.Document.Text,
-                StringComparer.OrdinalIgnoreCase);
-
-            IsSearching = true;
-            SearchStatus = "Preparing replace...";
-            try
-            {
-                var plan = await _workspaceSearch.PrepareReplaceAsync(
-                    rootPath, query, ReplaceText, openDocuments);
-                SearchStatus = plan.LimitReached
-                    ? "More than 5,000 matches found. Narrow the search before replacing."
-                    : $"{plan.MatchCount} match(es) in {plan.Files.Count} file(s) ready to replace.";
-                return plan;
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                SearchStatus = $"Replace preparation failed: {ex.Message}";
-                return null;
-            }
-            finally
-            {
-                IsSearching = false;
-            }
-        }
-
-        private WorkspaceReplaceSummary ApplyWorkspaceReplacePlan(WorkspaceReplacePlan plan)
-        {
-            var openDocuments = Documents.ToDictionary(
-                document => Path.GetFullPath(document.Path),
-                document => document,
-                StringComparer.OrdinalIgnoreCase);
-            return _workspaceSearch.ApplyReplacePlan(plan, openDocuments);
-        }
 
         private void SetWorkspace(LspWorkspace workspace)
         {
@@ -659,19 +529,26 @@ namespace AXamlIDE.ViewModels
             LspStatus = summary.Length > 0 ? summary : "language servers: idle";
         }
 
-
         [RelayCommand]
         private async Task OpenFolder()
         {
-            var folders = await _storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-            {
-                Title = "Open Project Folder",
-                AllowMultiple = false
-            });
-
-            if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } path) return;
-
+            if (await _dialogs.PickFolderAsync() is not { } path) return;
             OpenFolder(path);
+        }
+
+        [RelayCommand]
+        private async Task OpenSolution()
+        {
+            if (await _dialogs.PickSolutionAsync() is not { } path) return;
+            try
+            {
+                OpenSolution(path);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException
+                                           or InvalidOperationException or ArgumentException)
+            {
+                ShowStatusMessage($"Couldn't open solution '{path}': {ex.Message}");
+            }
         }
 
         [RelayCommand]
@@ -681,7 +558,7 @@ namespace AXamlIDE.ViewModels
             var decisions = new List<(OpenDocument Document, SaveChoice Choice)>(dirtyDocuments.Length);
             foreach (var document in dirtyDocuments)
             {
-                var choice = await AskSaveAsync(document);
+                var choice = await _dialogs.AskSaveAsync(document);
                 if (choice == SaveChoice.Cancel) return;
                 decisions.Add((document, choice));
             }
@@ -710,260 +587,9 @@ namespace AXamlIDE.ViewModels
             _languageServers.ClearWorkspace();
         }
 
-        private async Task<SaveChoice> AskSaveAsync(OpenDocument doc)
-        {
-            var result = SaveChoice.Cancel; // closing the window with the X = cancel
-
-            Window? dialog = null;
-            dialog = new Window
-            {
-                Title = "Unsaved changes",
-                Width = 380,
-                SizeToContent = SizeToContent.Height,
-                CanResize = false,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Content = new StackPanel
-                {
-                    Margin = new Thickness(16),
-                    Spacing = 16,
-                    Children =
-                          {
-                              new TextBlock { Text = $"Save changes to {doc.Title}?", TextWrapping = TextWrapping.Wrap },
-                              new StackPanel
-                              {
-                                  Orientation = Orientation.Horizontal,
-                                  Spacing = 8,
-                                  HorizontalAlignment = HorizontalAlignment.Right,
-                                  Children =
-                                  {
-                                      Make("Save", SaveChoice.Save),
-                                      Make("Don't save", SaveChoice.Discard),
-                                      Make("Cancel", SaveChoice.Cancel)
-                                  }
-                              }
-                          }
-                }
-            };
-
-            await dialog.ShowDialog(_owner);
-            return result;
-
-            Button Make(string text, SaveChoice choice)
-            {
-                var b = new Button { Content = text, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
-                b.Click += (_, _) =>
-                {
-                    result = choice;
-                    dialog?.Close();
-                };
-                return b;
-            }
-        }
-
         [RelayCommand]
-        private async Task OpenSolution()
-        {
-            var files = await _storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-            {
-                Title = "Open Solution",
-                AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("Solution files") { Patterns = ["*.sln", "*.slnx"] }]
-            });
-
-            if (files.FirstOrDefault()?.TryGetLocalPath() is not { } path) return;
-
-            try
-            {
-                OpenSolution(path);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException
-                                           or InvalidOperationException or ArgumentException)
-            {
-                ShowStatusMessage($"Couldn't open solution '{path}': {ex.Message}");
-            }
-        }
-
-        [RelayCommand]
-        private async Task QuickOpenAsync()
-        {
-            try
-            {
-                var files = await GetWorkspaceFilesAsync();
-                if (files.Count == 0)
-                {
-                    ShowStatusMessage("No workspace files are available to open.");
-                    return;
-                }
-
-                var selectedPath = await ShowQuickOpenDialogAsync(files);
-                if (selectedPath is null)
-                    return;
-
-                SelectedDocTabItem = OpenDocument(selectedPath);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
-            {
-                ShowStatusMessage($"Quick Open failed: {ex.Message}");
-            }
-        }
-
-
-
-        private async Task<string?> ShowQuickOpenDialogAsync(IReadOnlyList<string> files)
-        {
-            string? selectedPath = null;
-            var results = new ListBox { MaxHeight = 420, MinWidth = 560 };
-            var query = new TextBox { PlaceholderText = "Type a file name..." };
-            var window = new Window
-            {
-                Title = "Quick Open",
-                Width = 620,
-                SizeToContent = SizeToContent.Height,
-                CanResize = false,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-
-            query.TextChanged += (_, _) => UpdateResults();
-            query.KeyDown += (_, args) =>
-            {
-                switch (args.Key)
-                {
-                    case Key.Enter:
-                        args.Handled = true;
-                        AcceptSelection();
-                        break;
-                    case Key.Down when results.ItemCount > 0:
-                        results.Focus();
-                        results.SelectedIndex = Math.Min(results.SelectedIndex + 1, results.ItemCount - 1);
-                        args.Handled = true;
-                        break;
-                }
-            };
-            results.DoubleTapped += (_, _) => AcceptSelection();
-            results.KeyDown += (_, args) =>
-            {
-                if (args.Key != Key.Enter) return;
-                args.Handled = true;
-                AcceptSelection();
-            };
-
-            UpdateResults();
-            window.Content = new StackPanel
-            {
-                Margin = new Thickness(12),
-                Spacing = 8,
-                Children = { query, results }
-            };
-            window.Opened += (_, _) => query.Focus();
-            await window.ShowDialog(_owner);
-            return selectedPath;
-
-            void UpdateResults()
-            {
-                var text = query.Text?.Trim() ?? "";
-                var filtered = files
-                    .Where(path => text.Length == 0
-                                   || Path.GetFileName(path).Contains(text, StringComparison.OrdinalIgnoreCase)
-                                   || path.Contains(text, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(path => Path.GetFileName(path).Equals(text, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
-                    .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
-                    .Take(100)
-                    .ToArray();
-                results.ItemsSource = filtered;
-                results.SelectedIndex = filtered.Length > 0 ? 0 : -1;
-            }
-
-            void AcceptSelection()
-            {
-                if (results.SelectedItem is not string path) return;
-                selectedPath = path;
-                window.Close();
-            }
-        }
-
-        [RelayCommand]
-        private async Task ReplaceWorkspaceAsync()
-        {
-            var plan = await PrepareWorkspaceReplaceAsync();
-            if (plan is null || plan.LimitReached || plan.MatchCount == 0)
-                return;
-
-            if (!await ConfirmWorkspaceReplaceAsync(plan))
-                return;
-
-            var summary = ApplyWorkspaceReplacePlan(plan);
-            var message = $"Replaced {summary.ReplacedMatches} match(es) in {summary.ReplacedFiles} file(s).";
-            if (summary.ModifiedOpenDocuments > 0)
-                message += $" {summary.ModifiedOpenDocuments} open document(s) now have unsaved changes.";
-            if (summary.FailedFiles > 0)
-                message += $" {summary.FailedFiles} file(s) changed since preview or couldn't be written.";
-            SearchStatus = message;
-            await SearchWorkspace();
-            SearchStatus = message;
-        }
-
-        private async Task<bool> ConfirmWorkspaceReplaceAsync(WorkspaceReplacePlan plan)
-        {
-            var confirmed = false;
-            Window? dialog = null;
-            dialog = new Window
-            {
-                Title = "Confirm Replace All",
-                Width = 440,
-                SizeToContent = SizeToContent.Height,
-                CanResize = false,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Content = new StackPanel
-                {
-                    Margin = new Thickness(16),
-                    Spacing = 16,
-                    Children =
-                          {
-                              new TextBlock
-                              {
-                                  Text = $"Replace {plan.MatchCount} occurrence(s) in {plan.Files.Count} file(s)?",
-                                  TextWrapping = TextWrapping.Wrap
-                              },
-                              new TextBlock
-                              {
-                                  Text = "Closed files will be saved immediately. Open documents will be changed in memory and remain unsaved.",
-                                  TextWrapping = TextWrapping.Wrap
-                              },
-                              new StackPanel
-                              {
-                                  Orientation = Orientation.Horizontal,
-                                  Spacing = 8,
-                                  HorizontalAlignment = HorizontalAlignment.Right,
-                                  Children =
-                                  {
-                                      MakeButton("Replace All", accept: true),
-                                      MakeButton("Cancel", accept: false)
-                                  }
-                              }
-                          }
-                }
-            };
-
-            await dialog.ShowDialog(_owner);
-            return confirmed;
-
-            Button MakeButton(string text, bool accept)
-            {
-                var button = new Button { Content = text, MinWidth = 90 };
-                button.Click += (_, _) =>
-                {
-                    confirmed = accept;
-                    dialog?.Close();
-                };
-                return button;
-            }
-        }
-
-        [RelayCommand]
-        private async Task OpenSettings()
-        {
-            await new SettingsWindow(Settings).ShowDialog(_owner);
-        }
+        private Task OpenSettings() => _dialogs.ShowSettingsAsync(Settings);
+    
 
 
         public void Dispose()

@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
-using AXamlIDE.Services;
 using ICSharpCode.Decompiler;
 using static AXamlIDE.Helpers.LspHelpers;
 
@@ -21,47 +21,31 @@ namespace AXamlIDE.EditorFeatures;
     ///   NavigateToLocationAsync  -> _navigator.ToLocation
     ///   DocTabs.SelectedItem = ViewModel.OpenDocument(p) -> _ctx.OpenAndActivate(p)
     /// </summary>
-    public sealed class NavigationCommands
+    public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs, WorkspaceEditService edits,
+        EditorNavigator navigator)
     {
-        private readonly EditorContext _ctx;
-        private readonly DialogService _dialogs;
-        private readonly WorkspaceEditService _edits;
-        private readonly EditorNavigator _navigator;
-
-        public NavigationCommands(
-            EditorContext ctx,
-            DialogService dialogs,
-            WorkspaceEditService edits,
-            EditorNavigator navigator)
-        {
-            _ctx = ctx;
-            _dialogs = dialogs;
-            _edits = edits;
-            _navigator = navigator;
-        }
-
         // ------------------------------------------------------------ quick open
 
         public async Task QuickOpenAsync()
         {
             try
             {
-                var files = await _ctx.ViewModel.GetWorkspaceFilesAsync();
+                var files = await ctx.ViewModel.GetWorkspaceFilesAsync();
                 if (files.Count == 0)
                 {
-                    _ctx.Status("No workspace files are available to open.");
+                    ctx.Status("No workspace files are available to open.");
                     return;
                 }
 
-                var selectedPath = await _dialogs.ShowQuickOpenDialogAsync(files);
+                var selectedPath = await dialogs.ShowQuickOpenDialogAsync(files);
                 if (selectedPath is null)
                     return;
 
-                _ctx.OpenAndActivate(selectedPath);
+                ctx.OpenAndActivate(selectedPath);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
             {
-                _ctx.Status($"Quick Open failed: {ex.Message}");
+                ctx.Status($"Quick Open failed: {ex.Message}");
             }
         }
 
@@ -73,11 +57,11 @@ namespace AXamlIDE.EditorFeatures;
                 return;
             if (!client.SupportsWorkspaceSymbols)
             {
-                _ctx.Status("The active language server does not support workspace symbols.");
+                ctx.Status("The active language server does not support workspace symbols.");
                 return;
             }
 
-            var query = await _dialogs.PromptForTextAsync("Go to Symbol", "Search types and members...");
+            var query = await dialogs.PromptForTextAsync("Go to Symbol", "Search types and members...");
             if (string.IsNullOrWhiteSpace(query))
                 return;
 
@@ -86,22 +70,22 @@ namespace AXamlIDE.EditorFeatures;
                 var symbols = await client.WorkspaceSymbolsAsync(query);
                 if (symbols.Count == 0)
                 {
-                    _ctx.Status("No matching workspace symbols.");
+                    ctx.Status("No matching workspace symbols.");
                     return;
                 }
 
-                var selected = await _dialogs.PickLocationAsync(
+                var selected = await dialogs.PickLocationAsync(
                     "Workspace Symbols",
                     symbols,
                     symbol => string.IsNullOrEmpty(symbol.ContainerName)
                         ? symbol.Name ?? "(unnamed symbol)"
                         : $"{symbol.Name}  —  {symbol.ContainerName}");
                 if (selected is not null)
-                    _navigator.ToLocation(selected);
+                    navigator.ToLocation(selected);
             }
             catch (Exception ex)
             {
-                _ctx.Status($"Workspace symbol search failed: {ex.Message}");
+                ctx.Status($"Workspace symbol search failed: {ex.Message}");
             }
         }
 
@@ -109,7 +93,7 @@ namespace AXamlIDE.EditorFeatures;
 
         public async Task GoToDefinitionAsync()
         {
-            if (_ctx.Active is { } active
+            if (ctx.Active is { } active
                 && active.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase))
             {
                 await GoToXamlDefinitionAsync(active);
@@ -120,7 +104,7 @@ namespace AXamlIDE.EditorFeatures;
                 return;
             if (!client.SupportsDefinition)
             {
-                _ctx.Status("The active language server does not support Go to Definition.");
+                ctx.Status("The active language server does not support Go to Definition.");
                 return;
             }
 
@@ -132,7 +116,7 @@ namespace AXamlIDE.EditorFeatures;
             }
             catch (Exception ex)
             {
-                _ctx.Status($"Go to Definition failed: {ex.Message}");
+                ctx.Status($"Go to Definition failed: {ex.Message}");
             }
         }
 
@@ -140,23 +124,23 @@ namespace AXamlIDE.EditorFeatures;
         {
             try
             {
-                var source = await _ctx.Xaml.DecompileTypeAsync(
-                    document.Path, document.Document.Text, _ctx.Editor.CaretOffset);
+                var source = await ctx.Xaml.DecompileTypeAsync(
+                    document.Path, document.Document.Text, ctx.Editor.CaretOffset);
                 if (source is null)
                 {
-                    _ctx.Status("No resolvable AXAML type at the caret.");
+                    ctx.Status("No resolvable AXAML type at the caret.");
                     return;
                 }
 
-                var decompiledDocument = _ctx.ViewModel.OpenReadOnlyDocument(source.Path, source.Text, "csharp");
-                _ctx.ActivateDocument(decompiledDocument);
-                _ctx.Status($"Opened decompiled source for {source.TypeFullName} (read-only).");
+                var decompiledDocument = ctx.ViewModel.OpenReadOnlyDocument(source.Path, source.Text, "csharp");
+                ctx.ActivateDocument(decompiledDocument);
+                ctx.Status($"Opened decompiled source for {source.TypeFullName} (read-only).");
             }
             catch (Exception ex) when (ex is DecompilerException or IOException or UnauthorizedAccessException
                                        or InvalidOperationException or ArgumentException
                                        or BadImageFormatException or NotSupportedException)
             {
-                _ctx.Status($"AXAML type navigation failed: {ex.Message}");
+                ctx.Status($"AXAML type navigation failed: {ex.Message}");
             }
         }
 
@@ -168,7 +152,7 @@ namespace AXamlIDE.EditorFeatures;
                 return;
             if (!client.SupportsReferences)
             {
-                _ctx.Status("The active language server does not support Find All References.");
+                ctx.Status("The active language server does not support Find All References.");
                 return;
             }
 
@@ -180,7 +164,7 @@ namespace AXamlIDE.EditorFeatures;
             }
             catch (Exception ex)
             {
-                _ctx.Status($"Find All References failed: {ex.Message}");
+                ctx.Status($"Find All References failed: {ex.Message}");
             }
         }
 
@@ -188,15 +172,15 @@ namespace AXamlIDE.EditorFeatures;
         {
             if (locations.Count == 0)
             {
-                _ctx.Status($"No results for {title}.");
+                ctx.Status($"No results for {title}.");
                 return;
             }
 
             var selected = locations.Count == 1
                 ? locations[0]
-                : await _dialogs.PickLocationAsync(title, locations, FormatLocation);
+                : await dialogs.PickLocationAsync(title, locations, FormatLocation);
             if (selected is not null)
-                _navigator.ToLocation(selected);
+                navigator.ToLocation(selected);
         }
 
         // ---------------------------------------------------------------- rename
@@ -207,11 +191,11 @@ namespace AXamlIDE.EditorFeatures;
                 return;
             if (!client.SupportsRename)
             {
-                _ctx.Status("The active language server does not support Rename Symbol.");
+                ctx.Status("The active language server does not support Rename Symbol.");
                 return;
             }
 
-            var newName = await _dialogs.PromptForTextAsync("Rename Symbol", "Enter the new symbol name...");
+            var newName = await dialogs.PromptForTextAsync("Rename Symbol", "Enter the new symbol name...");
             if (string.IsNullOrWhiteSpace(newName))
                 return;
 
@@ -222,19 +206,19 @@ namespace AXamlIDE.EditorFeatures;
                 var replacements = ParseWorkspaceEdit(edit);
                 if (replacements.Count == 0)
                 {
-                    _ctx.Status("The language server returned no rename changes.");
+                    ctx.Status("The language server returned no rename changes.");
                     return;
                 }
 
-                if (!await _dialogs.ConfirmRenameAsync(replacements))
+                if (!await dialogs.ConfirmRenameAsync(replacements))
                     return;
 
-                _edits.Apply(replacements);
-                _ctx.Status($"Applied rename changes in {replacements.Count} file(s). Review and save the modified documents.");
+                edits.Apply(replacements);
+                ctx.Status($"Applied rename changes in {replacements.Count} file(s). Review and save the modified documents.");
             }
             catch (Exception ex)
             {
-                _ctx.Status($"Rename failed: {ex.Message}");
+                ctx.Status($"Rename failed: {ex.Message}");
             }
         }
 
@@ -242,7 +226,7 @@ namespace AXamlIDE.EditorFeatures;
 
         private bool TryGetActiveLanguageClient(out OpenDocument document, out LspClient client)
         {
-            if (_ctx.Active is { Client: not null, Sync: not null } active)
+            if (ctx.Active is { Client: not null, Sync: not null } active)
             {
                 active.Sync.Flush();
                 document = active;
@@ -252,13 +236,13 @@ namespace AXamlIDE.EditorFeatures;
 
             document = null!;
             client = null!;
-            _ctx.Status("Open a supported source document and wait for its language server before using symbol navigation.");
+            ctx.Status("Open a supported source document and wait for its language server before using symbol navigation.");
             return false;
         }
 
         private (int Line, int Character) CurrentLspPosition()
         {
-            var editor = _ctx.Editor;
+            var editor = ctx.Editor;
             var location = editor.Document.GetLocation(editor.CaretOffset);
             return (location.Line - 1, location.Column - 1);
         }

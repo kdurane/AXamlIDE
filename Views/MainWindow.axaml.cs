@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AvaloniaEdit.TextMate;
 using AXamlIDE.Enums;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
 using AXamlIDE.ViewModels;
@@ -30,7 +31,7 @@ namespace AXamlIDE.Views
         private OpenDocument? _active;
         private bool _treeOnRight;
         private bool _explorerVisible = true;
-        private readonly DialogService _dialogs;
+        private readonly IDialogService _dialogs;
 
         public MainWindow()
         {
@@ -59,7 +60,7 @@ namespace AXamlIDE.Views
             FileTree.AddHandler(PointerPressedEvent, OnFileTreePointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
             FileTree.AddHandler(DoubleTappedEvent, OnTreeDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
 
-            var viewModel = new MainWindowViewModel(settingsVm, StorageProvider, this, workspace, xaml);
+            var viewModel = new MainWindowViewModel(settingsVm, workspace, xaml, _dialogs);
             EditorPane.TextMateInstallation.SetTheme(settingsVm.SelectedTheme.Load(registryOptions));
             DataContext = viewModel;
 
@@ -104,6 +105,10 @@ namespace AXamlIDE.Views
 
             await node.PopulateAsync();
         }
+        
+            
+        private async void OnQuickOpenClick(object? sender, RoutedEventArgs e)
+            => await EditorPane.Navigation.QuickOpenAsync();
 
         private void OnTreeDoubleTapped(object? sender, TappedEventArgs e)
         {
@@ -502,7 +507,7 @@ namespace AXamlIDE.Views
                 return;
 
             e.Handled = true;
-            await ViewModel.SearchWorkspaceCommand.ExecuteAsync(true);
+            await ViewModel.Search.SearchWorkspaceCommand.ExecuteAsync(true);
         }
 
         private async void OnReplaceWorkspaceKeyDown(object? sender, KeyEventArgs e)
@@ -511,7 +516,7 @@ namespace AXamlIDE.Views
                 return;
 
             e.Handled = true;
-            await ViewModel.ReplaceWorkspaceCommand.ExecuteAsync(true);
+            await ViewModel.Search.ReplaceWorkspaceCommand.ExecuteAsync(true);
         }
 
         private void OnSearchResultClick(object? sender, RoutedEventArgs e)

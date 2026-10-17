@@ -58,7 +58,7 @@
                     <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
                     <Separator />
                     <MenuItem
-                        Command="{Binding QuickOpenCommand}"
+                        Command="{Binding OpenSettingsCommand}"
                         Header="_Quick Open..."
                         InputGesture="Ctrl+P" />
                     <MenuItem
@@ -466,9 +466,9 @@
                                     KeyDown="OnFindInFilesKeyDown"
                                     Name="FindInFilesQuery"
                                     PlaceholderText="Search workspace text..."
-                                    Text="{Binding SearchQuery, Mode=TwoWay}" />
+                                    Text="{Binding Search.SearchQuery, Mode=TwoWay}" />
                                 <Button
-                                    Command="{Binding SearchWorkspaceCommand}"
+                                    Command="{Binding Search.SearchWorkspaceCommand}"
                                     Content="Search"
                                     Grid.Column="1"
                                     Margin="8,0,0,0"
@@ -482,9 +482,9 @@
                                     Grid.Column="0"
                                     KeyDown="OnReplaceWorkspaceKeyDown"
                                     PlaceholderText="Replace with..."
-                                    Text="{Binding ReplaceText, Mode=TwoWay}" />
+                                    Text="{Binding Search.ReplaceText, Mode=TwoWay}" />
                                 <Button
-                                    Command="{Binding ReplaceWorkspaceCommand}"
+                                    Command="{Binding Search.ReplaceWorkspaceCommand}"
                                     Content="Replace All..."
                                     Grid.Column="1"
                                     Margin="8,0,0,0"
@@ -493,12 +493,12 @@
                             <TextBlock
                                 Grid.Row="2"
                                 Margin="8,0,8,6"
-                                Text="{Binding SearchStatus}" />
+                                Text="{Binding Search.SearchStatus}" />
                             <ScrollViewer
                                 Grid.Row="3"
                                 HorizontalScrollBarVisibility="Auto"
                                 VerticalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding SearchResults}">
+                                <ItemsControl ItemsSource="{Binding Search.SearchResults}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="local:WorkspaceSearchResult">
                                             <Button

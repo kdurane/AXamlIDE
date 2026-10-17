@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -213,8 +214,32 @@ public sealed class CodeActionController
                 var arguments = command.TryGetProperty("arguments", out var values)
                     ? values.Clone()
                     : (JsonElement?)null;
-                await client.ExecuteCommandAsync(name, arguments);
-                didWork = true;
+
+                if (name == "roslyn.client.fixAllCodeAction")
+                {
+                    if (arguments is not { ValueKind: JsonValueKind.Array } args
+                        || args.GetArrayLength() == 0)
+                    {
+                        throw new InvalidOperationException(
+                            "Roslyn Fix All did not provide its arguments.");
+                    }
+                    var response = await client.ResolveFixAllAsync(args[0], "Document");
+
+                    if (response.TryGetProperty("edit", out var fixAllEdit))
+                    {
+                        var replacements = LspHelpers.ParseWorkspaceEdit(fixAllEdit);
+                        if (replacements.Count > 0)
+                        {
+                            _edits.Apply(replacements);
+                            didWork = true;
+                        }
+                    }
+                }
+                else
+                {
+                    await client.ExecuteCommandAsync(name, arguments);
+                    didWork = true;
+                }
             }
 
             _ctx.Status(didWork

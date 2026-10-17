@@ -78,7 +78,7 @@ public sealed class DocumentManager
     {
         ".axaml" or ".xaml" => "axaml",
         ".cs" => "csharp",
-        ".csproj" or ".props" or ".targets" => "xml",
+        ".csproj" or ".props" or ".targets" or ".manifest" => "xml",
         ".json" => "json",
         _ => "plaintext"
     };

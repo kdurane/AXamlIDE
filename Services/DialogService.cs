@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,24 +7,27 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using AXamlIDE.Enums;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
+using AXamlIDE.ViewModels;
+using AXamlIDE.Views;
+// Keep the using block your current DialogService.cs has; these are the ones the new members need
+// (Avalonia.Platform.Storage for the pickers, AXaxmlIDE.Views for SettingsWindow).
 
 namespace AXamlIDE.Services;
 
 /// <summary>
-/// The "build a Window, ShowDialog(this)" helpers that used to live in MainWindow.
-/// Bodies are copy-pasted; the only change is <c>this</c> -> <c>_owner</c>.
-/// Later: extract an IDialogService interface from the public members so the
-/// view models can use it instead of being handed the Window.
+/// The "build a Window, ShowDialog(owner)" helpers. Implements <see cref="IDialogService"/> so view
+/// models and editor controllers depend on the interface, not on the Window.
+/// New since the last version: ConfirmWorkspaceReplaceAsync, ShowSettingsAsync, PickFolderAsync and
+/// PickSolutionAsync, all moved out of MainWindowViewModel.
 /// </summary>
-public sealed class DialogService
+public sealed class DialogService(Window owner) : IDialogService
 {
-    private readonly Window _owner;
-
-    public DialogService(Window owner) => _owner = owner;
-
     // ------------------------------------------------------------ save prompt
 
     public async Task<SaveChoice> AskSaveAsync(OpenDocument doc)
@@ -43,23 +46,23 @@ public sealed class DialogService
             Margin = new Thickness(16),
             Spacing = 16,
             Children =
-                      {
-                          new TextBlock { Text = $"Save changes to {doc.Title}?", TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-                          new StackPanel
-                          {
-                              Orientation = Orientation.Horizontal,
-                              Spacing = 8,
-                              HorizontalAlignment = HorizontalAlignment.Right,
-                              Children =
-                              {
-                                  Make("Save", SaveChoice.Save),
-                                  Make("Don't save", SaveChoice.Discard),
-                                  Make("Cancel", SaveChoice.Cancel)
-                              }
-                          }
-                      }
+            {
+                new TextBlock { Text = $"Save changes to {doc.Title}?", TextWrapping = TextWrapping.Wrap },
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Children =
+                    {
+                        Make("Save", SaveChoice.Save),
+                        Make("Don't save", SaveChoice.Discard),
+                        Make("Cancel", SaveChoice.Cancel)
+                    }
+                }
+            }
         };
-        await dialog.ShowDialog(_owner);
+        await dialog.ShowDialog(owner);
         return result;
 
         Button Make(string text, SaveChoice choice)
@@ -122,7 +125,7 @@ public sealed class DialogService
             Children = { query, results }
         };
         window.Opened += (_, _) => query.Focus();
-        await window.ShowDialog(_owner);
+        await window.ShowDialog(owner);
         return selectedPath;
 
         void UpdateResults()
@@ -174,10 +177,10 @@ public sealed class DialogService
                 Margin = new Thickness(12),
                 Spacing = 8,
                 Children =
-                          {
-                              new TextBlock { Text = "Select a result to navigate." },
-                              list
-                          }
+                {
+                    new TextBlock { Text = "Select a result to navigate." },
+                    list
+                }
             }
         };
 
@@ -189,7 +192,7 @@ public sealed class DialogService
             args.Handled = true;
             Accept();
         };
-        await window.ShowDialog(_owner);
+        await window.ShowDialog(owner);
         return selected;
 
         void Accept()
@@ -220,26 +223,26 @@ public sealed class DialogService
             Margin = new Thickness(16),
             Spacing = 16,
             Children =
-                      {
-                          new TextBlock
-                          {
-                              Text = $"Apply language-server rename edits in {changes.Count} file(s)? Changed files will be opened and left unsaved for review.",
-                              TextWrapping = Avalonia.Media.TextWrapping.Wrap
-                          },
-                          new StackPanel
-                          {
-                              Orientation = Orientation.Horizontal,
-                              Spacing = 8,
-                              HorizontalAlignment = HorizontalAlignment.Right,
-                              Children =
-                              {
-                                  Make("Apply Rename", true),
-                                  Make("Cancel", false)
-                              }
-                          }
-                      }
+            {
+                new TextBlock
+                {
+                    Text = $"Apply language-server rename edits in {changes.Count} file(s)? Changed files will be opened and left unsaved for review.",
+                    TextWrapping = TextWrapping.Wrap
+                },
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Children =
+                    {
+                        Make("Apply Rename", true),
+                        Make("Cancel", false)
+                    }
+                }
+            }
         };
-        await dialog.ShowDialog(_owner);
+        await dialog.ShowDialog(owner);
         return confirmed;
 
         Button Make(string text, bool accept)
@@ -249,6 +252,66 @@ public sealed class DialogService
             {
                 confirmed = accept;
                 dialog.Close();
+            };
+            return button;
+        }
+    }
+
+    // ------------------------------------------------------- workspace replace
+
+    // Moved from MainWindowViewModel.ConfirmWorkspaceReplaceAsync.
+    public async Task<bool> ConfirmWorkspaceReplaceAsync(WorkspaceReplacePlan plan)
+    {
+        var confirmed = false;
+        Window? dialog = null;
+        dialog = new Window
+        {
+            Title = "Confirm Replace All",
+            Width = 440,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new StackPanel
+            {
+                Margin = new Thickness(16),
+                Spacing = 16,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = $"Replace {plan.MatchCount} occurrence(s) in {plan.Files.Count} file(s)?",
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    new TextBlock
+                    {
+                        Text = "Closed files will be saved immediately. Open documents will be changed in memory and remain unsaved.",
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 8,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children =
+                        {
+                            MakeButton("Replace All", accept: true),
+                            MakeButton("Cancel", accept: false)
+                        }
+                    }
+                }
+            }
+        };
+
+        await dialog.ShowDialog(owner);
+        return confirmed;
+
+        Button MakeButton(string text, bool accept)
+        {
+            var button = new Button { Content = text, MinWidth = 90 };
+            button.Click += (_, _) =>
+            {
+                confirmed = accept;
+                dialog?.Close();
             };
             return button;
         }
@@ -283,19 +346,19 @@ public sealed class DialogService
             Margin = new Thickness(16),
             Spacing = 12,
             Children =
-                      {
-                          textBox,
-                          new StackPanel
-                          {
-                              Orientation = Orientation.Horizontal,
-                              Spacing = 8,
-                              HorizontalAlignment = HorizontalAlignment.Right,
-                              Children = { search, cancel }
-                          }
-                      }
+            {
+                textBox,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 8,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Children = { search, cancel }
+                }
+            }
         };
         dialog.Opened += (_, _) => textBox.Focus();
-        await dialog.ShowDialog(_owner);
+        await dialog.ShowDialog(owner);
         return value;
 
         void Accept()
@@ -304,4 +367,36 @@ public sealed class DialogService
             dialog.Close();
         }
     }
+
+    // --------------------------------------------------------------- pickers
+
+    // Moved from the MainWindowViewModel.OpenFolder command.
+    public async Task<string?> PickFolderAsync()
+    {
+        var folders = await owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Open Project Folder",
+            AllowMultiple = false
+        });
+
+        return folders.FirstOrDefault()?.TryGetLocalPath();
+    }
+
+    // Moved from the MainWindowViewModel.OpenSolution command.
+    public async Task<string?> PickSolutionAsync()
+    {
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Open Solution",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("Solution files") { Patterns = ["*.sln", "*.slnx"] }]
+        });
+
+        return files.FirstOrDefault()?.TryGetLocalPath();
+    }
+
+    // --------------------------------------------------------------- windows
+
+    public Task ShowSettingsAsync(SettingsViewModel settings)
+        => new SettingsWindow(settings).ShowDialog(owner);
 }

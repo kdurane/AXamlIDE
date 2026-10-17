@@ -11,6 +11,7 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
 using AXamlIDE.EditorFeatures;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
@@ -70,12 +71,8 @@ namespace AXamlIDE.Views
         /// Call once from the MainWindow constructor, before the view model is created
         /// (the view model needs <see cref="TextMateInstallation"/>).
         /// </summary>
-        public void Initialize(
-            RegistryOptions registryOptions,
-            Func<MainWindowViewModel> viewModel,
-            DialogService dialogs,
-            Action<OpenDocument> activateDocument,
-            XamlLanguageService xaml,
+        public void Initialize(RegistryOptions registryOptions, Func<MainWindowViewModel> viewModel,
+            IDialogService dialogs, Action<OpenDocument> activateDocument, XamlLanguageService xaml,
             SettingsViewModel settings)
         {
             _ctx = new EditorContext(Editor, viewModel, xaml, settings) { ActivateDocument = activateDocument };

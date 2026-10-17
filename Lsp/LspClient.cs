@@ -161,7 +161,15 @@ namespace AXamlIDE.Lsp;
 
         // ---------------------------------------------------------------- handshake
 
-        private string[] _hoverContext = ["markdown", "plaintext"];
+        private readonly string[]  _hoverContext = ["markdown", "plaintext"];
+
+        private readonly string[] _codeActions =
+        [
+            "", "quickfix", "refactor", "refactor.extract", "refactor.inline",
+            "refactor.rewrite", "source", "source.organizeImports", "source.fixAll"
+        ];
+        
+        private readonly string[] _supports = ["edit", "command"];
 
         private async Task InitializeAsync(string rootPath, CancellationToken ct)
         {
@@ -203,14 +211,10 @@ namespace AXamlIDE.Lsp;
                             {
                                 codeActionKind = new
                                 {
-                                    valueSet = new[]
-                                    {
-                                              "", "quickfix", "refactor", "refactor.extract", "refactor.inline",
-                                              "refactor.rewrite", "source", "source.organizeImports", "source.fixAll"
-                                          }
+                                    valueSet = _codeActions
                                 }
                             },
-                            resolveSupport = new { properties = new[] { "edit", "command" } }
+                            resolveSupport = new { properties = _supports}
                         },
                         hover = new { contentFormat = _hoverContext },
                         completion = new { completionItem = new { snippetSupport = false } },
@@ -220,7 +224,7 @@ namespace AXamlIDE.Lsp;
                             contextSupport = true,
                             signatureInformation = new
                             {
-                                documentationFormat = new[] { "markdown", "plaintext" },
+                                documentationFormat = _hoverContext,
                                 activeParameterSupport = true,
                                 parameterInformation = new { labelOffsetSupport = true }
                             }
@@ -1008,6 +1012,19 @@ namespace AXamlIDE.Lsp;
                     ? values
                     : JsonEmptyArray
             }, ct);
+        
+        
+        public Task<JsonElement> ResolveFixAllAsync(
+            JsonElement data,
+            string scope,
+            CancellationToken ct = default)
+            => RequestAsync("codeAction/resolveFixAll", new
+            {
+                title = data.GetProperty("UniqueIdentifier").GetString(),
+                data,
+                scope
+            }, ct);
+
 
         private static LspCodeAction? ParseCodeAction(JsonElement action)
         {
