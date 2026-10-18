@@ -3,9 +3,9 @@ using Avalonia.Media;
 using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
-using AXamlIDE.Lsp;
+using AXamlIDE.Services.Lsp;
 
-namespace AXamlIDE.Editor.CodeCompletion;
+namespace AXamlIDE.Views.Editor.CodeCompletion;
 
 /// <summary>Adapts one LSP CompletionItem to AvaloniaEdit's completion list.</summary>
 public sealed class LspCompletionData(LspCompletionItem item, int editStartOffset, double priority) : ICompletionData

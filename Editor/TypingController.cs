@@ -3,13 +3,13 @@ using System.Linq;
 using Avalonia.Input;
 using AvaloniaEdit.Document;
 using AXamlIDE.CompletionEngine.Parsing;
-using AXamlIDE.Editor.CodeCompletion;
-using AXamlIDE.Editor.Hover;
-using AXamlIDE.Editor.SignatureHelp;
-using AXamlIDE.Lsp;
-using static AXamlIDE.Editor.NameChars;
+using AXamlIDE.Services.Lsp;
+using AXamlIDE.Views.Editor.CodeCompletion;
+using AXamlIDE.Views.Editor.Hover;
+using AXamlIDE.Views.Editor.SignatureHelp;
+using static AXamlIDE.Views.Editor.NameChars;
 
-namespace AXamlIDE.Editor;
+namespace AXamlIDE.Views.Editor;
 
 /// <summary>
 /// Reacts to typed characters: auto-closes XAML tags and C# braces, and decides when to

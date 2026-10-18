@@ -1,7 +1,7 @@
 using System;
 using AvaloniaEdit.Document;
 
-namespace AXamlIDE.Editor;
+namespace AXamlIDE.Views.Editor;
 
 /// <summary>
 /// Name-character helpers used by completion and typing.

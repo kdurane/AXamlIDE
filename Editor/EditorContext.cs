@@ -1,12 +1,14 @@
 using System;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
-using AXamlIDE.Documents;
-using AXamlIDE.Settings;
-using AXamlIDE.Xaml;
+using AXamlIDE.Messages;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Settings;
+using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Editor;
+namespace AXamlIDE.Views.Editor;
 
 /// <summary>
 /// The hub every editor controller shares: the TextEditor, the active document, and the

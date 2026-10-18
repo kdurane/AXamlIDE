@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    Everything in AXamlIDE that doesn't need a UI: the XAML completion engine, the LSP client, the
+    debug adapter, MSBuild/workspace, search, the preview target resolver, settings persistence.
+    No Avalonia reference allowed here: that's what keeps UI code out (and makes it testable).
+    Namespaces match the app's (AXamlIDE.Services.*, AXamlIDE.Models), so moving a file here
+    doesn't change any code.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <RootNamespace>AXamlIDE</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="dnlib" Version="4.5.0" />
+        <PackageReference Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
+        <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="AXamlIDE.Tests" />
+    </ItemGroup>
+</Project>

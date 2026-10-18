@@ -1,0 +1,45 @@
+<UserControl
+    x:Class="AXamlIDE.Views.Workspace.ExplorerView"
+    x:DataType="vm:ExplorerViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:models="using:AXamlIDE.Models"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,Auto" Margin="6,4">
+            <TextBlock
+                FontSize="11"
+                FontWeight="DemiBold"
+                Text="Explorer"
+                VerticalAlignment="Center" />
+        </Grid>
+        <TreeView
+            Foreground="{DynamicResource ThemeForegroundBrush}"
+            Grid.Row="1"
+            ItemsSource="{Binding Workspace.Roots}"
+            Name="FileTree"
+            SelectedItem="{Binding Workspace.SelectedNode, Mode=TwoWay}">
+            <TreeView.Styles>
+                <Style Selector="TreeViewItem">
+                    <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+                    <Setter Property="MinHeight" Value="20" />
+                    <Setter Property="Padding" Value="0" />
+                </Style>
+            </TreeView.Styles>
+            <TreeView.ItemTemplate>
+                <TreeDataTemplate DataType="{x:Type models:ProjectTreeNode}" ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <PathIcon
+                            Data="{Binding Icon}"
+                            Height="12"
+                            Width="12" />
+                        <TextBlock FontSize="12" Text="{Binding Name}" />
+                    </StackPanel>
+                </TreeDataTemplate>
+            </TreeView.ItemTemplate>
+            <TreeView.Resources>
+                <x:Double x:Key="TreeViewItemIndent">10</x:Double>
+            </TreeView.Resources>
+        </TreeView>
+    </Grid>
+</UserControl>

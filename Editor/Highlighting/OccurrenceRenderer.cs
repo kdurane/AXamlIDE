@@ -4,7 +4,7 @@ using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 
-namespace AXamlIDE.Editor.Highlighting;
+namespace AXamlIDE.Views.Editor.Highlighting;
 
 public sealed class OccurrenceRenderer : IBackgroundRenderer
 {

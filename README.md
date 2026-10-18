@@ -11,41 +11,54 @@ AXamlIDE is an IDE built with Avalonia and .NET for XML/AXAML development. It pr
 - 🧪 Integrated diagnostic rendering and occurrence tracking
 
 ## Folder Structure
-Code is grouped by feature. Each folder is one namespace (`Editor/Hover` is `AXamlIDE.Editor.Hover`),
-and a feature's view, view model and services live together.
+Classic MVVM folders, each split by feature. A folder is a namespace (`Views/Editor/Hover` is
+`AXamlIDE.Views.Editor.Hover`); `Models/` is one flat namespace. Dependencies only point downwards:
+Views -> ViewModels -> Services / Models / Messages.
 
 ```
-Shell/            Main window, its view model, the bottom tool-tab indexes
-Shared/           Dialog service (IDialogService) and other UI helpers used everywhere
-Documents/        OpenDocument, DocumentManager, IDocumentHost: the open files and their state
-Workspace/        Open folder/solution, project tree, MSBuild host client, "which project owns this file"
-Editor/           The editor pane (EditorPaneView), EditorContext, its messages, and one folder per feature:
-  CodeCompletion/   completion popup (XAML engine + LSP)
-  Hover/            hover tooltips and markdown rendering
-  SignatureHelp/    parameter hints
-  CodeActions/      lightbulb margin and quick fixes
-  Folding/          code folding
-  Navigation/       go to definition, references, rename, quick open, workspace edits
-  Highlighting/     TextMate grammars/themes, diagnostics squiggles, occurrence highlights
-  Debugging/        breakpoint margin and inline debug values
-Lsp/              Language server client, server configs, LSP types and constants
-Xaml/             AXAML language service (completion, hover, decompile) on top of CompletionEngine
-CompletionEngine/ XAML completion engine, forked from the Avalonia VS extension (see its LICENSE.md)
-Preview/          Live AXAML preview pane and the designer host process
-Running/          Build/run/debug commands (RunViewModel) and the floating debug toolbar
-Debugging/        netcoredbg debug adapter session and stop inspection
-Search/           Find/replace in files
-Problems/         Problems list items and F8 navigation
-Outline/          C# document outline items
-Settings/         Settings window, editor settings, persistence, themes
-Assets/, Styles/  Theme JSON, icons, shared styles
-Projects/         msbuildhost (out-of-process MSBuild) and netcoredbg (debugger binaries, optional)
+App.axaml(.cs), Program.cs   Startup; AppServices.cs registers every service (dependency injection)
+Views/                       Windows, panels and editor UI (anything that is an Avalonia control)
+  Shell/                       MainWindow, KeyMap (all shortcuts), ToolPanels (the bottom tool tabs)
+  Documents/                   DocumentWellView: tab strip + outline + editor + preview
+  Editor/                      EditorPaneView and its feature controllers:
+    CodeCompletion/ Hover/ SignatureHelp/ CodeActions/ Folding/ Navigation/ Highlighting/ Debugging/
+  Workspace/ Problems/ Search/ Running/ Preview/ Settings/   the other panels and windows
+  Dialogs/                     DialogService (implements IDialogService)
+ViewModels/                  One view model per panel/window, plus command sets
+  Shell/ Documents/ Workspace/ Problems/ Outline/ Running/ Search/ Preview/ Settings/ Editor/
+Models/                      App-side data: OpenDocument, ProblemItem, DiagnosticSegment, EditorTheme...
+Messages/                    IMessenger messages (status, tool tabs, editor navigation, diagnostics)
+Services/                    App-side services that need Avalonia/AvaloniaEdit:
+  Documents/ (DocumentManager, saving, DocumentHost)  Languages/ (LanguageSessionService, DocumentSync)
+  Editor/ Dialogs/ Settings/ Preview/ (designer host process)
+Assets/, Styles/             Theme JSON, icons, shared styles
+Projects/
+  AXamlIDE.Core/             Everything without a UI (no Avalonia reference allowed). Same namespaces as the app:
+    CompletionEngine/          XAML completion engine, forked from the Avalonia VS extension (see its LICENSE.md)
+    Services/Lsp/              language server client, server configs, LSP types
+    Services/Debugging/        netcoredbg debug adapter session
+    Services/Workspace/        workspace model, solutions, MSBuild host client
+    Services/Xaml/ Search/ Preview/ Problems/ Running/ Settings/   the rest of the logic
+    Models/                    ProjectTreeNode, WorkspaceSearchResult, EditorSettings, XamlPreviewTarget
+  AXamlIDE.Tests/            xUnit tests for Core: `dotnet test Projects/AXamlIDE.Tests`
+  AXamlIDE.msbuildhost/      out-of-process MSBuild
+  netcoredbg/                debugger binaries (optional)
 ```
 
-How the pieces talk:
-- Views talk to their own view model.
-- The editor pane is reached through `EditorPaneView` and talks back only through the messages
-  in `Editor/EditorMessages.cs` (search for `Register<SomeMessage>` to find the handler).
+How the pieces are put together and talk:
+- **`AppServices.cs` builds everything** (Microsoft.Extensions.DependencyInjection). A class gets what it
+  needs as constructor parameters; to add a service, register it there. No callbacks are passed into constructors.
+- **Views talk to their own view model** (bindings, or the view calling the VM directly).
+- **Direct dependency** when A naturally uses B: inject B and call it, or subscribe to B's events
+  (e.g. `OutlineViewModel` listens to `DocumentManager.ActiveChanged`).
+- **A message** (`IMessenger`) when the sender shouldn't know who listens: status text, "show this tool tab",
+  "navigate the editor here", "diagnostics changed". Messages live in `Messages/`. Find the handler by searching for `IRecipient<ThatMessage>`
+  or `Register<ThatMessage>`.
+- **Panels are self-contained views** with their own view model (`ExplorerView`, `DocumentWellView`, and the tool
+  panels listed in `Shell/ToolPanels.cs`). They don't depend on `MainWindow`, so they can later live in other windows.
+- **The selected tab** is `DocumentManager.Active`; tab strips, the outline, preview and status bar all follow it.
+- **The editor pane** is set up by its `DocumentWellView` (`EditorPane.Initialize`) and otherwise reached only by
+  messages (`EditorActionMessage` for commands, `NavigateTo*Message` for navigation).
 - Anything that opens a window goes through `IDialogService`.
 
 ## Additional Requirements

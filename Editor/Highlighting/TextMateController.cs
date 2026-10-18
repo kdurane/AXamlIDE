@@ -4,10 +4,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using AvaloniaEdit.TextMate;
-using AXamlIDE.Editor.Debugging;
+using AXamlIDE.Views.Editor.Debugging;
 using TextMateSharp.Grammars;
 
-namespace AXamlIDE.Editor.Highlighting;
+namespace AXamlIDE.Views.Editor.Highlighting;
 
 /// <summary>
 /// Grammar selection and the editor half of theme colouring. The window-level colours

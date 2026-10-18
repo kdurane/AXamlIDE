@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using AXamlIDE.Documents;
-using AXamlIDE.Lsp;
-using AXamlIDE.Shared;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
+using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Lsp;
 using ICSharpCode.Decompiler;
-using static AXamlIDE.Lsp.LspHelpers;
+using static AXamlIDE.Services.Lsp.LspHelpers;
 
-namespace AXamlIDE.Editor.Navigation;
+namespace AXamlIDE.Views.Editor.Navigation;
 
 /// <summary>
 /// The user-invokable navigation commands: Go to Definition, Find References, Rename,

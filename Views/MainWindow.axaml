@@ -1,0 +1,277 @@
+<Window
+    Title="AXxamlIde"
+    d:DesignHeight="800"
+    d:DesignWidth="1200"
+    x:Class="AXamlIDE.Views.Shell.MainWindow"
+    x:DataType="shell:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:documents="using:AXamlIDE.Views.Documents"
+    xmlns:shared="using:AXamlIDE.Views.Shell"
+    xmlns:workspace="using:AXamlIDE.Views.Workspace"
+    xmlns:shell="using:AXamlIDE.ViewModels.Shell"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid RowDefinitions="auto,*,Auto">
+
+        <Grid ColumnDefinitions="*,Auto" Grid.Row="0">
+            <Border Background="#262626" Grid.ColumnSpan="2" />
+            <Menu MinHeight="0" Padding="0">
+                <MenuItem Header="_File">
+                    <MenuItem Command="{Binding Workspace.OpenFolderCommand}" Header="_Open Folder..." />
+                    <MenuItem Command="{Binding Workspace.OpenSolutionCommand}" Header="Open _Solution..." />
+                    <MenuItem Command="{Binding CloseSolutionCommand}" Header="_Close Solution" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding DocumentCommands.SaveDocumentCommand}"
+                        Header="_Save"
+                        InputGesture="Ctrl+S" />
+                </MenuItem>
+                <MenuItem Header="_Build">
+                    <MenuItem
+                        Command="{Binding Run.BuildProjectCommand}"
+                        CommandParameter="{Binding Workspace.SelectedNode}"
+                        Header="_Build Project"
+                        InputGesture="Ctrl+Shift+B" />
+                    <MenuItem
+                        Command="{Binding Run.RunProjectCommand}"
+                        CommandParameter="{Binding Workspace.SelectedNode}"
+                        Header="Run Without _Debugging"
+                        InputGesture="Ctrl+F5" />
+                    <MenuItem
+                        Command="{Binding Run.StartDebuggingCommand}"
+                        CommandParameter="{Binding Workspace.SelectedNode}"
+                        Header="_Start Debugging"
+                        InputGesture="F5" />
+                    <MenuItem
+                        Command="{Binding Run.ContinueDebuggingCommand}"
+                        Header="_Continue"
+                        InputGesture="F5" />
+                    <MenuItem
+                        Command="{Binding Run.PauseDebuggingCommand}"
+                        Header="_Pause"
+                        InputGesture="Ctrl+Alt+Pause" />
+                    <MenuItem
+                        Command="{Binding Run.RestartDebuggingCommand}"
+                        Header="R_estart Debugging"
+                        InputGesture="Ctrl+Shift+F5" />
+                    <MenuItem
+                        Command="{Binding Run.StopRunningProjectCommand}"
+                        Header="_Stop"
+                        InputGesture="Shift+F5"
+                        IsEnabled="{Binding Run.IsRunning}" />
+                </MenuItem>
+                <MenuItem Header="_View">
+                    <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide _Explorer" />
+                    <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="_Swap Panes" />
+                    <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding EditorCommands.QuickOpen}"
+                        Header="_Quick Open..."
+                        InputGesture="Ctrl+P" />
+                    <MenuItem
+                        Command="{Binding ShowFindInFilesCommand}"
+                        Header="Find in _Files..."
+                        InputGesture="Ctrl+Shift+F" />
+                    <MenuItem
+                        Command="{Binding EditorCommands.WorkspaceSymbols}"
+                        Header="Go to _Symbol..."
+                        InputGesture="Ctrl+T" />
+                    <MenuItem
+                        Command="{Binding EditorCommands.GoToDefinition}"
+                        Header="Go to _Definition"
+                        InputGesture="F12" />
+                    <MenuItem
+                        Command="{Binding EditorCommands.FindReferences}"
+                        Header="Find All _References"
+                        InputGesture="Shift+F12" />
+                    <MenuItem
+                        Command="{Binding EditorCommands.RenameSymbol}"
+                        Header="_Rename Symbol..."
+                        InputGesture="Ctrl+R" />
+                    <MenuItem
+                        Command="{Binding EditorCommands.SignatureHelp}"
+                        Header="_Signature Help"
+                        InputGesture="Ctrl+Shift+Space" />
+                    <MenuItem
+                        Command="{Binding EditorCommands.QuickActions}"
+                        Header="Quick _Actions..."
+                        InputGesture="Ctrl+." />
+                    <MenuItem Command="{Binding DocumentCommands.FormatDocumentCommand}" Header="_Format Document" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding Problems.NavigateDiagnosticCommand}"
+                        CommandParameter="{x:True}"
+                        Header="_Next Diagnostic"
+                        InputGesture="F8" />
+                    <MenuItem
+                        Command="{Binding Problems.NavigateDiagnosticCommand}"
+                        CommandParameter="{x:False}"
+                        Header="_Previous Diagnostic"
+                        InputGesture="Shift+F8" />
+                </MenuItem>
+            </Menu>
+            <Button
+                AutomationProperties.Name="Settings"
+                Background="#262626"
+                Command="{Binding OpenSettingsCommand}"
+                Grid.Column="1"
+                HorizontalAlignment="Stretch"
+                Margin="0"
+                Padding="4"
+                ToolTip.Tip="Settings"
+                VerticalAlignment="Stretch">
+                <PathIcon
+                    Data="{DynamicResource Icon.Cog}"
+                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                    Height="16"
+                    Width="16" />
+            </Button>
+        </Grid>
+
+        <Grid
+            ColumnDefinitions="30,260,1,*"
+            Grid.Row="1"
+            Name="ContentGrid">
+
+            <Border
+                Background="#202020"
+                Grid.Column="0"
+                MinWidth="0"
+                Name="ActivityBar"
+                Padding="0">
+                <StackPanel Margin="0" Spacing="4">
+                    <Button
+                        AutomationProperties.Name="Move explorer to other side"
+                        Background="Transparent"
+                        Command="{Binding ToggleSolutionExplorerSideCommand}"
+                        Padding="8"
+                        ToolTip.Tip="Move explorer to the other side">
+                        <PathIcon
+                            Data="{DynamicResource Icon.Transfer}"
+                            Height="16"
+                            Width="16" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Explorer"
+                        Background="Transparent"
+                        Command="{Binding ToggleExplorerCommand}"
+                        Padding="8"
+                        ToolTip.Tip="Explorer">
+                        <PathIcon
+                            Data="{DynamicResource Icon.FolderMultipleOutline}"
+                            Height="16"
+                            Width="16" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Search in files"
+                        Background="Transparent"
+                        Command="{Binding ShowFindInFilesCommand}"
+                        Padding="8"
+                        ToolTip.Tip="Search in files">
+                        <PathIcon
+                            Data="{DynamicResource Icon.Search}"
+                            Height="16"
+                            Width="16" />
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <workspace:ExplorerView
+                DataContext="{Binding Explorer}"
+                Grid.Column="1"
+                Name="ExplorerPane" />
+
+            <GridSplitter
+                Grid.Column="2"
+                Name="Splitter"
+                ResizeDirection="Columns" />
+
+            <!--  Documents on top (or the welcome screen), tool panels below.  -->
+            <Grid
+                Grid.Column="3"
+                Name="EditorHost"
+                RowDefinitions="*,4,190">
+                <Panel Grid.Row="0" IsVisible="{Binding IsEditorVisible}">
+                    <documents:DocumentWellView DataContext="{Binding DocumentWell}" Name="DocumentWell" />
+                </Panel>
+                <Border
+                    BorderBrush="{DynamicResource ThemeForegroundBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    HorizontalAlignment="Center"
+                    IsVisible="{Binding IsWelcomeVisible}"
+                    MaxWidth="560"
+                    Padding="32"
+                    VerticalAlignment="Center">
+                    <StackPanel HorizontalAlignment="Center" Spacing="12">
+                        <TextBlock
+                            FontSize="24"
+                            FontWeight="SemiBold"
+                            HorizontalAlignment="Center"
+                            Text="Welcome to AXamlIDE" />
+                        <TextBlock
+                            Foreground="{DynamicResource ThemeForegroundBrush}"
+                            HorizontalAlignment="Center"
+                            Text="Open a project folder or solution to get started, then choose a file in Explorer."
+                            TextWrapping="Wrap" />
+                        <StackPanel
+                            HorizontalAlignment="Center"
+                            Orientation="Horizontal"
+                            Spacing="8">
+                            <Button
+                                Command="{Binding Workspace.OpenFolderCommand}"
+                                Content="Open Folder..."
+                                HorizontalContentAlignment="Center" />
+                            <Button
+                                Command="{Binding Workspace.OpenSolutionCommand}"
+                                Content="Open Solution..."
+                                HorizontalContentAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <GridSplitter
+                    Grid.Row="1"
+                    Height="4"
+                    HorizontalAlignment="Stretch"
+                    ResizeDirection="Rows" />
+
+                <!--  Filled from Views/Shell/ToolPanels.cs in code-behind; each tab shows that panel's own view.  -->
+                <TabControl
+                    FontSize="11"
+                    Grid.Row="2"
+                    Name="ToolTabs">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate x:DataType="shared:ToolPanel">
+                            <TextBlock FontSize="11" Text="{Binding Title}" />
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    <TabControl.ContentTemplate>
+                        <DataTemplate x:DataType="shared:ToolPanel">
+                            <ContentControl Content="{Binding View}" />
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+            </Grid>
+        </Grid>
+
+        <Border
+            Grid.Row="2"
+            Padding="8,2"
+            x:Name="StatusBar">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock
+                    Grid.Column="0"
+                    Name="LspStatus"
+                    Text="{Binding StatusText}" />
+                <TextBlock
+                    Grid.Column="1"
+                    Margin="0,0,16,0"
+                    Text="{Binding DiagnosticsText}" />
+                <TextBlock Grid.Column="2" Text="{Binding CaretText}" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

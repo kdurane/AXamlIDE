@@ -10,6 +10,7 @@
         <Compile Remove="tests/**/*.cs" />
         <Compile Remove="Projects/**/*.cs" />
         <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
+        <ProjectReference Include="Projects/AXamlIDE.Core/AXamlIDE.Core.csproj" />
     </ItemGroup>
     <Target Name="CopyMsBuildHost" AfterTargets="Build">
         <ItemGroup>
@@ -32,8 +33,6 @@
         <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
         <PackageReference Include="AvaloniaEdit.TextMate" Version="12.0.0" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-        <PackageReference Include="dnlib" Version="4.5.0" />
-        <PackageReference Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
         <PackageReference Include="Markdig" Version="1.4.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
         <PackageReference Include="TextMateSharp" Version="2.0.4" />

@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using AXamlIDE.Shell;
+using AXamlIDE.Views.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AXamlIDE;

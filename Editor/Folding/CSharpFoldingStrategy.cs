@@ -3,7 +3,7 @@ using System.Linq;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Folding;
 
-namespace AXamlIDE.Editor.Folding;
+namespace AXamlIDE.Views.Editor.Folding;
 
 internal static class CSharpFoldingStrategy
 {

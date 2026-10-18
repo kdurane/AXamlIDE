@@ -2,8 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using AvaloniaEdit.CodeCompletion;
+using AXamlIDE.Models;
 
-namespace AXamlIDE.Editor.SignatureHelp;
+namespace AXamlIDE.Views.Editor.SignatureHelp;
 
 public sealed class SignatureOverloadProvider : IOverloadProvider
 {

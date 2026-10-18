@@ -6,7 +6,7 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AXamlIDE.CompletionEngine.Completion;
 
-namespace AXamlIDE.Editor.CodeCompletion;
+namespace AXamlIDE.Views.Editor.CodeCompletion;
 
 public sealed class XamlEngineCompletionData(Completion completion, Action? triggerCompletion = null) : ICompletionData
 {

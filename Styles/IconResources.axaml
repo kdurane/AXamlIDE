@@ -1,415 +1,433 @@
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-  <StreamGeometry x:Key="Icon.NideaLogo">M1.585 13.94V3.977c0-1.1.892-1.993 1.992-1.993h2.889c1.1 0 1.992.892 1.992 1.993v7.172c0 .55.446.996.996.996h1.295c.55 0 .996-.447.996-.996V1.985h1.793v9.961a1.99 1.99 0 0 1-1.992 1.993H8.657c-1.1 0-1.992-.892-1.992-1.993V4.774a.996.996 0 0 0-.996-.996H4.374a.996.996 0 0 0-.996.996v9.165ZM16.981 1.984V13.94h-1.789V1.985Zm10.815 1.793h-7.371v8.368h7.371c.55 0 .996-.447.996-.996V4.774a.996.996 0 0 0-.996-.996m.797-1.793c1.1 0 1.992.892 1.992 1.993v7.968a1.99 1.99 0 0 1-1.992 1.993h-9.961V1.985Zm5.638 0h9.961v1.793h-9.264c-1.128.065-1.128 1.728 0 1.793h7.271c1.101 0 1.993.892 1.993 1.993v.796c0 1.1-.892 1.993-1.993 1.993h-7.271c-1.236-.041-1.236 1.834 0 1.793h9.264v1.793h-9.961c-1.1 0-1.993-.892-1.993-1.993v-1.394c0-1.1.892-1.992 1.993-1.992h7.57c.797 0 .797-1.196 0-1.196h-7.57a1.99 1.99 0 0 1-1.993-1.992V3.978c0-1.1.892-1.993 1.993-1.993m21.774 2.79a.996.996 0 0 0-.996-.997h-6.375a.996.996 0 0 0-.996.996v2.89h8.367zm1.793-.797v9.961h-1.793V9.456h-8.367v4.483h-1.793V3.98c0-1.102.892-1.994 1.992-1.994h7.969c1.1 0 1.992.892 1.992 1.993M7.648 15.816H.095V.09h7.553v.68H.8v14.365h6.847Zm44.286-.023h7.553V.067h-7.553v.681h6.847v14.364h-6.847Zm-23.142-10h-8.367V5.2h8.367Zm-3.21 1.201-.815 2.6h-.65l.867-2.598zm-1.249.768-.586.611.543.52-.21.279-.825-.8.854-.83Zm1.111 0 .484.611-.535.52.195.279.793-.799-.725-.83Z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.NideaLogo">M1.585 13.94V3.977c0-1.1.892-1.993 1.992-1.993h2.889c1.1 0 1.992.892 1.992 1.993v7.172c0 .55.446.996.996.996h1.295c.55 0 .996-.447.996-.996V1.985h1.793v9.961a1.99 1.99 0 0 1-1.992 1.993H8.657c-1.1 0-1.992-.892-1.992-1.993V4.774a.996.996 0 0 0-.996-.996H4.374a.996.996 0 0 0-.996.996v9.165ZM16.981 1.984V13.94h-1.789V1.985Zm10.815 1.793h-7.371v8.368h7.371c.55 0 .996-.447.996-.996V4.774a.996.996 0 0 0-.996-.996m.797-1.793c1.1 0 1.992.892 1.992 1.993v7.968a1.99 1.99 0 0 1-1.992 1.993h-9.961V1.985Zm5.638 0h9.961v1.793h-9.264c-1.128.065-1.128 1.728 0 1.793h7.271c1.101 0 1.993.892 1.993 1.993v.796c0 1.1-.892 1.993-1.993 1.993h-7.271c-1.236-.041-1.236 1.834 0 1.793h9.264v1.793h-9.961c-1.1 0-1.993-.892-1.993-1.993v-1.394c0-1.1.892-1.992 1.993-1.992h7.57c.797 0 .797-1.196 0-1.196h-7.57a1.99 1.99 0 0 1-1.993-1.992V3.978c0-1.1.892-1.993 1.993-1.993m21.774 2.79a.996.996 0 0 0-.996-.997h-6.375a.996.996 0 0 0-.996.996v2.89h8.367zm1.793-.797v9.961h-1.793V9.456h-8.367v4.483h-1.793V3.98c0-1.102.892-1.994 1.992-1.994h7.969c1.1 0 1.992.892 1.992 1.993M7.648 15.816H.095V.09h7.553v.68H.8v14.365h6.847Zm44.286-.023h7.553V.067h-7.553v.681h6.847v14.364h-6.847Zm-23.142-10h-8.367V5.2h8.367Zm-3.21 1.201-.815 2.6h-.65l.867-2.598zm-1.249.768-.586.611.543.52-.21.279-.825-.8.854-.83Zm1.111 0 .484.611-.535.52.195.279.793-.799-.725-.83Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/warehouse/  -->
-  <StreamGeometry x:Key="Icon.Warehouse">M6 19h2v2H6zm6-16L2 8v13h2v-8h16v8h2V8zm-4 8H4V9h4zm6 0h-4V9h4zm6 0h-4V9h4zM6 15h2v2H6zm4 0h2v2h-2zm0 4h2v2h-2zm4 0h2v2h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/warehouse/  -->
+    <StreamGeometry x:Key="Icon.Warehouse">M6 19h2v2H6zm6-16L2 8v13h2v-8h16v8h2V8zm-4 8H4V9h4zm6 0h-4V9h4zm6 0h-4V9h4zM6 15h2v2H6zm4 0h2v2h-2zm0 4h2v2h-2zm4 0h2v2h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/list-status/  -->
-  <StreamGeometry x:Key="Icon.ListStatus">M16.5 11 13 7.5l1.4-1.4 2.1 2.1L20.7 4l1.4 1.4zM11 7H2v2h9zm10 6.4L19.6 12 17 14.6 14.4 12 13 13.4l2.6 2.6-2.6 2.6 1.4 1.4 2.6-2.6 2.6 2.6 1.4-1.4-2.6-2.6zM11 15H2v2h9z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/list-status/  -->
+    <StreamGeometry x:Key="Icon.ListStatus">M16.5 11 13 7.5l1.4-1.4 2.1 2.1L20.7 4l1.4 1.4zM11 7H2v2h9zm10 6.4L19.6 12 17 14.6 14.4 12 13 13.4l2.6 2.6-2.6 2.6 1.4 1.4 2.6-2.6 2.6 2.6 1.4-1.4-2.6-2.6zM11 15H2v2h9z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/minus/  -->
-  <StreamGeometry x:Key="Icon.Minus">M19 13H5v-2h14z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/minus/  -->
+    <StreamGeometry x:Key="Icon.Minus">M19 13H5v-2h14z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/window-restore/  -->
-  <StreamGeometry x:Key="Icon.WindowRestore">M4 8h4V4h12v12h-4v4H4zm12 0v6h2V6h-8v2zM6 12v6h8v-6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/window-restore/  -->
+    <StreamGeometry x:Key="Icon.WindowRestore">M4 8h4V4h12v12h-4v4H4zm12 0v6h2V6h-8v2zM6 12v6h8v-6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/square-outline/  -->
-  <StreamGeometry x:Key="Icon.SquareOutline">M3 3h18v18H3zm2 2v14h14V5z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/square-outline/  -->
+    <StreamGeometry x:Key="Icon.SquareOutline">M3 3h18v18H3zm2 2v14h14V5z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/square-outline/  -->
-  <StreamGeometry x:Key="Icon.Close">M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 0 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.41Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/square-outline/  -->
+    <StreamGeometry x:Key="Icon.Close">M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12 5.7 16.89a1 1 0 0 0 1.41 1.41L12 13.41l4.89 4.89a1 1 0 0 0 1.41-1.41L13.41 12l4.89-4.89a1 1 0 0 0 0-1.41Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/transfer/  -->
-  <StreamGeometry x:Key="Icon.Transfer">M8 4a2 2 0 0 0-2 2v4h2V6h8v3h-2.5l3.5 3.5L20.5 9H18V6a2 2 0 0 0-2-2zm-5 8v2h8v-2zm0 3v2h8v-2zm10 0v2h8v-2zM3 18v2h8v-2zm10 0v2h8v-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/transfer/  -->
+    <StreamGeometry x:Key="Icon.Transfer">M8 4a2 2 0 0 0-2 2v4h2V6h8v3h-2.5l3.5 3.5L20.5 9H18V6a2 2 0 0 0-2-2zm-5 8v2h8v-2zm0 3v2h8v-2zm10 0v2h8v-2zM3 18v2h8v-2zm10 0v2h8v-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/map/  -->
-  <StreamGeometry x:Key="Icon.Map">m15 19-6-2.11V5l6 2.11M20.5 3h-.16L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5a.5.5 0 0 0 .5.5c.05 0 .11 0 .16-.03L9 18.9l6 2.1 5.64-1.9c.21-.1.36-.25.36-.48V3.5a.5.5 0 0 0-.5-.5</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/map/  -->
+    <StreamGeometry x:Key="Icon.Map">m15 19-6-2.11V5l6 2.11M20.5 3h-.16L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5a.5.5 0 0 0 .5.5c.05 0 .11 0 .16-.03L9 18.9l6 2.1 5.64-1.9c.21-.1.36-.25.36-.48V3.5a.5.5 0 0 0-.5-.5</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/printer-pos/  -->
-  <StreamGeometry x:Key="Icon.PrinterPointOfSale">M18 10H6a2 2 0 0 0-2 2v7h16v-7a2 2 0 0 0-2-2m0 4h-4v-2h4m-1-3H7V4h10Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/printer-pos/  -->
+    <StreamGeometry x:Key="Icon.PrinterPointOfSale">M18 10H6a2 2 0 0 0-2 2v7h16v-7a2 2 0 0 0-2-2m0 4h-4v-2h4m-1-3H7V4h10Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/printer-pos-outline/  -->
-  <StreamGeometry x:Key="Icon.PrinterPointOfSaleOutline">M18 10h-1V4H7v6H6a2 2 0 0 0-2 2v7h16v-7a2 2 0 0 0-2-2M9 6h6v4H9zm9 11H6v-5h12zm-1-2h-4v-2h4z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/printer-pos-outline/  -->
+    <StreamGeometry x:Key="Icon.PrinterPointOfSaleOutline">M18 10h-1V4H7v6H6a2 2 0 0 0-2 2v7h16v-7a2 2 0 0 0-2-2M9 6h6v4H9zm9 11H6v-5h12zm-1-2h-4v-2h4z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/math-log/  -->
-  <StreamGeometry x:Key="Icon.MathLog">M18 7c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2v-4h-2v4h-2V9h4V7zM2 7v10h6v-2H4V7zm9 0c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 2h2v6h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/math-log/  -->
+    <StreamGeometry x:Key="Icon.MathLog">M18 7c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2v-4h-2v4h-2V9h4V7zM2 7v10h6v-2H4V7zm9 0c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm0 2h2v6h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/map-marker/  -->
-  <StreamGeometry x:Key="Icon.Location">M12 11.5A2.5 2.5 0 0 1 9.5 9 2.5 2.5 0 0 1 12 6.5 2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/map-marker/  -->
+    <StreamGeometry x:Key="Icon.Location">M12 11.5A2.5 2.5 0 0 1 9.5 9 2.5 2.5 0 0 1 12 6.5 2.5 2.5 0 0 1 14.5 9a2.5 2.5 0 0 1-2.5 2.5M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/cube/  -->
-  <StreamGeometry x:Key="Icon.Cube">M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15 6.04 7.5 12 10.85l5.96-3.35z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/cube/  -->
+    <StreamGeometry x:Key="Icon.Cube">M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15 6.04 7.5 12 10.85l5.96-3.35z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/launch/  -->
-  <StreamGeometry x:Key="Icon.Launch">M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/launch/  -->
+    <StreamGeometry x:Key="Icon.Launch">M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-table-outline/  -->
-  <StreamGeometry x:Key="Icon.FileTableOutline">M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zm-8-7H7v-2h3zm4 0h-3v-2h3zm-4 3H7v-2h3zm4 0h-3v-2h3zm-4 3H7v-2h3zm4 0h-3v-2h3z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-table-outline/  -->
+    <StreamGeometry x:Key="Icon.FileTableOutline">M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5zm-8-7H7v-2h3zm4 0h-3v-2h3zm-4 3H7v-2h3zm4 0h-3v-2h3zm-4 3H7v-2h3zm4 0h-3v-2h3z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/timer-alert-outline/  -->
-  <StreamGeometry x:Key="Icon.TimerAlertOutline">M9 8h2v6H9zm4-7H7v2h6zm4.03 6.39A8.96 8.96 0 0 1 19 13c0 4.97-4 9-9 9a9 9 0 0 1 0-18c2.12 0 4.07.74 5.62 2l1.42-1.44c.51.44.96.9 1.41 1.41zM17 13c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7 7-3.13 7-7m4-6v6h2V7zm0 10h2v-2h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/timer-alert-outline/  -->
+    <StreamGeometry x:Key="Icon.TimerAlertOutline">M9 8h2v6H9zm4-7H7v2h6zm4.03 6.39A8.96 8.96 0 0 1 19 13c0 4.97-4 9-9 9a9 9 0 0 1 0-18c2.12 0 4.07.74 5.62 2l1.42-1.44c.51.44.96.9 1.41 1.41zM17 13c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7 7-3.13 7-7m4-6v6h2V7zm0 10h2v-2h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-document-check-outline/  -->
-  <StreamGeometry x:Key="Icon.FileDocumentCheckOutline">m23.5 17-5 5-3.5-3.5 1.5-1.5 2 2 3.5-3.5zM6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h7.81c-.36-.62-.61-1.3-.73-2H6V4h7v5h5v4.08c.33-.05.67-.08 1-.08.34 0 .67.03 1 .08V8l-6-6M8 12v2h8v-2m-8 4v2h5v-2Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-document-check-outline/  -->
+    <StreamGeometry x:Key="Icon.FileDocumentCheckOutline">m23.5 17-5 5-3.5-3.5 1.5-1.5 2 2 3.5-3.5zM6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h7.81c-.36-.62-.61-1.3-.73-2H6V4h7v5h5v4.08c.33-.05.67-.08 1-.08.34 0 .67.03 1 .08V8l-6-6M8 12v2h8v-2m-8 4v2h5v-2Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/clock-outline/  -->
-  <StreamGeometry x:Key="Icon.ClockOutline">M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/clock-outline/  -->
+    <StreamGeometry x:Key="Icon.ClockOutline">M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/cog/  -->
-  <!--<StreamGeometry x:Key="Icon.Cog">M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1s.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64z</StreamGeometry>-->
+    <!--  https://pictogrammers.com/library/mdi/icon/cog/  -->
+    <!--<StreamGeometry x:Key="Icon.Cog">M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97s-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1s.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64z</StreamGeometry>-->
 
-  <!--  Adpted from svg viwer  -->
-  <StreamGeometry x:Key="Icon.Cog">M21.75 11.715a.496.496 0 0 0-.439-.466l-1.202-.194a.254.254 0 0 1-.211-.219 7 7 0 0 0-.08-.446.26.26 0 0 1 .123-.274l1.068-.593a.485.485 0 0 0 .234-.601l-.185-.511a.484.484 0 0 0-.569-.305l-1.198.234a.26.26 0 0 1-.273-.132 9 9 0 0 0-.225-.395.26.26 0 0 1 .021-.305l.797-.921a.49.49 0 0 0 .018-.645l-.348-.418a.48.48 0 0 0-.637-.094l-1.049.63a.25.25 0 0 1-.3-.03c-.116-.102-.234-.2-.345-.29a.255.255 0 0 1-.081-.291l.434-1.144a.485.485 0 0 0-.202-.613l-.473-.276a.483.483 0 0 0-.63.133l-.764.964a.216.216 0 0 1-.262.081 8 8 0 0 0-.458-.173.25.25 0 0 1-.175-.245l.018-1.222a.49.49 0 0 0-.402-.51l-.537-.094a.49.49 0 0 0-.551.336l-.398 1.162a.26.26 0 0 1-.251.171h-.457a.26.26 0 0 1-.248-.172l-.397-1.156a.49.49 0 0 0-.552-.34l-.538.094a.49.49 0 0 0-.401.506l.019 1.226a.255.255 0 0 1-.181.246c-.107.042-.34.131-.446.17-.094.034-.196-.003-.278-.098l-.762-.938a.483.483 0 0 0-.632-.135l-.472.273a.486.486 0 0 0-.202.618l.434 1.141a.26.26 0 0 1-.08.292c-.114.094-.231.188-.347.292a.25.25 0 0 1-.298.03l-1.036-.643a.49.49 0 0 0-.638.094l-.347.417a.483.483 0 0 0 .017.645l.801.919a.254.254 0 0 1 .021.302q-.121.194-.226.396a.26.26 0 0 1-.275.132l-1.196-.231a.485.485 0 0 0-.569.305l-.188.51a.49.49 0 0 0 .234.602l1.068.593a.25.25 0 0 1 .124.277l-.011.06c-.024.131-.047.255-.068.386a.26.26 0 0 1-.209.217l-1.204.195a.49.49 0 0 0-.428.482v.543a.48.48 0 0 0 .429.481l1.204.194a.254.254 0 0 1 .211.219 7 7 0 0 0 .08.446.26.26 0 0 1-.123.274l-1.067.594a.485.485 0 0 0-.234.601l.188.511a.484.484 0 0 0 .569.305l1.198-.232a.26.26 0 0 1 .273.132q.106.198.225.395a.26.26 0 0 1-.021.305l-.797.92a.49.49 0 0 0-.023.645l.347.418a.48.48 0 0 0 .637.094l1.049-.63a.25.25 0 0 1 .3.03c.116.102.234.2.345.29a.26.26 0 0 1 .081.291l-.435 1.144a.485.485 0 0 0 .202.613l.474.274a.483.483 0 0 0 .63-.132l.774-.955c.066-.081.169-.117.245-.086.163.068.272.105.466.17a.255.255 0 0 1 .176.245l-.019 1.221a.49.49 0 0 0 .402.51l.537.094a.49.49 0 0 0 .551-.336l.398-1.161a.255.255 0 0 1 .251-.171h.457a.26.26 0 0 1 .248.172l.397 1.156a.49.49 0 0 0 .469.347l.083-.007.538-.094a.49.49 0 0 0 .401-.506l-.019-1.226a.255.255 0 0 1 .176-.244c.18-.06.307-.109.418-.152l.028-.011c.145-.05.216.011.256.061l.785.967a.483.483 0 0 0 .631.133l.472-.273a.485.485 0 0 0 .202-.614l-.433-1.141a.26.26 0 0 1 .079-.292c.114-.094.231-.188.347-.292a.25.25 0 0 1 .299-.029l1.05.628a.49.49 0 0 0 .638-.094l.347-.417a.483.483 0 0 0-.017-.645l-.8-.922a.254.254 0 0 1-.021-.302q.121-.192.226-.396a.26.26 0 0 1 .275-.132l1.194.233a.485.485 0 0 0 .569-.305l.185-.51a.486.486 0 0 0-.234-.602l-1.069-.594a.25.25 0 0 1-.122-.276l.011-.06c.024-.131.047-.255.068-.386a.26.26 0 0 1 .209-.217l1.204-.194a.49.49 0 0 0 .43-.482zM8.51 16.121a.74.74 0 0 1-1.194.125 6.33 6.33 0 0 1 .02-8.515.74.74 0 0 1 1.195.13l2.14 3.766a.74.74 0 0 1 0 .738ZM12 18.333a6.3 6.3 0 0 1-1.327-.141.74.74 0 0 1-.48-1.095l2.156-3.75a.74.74 0 0 1 .642-.372h4.319a.74.74 0 0 1 .708.962c-.82 2.546-3.206 4.395-6.019 4.395m.352-7.683-2.132-3.755a.74.74 0 0 1 .483-1.092A6.3 6.3 0 0 1 12 5.667c2.813 0 5.199 1.849 6.017 4.396a.74.74 0 0 1-.708.962h-4.313a.74.74 0 0 1-.645-.375</StreamGeometry>
+    <!--  Adpted from svg viwer  -->
+    <StreamGeometry x:Key="Icon.Cog">M21.75 11.715a.496.496 0 0 0-.439-.466l-1.202-.194a.254.254 0 0 1-.211-.219 7 7 0 0 0-.08-.446.26.26 0 0 1 .123-.274l1.068-.593a.485.485 0 0 0 .234-.601l-.185-.511a.484.484 0 0 0-.569-.305l-1.198.234a.26.26 0 0 1-.273-.132 9 9 0 0 0-.225-.395.26.26 0 0 1 .021-.305l.797-.921a.49.49 0 0 0 .018-.645l-.348-.418a.48.48 0 0 0-.637-.094l-1.049.63a.25.25 0 0 1-.3-.03c-.116-.102-.234-.2-.345-.29a.255.255 0 0 1-.081-.291l.434-1.144a.485.485 0 0 0-.202-.613l-.473-.276a.483.483 0 0 0-.63.133l-.764.964a.216.216 0 0 1-.262.081 8 8 0 0 0-.458-.173.25.25 0 0 1-.175-.245l.018-1.222a.49.49 0 0 0-.402-.51l-.537-.094a.49.49 0 0 0-.551.336l-.398 1.162a.26.26 0 0 1-.251.171h-.457a.26.26 0 0 1-.248-.172l-.397-1.156a.49.49 0 0 0-.552-.34l-.538.094a.49.49 0 0 0-.401.506l.019 1.226a.255.255 0 0 1-.181.246c-.107.042-.34.131-.446.17-.094.034-.196-.003-.278-.098l-.762-.938a.483.483 0 0 0-.632-.135l-.472.273a.486.486 0 0 0-.202.618l.434 1.141a.26.26 0 0 1-.08.292c-.114.094-.231.188-.347.292a.25.25 0 0 1-.298.03l-1.036-.643a.49.49 0 0 0-.638.094l-.347.417a.483.483 0 0 0 .017.645l.801.919a.254.254 0 0 1 .021.302q-.121.194-.226.396a.26.26 0 0 1-.275.132l-1.196-.231a.485.485 0 0 0-.569.305l-.188.51a.49.49 0 0 0 .234.602l1.068.593a.25.25 0 0 1 .124.277l-.011.06c-.024.131-.047.255-.068.386a.26.26 0 0 1-.209.217l-1.204.195a.49.49 0 0 0-.428.482v.543a.48.48 0 0 0 .429.481l1.204.194a.254.254 0 0 1 .211.219 7 7 0 0 0 .08.446.26.26 0 0 1-.123.274l-1.067.594a.485.485 0 0 0-.234.601l.188.511a.484.484 0 0 0 .569.305l1.198-.232a.26.26 0 0 1 .273.132q.106.198.225.395a.26.26 0 0 1-.021.305l-.797.92a.49.49 0 0 0-.023.645l.347.418a.48.48 0 0 0 .637.094l1.049-.63a.25.25 0 0 1 .3.03c.116.102.234.2.345.29a.26.26 0 0 1 .081.291l-.435 1.144a.485.485 0 0 0 .202.613l.474.274a.483.483 0 0 0 .63-.132l.774-.955c.066-.081.169-.117.245-.086.163.068.272.105.466.17a.255.255 0 0 1 .176.245l-.019 1.221a.49.49 0 0 0 .402.51l.537.094a.49.49 0 0 0 .551-.336l.398-1.161a.255.255 0 0 1 .251-.171h.457a.26.26 0 0 1 .248.172l.397 1.156a.49.49 0 0 0 .469.347l.083-.007.538-.094a.49.49 0 0 0 .401-.506l-.019-1.226a.255.255 0 0 1 .176-.244c.18-.06.307-.109.418-.152l.028-.011c.145-.05.216.011.256.061l.785.967a.483.483 0 0 0 .631.133l.472-.273a.485.485 0 0 0 .202-.614l-.433-1.141a.26.26 0 0 1 .079-.292c.114-.094.231-.188.347-.292a.25.25 0 0 1 .299-.029l1.05.628a.49.49 0 0 0 .638-.094l.347-.417a.483.483 0 0 0-.017-.645l-.8-.922a.254.254 0 0 1-.021-.302q.121-.192.226-.396a.26.26 0 0 1 .275-.132l1.194.233a.485.485 0 0 0 .569-.305l.185-.51a.486.486 0 0 0-.234-.602l-1.069-.594a.25.25 0 0 1-.122-.276l.011-.06c.024-.131.047-.255.068-.386a.26.26 0 0 1 .209-.217l1.204-.194a.49.49 0 0 0 .43-.482zM8.51 16.121a.74.74 0 0 1-1.194.125 6.33 6.33 0 0 1 .02-8.515.74.74 0 0 1 1.195.13l2.14 3.766a.74.74 0 0 1 0 .738ZM12 18.333a6.3 6.3 0 0 1-1.327-.141.74.74 0 0 1-.48-1.095l2.156-3.75a.74.74 0 0 1 .642-.372h4.319a.74.74 0 0 1 .708.962c-.82 2.546-3.206 4.395-6.019 4.395m.352-7.683-2.132-3.755a.74.74 0 0 1 .483-1.092A6.3 6.3 0 0 1 12 5.667c2.813 0 5.199 1.849 6.017 4.396a.74.74 0 0 1-.708.962h-4.313a.74.74 0 0 1-.645-.375</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/cogs/  -->
-  <StreamGeometry x:Key="Icon.Cogs">M15.9 18.45c1.35 0 2.45-1.1 2.45-2.45s-1.1-2.45-2.45-2.45c-1.36 0-2.45 1.1-2.45 2.45s1.09 2.45 2.45 2.45m5.2-1.77 1.48 1.16c.13.11.17.29.08.45l-1.4 2.42a.35.35 0 0 1-.43.15l-1.74-.7c-.36.28-.76.51-1.18.69l-.27 1.85c-.02.17-.17.3-.34.3h-2.8c-.18 0-.32-.13-.35-.3l-.26-1.85c-.43-.18-.82-.41-1.18-.69l-1.75.7c-.15.06-.34 0-.42-.15l-1.4-2.42a.35.35 0 0 1 .08-.45l1.48-1.16-.05-.68.05-.69-1.48-1.15a.35.35 0 0 1-.08-.45l1.4-2.42c.08-.16.27-.22.42-.16l1.75.71c.36-.28.75-.52 1.18-.69l.26-1.86c.03-.16.17-.29.35-.29h2.8c.17 0 .32.13.34.29l.27 1.86c.42.17.82.41 1.18.69l1.74-.71c.17-.06.34 0 .43.16l1.4 2.42c.09.15.05.34-.08.45l-1.48 1.15.05.69zM6.69 8.07c.87 0 1.57-.7 1.57-1.57s-.7-1.58-1.57-1.58A1.58 1.58 0 0 0 5.11 6.5c0 .87.71 1.57 1.58 1.57m3.34-1.13.97.74c.07.07.09.19.03.29l-.9 1.56c-.05.1-.17.14-.27.1l-1.12-.45-.74.44-.19 1.19c-.02.11-.11.19-.22.19h-1.8c-.12 0-.21-.08-.23-.19L5.4 9.62l-.76-.44-1.14.45c-.09.04-.2 0-.26-.1l-.9-1.56c-.06-.1-.03-.22.05-.29l.95-.74-.03-.44.03-.44-.95-.74a.23.23 0 0 1-.05-.29l.9-1.56c.06-.1.17-.14.26-.1l1.13.45.77-.44.16-1.19c.02-.11.11-.19.23-.19h1.8c.11 0 .2.08.22.19L8 3.38l.74.44 1.12-.45c.1-.04.22 0 .27.1l.9 1.56c.06.1.04.22-.03.29l-.97.74.03.44z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/cogs/  -->
+    <StreamGeometry x:Key="Icon.Cogs">M15.9 18.45c1.35 0 2.45-1.1 2.45-2.45s-1.1-2.45-2.45-2.45c-1.36 0-2.45 1.1-2.45 2.45s1.09 2.45 2.45 2.45m5.2-1.77 1.48 1.16c.13.11.17.29.08.45l-1.4 2.42a.35.35 0 0 1-.43.15l-1.74-.7c-.36.28-.76.51-1.18.69l-.27 1.85c-.02.17-.17.3-.34.3h-2.8c-.18 0-.32-.13-.35-.3l-.26-1.85c-.43-.18-.82-.41-1.18-.69l-1.75.7c-.15.06-.34 0-.42-.15l-1.4-2.42a.35.35 0 0 1 .08-.45l1.48-1.16-.05-.68.05-.69-1.48-1.15a.35.35 0 0 1-.08-.45l1.4-2.42c.08-.16.27-.22.42-.16l1.75.71c.36-.28.75-.52 1.18-.69l.26-1.86c.03-.16.17-.29.35-.29h2.8c.17 0 .32.13.34.29l.27 1.86c.42.17.82.41 1.18.69l1.74-.71c.17-.06.34 0 .43.16l1.4 2.42c.09.15.05.34-.08.45l-1.48 1.15.05.69zM6.69 8.07c.87 0 1.57-.7 1.57-1.57s-.7-1.58-1.57-1.58A1.58 1.58 0 0 0 5.11 6.5c0 .87.71 1.57 1.58 1.57m3.34-1.13.97.74c.07.07.09.19.03.29l-.9 1.56c-.05.1-.17.14-.27.1l-1.12-.45-.74.44-.19 1.19c-.02.11-.11.19-.22.19h-1.8c-.12 0-.21-.08-.23-.19L5.4 9.62l-.76-.44-1.14.45c-.09.04-.2 0-.26-.1l-.9-1.56c-.06-.1-.03-.22.05-.29l.95-.74-.03-.44.03-.44-.95-.74a.23.23 0 0 1-.05-.29l.9-1.56c.06-.1.17-.14.26-.1l1.13.45.77-.44.16-1.19c.02-.11.11-.19.23-.19h1.8c.11 0 .2.08.22.19L8 3.38l.74.44 1.12-.45c.1-.04.22 0 .27.1l.9 1.56c.06.1.04.22-.03.29l-.97.74.03.44z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-check/  -->
-  <StreamGeometry x:Key="Icon.FileTick">m23.5 17-5 5-3.5-3.5 1.5-1.5 2 2 3.5-3.5zM6 2c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h7.81c-.53-.91-.81-1.95-.81-3 0-3.31 2.69-6 6-6 .34 0 .67.03 1 .08V8l-6-6m-1 1.5L18.5 9H13Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-check/  -->
+    <StreamGeometry x:Key="Icon.FileTick">m23.5 17-5 5-3.5-3.5 1.5-1.5 2 2 3.5-3.5zM6 2c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h7.81c-.53-.91-.81-1.95-.81-3 0-3.31 2.69-6 6-6 .34 0 .67.03 1 .08V8l-6-6m-1 1.5L18.5 9H13Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-minus/  -->
-  <StreamGeometry x:Key="Icon.FileMinus">M14 2H6c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h7.81c-.53-.91-.81-1.95-.81-3 0-3.31 2.69-6 6-6 .34 0 .67.03 1 .08V8zm-1 7V3.5L18.5 9zm10 11h-8v-2h8z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-minus/  -->
+    <StreamGeometry x:Key="Icon.FileMinus">M14 2H6c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h7.81c-.53-.91-.81-1.95-.81-3 0-3.31 2.69-6 6-6 .34 0 .67.03 1 .08V8zm-1 7V3.5L18.5 9zm10 11h-8v-2h8z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/printer/  -->
-  <StreamGeometry x:Key="Icon.Printer">M18 3H6v4h12m1 5a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1m-3 7H8v-5h8m3-6H5a3 3 0 0 0-3 3v6h4v4h12v-4h4v-6a3 3 0 0 0-3-3</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/printer/  -->
+    <StreamGeometry x:Key="Icon.Printer">M18 3H6v4h12m1 5a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1m-3 7H8v-5h8m3-6H5a3 3 0 0 0-3 3v6h4v4h12v-4h4v-6a3 3 0 0 0-3-3</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-document-outline/  -->
-  <StreamGeometry x:Key="Icon.FileDocumentOutline">M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2h7v5h5v11H6zm2 8v2h8v-2zm0 4v2h5v-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-document-outline/  -->
+    <StreamGeometry x:Key="Icon.FileDocumentOutline">M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 2h7v5h5v11H6zm2 8v2h8v-2zm0 4v2h5v-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-document/  -->
-  <StreamGeometry x:Key="Icon.FileDocument">M13 9h5.5L13 3.5zM6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4c0-1.11.89-2 2-2m9 16v-2H6v2zm3-4v-2H6v2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-document/  -->
+    <StreamGeometry x:Key="Icon.FileDocument">M13 9h5.5L13 3.5zM6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4c0-1.11.89-2 2-2m9 16v-2H6v2zm3-4v-2H6v2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/truck/  -->
-  <StreamGeometry x:Key="Icon.Truck">M18 18.5a1.5 1.5 0 0 1-1.5-1.5 1.5 1.5 0 0 1 1.5-1.5 1.5 1.5 0 0 1 1.5 1.5 1.5 1.5 0 0 1-1.5 1.5m1.5-9 1.96 2.5H17V9.5m-11 9A1.5 1.5 0 0 1 4.5 17 1.5 1.5 0 0 1 6 15.5 1.5 1.5 0 0 1 7.5 17 1.5 1.5 0 0 1 6 18.5M20 8h-3V4H3c-1.11 0-2 .89-2 2v11h2a3 3 0 0 0 3 3 3 3 0 0 0 3-3h6a3 3 0 0 0 3 3 3 3 0 0 0 3-3h2v-5z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/truck/  -->
+    <StreamGeometry x:Key="Icon.Truck">M18 18.5a1.5 1.5 0 0 1-1.5-1.5 1.5 1.5 0 0 1 1.5-1.5 1.5 1.5 0 0 1 1.5 1.5 1.5 1.5 0 0 1-1.5 1.5m1.5-9 1.96 2.5H17V9.5m-11 9A1.5 1.5 0 0 1 4.5 17 1.5 1.5 0 0 1 6 15.5 1.5 1.5 0 0 1 7.5 17 1.5 1.5 0 0 1 6 18.5M20 8h-3V4H3c-1.11 0-2 .89-2 2v11h2a3 3 0 0 0 3 3 3 3 0 0 0 3-3h6a3 3 0 0 0 3 3 3 3 0 0 0 3-3h2v-5z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/package-variant/  -->
-  <StreamGeometry x:Key="Icon.PackageVariant">M2 10.96a.985.985 0 0 1-.37-1.37L3.13 7c.11-.2.28-.34.47-.42l7.83-4.4c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.19.1.35.26.44.46l1.45 2.52c.28.48.11 1.09-.36 1.36l-1 .58v4.96c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-5.54c-.3.17-.68.18-1 0m10-6.81v6.7l5.96-3.35zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-3.22l-5 2.9c-.33.18-.7.17-1 .01v3.69zm-5.15-2.55 6.28-3.63-.58-1.01-6.28 3.63z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/package-variant/  -->
+    <StreamGeometry x:Key="Icon.PackageVariant">M2 10.96a.985.985 0 0 1-.37-1.37L3.13 7c.11-.2.28-.34.47-.42l7.83-4.4c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.19.1.35.26.44.46l1.45 2.52c.28.48.11 1.09-.36 1.36l-1 .58v4.96c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-5.54c-.3.17-.68.18-1 0m10-6.81v6.7l5.96-3.35zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-3.22l-5 2.9c-.33.18-.7.17-1 .01v3.69zm-5.15-2.55 6.28-3.63-.58-1.01-6.28 3.63z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/ferry/  -->
-  <StreamGeometry x:Key="Icon.Ship">M6 6h12v3.96L12 8 6 9.96M3.94 19H4c1.6 0 3-.88 4-2 1 1.12 2.4 2 4 2s3-.88 4-2c1 1.12 2.4 2 4 2h.05l1.9-6.69c.08-.25.05-.53-.06-.77-.13-.24-.34-.42-.6-.5L20 10.62V6a2 2 0 0 0-2-2h-3V1H9v3H6a2 2 0 0 0-2 2v4.62l-1.29.42c-.26.08-.47.26-.6.5-.11.24-.14.52-.06.77M20 21c-1.39 0-2.78-.47-4-1.33-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.37 0 2.74-.35 4-1 2.5 1.3 5.5 1.3 8 0 1.26.65 2.62 1 4 1h2v-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/ferry/  -->
+    <StreamGeometry x:Key="Icon.Ship">M6 6h12v3.96L12 8 6 9.96M3.94 19H4c1.6 0 3-.88 4-2 1 1.12 2.4 2 4 2s3-.88 4-2c1 1.12 2.4 2 4 2h.05l1.9-6.69c.08-.25.05-.53-.06-.77-.13-.24-.34-.42-.6-.5L20 10.62V6a2 2 0 0 0-2-2h-3V1H9v3H6a2 2 0 0 0-2 2v4.62l-1.29.42c-.26.08-.47.26-.6.5-.11.24-.14.52-.06.77M20 21c-1.39 0-2.78-.47-4-1.33-2.44 1.71-5.56 1.71-8 0C6.78 20.53 5.39 21 4 21H2v2h2c1.37 0 2.74-.35 4-1 2.5 1.3 5.5 1.3 8 0 1.26.65 2.62 1 4 1h2v-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/traffic-light/  -->
-  <StreamGeometry x:Key="Icon.TrafficLight">M12 9a2 2 0 0 1-2-2 2 2 0 0 1 2-2c1.11 0 2 .89 2 2a2 2 0 0 1-2 2m0 5a2 2 0 0 1-2-2 2 2 0 0 1 2-2c1.11 0 2 .89 2 2a2 2 0 0 1-2 2m0 5a2 2 0 0 1-2-2 2 2 0 0 1 2-2c1.11 0 2 .89 2 2a2 2 0 0 1-2 2m8-9h-3V8.86c1.72-.45 3-2 3-3.86h-3V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1H4c0 1.86 1.28 3.41 3 3.86V10H4c0 1.86 1.28 3.41 3 3.86V15H4c0 1.86 1.28 3.41 3 3.86V20a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1.14c1.72-.45 3-2 3-3.86h-3v-1.14c1.72-.45 3-2 3-3.86</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/traffic-light/  -->
+    <StreamGeometry x:Key="Icon.TrafficLight">M12 9a2 2 0 0 1-2-2 2 2 0 0 1 2-2c1.11 0 2 .89 2 2a2 2 0 0 1-2 2m0 5a2 2 0 0 1-2-2 2 2 0 0 1 2-2c1.11 0 2 .89 2 2a2 2 0 0 1-2 2m0 5a2 2 0 0 1-2-2 2 2 0 0 1 2-2c1.11 0 2 .89 2 2a2 2 0 0 1-2 2m8-9h-3V8.86c1.72-.45 3-2 3-3.86h-3V4a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v1H4c0 1.86 1.28 3.41 3 3.86V10H4c0 1.86 1.28 3.41 3 3.86V15H4c0 1.86 1.28 3.41 3 3.86V20a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1.14c1.72-.45 3-2 3-3.86h-3v-1.14c1.72-.45 3-2 3-3.86</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/book-account-outline/  -->
-  <StreamGeometry x:Key="Icon.BookAccountOutline">M18 2a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2h-5v5l-2.5-2.3L8 9V4H6v16h12m-5-9a2 2 0 1 1-2 2 2 2 0 0 1 2-2m4 8H9v-1c0-1.33 2.67-2 4-2s4 .67 4 2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/book-account-outline/  -->
+    <StreamGeometry x:Key="Icon.BookAccountOutline">M18 2a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2h-5v5l-2.5-2.3L8 9V4H6v16h12m-5-9a2 2 0 1 1-2 2 2 2 0 0 1 2-2m4 8H9v-1c0-1.33 2.67-2 4-2s4 .67 4 2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/multimedia/  -->
-  <StreamGeometry x:Key="Icon.Picture">M9 13V5c0-1.1.9-2 2-2h9c1.1 0 2 .9 2 2v6h-3.43l-1.28-1.74a.14.14 0 0 0-.24 0L15.06 12c-.06.06-.18.07-.24 0l-1.43-1.75a.152.152 0 0 0-.23 0l-2.11 2.66c-.08.09-.01.24.11.24h6.34V15H11c-1.11 0-2-.89-2-2m-3 9v-1H4v1H2V2h2v1h2V2h2.39C7.54 2.74 7 3.8 7 5v8c0 2.21 1.79 4 4 4h4.7c-1.03.83-1.7 2.08-1.7 3.5 0 .53.11 1.03.28 1.5zM4 7h2V5H4zm0 4h2V9H4zm0 4h2v-2H4zm2 4v-2H4v2zm17-6v2h-2v5.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1 3.5-2.29V13z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/multimedia/  -->
+    <StreamGeometry x:Key="Icon.Picture">M9 13V5c0-1.1.9-2 2-2h9c1.1 0 2 .9 2 2v6h-3.43l-1.28-1.74a.14.14 0 0 0-.24 0L15.06 12c-.06.06-.18.07-.24 0l-1.43-1.75a.152.152 0 0 0-.23 0l-2.11 2.66c-.08.09-.01.24.11.24h6.34V15H11c-1.11 0-2-.89-2-2m-3 9v-1H4v1H2V2h2v1h2V2h2.39C7.54 2.74 7 3.8 7 5v8c0 2.21 1.79 4 4 4h4.7c-1.03.83-1.7 2.08-1.7 3.5 0 .53.11 1.03.28 1.5zM4 7h2V5H4zm0 4h2V9H4zm0 4h2v-2H4zm2 4v-2H4v2zm17-6v2h-2v5.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1 3.5-2.29V13z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/microsoft-excel/  -->
-  <StreamGeometry x:Key="Icon.MicrosoftExcel">M21.17 3.25q.33 0 .59.25.24.24.24.58v15.84q0 .34-.24.58-.26.25-.59.25H7.83q-.33 0-.59-.25-.24-.24-.24-.58V17H2.83q-.33 0-.59-.24Q2 16.5 2 16.17V7.83q0-.33.24-.59Q2.5 7 2.83 7H7V4.08q0-.34.24-.58.26-.25.59-.25M7 13.06l1.18 2.22h1.79L8 12.06l1.93-3.17H8.22L7.13 10.9l-.04.06-.03.07q-.26-.53-.56-1.07-.25-.53-.53-1.07H4.16l1.89 3.19L4 15.28h1.78m8.1 4.22V17H8.25v2.5m5.63-3.75v-3.12H12v3.12m1.88-4.37V8.25H12v3.13M13.88 7V4.5H8.25V7m12.5 12.5V17h-5.62v2.5m5.62-3.75v-3.12h-5.62v3.12m5.62-4.37V8.25h-5.62v3.13M20.75 7V4.5h-5.62V7Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/microsoft-excel/  -->
+    <StreamGeometry x:Key="Icon.MicrosoftExcel">M21.17 3.25q.33 0 .59.25.24.24.24.58v15.84q0 .34-.24.58-.26.25-.59.25H7.83q-.33 0-.59-.25-.24-.24-.24-.58V17H2.83q-.33 0-.59-.24Q2 16.5 2 16.17V7.83q0-.33.24-.59Q2.5 7 2.83 7H7V4.08q0-.34.24-.58.26-.25.59-.25M7 13.06l1.18 2.22h1.79L8 12.06l1.93-3.17H8.22L7.13 10.9l-.04.06-.03.07q-.26-.53-.56-1.07-.25-.53-.53-1.07H4.16l1.89 3.19L4 15.28h1.78m8.1 4.22V17H8.25v2.5m5.63-3.75v-3.12H12v3.12m1.88-4.37V8.25H12v3.13M13.88 7V4.5H8.25V7m12.5 12.5V17h-5.62v2.5m5.62-3.75v-3.12h-5.62v3.12m5.62-4.37V8.25h-5.62v3.13M20.75 7V4.5h-5.62V7Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-document-plus-outline/  -->
-  <StreamGeometry x:Key="Icon.FileDocumentPlusOutline">M23 18h-3v-3h-2v3h-3v2h3v3h2v-3h3M6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h7.81c-.36-.62-.61-1.3-.73-2H6V4h7v5h5v4.08c.33-.05.67-.08 1-.08.34 0 .67.03 1 .08V8l-6-6M8 12v2h8v-2m-8 4v2h5v-2Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-document-plus-outline/  -->
+    <StreamGeometry x:Key="Icon.FileDocumentPlusOutline">M23 18h-3v-3h-2v3h-3v2h3v3h2v-3h3M6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h7.81c-.36-.62-.61-1.3-.73-2H6V4h7v5h5v4.08c.33-.05.67-.08 1-.08.34 0 .67.03 1 .08V8l-6-6M8 12v2h8v-2m-8 4v2h5v-2Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/filter-off/  -->
-  <StreamGeometry x:Key="Icon.FilterOff">M2.39 1.73 1.11 3l8.39 8.37.47.63H10v5.87c-.04.29.06.6.29.83l2.01 2.01c.39.39 1.02.39 1.41 0 .23-.21.33-.53.29-.83v-3.99l6.84 6.84 1.27-1.27L14 13.35 9.41 8.76 4.15 3.5zM6.21 3l8.33 8.34 5.25-6.72a1 1 0 0 0-.17-1.4c-.19-.14-.4-.22-.62-.22z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/filter-off/  -->
+    <StreamGeometry x:Key="Icon.FilterOff">M2.39 1.73 1.11 3l8.39 8.37.47.63H10v5.87c-.04.29.06.6.29.83l2.01 2.01c.39.39 1.02.39 1.41 0 .23-.21.33-.53.29-.83v-3.99l6.84 6.84 1.27-1.27L14 13.35 9.41 8.76 4.15 3.5zM6.21 3l8.33 8.34 5.25-6.72a1 1 0 0 0-.17-1.4c-.19-.14-.4-.22-.62-.22z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/content-copy/  -->
-  <StreamGeometry x:Key="Icon.ContentCopy">M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/content-copy/  -->
+    <StreamGeometry x:Key="Icon.ContentCopy">M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/export/  -->
-  <StreamGeometry x:Key="Icon.Export">m23 12-4-4v3h-9v2h9v3M1 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3h-2V6H3v12h12v-3h2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/export/  -->
+    <StreamGeometry x:Key="Icon.Export">m23 12-4-4v3h-9v2h9v3M1 18V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3h-2V6H3v12h12v-3h2v3a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/page-next-outline/  -->
-  <StreamGeometry x:Key="Icon.PageNextOutline">M22 3H5a2 2 0 0 0-2 2v4h2V5h17v14H5v-4H3v4a2 2 0 0 0 2 2h17a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2M7 15v-2H0v-2h7V9l4 3zm13-2h-7v-2h7zm0-4h-7V7h7zm-3 8h-4v-2h4z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/page-next-outline/  -->
+    <StreamGeometry x:Key="Icon.PageNextOutline">M22 3H5a2 2 0 0 0-2 2v4h2V5h17v14H5v-4H3v4a2 2 0 0 0 2 2h17a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2M7 15v-2H0v-2h7V9l4 3zm13-2h-7v-2h7zm0-4h-7V7h7zm-3 8h-4v-2h4z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/clipboard-outline/  -->
-  <StreamGeometry x:Key="Icon.ClipboardOutline">M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/clipboard-outline/  -->
+    <StreamGeometry x:Key="Icon.ClipboardOutline">M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/list-box/  -->
-  <StreamGeometry x:Key="Icon.ListBox">M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2M7 7h2v2H7zm0 4h2v2H7zm0 4h2v2H7zm10 2h-6v-2h6zm0-4h-6v-2h6zm0-4h-6V7h6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/list-box/  -->
+    <StreamGeometry x:Key="Icon.ListBox">M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2M7 7h2v2H7zm0 4h2v2H7zm0 4h2v2H7zm10 2h-6v-2h6zm0-4h-6v-2h6zm0-4h-6V7h6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/package-variant-closed/  -->
-  <StreamGeometry x:Key="Icon.PackageVariantClosed">M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15l-1.89 1.07L16 8.61l1.96-1.11zM6.04 7.5 12 10.85l1.96-1.1-5.88-3.4zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-6.7l-6 3.37v6.71z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/package-variant-closed/  -->
+    <StreamGeometry x:Key="Icon.PackageVariantClosed">M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15l-1.89 1.07L16 8.61l1.96-1.11zM6.04 7.5 12 10.85l1.96-1.1-5.88-3.4zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-6.7l-6 3.37v6.71z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/package-variant-closed-check/  -->
-  <StreamGeometry x:Key="Icon.PackageVariantClosedCheck">M12 2c-.2 0-.4.1-.6.2L3.5 6.6c-.3.2-.5.5-.5.9v9c0 .4.2.7.5.9l7.9 4.4c.2.1.4.2.6.2s.4-.1.6-.2l.9-.5c-.3-.6-.4-1.3-.5-2v-6.7l6-3.4V13c.7 0 1.4.1 2 .3V7.5c0-.4-.2-.7-.5-.9l-7.9-4.4c-.2-.1-.4-.2-.6-.2m0 2.2 6 3.3-2 1.1-5.9-3.4zM8.1 6.3 14 9.8l-2 1.1-6-3.4zM5 9.2l6 3.4v6.7l-6-3.4zm16.3 6.6-3.6 3.6-1.6-1.6L15 19l2.8 3 4.8-4.8z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/package-variant-closed-check/  -->
+    <StreamGeometry x:Key="Icon.PackageVariantClosedCheck">M12 2c-.2 0-.4.1-.6.2L3.5 6.6c-.3.2-.5.5-.5.9v9c0 .4.2.7.5.9l7.9 4.4c.2.1.4.2.6.2s.4-.1.6-.2l.9-.5c-.3-.6-.4-1.3-.5-2v-6.7l6-3.4V13c.7 0 1.4.1 2 .3V7.5c0-.4-.2-.7-.5-.9l-7.9-4.4c-.2-.1-.4-.2-.6-.2m0 2.2 6 3.3-2 1.1-5.9-3.4zM8.1 6.3 14 9.8l-2 1.1-6-3.4zM5 9.2l6 3.4v6.7l-6-3.4zm16.3 6.6-3.6 3.6-1.6-1.6L15 19l2.8 3 4.8-4.8z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-document-remove-outline/  -->
-  <StreamGeometry x:Key="Icon.FileDocumentRemoveOutline">M22.54 21.12 20.41 19l2.13-2.12-1.42-1.42L19 17.59l-2.12-2.13-1.42 1.42L17.59 19l-2.13 2.12 1.42 1.42L19 20.41l2.12 2.13M6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h7.81c-.36-.62-.61-1.3-.73-2H6V4h7v5h5v4.08c.33-.05.67-.08 1-.08.34 0 .67.03 1 .08V8l-6-6M8 12v2h8v-2m-8 4v2h5v-2Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-document-remove-outline/  -->
+    <StreamGeometry x:Key="Icon.FileDocumentRemoveOutline">M22.54 21.12 20.41 19l2.13-2.12-1.42-1.42L19 17.59l-2.12-2.13-1.42 1.42L17.59 19l-2.13 2.12 1.42 1.42L19 20.41l2.12 2.13M6 2a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h7.81c-.36-.62-.61-1.3-.73-2H6V4h7v5h5v4.08c.33-.05.67-.08 1-.08.34 0 .67.03 1 .08V8l-6-6M8 12v2h8v-2m-8 4v2h5v-2Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/clipboard-check/  -->
-  <StreamGeometry x:Key="Icon.ClipboardCheck">m10 17-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9m-6-6a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m7 0h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/clipboard-check/  -->
+    <StreamGeometry x:Key="Icon.ClipboardCheck">m10 17-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9m-6-6a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m7 0h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/clipboard-check-outline/  -->
-  <StreamGeometry x:Key="Icon.ClipboardCheckOutline">M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2zm.5 6.5L9 12l2 2 4.5-4.5L17 11l-6 6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/clipboard-check-outline/  -->
+    <StreamGeometry x:Key="Icon.ClipboardCheckOutline">M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2zm.5 6.5L9 12l2 2 4.5-4.5L17 11l-6 6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/trash-can/  -->
-  <StreamGeometry x:Key="Icon.TrashCan">M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3zm0 5h2v9H9zm4 0h2v9h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/trash-can/  -->
+    <StreamGeometry x:Key="Icon.TrashCan">M9 3v1H4v2h1v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3zm0 5h2v9H9zm4 0h2v9h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/hand-pointing-right/  -->
-  <StreamGeometry x:Key="Icon.HandPointingRight">M21 9a1 1 0 0 1 1 1 1 1 0 0 1-1 1h-4.47l-.13 1.21-2.2 4.94c-.2.5-.73.85-1.34.85H8.5c-.8 0-1.5-.73-1.5-1.5V10c0-.39.16-.74.43-1l4.2-4.9.77.74c.2.19.32.45.32.74l-.03.22L11 9zM2 18v-8h3v8z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/hand-pointing-right/  -->
+    <StreamGeometry x:Key="Icon.HandPointingRight">M21 9a1 1 0 0 1 1 1 1 1 0 0 1-1 1h-4.47l-.13 1.21-2.2 4.94c-.2.5-.73.85-1.34.85H8.5c-.8 0-1.5-.73-1.5-1.5V10c0-.39.16-.74.43-1l4.2-4.9.77.74c.2.19.32.45.32.74l-.03.22L11 9zM2 18v-8h3v8z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/content-save-edit/  -->
-  <StreamGeometry x:Key="Icon.ContentSaveEdit">m10 19 .14-.14A2.97 2.97 0 0 1 8 16a3 3 0 0 1 3-3c1.36 0 2.5.9 2.86 2.14L20 9V7l-4-4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6zM4 5h10v4H4zm16.04 7.13c-.14 0-.28.06-.39.17l-1 1 2.05 2.05 1-1c.22-.21.22-.56 0-.77l-1.28-1.28a.53.53 0 0 0-.38-.17m-1.97 1.75L12 19.94V22h2.06l6.06-6.07z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/content-save-edit/  -->
+    <StreamGeometry x:Key="Icon.ContentSaveEdit">m10 19 .14-.14A2.97 2.97 0 0 1 8 16a3 3 0 0 1 3-3c1.36 0 2.5.9 2.86 2.14L20 9V7l-4-4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h6zM4 5h10v4H4zm16.04 7.13c-.14 0-.28.06-.39.17l-1 1 2.05 2.05 1-1c.22-.21.22-.56 0-.77l-1.28-1.28a.53.53 0 0 0-.38-.17m-1.97 1.75L12 19.94V22h2.06l6.06-6.07z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/upload/  -->
-  <StreamGeometry x:Key="Icon.Upload">M9 16v-6H5l7-7 7 7h-4v6zm-4 4v-2h14v2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/upload/  -->
+    <StreamGeometry x:Key="Icon.Upload">M9 16v-6H5l7-7 7 7h-4v6zm-4 4v-2h14v2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/download/  -->
-  <StreamGeometry x:Key="Icon.Download">M5 20h14v-2H5m14-9h-4V3H9v6H5l7 7z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/download/  -->
+    <StreamGeometry x:Key="Icon.Download">M5 20h14v-2H5m14-9h-4V3H9v6H5l7 7z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/check-decagram/  -->
-  <StreamGeometry x:Key="Icon.CheckDecagram">m23 12-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68zm-13 5-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/check-decagram/  -->
+    <StreamGeometry x:Key="Icon.CheckDecagram">m23 12-2.44-2.78.34-3.68-3.61-.82-1.89-3.18L12 3 8.6 1.54 6.71 4.72l-3.61.81.34 3.68L1 12l2.44 2.78-.34 3.69 3.61.82 1.89 3.18L12 21l3.4 1.46 1.89-3.18 3.61-.82-.34-3.68zm-13 5-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/check-decagram-outline/  -->
-  <StreamGeometry x:Key="Icon.CheckDecagramOutline">m23 12-2.4-2.8.3-3.7-3.6-.8-1.9-3.2L12 3 8.6 1.5 6.7 4.7l-3.6.8.3 3.7L1 12l2.4 2.8-.3 3.7 3.6.8 1.9 3.2L12 21l3.4 1.5 1.9-3.2 3.6-.8-.3-3.7zm-4.3 4.9-2.7.6-1.4 2.4-2.6-1.1-2.6 1.1L8 17.5l-2.7-.6.2-2.8L3.7 12l1.8-2.1-.2-2.8L8 6.5l1.4-2.4L12 5.2l2.6-1.1L16 6.5l2.7.6-.2 2.8 1.8 2.1-1.8 2.1zm-2.1-9.3L18 9l-8 8-4-4 1.4-1.4 2.6 2.6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/check-decagram-outline/  -->
+    <StreamGeometry x:Key="Icon.CheckDecagramOutline">m23 12-2.4-2.8.3-3.7-3.6-.8-1.9-3.2L12 3 8.6 1.5 6.7 4.7l-3.6.8.3 3.7L1 12l2.4 2.8-.3 3.7 3.6.8 1.9 3.2L12 21l3.4 1.5 1.9-3.2 3.6-.8-.3-3.7zm-4.3 4.9-2.7.6-1.4 2.4-2.6-1.1-2.6 1.1L8 17.5l-2.7-.6.2-2.8L3.7 12l1.8-2.1-.2-2.8L8 6.5l1.4-2.4L12 5.2l2.6-1.1L16 6.5l2.7.6-.2 2.8 1.8 2.1-1.8 2.1zm-2.1-9.3L18 9l-8 8-4-4 1.4-1.4 2.6 2.6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/swap-horizontal/  -->
-  <StreamGeometry x:Key="Icon.ArrowLeftRight">m21 9-4-4v3h-7v2h7v3M7 11l-4 4 4 4v-3h7v-2H7z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/swap-horizontal/  -->
+    <StreamGeometry x:Key="Icon.ArrowLeftRight">m21 9-4-4v3h-7v2h7v3M7 11l-4 4 4 4v-3h7v-2H7z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/open-in-app/  -->
-  <StreamGeometry x:Key="Icon.OpenInApp">m12 10-4 4h3v6h2v-6h3m3-10H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4v-2H5V8h14v10h-4v2h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/open-in-app/  -->
+    <StreamGeometry x:Key="Icon.OpenInApp">m12 10-4 4h3v6h2v-6h3m3-10H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4v-2H5V8h14v10h-4v2h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/chevron-left/  -->
-  <StreamGeometry x:Key="Icon.ChevronLeft">M15.41 16.58 10.83 12l4.58-4.59L14 6l-6 6 6 6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/chevron-left/  -->
+    <StreamGeometry x:Key="Icon.ChevronLeft">M15.41 16.58 10.83 12l4.58-4.59L14 6l-6 6 6 6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/chevron-right/  -->
-  <StreamGeometry x:Key="Icon.ChevronRight">M8.59 16.58 13.17 12 8.59 7.41 10 6l6 6-6 6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/chevron-right/  -->
+    <StreamGeometry x:Key="Icon.ChevronRight">M8.59 16.58 13.17 12 8.59 7.41 10 6l6 6-6 6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-restore-outline/  -->
-  <StreamGeometry x:Key="Icon.FileRestoreOutline">M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zm4 18H6V4h7l5 5zm-1-6.76c0 2.62-2.13 4.76-4.76 4.76-1.95 0-3.63-1.18-4.36-2.86H9.5c.61.86 1.61 1.43 2.74 1.43 1.84 0 3.33-1.5 3.33-3.33S14.08 9.9 12.24 9.9c-1.29 0-2.38.75-2.95 1.81l1.52 1.53H7V9.43l1.24 1.24a4.71 4.71 0 0 1 4-2.17c2.63-.03 4.76 2.11 4.76 4.74</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-restore-outline/  -->
+    <StreamGeometry x:Key="Icon.FileRestoreOutline">M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zm4 18H6V4h7l5 5zm-1-6.76c0 2.62-2.13 4.76-4.76 4.76-1.95 0-3.63-1.18-4.36-2.86H9.5c.61.86 1.61 1.43 2.74 1.43 1.84 0 3.33-1.5 3.33-3.33S14.08 9.9 12.24 9.9c-1.29 0-2.38.75-2.95 1.81l1.52 1.53H7V9.43l1.24 1.24a4.71 4.71 0 0 1 4-2.17c2.63-.03 4.76 2.11 4.76 4.74</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-upload-outline/  -->
-  <StreamGeometry x:Key="Icon.FileUploadOutline">m14 2 6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 18V9h-5V4H6v16zm-6-8 4 4h-2.5v3h-3v-3H8z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-upload-outline/  -->
+    <StreamGeometry x:Key="Icon.FileUploadOutline">m14 2 6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm4 18V9h-5V4H6v16zm-6-8 4 4h-2.5v3h-3v-3H8z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/upload-multiple/  -->
-  <StreamGeometry x:Key="Icon.UploadMultiple">M9 14V8H5l7-7 7 7h-4v6zm-4 4v-2h14v2zm14 2H5v2h14z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/upload-multiple/  -->
+    <StreamGeometry x:Key="Icon.UploadMultiple">M9 14V8H5l7-7 7 7h-4v6zm-4 4v-2h14v2zm14 2H5v2h14z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/filter/  -->
-  <StreamGeometry x:Key="Icon.Filter">M14 12v7.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0l-2.01-2.01a.99.99 0 0 1-.29-.83V12h-.03L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L14.03 12z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/filter/  -->
+    <StreamGeometry x:Key="Icon.Filter">M14 12v7.88c.04.3-.06.62-.29.83a.996.996 0 0 1-1.41 0l-2.01-2.01a.99.99 0 0 1-.29-.83V12h-.03L4.21 4.62a1 1 0 0 1 .17-1.4c.19-.14.4-.22.62-.22h14c.22 0 .43.08.62.22a1 1 0 0 1 .17 1.4L14.03 12z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-edit/  -->
-  <StreamGeometry x:Key="Icon.FileEdit">M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4v-1.9l10-10V8l-6-6zm7 1.5L18.5 9H13zm7.1 9.5c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-2 1.8L12 20.9V23h2.1l6.1-6.1z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-edit/  -->
+    <StreamGeometry x:Key="Icon.FileEdit">M6 2c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4v-1.9l10-10V8l-6-6zm7 1.5L18.5 9H13zm7.1 9.5c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-2 1.8L12 20.9V23h2.1l6.1-6.1z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-document-refresh-outline/  -->
-  <StreamGeometry x:Key="Icon.FileDocumentRefreshOutline">M6 2c-.53 0-1.04.21-1.41.59C4.21 2.96 4 3.47 4 4v16c0 .53.21 1.04.59 1.41.37.38.88.59 1.41.59h7c-.37-.6-.66-1.28-.83-2H6V4h7v5h5v3h.5c.5 0 1 .06 1.5.17V8l-6-6zm6 16c.07-.7.24-1.38.5-2H8v2zm1.81-4c.62-.64 1.36-1.15 2.19-1.5V12H8v2zm4.19.5c1.11 0 2.11.45 2.83 1.17L22 14.5v4h-4l1.77-1.77A2.5 2.5 0 1 0 20 20h1.71A3.99 3.99 0 0 1 18 22.5c-2.21 0-4-1.79-4-4s1.79-4 4-4</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-document-refresh-outline/  -->
+    <StreamGeometry x:Key="Icon.FileDocumentRefreshOutline">M6 2c-.53 0-1.04.21-1.41.59C4.21 2.96 4 3.47 4 4v16c0 .53.21 1.04.59 1.41.37.38.88.59 1.41.59h7c-.37-.6-.66-1.28-.83-2H6V4h7v5h5v3h.5c.5 0 1 .06 1.5.17V8l-6-6zm6 16c.07-.7.24-1.38.5-2H8v2zm1.81-4c.62-.64 1.36-1.15 2.19-1.5V12H8v2zm4.19.5c1.11 0 2.11.45 2.83 1.17L22 14.5v4h-4l1.77-1.77A2.5 2.5 0 1 0 20 20h1.71A3.99 3.99 0 0 1 18 22.5c-2.21 0-4-1.79-4-4s1.79-4 4-4</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/package/  -->
-  <StreamGeometry x:Key="Icon.Package">M5.12 5h13.75l-.94-1h-12zm15.42.23c.29.34.46.77.46 1.27V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6.5c0-.5.17-.93.46-1.27l1.38-1.68C5.12 3.21 5.53 3 6 3h12c.47 0 .88.21 1.15.55zM6 18h6v-3H6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/package/  -->
+    <StreamGeometry x:Key="Icon.Package">M5.12 5h13.75l-.94-1h-12zm15.42.23c.29.34.46.77.46 1.27V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6.5c0-.5.17-.93.46-1.27l1.38-1.68C5.12 3.21 5.53 3 6 3h12c.47 0 .88.21 1.15.55zM6 18h6v-3H6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/lock-open-outline/  -->
-  <StreamGeometry x:Key="Icon.LockOpenOutline">M18 20V10H6v10zm0-12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h9V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3H7a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2zm-6 9a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/lock-open-outline/  -->
+    <StreamGeometry x:Key="Icon.LockOpenOutline">M18 20V10H6v10zm0-12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h9V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3H7a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2zm-6 9a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/plus-circle/  -->
-  <StreamGeometry x:Key="Icon.PlusCircle">M17 13h-4v4h-2v-4H7v-2h4V7h2v4h4m-5-9A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/plus-circle/  -->
+    <StreamGeometry x:Key="Icon.PlusCircle">M17 13h-4v4h-2v-4H7v-2h4V7h2v4h4m-5-9A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/pencil/  -->
-  <StreamGeometry x:Key="Icon.Edit">M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/pencil/  -->
+    <StreamGeometry x:Key="Icon.Edit">M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/alpha-x-circle-outline/  -->
-  <StreamGeometry x:Key="Icon.AlphaXCircleOutline">M9 7h2l1 2.5L13 7h2l-2 5 2 5h-2l-1-2.5-1 2.5H9l2-5zm3-5a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/alpha-x-circle-outline/  -->
+    <StreamGeometry x:Key="Icon.AlphaXCircleOutline">M9 7h2l1 2.5L13 7h2l-2 5 2 5h-2l-1-2.5-1 2.5H9l2-5zm3-5a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/calculator/  -->
-  <StreamGeometry x:Key="Icon.Calculator">M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m0 2v4h10V4zm0 6v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2zm-8 4v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2zm-8 4v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/calculator/  -->
+    <StreamGeometry x:Key="Icon.Calculator">M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m0 2v4h10V4zm0 6v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2zm-8 4v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2zm-8 4v2h2v-2zm4 0v2h2v-2zm4 0v2h2v-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/content-duplicate/  -->
-  <StreamGeometry x:Key="Icon.ContentDuplicate">M11 17H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h12v2H4v12h7v-2l4 3-4 3zm8 4V7H8v6H6V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-2h2v2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/content-duplicate/  -->
+    <StreamGeometry x:Key="Icon.ContentDuplicate">M11 17H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h12v2H4v12h7v-2l4 3-4 3zm8 4V7H8v6H6V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-2h2v2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-export/  -->
-  <StreamGeometry x:Key="Icon.FileExport">M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6m-1 1.5L18.5 9H13m-4.07 3.22H16v7.07l-2.12-2.12L11.05 20l-2.83-2.83 2.83-2.82</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-export/  -->
+    <StreamGeometry x:Key="Icon.FileExport">M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6m-1 1.5L18.5 9H13m-4.07 3.22H16v7.07l-2.12-2.12L11.05 20l-2.83-2.83 2.83-2.82</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/calendar-plus-outline/  -->
-  <StreamGeometry x:Key="Icon.CalendarPlusOutline">M13 13h3v2h-3v3h-2v-3H8v-2h3v-3h2zm8-8v14c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2M5 5v2h14V5zm14 14V9H5v10z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/calendar-plus-outline/  -->
+    <StreamGeometry x:Key="Icon.CalendarPlusOutline">M13 13h3v2h-3v3h-2v-3H8v-2h3v-3h2zm8-8v14c0 1.11-.89 2-2 2H5a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2M5 5v2h14V5zm14 14V9H5v10z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/menu-down/  -->
-  <StreamGeometry x:Key="Icon.CaretDown">m7 10 5 5 5-5z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/menu-down/  -->
+    <StreamGeometry x:Key="Icon.CaretDown">m7 10 5 5 5-5z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/sitemap/  -->
-  <StreamGeometry x:Key="Icon.Sitemap">M9 2v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6h-2v-3c0-1.11-.89-2-2-2h-6V8h2V2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/sitemap/  -->
+    <StreamGeometry x:Key="Icon.Sitemap">M9 2v6h2v3H5c-1.11 0-2 .89-2 2v3H1v6h6v-6H5v-3h6v3H9v6h6v-6h-2v-3h6v3h-2v6h6v-6h-2v-3c0-1.11-.89-2-2-2h-6V8h2V2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/shipping-pallet/  -->
-  <StreamGeometry x:Key="Icon.ShippingPallet">M3 20h2v-2h6v2h2v-2h6v2h2v-5h-2v1h-2v-1h-2v1h-2v-1h-2v1H9v-1H7v1H5v-1H3m2-2h14V4H5Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/shipping-pallet/  -->
+    <StreamGeometry x:Key="Icon.ShippingPallet">M3 20h2v-2h6v2h2v-2h6v2h2v-5h-2v1h-2v-1h-2v1h-2v-1h-2v1H9v-1H7v1H5v-1H3m2-2h14V4H5Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/truck-fast/  -->
-  <StreamGeometry x:Key="Icon.TruckFast">M3 13.5 2.25 12H7.5l-.6-1.5H2L1.25 9h7.8l-.6-1.5H1.11L.25 6H4a2 2 0 0 1 2-2h12v4h3l3 4v5h-2a3 3 0 0 1-3 3 3 3 0 0 1-3-3h-4a3 3 0 0 1-3 3 3 3 0 0 1-3-3H4v-3.5zm16 5a1.5 1.5 0 0 0 1.5-1.5 1.5 1.5 0 0 0-1.5-1.5 1.5 1.5 0 0 0-1.5 1.5 1.5 1.5 0 0 0 1.5 1.5m1.5-9H18V12h4.46zM9 18.5a1.5 1.5 0 0 0 1.5-1.5A1.5 1.5 0 0 0 9 15.5 1.5 1.5 0 0 0 7.5 17 1.5 1.5 0 0 0 9 18.5</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/truck-fast/  -->
+    <StreamGeometry x:Key="Icon.TruckFast">M3 13.5 2.25 12H7.5l-.6-1.5H2L1.25 9h7.8l-.6-1.5H1.11L.25 6H4a2 2 0 0 1 2-2h12v4h3l3 4v5h-2a3 3 0 0 1-3 3 3 3 0 0 1-3-3h-4a3 3 0 0 1-3 3 3 3 0 0 1-3-3H4v-3.5zm16 5a1.5 1.5 0 0 0 1.5-1.5 1.5 1.5 0 0 0-1.5-1.5 1.5 1.5 0 0 0-1.5 1.5 1.5 1.5 0 0 0 1.5 1.5m1.5-9H18V12h4.46zM9 18.5a1.5 1.5 0 0 0 1.5-1.5A1.5 1.5 0 0 0 9 15.5 1.5 1.5 0 0 0 7.5 17 1.5 1.5 0 0 0 9 18.5</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/account-settings/  -->
-  <StreamGeometry x:Key="Icon.UserSettings">M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4m-5 8h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/account-settings/  -->
+    <StreamGeometry x:Key="Icon.UserSettings">M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4m-5 8h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/list-box-outline/  -->
-  <StreamGeometry x:Key="Icon.ListBoxOutline">M11 15h6v2h-6zM9 7H7v2h2zm2 6h6v-2h-6zm0-4h6V7h-6zm-2 2H7v2h2zm12-6v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2m-2 0H5v14h14zM9 15H7v2h2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/list-box-outline/  -->
+    <StreamGeometry x:Key="Icon.ListBoxOutline">M11 15h6v2h-6zM9 7H7v2h2zm2 6h6v-2h-6zm0-4h6V7h-6zm-2 2H7v2h2zm12-6v14c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2m-2 0H5v14h14zM9 15H7v2h2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file/  -->
-  <StreamGeometry x:Key="Icon.File">M13 9V3.5L18.5 9M6 2c-1.11 0-2 .89-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file/  -->
+    <StreamGeometry x:Key="Icon.File">M13 9V3.5L18.5 9M6 2c-1.11 0-2 .89-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/magnify/  -->
-  <StreamGeometry x:Key="Icon.Search">M10 6.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-.691 3.516a4.5 4.5 0 1 1 .707-.707l2.838 2.837a.5.5 0 0 1-.708.708z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/magnify/  -->
+    <StreamGeometry x:Key="Icon.Search">M10 6.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0m-.691 3.516a4.5 4.5 0 1 1 .707-.707l2.838 2.837a.5.5 0 0 1-.708.708z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/fire/  -->
-  <StreamGeometry x:Key="Icon.Fire">M17.66 11.2c-.23-.3-.51-.56-.77-.82-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32-2.59 2.08-3.61 5.75-2.39 8.9.04.1.08.2.08.33 0 .22-.15.42-.35.5-.23.1-.47.04-.66-.12a.6.6 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5.14.6.41 1.2.71 1.73 1.08 1.73 2.95 2.97 4.96 3.22 2.14.27 4.43-.12 6.07-1.6 1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6-1.12.4-2.24-.16-2.9-.82 1.19-.28 1.9-1.16 2.11-2.05.17-.8-.15-1.46-.28-2.23-.12-.74-.1-1.37.17-2.06.19.38.39.76.63 1.06.77 1 1.98 1.44 2.24 2.8.04.14.06.28.06.43.03.82-.33 1.72-.93 2.27</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/fire/  -->
+    <StreamGeometry x:Key="Icon.Fire">M17.66 11.2c-.23-.3-.51-.56-.77-.82-.67-.6-1.43-1.03-2.07-1.66C13.33 7.26 13 4.85 13.95 3c-.95.23-1.78.75-2.49 1.32-2.59 2.08-3.61 5.75-2.39 8.9.04.1.08.2.08.33 0 .22-.15.42-.35.5-.23.1-.47.04-.66-.12a.6.6 0 0 1-.14-.17c-1.13-1.43-1.31-3.48-.55-5.12C5.78 10 4.87 12.3 5 14.47c.06.5.12 1 .29 1.5.14.6.41 1.2.71 1.73 1.08 1.73 2.95 2.97 4.96 3.22 2.14.27 4.43-.12 6.07-1.6 1.83-1.66 2.47-4.32 1.53-6.6l-.13-.26c-.21-.46-.77-1.26-.77-1.26m-3.16 6.3c-.28.24-.74.5-1.1.6-1.12.4-2.24-.16-2.9-.82 1.19-.28 1.9-1.16 2.11-2.05.17-.8-.15-1.46-.28-2.23-.12-.74-.1-1.37.17-2.06.19.38.39.76.63 1.06.77 1 1.98 1.44 2.24 2.8.04.14.06.28.06.43.03.82-.33 1.72-.93 2.27</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-import/  -->
-  <StreamGeometry x:Key="Icon.FileImport">M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6m-1 1.5L18.5 9H13m-2.95 2.22 2.83 2.83L15 11.93V19H7.93l2.12-2.12-2.83-2.83</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-import/  -->
+    <StreamGeometry x:Key="Icon.FileImport">M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6m-1 1.5L18.5 9H13m-2.95 2.22 2.83 2.83L15 11.93V19H7.93l2.12-2.12-2.83-2.83</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/format-list-bulleted/  -->
-  <StreamGeometry x:Key="Icon.FormatListBulleted">M7 5h14v2H7zm0 8v-2h14v2zM4 4.5A1.5 1.5 0 0 1 5.5 6 1.5 1.5 0 0 1 4 7.5 1.5 1.5 0 0 1 2.5 6 1.5 1.5 0 0 1 4 4.5m0 6A1.5 1.5 0 0 1 5.5 12 1.5 1.5 0 0 1 4 13.5 1.5 1.5 0 0 1 2.5 12 1.5 1.5 0 0 1 4 10.5M7 19v-2h14v2zm-3-2.5A1.5 1.5 0 0 1 5.5 18 1.5 1.5 0 0 1 4 19.5 1.5 1.5 0 0 1 2.5 18 1.5 1.5 0 0 1 4 16.5</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/format-list-bulleted/  -->
+    <StreamGeometry x:Key="Icon.FormatListBulleted">M7 5h14v2H7zm0 8v-2h14v2zM4 4.5A1.5 1.5 0 0 1 5.5 6 1.5 1.5 0 0 1 4 7.5 1.5 1.5 0 0 1 2.5 6 1.5 1.5 0 0 1 4 4.5m0 6A1.5 1.5 0 0 1 5.5 12 1.5 1.5 0 0 1 4 13.5 1.5 1.5 0 0 1 2.5 12 1.5 1.5 0 0 1 4 10.5M7 19v-2h14v2zm-3-2.5A1.5 1.5 0 0 1 5.5 18 1.5 1.5 0 0 1 4 19.5 1.5 1.5 0 0 1 2.5 18 1.5 1.5 0 0 1 4 16.5</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/chart-timeline/  -->
-  <StreamGeometry x:Key="Icon.ChartTimeline">M2 2h2v18h18v2H2zm5 8h10v3H7zm4 5h10v3H11zM6 4h16v4h-2V6H8v2H6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/chart-timeline/  -->
+    <StreamGeometry x:Key="Icon.ChartTimeline">M2 2h2v18h18v2H2zm5 8h10v3H7zm4 5h10v3H11zM6 4h16v4h-2V6H8v2H6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/calendar-blank/  -->
-  <StreamGeometry x:Key="Icon.CalendarBlank">M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/calendar-blank/  -->
+    <StreamGeometry x:Key="Icon.CalendarBlank">M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/calendar-month/  -->
-  <StreamGeometry x:Key="Icon.CalendarMonth">M9 10v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2zm2-7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1V1h2v2h8V1h2v2zm0 16V8H5v11zM9 14v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/calendar-month/  -->
+    <StreamGeometry x:Key="Icon.CalendarMonth">M9 10v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2zm2-7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h1V1h2v2h8V1h2v2zm0 16V8H5v11zM9 14v2H7v-2zm4 0v2h-2v-2zm4 0v2h-2v-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/calendar-today/  -->
-  <StreamGeometry x:Key="Icon.CalendarToday">M7 10h5v5H7m12 4H5V8h14m0-5h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/calendar-today/  -->
+    <StreamGeometry x:Key="Icon.CalendarToday">M7 10h5v5H7m12 4H5V8h14m0-5h-1V1h-2v2H8V1H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/wrench/  -->
-  <StreamGeometry x:Key="Icon.Wrench">m22.7 19-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/wrench/  -->
+    <StreamGeometry x:Key="Icon.Wrench">m22.7 19-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/truck-delivery/  -->
-  <StreamGeometry x:Key="Icon.TruckDelivery">M3 4a2 2 0 0 0-2 2v11h2a3 3 0 0 0 3 3 3 3 0 0 0 3-3h6a3 3 0 0 0 3 3 3 3 0 0 0 3-3h2v-5l-3-4h-3V4m-7 2 4 4-4 4v-3H4V9h6m7 .5h2.5l1.97 2.5H17M6 15.5A1.5 1.5 0 0 1 7.5 17 1.5 1.5 0 0 1 6 18.5 1.5 1.5 0 0 1 4.5 17 1.5 1.5 0 0 1 6 15.5m12 0a1.5 1.5 0 0 1 1.5 1.5 1.5 1.5 0 0 1-1.5 1.5 1.5 1.5 0 0 1-1.5-1.5 1.5 1.5 0 0 1 1.5-1.5</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/truck-delivery/  -->
+    <StreamGeometry x:Key="Icon.TruckDelivery">M3 4a2 2 0 0 0-2 2v11h2a3 3 0 0 0 3 3 3 3 0 0 0 3-3h6a3 3 0 0 0 3 3 3 3 0 0 0 3-3h2v-5l-3-4h-3V4m-7 2 4 4-4 4v-3H4V9h6m7 .5h2.5l1.97 2.5H17M6 15.5A1.5 1.5 0 0 1 7.5 17 1.5 1.5 0 0 1 6 18.5 1.5 1.5 0 0 1 4.5 17 1.5 1.5 0 0 1 6 15.5m12 0a1.5 1.5 0 0 1 1.5 1.5 1.5 1.5 0 0 1-1.5 1.5 1.5 1.5 0 0 1-1.5-1.5 1.5 1.5 0 0 1 1.5-1.5</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/bell/  -->
-  <StreamGeometry x:Key="Icon.Bell">M21 19v1H3v-1l2-2v-6c0-3.1 2.03-5.83 5-6.71V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.29c2.97.88 5 3.61 5 6.71v6zm-7 2a2 2 0 0 1-2 2 2 2 0 0 1-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/bell/  -->
+    <StreamGeometry x:Key="Icon.Bell">M21 19v1H3v-1l2-2v-6c0-3.1 2.03-5.83 5-6.71V4a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.29c2.97.88 5 3.61 5 6.71v6zm-7 2a2 2 0 0 1-2 2 2 2 0 0 1-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/logout/  -->
-  <StreamGeometry x:Key="Icon.SignOut">m17 7-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5M4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/logout/  -->
+    <StreamGeometry x:Key="Icon.SignOut">m17 7-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5M4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/arrow-left-circle-outline/  -->
-  <StreamGeometry x:Key="Icon.ArrowLeftCircleOutline">M18 11v2h-8l3.5 3.5-1.42 1.42L6.16 12l5.92-5.92L13.5 7.5 10 11zM2 12A10 10 0 0 1 12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12m2 0a8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/arrow-left-circle-outline/  -->
+    <StreamGeometry x:Key="Icon.ArrowLeftCircleOutline">M18 11v2h-8l3.5 3.5-1.42 1.42L6.16 12l5.92-5.92L13.5 7.5 10 11zM2 12A10 10 0 0 1 12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12m2 0a8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/arrow-left-bold-circle-outline/  -->
-  <StreamGeometry x:Key="Icon.ArrowLeftBoldCircleOutline">m7 12 5-5v3h4v4h-4v3zm15 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-2 0a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/arrow-left-bold-circle-outline/  -->
+    <StreamGeometry x:Key="Icon.ArrowLeftBoldCircleOutline">m7 12 5-5v3h4v4h-4v3zm15 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-2 0a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/arrow-left-bold-circle-outline/  -->
-  <StreamGeometry x:Key="Icon.ArrowRighttBoldCircleOutline">m17 12-5 5v-3H8v-4h4V7zM2 12A10 10 0 0 1 12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12m2 0a8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/arrow-left-bold-circle-outline/  -->
+    <StreamGeometry x:Key="Icon.ArrowRighttBoldCircleOutline">m17 12-5 5v-3H8v-4h4V7zM2 12A10 10 0 0 1 12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12m2 0a8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/eye/  -->
-  <StreamGeometry x:Key="Icon.Eye">M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/eye/  -->
+    <StreamGeometry x:Key="Icon.Eye">M12 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0 8a5 5 0 0 1-5-5 5 5 0 0 1 5-5 5 5 0 0 1 5 5 5 5 0 0 1-5 5m0-12.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/lock/  -->
-  <StreamGeometry x:Key="Icon.Lock">M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2zm-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/lock/  -->
+    <StreamGeometry x:Key="Icon.Lock">M12 17a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m6-9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2h1V6a5 5 0 0 1 5-5 5 5 0 0 1 5 5v2zm-6-5a3 3 0 0 0-3 3v2h6V6a3 3 0 0 0-3-3</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/backspace/  -->
-  <StreamGeometry x:Key="Icon.Backspace">M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/backspace/  -->
+    <StreamGeometry x:Key="Icon.Backspace">M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/check/  -->
-  <StreamGeometry x:Key="Icon.Check">M21 7 9 19l-5.5-5.5 1.41-1.41L9 16.17 19.59 5.59z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/check/  -->
+    <StreamGeometry x:Key="Icon.Check">M21 7 9 19l-5.5-5.5 1.41-1.41L9 16.17 19.59 5.59z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/dialpad/  -->
-  <StreamGeometry x:Key="Icon.Dialpad">M12 19a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2M6 1a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0 6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0 6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m12-8a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m-6 8a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m6 0a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0-6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m-6 0a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0-6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/dialpad/  -->
+    <StreamGeometry x:Key="Icon.Dialpad">M12 19a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2M6 1a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0 6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0 6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m12-8a2 2 0 0 0 2-2 2 2 0 0 0-2-2 2 2 0 0 0-2 2 2 2 0 0 0 2 2m-6 8a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m6 0a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0-6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m-6 0a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2m0-6a2 2 0 0 0-2 2 2 2 0 0 0 2 2 2 2 0 0 0 2-2 2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/user/  -->
-  <StreamGeometry x:Key="Icon.User">M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/user/  -->
+    <StreamGeometry x:Key="Icon.User">M12 4a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/user/  -->
-  <StreamGeometry x:Key="Icon.CloseCircle">M12 2c5.53 0 10 4.47 10 10s-4.47 10-10 10S2 17.53 2 12 6.47 2 12 2m3.59 5L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/user/  -->
+    <StreamGeometry x:Key="Icon.CloseCircle">M12 2c5.53 0 10 4.47 10 10s-4.47 10-10 10S2 17.53 2 12 6.47 2 12 2m3.59 5L12 10.59 8.41 7 7 8.41 10.59 12 7 15.59 8.41 17 12 13.41 15.59 17 17 15.59 13.41 12 17 8.41z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/user/  -->
-  <StreamGeometry x:Key="Icon.FileOutline">M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/user/  -->
+    <StreamGeometry x:Key="Icon.FileOutline">M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm4 18H6V4h7v5h5z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/checkbox-marked/  -->
-  <StreamGeometry x:Key="Icon.CheckBox">m10 17-5-5 1.41-1.42L10 14.17l7.59-7.59L19 8m0-5H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/checkbox-marked/  -->
+    <StreamGeometry x:Key="Icon.CheckBox">m10 17-5-5 1.41-1.42L10 14.17l7.59-7.59L19 8m0-5H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/chevron-down/  -->
-  <StreamGeometry x:Key="Icon.ChevronDown">M7.41 8.58 12 13.17l4.59-4.59L18 10l-6 6-6-6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/chevron-down/  -->
+    <StreamGeometry x:Key="Icon.ChevronDown">M7.41 8.58 12 13.17l4.59-4.59L18 10l-6 6-6-6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/undo/  -->
-  <StreamGeometry x:Key="Icon.Undo">M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/undo/  -->
+    <StreamGeometry x:Key="Icon.Undo">M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/dots-horizontal/  -->
-  <StreamGeometry x:Key="Icon.DotsHorizontal">M16 12a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2m-6 0a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2m-6 0a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/dots-horizontal/  -->
+    <StreamGeometry x:Key="Icon.DotsHorizontal">M16 12a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2m-6 0a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2m-6 0a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/hide/  -->
-  <StreamGeometry x:Key="Icon.Hide">M11.83 9 15 12.16V12a3 3 0 0 0-3-3zm-4.3.8 1.55 1.55c-.05.21-.08.42-.08.65a3 3 0 0 0 3 3c.22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53a5 5 0 0 1-5-5c0-.79.2-1.53.53-2.2M2 4.27l2.28 2.28.45.45C3.08 8.3 1.78 10 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.43.42L19.73 22 21 20.73 3.27 3M12 7a5 5 0 0 1 5 5c0 .64-.13 1.26-.36 1.82l2.93 2.93c1.5-1.25 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-4 .7l2.17 2.15C10.74 7.13 11.35 7 12 7</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/hide/  -->
+    <StreamGeometry x:Key="Icon.Hide">M11.83 9 15 12.16V12a3 3 0 0 0-3-3zm-4.3.8 1.55 1.55c-.05.21-.08.42-.08.65a3 3 0 0 0 3 3c.22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53a5 5 0 0 1-5-5c0-.79.2-1.53.53-2.2M2 4.27l2.28 2.28.45.45C3.08 8.3 1.78 10 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.43.42L19.73 22 21 20.73 3.27 3M12 7a5 5 0 0 1 5 5c0 .64-.13 1.26-.36 1.82l2.93 2.93c1.5-1.25 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-4 .7l2.17 2.15C10.74 7.13 11.35 7 12 7</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/plus/  -->
-  <StreamGeometry x:Key="Icon.Plus">M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/plus/  -->
+    <StreamGeometry x:Key="Icon.Plus">M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/message/  -->
-  <StreamGeometry x:Key="Icon.Message">M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/message/  -->
+    <StreamGeometry x:Key="Icon.Message">M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/message/  -->
-  <StreamGeometry x:Key="Icon.Eject">M12 5 5.33 15h13.34M5 17h14v2H5z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/message/  -->
+    <StreamGeometry x:Key="Icon.Eject">M12 5 5.33 15h13.34M5 17h14v2H5z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/envelope/  -->
-  <StreamGeometry x:Key="Icon.Envelope">m20 8-8 5-8-5V6l8 5 8-5m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/envelope/  -->
+    <StreamGeometry x:Key="Icon.Envelope">m20 8-8 5-8-5V6l8 5 8-5m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/calendar-outline/  -->
-  <StreamGeometry x:Key="Icon.Calendar">M12 12h5v5h-5zm7-9h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 2v2H5V5zM5 19V9h14v10z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/calendar-outline/  -->
+    <StreamGeometry x:Key="Icon.Calendar">M12 12h5v5h-5zm7-9h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m0 2v2H5V5zM5 19V9h14v10z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/content-cut/  -->
-  <StreamGeometry x:Key="Icon.ContentCut">m19 3-6 6 2 2 7-7V3m-10 9.5a.5.5 0 0 1-.5-.5.5.5 0 0 1 .5-.5.5.5 0 0 1 .5.5.5.5 0 0 1-.5.5M6 20a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2M6 8a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2m3.64-.36c.23-.5.36-1.05.36-1.64a4 4 0 0 0-4-4 4 4 0 0 0-4 4 4 4 0 0 0 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/content-cut/  -->
+    <StreamGeometry x:Key="Icon.ContentCut">m19 3-6 6 2 2 7-7V3m-10 9.5a.5.5 0 0 1-.5-.5.5.5 0 0 1 .5-.5.5.5 0 0 1 .5.5.5.5 0 0 1-.5.5M6 20a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2M6 8a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2m3.64-.36c.23-.5.36-1.05.36-1.64a4 4 0 0 0-4-4 4 4 0 0 0-4 4 4 4 0 0 0 4 4c.59 0 1.14-.13 1.64-.36L10 12l-2.36 2.36C7.14 14.13 6.59 14 6 14a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4c0-.59-.13-1.14-.36-1.64L12 14l7 7h3v-1z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/content-paste/  -->
-  <StreamGeometry x:Key="Icon.ContentPaste">M19 20H5V4h2v3h10V4h2m-7-2a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m7 0h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/content-paste/  -->
+    <StreamGeometry x:Key="Icon.ContentPaste">M19 20H5V4h2v3h10V4h2m-7-2a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m7 0h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/alert-outline/  -->
-  <StreamGeometry x:Key="Icon.AlertOutline">M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/alert-outline/  -->
+    <StreamGeometry x:Key="Icon.AlertOutline">M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16</StreamGeometry>
 
-  <StreamGeometry x:Key="Icon.UserIcon">M256 48C148.5 48 60.1 129.5 49.2 234.1Q48 244.9 48 256t1.2 21.9C60.1 382.5 148.5 464 256 464c114.9 0 208-93.1 208-208S370.9 48 256 48zm135.8 326.1c-22.7-8.6-59.5-21.2-82.4-28-2.4-.7-2.7-.9-2.7-10.7 0-8.1 3.3-16.3 6.6-23.3 3.6-7.5 7.7-20.2 9.2-31.6 4.2-4.9 10-14.5 13.6-32.9 3.2-16.2 1.7-22.1-.4-27.6-.2-.6-.5-1.2-.6-1.7-.8-3.8.3-23.5 3.1-38.8 1.9-10.5-.5-32.8-14.9-51.3-9.1-11.7-26.6-26-58.5-28h-17.5c-31.4 2-48.8 16.3-58 28-14.5 18.5-16.9 40.8-15 51.3 2.8 15.3 3.9 35 3.1 38.8-.2.7-.4 1.2-.6 1.8-2.1 5.5-3.7 11.4-.4 27.6 3.7 18.4 9.4 28 13.6 32.9 1.5 11.4 5.7 24 9.2 31.6 2.6 5.5 3.8 13 3.8 23.6 0 9.9-.4 10-2.6 10.7-23.7 7-58.9 19.4-80 27.8C91.6 341.4 76 299.9 76 256c0-48.1 18.7-93.3 52.7-127.3S207.9 76 256 76s93.3 18.7 127.3 52.7S436 207.9 436 256c0 43.9-15.6 85.4-44.2 118.1z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.UserIcon">M256 48C148.5 48 60.1 129.5 49.2 234.1Q48 244.9 48 256t1.2 21.9C60.1 382.5 148.5 464 256 464c114.9 0 208-93.1 208-208S370.9 48 256 48zm135.8 326.1c-22.7-8.6-59.5-21.2-82.4-28-2.4-.7-2.7-.9-2.7-10.7 0-8.1 3.3-16.3 6.6-23.3 3.6-7.5 7.7-20.2 9.2-31.6 4.2-4.9 10-14.5 13.6-32.9 3.2-16.2 1.7-22.1-.4-27.6-.2-.6-.5-1.2-.6-1.7-.8-3.8.3-23.5 3.1-38.8 1.9-10.5-.5-32.8-14.9-51.3-9.1-11.7-26.6-26-58.5-28h-17.5c-31.4 2-48.8 16.3-58 28-14.5 18.5-16.9 40.8-15 51.3 2.8 15.3 3.9 35 3.1 38.8-.2.7-.4 1.2-.6 1.8-2.1 5.5-3.7 11.4-.4 27.6 3.7 18.4 9.4 28 13.6 32.9 1.5 11.4 5.7 24 9.2 31.6 2.6 5.5 3.8 13 3.8 23.6 0 9.9-.4 10-2.6 10.7-23.7 7-58.9 19.4-80 27.8C91.6 341.4 76 299.9 76 256c0-48.1 18.7-93.3 52.7-127.3S207.9 76 256 76s93.3 18.7 127.3 52.7S436 207.9 436 256c0 43.9-15.6 85.4-44.2 118.1z</StreamGeometry>
 
-  <StreamGeometry x:Key="Icon.BoxesPacking">M9.6 1.8A1.8 1.8 0 0 1 11.4 0h10.8A1.8 1.8 0 0 1 24 1.8v15.6a1.8 1.8 0 0 1-1.8 1.8h-7.901q.1-.284.101-.6V9.499A1.805 1.805 0 0 0 15.6 7.8V6.6a1.8 1.8 0 0 0-1.8-1.8H9.6Zm11.824 11.224a.6.6 0 0 0 0-.848l-2.4-2.4a.6.6 0 0 0-.848 0l-2.4 2.4a.6.6 0 0 0 0 .848.6.6 0 0 0 .848 0L18 11.648V16.2c0 .33.27.6.6.6s.6-.27.6-.6v-4.552l1.376 1.376a.6.6 0 0 0 .848 0M0 6.6c0-.33.27-.6.6-.6h13.2c.33 0 .6.27.6.6v1.2c0 .33-.27.6-.6.6H.6c-.33 0-.6-.27-.6-.6Zm13.2 3V18c0 .664-.536 1.2-1.2 1.2H2.4c-.664 0-1.2-.536-1.2-1.2V9.6ZM5.4 12c-.33 0-.6.27-.6.6s.27.6.6.6H9c.33 0 .6-.27.6-.6S9.33 12 9 12Z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.BoxesPacking">M9.6 1.8A1.8 1.8 0 0 1 11.4 0h10.8A1.8 1.8 0 0 1 24 1.8v15.6a1.8 1.8 0 0 1-1.8 1.8h-7.901q.1-.284.101-.6V9.499A1.805 1.805 0 0 0 15.6 7.8V6.6a1.8 1.8 0 0 0-1.8-1.8H9.6Zm11.824 11.224a.6.6 0 0 0 0-.848l-2.4-2.4a.6.6 0 0 0-.848 0l-2.4 2.4a.6.6 0 0 0 0 .848.6.6 0 0 0 .848 0L18 11.648V16.2c0 .33.27.6.6.6s.6-.27.6-.6v-4.552l1.376 1.376a.6.6 0 0 0 .848 0M0 6.6c0-.33.27-.6.6-.6h13.2c.33 0 .6.27.6.6v1.2c0 .33-.27.6-.6.6H.6c-.33 0-.6-.27-.6-.6Zm13.2 3V18c0 .664-.536 1.2-1.2 1.2H2.4c-.664 0-1.2-.536-1.2-1.2V9.6ZM5.4 12c-.33 0-.6.27-.6.6s.27.6.6.6H9c.33 0 .6-.27.6-.6S9.33 12 9 12Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/sync/  -->
-  <StreamGeometry x:Key="Icon.Sync">M12,18A6,6 0 0,1 6,12C6,11 6.25,10.03 6.7,9.2L5.24,7.74C4.46,8.97 4,10.43 4,12A8,8 0 0,0 12,20V23L16,19L12,15M12,4V1L8,5L12,9V6A6,6 0 0,1 18,12C18,13 17.75,13.97 17.3,14.8L18.76,16.26C19.54,15.03 20,13.57 20,12A8,8 0 0,0 12,4Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/sync/  -->
+    <StreamGeometry x:Key="Icon.Sync">M12,18A6,6 0 0,1 6,12C6,11 6.25,10.03 6.7,9.2L5.24,7.74C4.46,8.97 4,10.43 4,12A8,8 0 0,0 12,20V23L16,19L12,15M12,4V1L8,5L12,9V6A6,6 0 0,1 18,12C18,13 17.75,13.97 17.3,14.8L18.76,16.26C19.54,15.03 20,13.57 20,12A8,8 0 0,0 12,4Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/content-save/  -->
-  <StreamGeometry x:Key="Icon.ContentSave">M15 9H5V5h10m-3 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3m5-16H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/content-save/  -->
+    <StreamGeometry x:Key="Icon.ContentSave">M15 9H5V5h10m-3 14a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3m5-16H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/email/  -->
-  <StreamGeometry x:Key="Icon.Email">m20 8-8 5-8-5V6l8 5 8-5m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/email/  -->
+    <StreamGeometry x:Key="Icon.Email">m20 8-8 5-8-5V6l8 5 8-5m0-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/menu-open/  -->
-  <StreamGeometry x:Key="Icon.MenuOpen">M21 15.61 19.59 17l-5.01-5 5.01-5L21 8.39 17.44 12zM3 6h13v2H3zm0 7v-2h10v2zm0 5v-2h13v2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/menu-open/  -->
+    <StreamGeometry x:Key="Icon.MenuOpen">M21 15.61 19.59 17l-5.01-5 5.01-5L21 8.39 17.44 12zM3 6h13v2H3zm0 7v-2h10v2zm0 5v-2h13v2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/hub-outline/  -->
-  <StreamGeometry x:Key="Icon.HubOutline">M21 6.5c-1.7 0-3 1.3-3 3v.2l-2 .7c-.6-1.2-1.8-2.1-3.2-2.3V5.9C14 5.6 15 4.4 15 3c0-1.7-1.3-3-3-3S9 1.3 9 3c0 1.4 1 2.6 2.2 2.9v2.2c-1.3.2-2.5 1.1-3.2 2.3l-2-.7v-.2c0-1.7-1.3-3-3-3s-3 1.3-3 3 1.3 3 3 3c1.1 0 2-.6 2.5-1.4l2 .7c-.2 1.3.2 2.7 1.1 3.7l-1.4 1.8Q6.6 17 6 17c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3q0-1.05-.6-1.8l1.4-1.8c1.4.8 3 .8 4.4 0l1.4 1.8q-.6.75-.6 1.8c0 1.7 1.3 3 3 3s3-1.3 3-3-1.3-3-3-3c-.4 0-.9.1-1.2.3l-1.4-1.8c.9-1 1.3-2.4 1.1-3.7l2-.7c.5.8 1.5 1.4 2.5 1.4 1.7 0 3-1.3 3-3s-1.3-3-3-3m-18 4c-.5 0-1-.4-1-1s.5-1 1-1 1 .4 1 1-.5 1-1 1M6 21c-.6 0-1-.5-1-1s.4-1 1-1 1 .5 1 1-.4 1-1 1m5-18c0-.5.4-1 1-1s1 .5 1 1-.4 1-1 1-1-.5-1-1m1 12c-1.4 0-2.5-1.1-2.5-2.5S10.6 10 12 10s2.5 1.1 2.5 2.5S13.4 15 12 15m6 4c.5 0 1 .5 1 1s-.5 1-1 1-1-.5-1-1 .5-1 1-1m3-8.5c-.5 0-1-.4-1-1s.5-1 1-1 1 .4 1 1-.5 1-1 1</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/hub-outline/  -->
+    <StreamGeometry x:Key="Icon.HubOutline">M21 6.5c-1.7 0-3 1.3-3 3v.2l-2 .7c-.6-1.2-1.8-2.1-3.2-2.3V5.9C14 5.6 15 4.4 15 3c0-1.7-1.3-3-3-3S9 1.3 9 3c0 1.4 1 2.6 2.2 2.9v2.2c-1.3.2-2.5 1.1-3.2 2.3l-2-.7v-.2c0-1.7-1.3-3-3-3s-3 1.3-3 3 1.3 3 3 3c1.1 0 2-.6 2.5-1.4l2 .7c-.2 1.3.2 2.7 1.1 3.7l-1.4 1.8Q6.6 17 6 17c-1.7 0-3 1.3-3 3s1.3 3 3 3 3-1.3 3-3q0-1.05-.6-1.8l1.4-1.8c1.4.8 3 .8 4.4 0l1.4 1.8q-.6.75-.6 1.8c0 1.7 1.3 3 3 3s3-1.3 3-3-1.3-3-3-3c-.4 0-.9.1-1.2.3l-1.4-1.8c.9-1 1.3-2.4 1.1-3.7l2-.7c.5.8 1.5 1.4 2.5 1.4 1.7 0 3-1.3 3-3s-1.3-3-3-3m-18 4c-.5 0-1-.4-1-1s.5-1 1-1 1 .4 1 1-.5 1-1 1M6 21c-.6 0-1-.5-1-1s.4-1 1-1 1 .5 1 1-.4 1-1 1m5-18c0-.5.4-1 1-1s1 .5 1 1-.4 1-1 1-1-.5-1-1m1 12c-1.4 0-2.5-1.1-2.5-2.5S10.6 10 12 10s2.5 1.1 2.5 2.5S13.4 15 12 15m6 4c.5 0 1 .5 1 1s-.5 1-1 1-1-.5-1-1 .5-1 1-1m3-8.5c-.5 0-1-.4-1-1s.5-1 1-1 1 .4 1 1-.5 1-1 1</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/clipboard-alert-outline/  -->
-  <StreamGeometry x:Key="Icon.ClipboardAlertOutline">M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4.18C9.6 1.84 10.7 1 12 1s2.4.84 2.82 2zm-7 0a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1M7 7V5H5v14h14V5h-2v2zm4 2h2v4.5h-2zm0 6h2v2h-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/clipboard-alert-outline/  -->
+    <StreamGeometry x:Key="Icon.ClipboardAlertOutline">M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4.18C9.6 1.84 10.7 1 12 1s2.4.84 2.82 2zm-7 0a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1M7 7V5H5v14h14V5h-2v2zm4 2h2v4.5h-2zm0 6h2v2h-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/handshake/  -->
-  <StreamGeometry x:Key="Icon.Handshake">M11 6h3l3.29-3.3a1 1 0 0 1 1.42 0l2.58 2.59a1 1 0 0 1 0 1.41L19 9h-8v2a1 1 0 0 1-1 1 1 1 0 0 1-1-1V8a2 2 0 0 1 2-2m-6 5v4l-2.29 2.29a1 1 0 0 0 0 1.41l2.58 2.59a1 1 0 0 0 1.42 0L11 17h4a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h-7v1a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/handshake/  -->
+    <StreamGeometry x:Key="Icon.Handshake">M11 6h3l3.29-3.3a1 1 0 0 1 1.42 0l2.58 2.59a1 1 0 0 1 0 1.41L19 9h-8v2a1 1 0 0 1-1 1 1 1 0 0 1-1-1V8a2 2 0 0 1 2-2m-6 5v4l-2.29 2.29a1 1 0 0 0 0 1.41l2.58 2.59a1 1 0 0 0 1.42 0L11 17h4a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h1a1 1 0 0 0 1-1v-1h-7v1a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/history/  -->
-  <StreamGeometry x:Key="Icon.History">M13.5 8H12v5l4.28 2.54.72-1.21-3.5-2.08zM13 3a9 9 0 0 0-9 9H1l3.96 4.03L9 12H6a7 7 0 0 1 7-7 7 7 0 0 1 7 7 7 7 0 0 1-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.9 8.9 0 0 0 13 21a9 9 0 0 0 9-9 9 9 0 0 0-9-9</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/history/  -->
+    <StreamGeometry x:Key="Icon.History">M13.5 8H12v5l4.28 2.54.72-1.21-3.5-2.08zM13 3a9 9 0 0 0-9 9H1l3.96 4.03L9 12H6a7 7 0 0 1 7-7 7 7 0 0 1 7 7 7 7 0 0 1-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.9 8.9 0 0 0 13 21a9 9 0 0 0 9-9 9 9 0 0 0-9-9</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/account-group-outline/  -->
-  <StreamGeometry x:Key="Icon.AccountGroupOutline">M12 5a3.5 3.5 0 0 0-3.5 3.5A3.5 3.5 0 0 0 12 12a3.5 3.5 0 0 0 3.5-3.5A3.5 3.5 0 0 0 12 5m0 2a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 12 10a1.5 1.5 0 0 1-1.5-1.5A1.5 1.5 0 0 1 12 7M5.5 8A2.5 2.5 0 0 0 3 10.5c0 .94.53 1.75 1.29 2.18.36.2.77.32 1.21.32s.85-.12 1.21-.32c.37-.21.68-.51.91-.87A5.42 5.42 0 0 1 6.5 8.5v-.28c-.3-.14-.64-.22-1-.22m13 0c-.36 0-.7.08-1 .22v.28c0 1.2-.39 2.36-1.12 3.31.12.19.25.34.4.49a2.48 2.48 0 0 0 1.72.7c.44 0 .85-.12 1.21-.32.76-.43 1.29-1.24 1.29-2.18A2.5 2.5 0 0 0 18.5 8M12 14c-2.34 0-7 1.17-7 3.5V19h14v-1.5c0-2.33-4.66-3.5-7-3.5m-7.29.55C2.78 14.78 0 15.76 0 17.5V19h3v-1.93c0-1.01.69-1.85 1.71-2.52m14.58 0c1.02.67 1.71 1.51 1.71 2.52V19h3v-1.5c0-1.74-2.78-2.72-4.71-2.95M12 16c1.53 0 3.24.5 4.23 1H7.77c.99-.5 2.7-1 4.23-1</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/account-group-outline/  -->
+    <StreamGeometry x:Key="Icon.AccountGroupOutline">M12 5a3.5 3.5 0 0 0-3.5 3.5A3.5 3.5 0 0 0 12 12a3.5 3.5 0 0 0 3.5-3.5A3.5 3.5 0 0 0 12 5m0 2a1.5 1.5 0 0 1 1.5 1.5A1.5 1.5 0 0 1 12 10a1.5 1.5 0 0 1-1.5-1.5A1.5 1.5 0 0 1 12 7M5.5 8A2.5 2.5 0 0 0 3 10.5c0 .94.53 1.75 1.29 2.18.36.2.77.32 1.21.32s.85-.12 1.21-.32c.37-.21.68-.51.91-.87A5.42 5.42 0 0 1 6.5 8.5v-.28c-.3-.14-.64-.22-1-.22m13 0c-.36 0-.7.08-1 .22v.28c0 1.2-.39 2.36-1.12 3.31.12.19.25.34.4.49a2.48 2.48 0 0 0 1.72.7c.44 0 .85-.12 1.21-.32.76-.43 1.29-1.24 1.29-2.18A2.5 2.5 0 0 0 18.5 8M12 14c-2.34 0-7 1.17-7 3.5V19h14v-1.5c0-2.33-4.66-3.5-7-3.5m-7.29.55C2.78 14.78 0 15.76 0 17.5V19h3v-1.93c0-1.01.69-1.85 1.71-2.52m14.58 0c1.02.67 1.71 1.51 1.71 2.52V19h3v-1.5c0-1.74-2.78-2.72-4.71-2.95M12 16c1.53 0 3.24.5 4.23 1H7.77c.99-.5 2.7-1 4.23-1</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/folder-multiple-outline/  -->
-  <StreamGeometry x:Key="Icon.FolderMultipleOutline">M22 4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h6l2 2zM2 6v14h18v2H2a2 2 0 0 1-2-2V6zm4 0v10h16V6z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/folder-multiple-outline/  -->
+    <StreamGeometry x:Key="Icon.FolderMultipleOutline">M22 4a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h6l2 2zM2 6v14h18v2H2a2 2 0 0 1-2-2V6zm4 0v10h16V6z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/shield-check-outline/  -->
-  <StreamGeometry x:Key="Icon.ShieldCheckOutline">M21 11c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V5l9-4 9 4zm-9 10c3.75-1 7-5.46 7-9.78V6.3l-7-3.12L5 6.3v4.92C5 15.54 8.25 20 12 21m-2-4-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/shield-check-outline/  -->
+    <StreamGeometry x:Key="Icon.ShieldCheckOutline">M21 11c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V5l9-4 9 4zm-9 10c3.75-1 7-5.46 7-9.78V6.3l-7-3.12L5 6.3v4.92C5 15.54 8.25 20 12 21m-2-4-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/clipboard-text-outline/  -->
-  <StreamGeometry x:Key="Icon.ClipboardTextOutline">M19 3h-4.18C14.25 1.44 12.53.64 11 1.2c-.86.3-1.5.96-1.82 1.8H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2zm10 4H7V9h10zm-2 4H7v-2h8z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/clipboard-text-outline/  -->
+    <StreamGeometry x:Key="Icon.ClipboardTextOutline">M19 3h-4.18C14.25 1.44 12.53.64 11 1.2c-.86.3-1.5.96-1.82 1.8H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-7 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M7 7h10V5h2v14H5V5h2zm10 4H7V9h10zm-2 4H7v-2h8z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/account-voice/  -->
-  <StreamGeometry x:Key="Icon.AccountVoice">M9 5a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c2.67 0 8 1.34 8 4v2H1v-2c0-2.66 5.33-4 8-4m7.76-9.64c2.02 2.2 2.02 5.25 0 7.27l-1.68-1.69c.84-1.18.84-2.71 0-3.89zM20.07 2c3.93 4.05 3.9 10.11 0 14l-1.63-1.63c2.77-3.18 2.77-7.72 0-10.74z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/account-voice/  -->
+    <StreamGeometry x:Key="Icon.AccountVoice">M9 5a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4m0 10c2.67 0 8 1.34 8 4v2H1v-2c0-2.66 5.33-4 8-4m7.76-9.64c2.02 2.2 2.02 5.25 0 7.27l-1.68-1.69c.84-1.18.84-2.71 0-3.89zM20.07 2c3.93 4.05 3.9 10.11 0 14l-1.63-1.63c2.77-3.18 2.77-7.72 0-10.74z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/school-outline/  -->
-  <StreamGeometry x:Key="Icon.SchoolOutline">M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9zm6.82 6L12 12.72 5.18 9 12 5.28zM17 16l-5 2.72L7 16v-3.73L12 15l5-2.73z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/school-outline/  -->
+    <StreamGeometry x:Key="Icon.SchoolOutline">M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9zm6.82 6L12 12.72 5.18 9 12 5.28zM17 16l-5 2.72L7 16v-3.73L12 15l5-2.73z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/file-certificate-outline/  -->
-  <StreamGeometry x:Key="Icon.FileCertificateOutline">M14 13v-2l-2 1-2-1v2l-2 1 2 1v2l2-1 2 1v-2l2-1M14 2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h1v-2H7V4h6v4h4v10h-1v2h1a2 2 0 0 0 2-2V7m-5 6v-2l-2 1-2-1v2l-2 1 2 1v2l2-1 2 1v-2l2-1m-6 9 2-1 2 1v-5h-4m4-5v-2l-2 1-2-1v2l-2 1 2 1v2l2-1 2 1v-2l2-1Z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/file-certificate-outline/  -->
+    <StreamGeometry x:Key="Icon.FileCertificateOutline">M14 13v-2l-2 1-2-1v2l-2 1 2 1v2l2-1 2 1v-2l2-1M14 2H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h1v-2H7V4h6v4h4v10h-1v2h1a2 2 0 0 0 2-2V7m-5 6v-2l-2 1-2-1v2l-2 1 2 1v2l2-1 2 1v-2l2-1m-6 9 2-1 2 1v-5h-4m4-5v-2l-2 1-2-1v2l-2 1 2 1v2l2-1 2 1v-2l2-1Z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/spray-bottle/  -->
-  <StreamGeometry x:Key="Icon.SprayBottle">M16.72 10.43C14.68 8.39 14.5 4.66 14.5 4H13v2H9V4H7c0-1.1.9-2 2-2h7v1c0 .08.04 4.63 1.78 6.37zM17 2v2h1V2zm-2 10c-2-2-2-5-2-5H9v2c0 1 0 1-1 2s-1 2-1 2v7c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/spray-bottle/  -->
+    <StreamGeometry x:Key="Icon.SprayBottle">M16.72 10.43C14.68 8.39 14.5 4.66 14.5 4H13v2H9V4H7c0-1.1.9-2 2-2h7v1c0 .08.04 4.63 1.78 6.37zM17 2v2h1V2zm-2 10c-2-2-2-5-2-5H9v2c0 1 0 1-1 2s-1 2-1 2v7c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/badge-account-outline/  -->
-  <StreamGeometry x:Key="Icon.BadgeAccountOutline">M17 3h-3v2h3v16H7V5h3V3H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-5 4a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2m4 8H8v-1c0-1.33 2.67-2 4-2s4 .67 4 2zm0 3H8v-1h8zm-4 2H8v-1h4zm1-15h-2V1h2z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/badge-account-outline/  -->
+    <StreamGeometry x:Key="Icon.BadgeAccountOutline">M17 3h-3v2h3v16H7V5h3V3H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m-5 4a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2m4 8H8v-1c0-1.33 2.67-2 4-2s4 .67 4 2zm0 3H8v-1h8zm-4 2H8v-1h4zm1-15h-2V1h2z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/account-school-outline/  -->
-  <StreamGeometry x:Key="Icon.AccountSchoolOutline">M18 10.5V6l-2.11 1.06A4 4 0 0 1 12 12a4 4 0 0 1-3.89-4.94L5 5.5 12 2l7 3.5v5zM12 9l-2-1c0 1.1.9 2 2 2s2-.9 2-2zm2.75-3.58L12.16 4.1 9.47 5.47l2.6 1.32zM12 13c2.67 0 8 1.33 8 4v3H4v-3c0-2.67 5.33-4 8-4m0 1.9c-3 0-6.1 1.46-6.1 2.1v1.1h12.2V17c0-.64-3.13-2.1-6.1-2.1</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/account-school-outline/  -->
+    <StreamGeometry x:Key="Icon.AccountSchoolOutline">M18 10.5V6l-2.11 1.06A4 4 0 0 1 12 12a4 4 0 0 1-3.89-4.94L5 5.5 12 2l7 3.5v5zM12 9l-2-1c0 1.1.9 2 2 2s2-.9 2-2zm2.75-3.58L12.16 4.1 9.47 5.47l2.6 1.32zM12 13c2.67 0 8 1.33 8 4v3H4v-3c0-2.67 5.33-4 8-4m0 1.9c-3 0-6.1 1.46-6.1 2.1v1.1h12.2V17c0-.64-3.13-2.1-6.1-2.1</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/chart-line/  -->
-  <StreamGeometry x:Key="Icon.ChartLine">m16 11.78 4.24-7.33 1.73 1-5.23 9.05-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/chart-line/  -->
+    <StreamGeometry x:Key="Icon.ChartLine">m16 11.78 4.24-7.33 1.73 1-5.23 9.05-6.51-3.75L5.46 19H22v2H2V3h2v14.54L9.5 8z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/flask-empty-outline/  -->
-  <StreamGeometry x:Key="Icon.FlaskEmptyOutline">M5 19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1c0-.21-.07-.41-.18-.57L13 8.35V4h-2v4.35L5.18 18.43c-.11.16-.18.36-.18.57m1 3a3 3 0 0 1-3-3c0-.6.18-1.16.5-1.63L9 7.81V6a1 1 0 0 1-1-1V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1v1.81l5.5 9.56c.32.47.5 1.03.5 1.63a3 3 0 0 1-3 3z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/flask-empty-outline/  -->
+    <StreamGeometry x:Key="Icon.FlaskEmptyOutline">M5 19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1c0-.21-.07-.41-.18-.57L13 8.35V4h-2v4.35L5.18 18.43c-.11.16-.18.36-.18.57m1 3a3 3 0 0 1-3-3c0-.6.18-1.16.5-1.63L9 7.81V6a1 1 0 0 1-1-1V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1a1 1 0 0 1-1 1v1.81l5.5 9.56c.32.47.5 1.03.5 1.63a3 3 0 0 1-3 3z</StreamGeometry>
 
-  <!--  https://pictogrammers.com/library/mdi/icon/bug-outline/  -->
-  <StreamGeometry x:Key="Icon.BugOutline">M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L17 4.41 15.59 3l-2.17 2.17a6 6 0 0 0-2.83 0L8.41 3 7 4.41 8.62 6c-.75.5-1.36 1.21-1.81 2H4v2h2.09c-.06.33-.09.66-.09 1v1H4v2h2v1c0 .34.03.67.09 1H4v2h2.81A5.99 5.99 0 0 0 15 20.18c.91-.52 1.67-1.28 2.19-2.18H20v-2h-2.09c.06-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.03-.67-.09-1H20zm-4 7a4 4 0 0 1-4 4 4 4 0 0 1-4-4v-4a4 4 0 0 1 4-4 4 4 0 0 1 4 4zm-2-5v2h-4v-2zm-4 4h4v2h-4z</StreamGeometry>
+    <!--  https://pictogrammers.com/library/mdi/icon/bug-outline/  -->
+    <StreamGeometry x:Key="Icon.BugOutline">M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L17 4.41 15.59 3l-2.17 2.17a6 6 0 0 0-2.83 0L8.41 3 7 4.41 8.62 6c-.75.5-1.36 1.21-1.81 2H4v2h2.09c-.06.33-.09.66-.09 1v1H4v2h2v1c0 .34.03.67.09 1H4v2h2.81A5.99 5.99 0 0 0 15 20.18c.91-.52 1.67-1.28 2.19-2.18H20v-2h-2.09c.06-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.03-.67-.09-1H20zm-4 7a4 4 0 0 1-4 4 4 4 0 0 1-4-4v-4a4 4 0 0 1 4-4 4 4 0 0 1 4 4zm-2-5v2h-4v-2zm-4 4h4v2h-4z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/play/  -->
+    <StreamGeometry x:Key="Icon.Play">M8 5.14v14l11-7z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/pause/  -->
+    <StreamGeometry x:Key="Icon.Pause">M14 19h4V5h-4M6 19h4V5H6z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/debug-step-over/  -->
+    <StreamGeometry x:Key="Icon.DebugStepOver">M12 14a2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2m11.46-5.14-1.59 6.89L15 14.16l3.8-2.38A7.97 7.97 0 0 0 12 8c-3.95 0-7.23 2.86-7.88 6.63l-1.97-.35C2.96 9.58 7.06 6 12 6c3.58 0 6.73 1.89 8.5 4.72z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/debug-step-into/ -->
+    <StreamGeometry x:Key="Icon.DebugStepInto">M12 22a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2m1-20v11l4.5-4.5 1.42 1.42L12 16.84 5.08 9.92 6.5 8.5 11 13V2z</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/debug-step-out/ -->
+    <StreamGeometry x:Key="Icon.DebugStepOut">M12 22a2 2 0 0 1-2-2 2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2m1-6h-2V6l-4.5 4.5-1.42-1.42L12 2.16l6.92 6.92-1.42 1.42L13 6z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/restart/  -->
+    <StreamGeometry x:Key="Icon.Restart">M12 4c2.1 0 4.1.8 5.6 2.3 3.1 3.1 3.1 8.2 0 11.3-1.8 1.9-4.3 2.6-6.7 2.3l.5-2c1.7.2 3.5-.4 4.8-1.7 2.3-2.3 2.3-6.1 0-8.5C15.1 6.6 13.5 6 12 6v4.6l-5-5 5-5zM6.3 17.6C3.7 15 3.3 11 5.1 7.9l1.5 1.5c-1.1 2.2-.7 5 1.2 6.8q.75.75 1.8 1.2l-.6 2q-1.5-.6-2.7-1.8</StreamGeometry>
 
 </ResourceDictionary>

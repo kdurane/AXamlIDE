@@ -7,9 +7,9 @@ using Avalonia.Input;
 using Avalonia.Media;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
-using AXamlIDE.Documents;
+using AXamlIDE.Models;
 
-namespace AXamlIDE.Editor.CodeActions;
+namespace AXamlIDE.Views.Editor.CodeActions;
 
 internal sealed class CodeActionMargin : AbstractMargin
 {

@@ -1,7 +1,7 @@
 using System;
 using AvaloniaEdit.Rendering;
 
-namespace AXamlIDE.Editor.Highlighting;
+namespace AXamlIDE.Views.Editor.Highlighting;
 
 /// <summary>
 /// Highlights other occurrences of the selected text

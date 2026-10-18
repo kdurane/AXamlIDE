@@ -1,0 +1,20 @@
+<UserControl
+    x:Class="AXamlIDE.Views.Running.OutputView"
+    x:DataType="vm:RunViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels.Running"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--  Build output (DataContext: RunViewModel)  -->
+    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+        <ItemsControl ItemsSource="{Binding BuildOutput}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock
+                        FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                        FontSize="11"
+                        Text="{Binding}" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

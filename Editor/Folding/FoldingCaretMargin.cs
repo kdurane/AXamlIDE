@@ -7,9 +7,8 @@ using Avalonia.Media;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Folding;
 using AvaloniaEdit.Rendering;
-using AXamlIDE.Shared;
 
-namespace AXamlIDE.Editor.Folding;
+namespace AXamlIDE.Views.Editor.Folding;
 
 internal sealed class FoldingCaretMargin(FoldingManager foldingManager) : AbstractMargin
 {

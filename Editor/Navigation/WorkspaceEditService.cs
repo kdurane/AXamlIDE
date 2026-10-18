@@ -4,10 +4,10 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using AXamlIDE.Documents;
-using AXamlIDE.Lsp;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Lsp;
 
-namespace AXamlIDE.Editor.Navigation;
+namespace AXamlIDE.Views.Editor.Navigation;
 
 /// <summary>
 /// Applies LSP workspace edits (rename, code actions, server-initiated edits).
@@ -57,7 +57,7 @@ public sealed class WorkspaceEditService(EditorContext ctx)
 
     /// <summary>
     /// Applies an edit the language server pushed to us (workspace/applyEdit). Wired to
-    /// MainWindowViewModel.WorkspaceEditRequested; a delegate rather than a message because
+    /// LanguageSessionService.WorkspaceEditRequested by EditorPaneView; a delegate rather than a message because
     /// the server needs the bool result back.
     /// </summary>
     public Task<bool> ApplyServerEditAsync(JsonElement workspaceEdit)

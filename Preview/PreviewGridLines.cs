@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace AXamlIDE.Preview;
+namespace AXamlIDE.Views.Preview;
 
 public sealed class PreviewGridLines : Control
 {

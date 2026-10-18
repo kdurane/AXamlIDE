@@ -8,11 +8,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using AXamlIDE.Documents;
-using AXamlIDE.Editor.Navigation;
-using AXamlIDE.Lsp;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Lsp;
+using AXamlIDE.Views.Editor.Navigation;
 
-namespace AXamlIDE.Editor.CodeActions;
+namespace AXamlIDE.Views.Editor.CodeActions;
 
 /// <summary>
 /// Quick actions (lightbulb margin, Ctrl+., hover on a diagnostic).

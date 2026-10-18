@@ -1,17 +1,15 @@
 using System;
 using System.IO;
 using Avalonia.Threading;
-using AXamlIDE.Debugging;
-using AXamlIDE.Documents;
-using AXamlIDE.Editor.Debugging;
-using AXamlIDE.Lsp;
-using AXamlIDE.Outline;
-using AXamlIDE.Problems;
-using AXamlIDE.Search;
-using AXamlIDE.Shell;
+using AXamlIDE.Messages;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Debugging;
+using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Lsp;
+using AXamlIDE.Views.Editor.Debugging;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Editor.Navigation;
+namespace AXamlIDE.Views.Editor.Navigation;
 
 /// <summary>
 /// Every "go to this place in the editor" move. Driven by messages (see EditorMessages.cs);

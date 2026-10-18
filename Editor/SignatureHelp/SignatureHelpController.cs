@@ -5,9 +5,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AvaloniaEdit.CodeCompletion;
-using AXamlIDE.Documents;
+using AXamlIDE.Models;
 
-namespace AXamlIDE.Editor.SignatureHelp;
+namespace AXamlIDE.Views.Editor.SignatureHelp;
 
 /// <summary>
 /// Signature help popup (parameter hints). Re-requests as the caret moves while it is open.

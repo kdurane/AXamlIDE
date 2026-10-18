@@ -8,10 +8,10 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
-using AXamlIDE.Editor.CodeActions;
-using AXamlIDE.Lsp;
+using AXamlIDE.Services.Lsp;
+using AXamlIDE.Views.Editor.CodeActions;
 
-namespace AXamlIDE.Editor.Hover;
+namespace AXamlIDE.Views.Editor.Hover;
 
 /// <summary>
 /// Hover tooltip: the pointer rests on an offset, a debounce timer fires, the server is asked.

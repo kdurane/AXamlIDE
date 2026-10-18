@@ -1,0 +1,48 @@
+<UserControl
+    x:Class="AXamlIDE.Views.Editor.EditorPaneView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:edit="using:AvaloniaEdit"
+    xmlns:editing="using:AvaloniaEdit.Editing"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  No bindings to a parent view model: everything goes through EditorServices (see Initialize).  -->
+    <edit:TextEditor
+        FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+        FontSize="13"
+        FontWeight="Light"
+        HorizontalScrollBarVisibility="Auto"
+        Margin="0"
+        Name="Editor"
+        ShowLineNumbers="True"
+        VerticalScrollBarVisibility="Visible">
+        <edit:TextEditor.ContextFlyout>
+            <MenuFlyout>
+                <MenuItem
+                    Click="OnCopyClick"
+                    Header="Copy"
+                    InputGesture="ctrl+C" />
+                <MenuItem
+                    Click="OnCutClick"
+                    Header="Cut"
+                    InputGesture="ctrl+X" />
+                <MenuItem
+                    Click="OnPasteClick"
+                    Header="Paste"
+                    InputGesture="ctrl+V" />
+                <MenuItem Header="-" />
+                <MenuItem Click="OnCodeActionsClick" Header="Quick Actions..." InputGesture="Ctrl+." />
+                <MenuItem Click="OnFormatClick" Header="Format Document" />
+                <MenuItem Header="-" />
+                <MenuItem
+                    Click="OnSelectAllClick"
+                    Header="Select All"
+                    InputGesture="ctrl+A" />
+            </MenuFlyout>
+        </edit:TextEditor.ContextFlyout>
+        <edit:TextEditor.Styles>
+            <Style Selector="editing|LineNumberMargin">
+                <Setter Property="MinWidthInDigits" Value="3" />
+            </Style>
+        </edit:TextEditor.Styles>
+    </edit:TextEditor>
+</UserControl>

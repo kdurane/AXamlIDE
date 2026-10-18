@@ -7,9 +7,9 @@ using Avalonia.Media.Immutable;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
-using AXamlIDE.Documents;
+using AXamlIDE.Models;
 
-namespace AXamlIDE.Editor.Debugging;
+namespace AXamlIDE.Views.Editor.Debugging;
 
 /// <summary>
 /// A custom margin that draws document-owned breakpoint markers.

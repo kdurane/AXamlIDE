@@ -1,12 +1,25 @@
 using System;
-using AXamlIDE.Documents;
-using AXamlIDE.Lsp;
-using AXamlIDE.Preview;
-using AXamlIDE.Settings;
-using AXamlIDE.Shared;
-using AXamlIDE.Shell;
-using AXamlIDE.Workspace;
-using AXamlIDE.Xaml;
+using AXamlIDE.Services.Dialogs;
+using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Editor;
+using AXamlIDE.Services.Languages;
+using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Settings;
+using AXamlIDE.Services.Workspace;
+using AXamlIDE.Services.Xaml;
+using AXamlIDE.ViewModels.Documents;
+using AXamlIDE.ViewModels.Editor;
+using AXamlIDE.ViewModels.Outline;
+using AXamlIDE.ViewModels.Preview;
+using AXamlIDE.ViewModels.Problems;
+using AXamlIDE.ViewModels.Running;
+using AXamlIDE.ViewModels.Search;
+using AXamlIDE.ViewModels.Settings;
+using AXamlIDE.ViewModels.Shell;
+using AXamlIDE.ViewModels.Workspace;
+using AXamlIDE.Views.Dialogs;
+using AXamlIDE.Views.Editor;
+using AXamlIDE.Views.Shell;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using TextMateSharp.Grammars;
@@ -30,25 +43,37 @@ public static class AppServices
         // ---- cross-cutting
         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         services.AddSingleton<IDialogService, DialogService>();
+        services.AddSingleton<EditorCommands>();
+        services.AddSingleton<KeyMap>();
 
         // ---- settings: loaded once at startup; SettingsViewModel is also the live IEditorSettings
         services.AddSingleton<EditorSettingsStore>();
         services.AddSingleton(sp => sp.GetRequiredService<EditorSettingsStore>().Load());
-        services.AddSingleton(sp => new SettingsViewModel(
-            sp.GetRequiredService<EditorSettingsLoadResult>().Settings,
-            sp.GetRequiredService<EditorSettingsStore>()));
+        services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<IEditorSettings>(sp => sp.GetRequiredService<SettingsViewModel>());
         services.AddSingleton(_ => new RegistryOptions(ThemeName.DarkPlus));
 
         // ---- workspace, documents, languages
         services.AddSingleton<WorkspaceModel>();
         services.AddSingleton<DocumentManager>();
+        services.AddSingleton<DocumentSaveService>();
+        services.AddSingleton<DocumentCommands>();
+        services.AddSingleton<IDocumentHost, DocumentHost>();
+        services.AddSingleton<EditorServices>();
         services.AddSingleton(_ => new LspManager(LspServers.Defaults));
         services.AddSingleton<XamlLanguageService>();
+        services.AddSingleton<LanguageSessionService>();
 
         // ---- view models and the window
-        services.AddSingleton(sp => new PreviewPaneViewModel(
-            sp.GetRequiredService<XamlLanguageService>().GetPreviewTargetAsync));
+        services.AddSingleton<PreviewPaneViewModel>();
+        services.AddSingleton<WorkspaceViewModel>();
+        services.AddSingleton<ExplorerViewModel>();
+        services.AddSingleton<DocumentWellViewModel>();
+        services.AddSingleton<ProblemsViewModel>();
+        services.AddSingleton<OutlineViewModel>();
+        services.AddSingleton<SearchViewModel>();
+        services.AddSingleton<RunViewModel>();
+        services.AddSingleton<ToolPanels>();
         services.AddSingleton<MainWindowViewModel>();
         services.AddSingleton<MainWindow>();
 

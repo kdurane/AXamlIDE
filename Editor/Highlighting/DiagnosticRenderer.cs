@@ -3,10 +3,10 @@ using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
-using AXamlIDE.Documents;
-using AXamlIDE.Lsp;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Lsp;
 
-namespace AXamlIDE.Editor.Highlighting;
+namespace AXamlIDE.Views.Editor.Highlighting;
 
 /// <summary>
 /// One renderer for the one shared editor. On tab switch, point <see cref="Segments"/>
