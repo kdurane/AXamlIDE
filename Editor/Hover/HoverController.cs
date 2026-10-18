@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
+using AXamlIDE.Models;
 using AXamlIDE.Editor.CodeActions;
 using AXamlIDE.Services.Lsp;
 
@@ -58,7 +59,8 @@ public sealed class HoverController
             return;
         }
 
-        var offset = doc.Document.GetOffset(pos.Location);
+        // Below the last line the editor can report a spot past the end of the text.
+        var offset = Math.Min(doc.Document.GetOffset(pos.Location), doc.Document.TextLength);
 
         // Still over what the open tooltip is about: leave it alone.
         if (_tipRange is { } range && offset >= range.Start && offset <= range.End) return;
@@ -69,19 +71,23 @@ public sealed class HoverController
         _hoverTimer.Start();
     }
 
+    private static bool IsInDocument(OpenDocument doc, int offset)
+        => offset >= 0 && offset <= doc.Document.TextLength;
+
     private async void OnHoverTimer(object? sender, EventArgs e)
     {
         _hoverTimer.Stop();
         if (_ctx.Active is not { } doc || _hoverOffset < 0) return;
 
         var offset = _hoverOffset;
+        if (!IsInDocument(doc, offset)) return;   // the text got shorter since the pointer stopped
 
         // Diagnostics are local and instant; the server's hover text is added if it has any.
         var segments = doc.Diagnostics.FindSegmentsContaining(offset).ToList();
         var diagText = string.Join(Environment.NewLine, segments.Select(d => d.Message));
         (int Start, int End)? range = segments.Count > 0 ? (segments[0].StartOffset, segments[0].EndOffset) : null;
 
-        if (segments.Count > 0 && doc.Client?.SupportsCodeActions == true)
+        if (segments.Count > 0 && _ctx.Languages.ClientFor(doc)?.SupportsCodeActions == true)
         {
             var diagnosticHeader = string.Join(
                 Environment.NewLine,
@@ -115,10 +121,11 @@ public sealed class HoverController
             if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(doc, _ctx.Active))
                 return;
         }
-        else if (doc is { Client: { } client, Sync: { } sync })
+        else if (_ctx.Languages.ConnectionFor(doc) is { Client: var client, Sync: var sync })
         {
             sync.Flush(); // the server has to see what's on screen
 
+            if (!IsInDocument(doc, offset)) return;   // edited while the quick-actions lookup was awaited
             var cts = _hoverCts = new CancellationTokenSource();
             var loc = doc.Document.GetLocation(offset);
 

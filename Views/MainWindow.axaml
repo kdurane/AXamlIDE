@@ -1,15 +1,14 @@
 <Window
-    Title="AXxamlIde"
+    Title="AXamlIDE"
     d:DesignHeight="800"
     d:DesignWidth="1200"
     x:Class="AXamlIDE.Views.MainWindow"
-    x:DataType="viewmodels:MainWindowViewModel"
+    x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:documents="using:AXamlIDE.Views"
-    xmlns:shared="clr-namespace:AXamlIDE.Shell"
-    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
-    xmlns:workspace="using:AXamlIDE.Views"
+    xmlns:shell="using:AXamlIDE.Shell"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid RowDefinitions="auto,*,Auto">
@@ -178,7 +177,7 @@
                 </StackPanel>
             </Border>
 
-            <documents:ExplorerView
+            <views:ExplorerView
                 DataContext="{Binding Explorer}"
                 Grid.Column="1"
                 Name="ExplorerPane" />
@@ -194,7 +193,7 @@
                 Name="EditorHost"
                 RowDefinitions="*,4,190">
                 <Panel Grid.Row="0" IsVisible="{Binding IsEditorVisible}">
-                    <documents:DocumentWellView DataContext="{Binding DocumentWell}" Name="DocumentWell" />
+                    <views:DocumentWellView DataContext="{Binding DocumentWell}" Name="DocumentWell" />
                 </Panel>
                 <Border
                     BorderBrush="{DynamicResource ThemeForegroundBrush}"
@@ -238,18 +237,18 @@
                     HorizontalAlignment="Stretch"
                     ResizeDirection="Rows" />
 
-                <!--  Filled from Views/Shell/ToolPanels.cs in code-behind; each tab shows that panel's own view.  -->
+                <!--  Filled from Shell/ToolPanels.cs in code-behind; each tab shows that panel's own view.  -->
                 <TabControl
                     FontSize="11"
                     Grid.Row="2"
                     Name="ToolTabs">
                     <TabControl.ItemTemplate>
-                        <DataTemplate x:DataType="shared:ToolPanel">
+                        <DataTemplate x:DataType="shell:ToolPanel">
                             <TextBlock FontSize="11" Text="{Binding Title}" />
                         </DataTemplate>
                     </TabControl.ItemTemplate>
                     <TabControl.ContentTemplate>
-                        <DataTemplate x:DataType="shared:ToolPanel">
+                        <DataTemplate x:DataType="shell:ToolPanel">
                             <ContentControl Content="{Binding View}" />
                         </DataTemplate>
                     </TabControl.ContentTemplate>

@@ -79,7 +79,7 @@ public partial class EditorPaneView : UserControl,
         _settings = services.Settings;
         _services = services;
         _registryOptions = registryOptions;
-        _ctx = new EditorContext(Editor, services.Settings, services.Xaml, services.Documents, services.Messenger);
+        _ctx = new EditorContext(Editor, services.Settings, services.Xaml, services.Documents, services.Languages, services.Messenger);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
         _occurrences = new OccurrenceController(_ctx);
@@ -231,7 +231,7 @@ public partial class EditorPaneView : UserControl,
                     _ = _signatureHelp.RequestAsync(document, triggerCharacter: null);
                 break;
             case EditorAction.Completion:
-                if (_ctx.Active is { Sync: not null } completionDocument)
+                if (_ctx.Active is { } completionDocument && _ctx.Languages.ConnectionFor(completionDocument) is not null)
                     _ = _completion.ShowCompletionAsync(completionDocument, triggerChar: null);
                 break;
         }

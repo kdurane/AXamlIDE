@@ -29,6 +29,7 @@ public sealed class LanguageSessionService
     private readonly DocumentManager _documents;
     private readonly LspManager _servers;
     private readonly IMessenger _messenger;
+    private readonly Dictionary<OpenDocument, DocumentConnection> _connections = [];
 
     public LanguageSessionService(DocumentManager documents, LspManager servers, IMessenger messenger)
     {
@@ -38,6 +39,7 @@ public sealed class LanguageSessionService
 
         _documents.Opened += OnDocumentOpened;
         _documents.Closing += OnDocumentClosing;
+        _documents.Saving += OnDocumentSaving;
         _documents.Saved += OnDocumentSaved;
 
         _servers.StatusChanged += OnServerStatusChanged;
@@ -46,8 +48,15 @@ public sealed class LanguageSessionService
         _servers.WorkspaceEditHandler = edit => WorkspaceEditRequested?.Invoke(edit) ?? Task.FromResult(false);
     }
 
-    /// <summary>Raised once a document is connected to its server (it now has Client and Sync).</summary>
+    /// <summary>Raised once a document is connected to its server (<see cref="ConnectionFor"/> is non-null from then on).</summary>
     public event Action<OpenDocument>? ClientAttached;
+
+    /// <summary>The document's language-server connection, or null if it has none (yet, or for its language).</summary>
+    public DocumentConnection? ConnectionFor(OpenDocument? document)
+        => document is not null && _connections.TryGetValue(document, out var connection) ? connection : null;
+
+    /// <summary>Shorthand for <c>ConnectionFor(document)?.Client</c>.</summary>
+    public LspClient? ClientFor(OpenDocument? document) => ConnectionFor(document)?.Client;
 
     /// <summary>
     /// Applies an edit the server pushed (workspace/applyEdit). Set by the editor, which owns
@@ -74,11 +83,12 @@ public sealed class LanguageSessionService
 
     private void ReattachDocuments()
     {
+        foreach (var connection in _connections.Values)
+            connection.Dispose();
+        _connections.Clear();
+
         foreach (var document in _documents.Documents)
         {
-            document.Sync?.Dispose();
-            document.Sync = null;
-            document.Client = null;
             document.ClearDiagnostics();
             _messenger.Send(new DiagnosticsChangedMessage(document));
             if (_servers.Handles(document.LanguageId))
@@ -99,14 +109,14 @@ public sealed class LanguageSessionService
         var generation = _servers.Generation;
         var client = await _servers.GetClientAsync(document.LanguageId);
         if (client is null || generation != _servers.Generation
-                           || !_documents.Documents.Contains(document) || document.Sync is not null)
+                           || !_documents.Documents.Contains(document) || _connections.ContainsKey(document))
             return;
 
-        document.Client = client;
         client.DidOpen(document.Uri, document.LanguageId, 1, document.Document.Text);
-        document.Sync = new DocumentSync(document.Document, client, document.Uri);
+        var connection = new DocumentConnection(client, new DocumentSync(document.Document, client, document.Uri));
+        _connections[document] = connection;
         ClientAttached?.Invoke(document);
-        document.Sync.Flushed += () =>
+        connection.Sync.Flushed += () =>
         {
             if (client.SupportsPullDiagnostics)
                 _ = PullDiagnosticsAsync(document);
@@ -118,15 +128,17 @@ public sealed class LanguageSessionService
 
     private void OnDocumentClosing(OpenDocument document)
     {
-        if (document.Sync is not null)
-            document.Client?.DidClose(document.Uri);
+        if (!_connections.Remove(document, out var connection))
+            return;
+        connection.Client.DidClose(document.Uri);
+        connection.Dispose();
     }
 
+    // The server has to have the latest text before it's told about the save.
+    private void OnDocumentSaving(OpenDocument document) => ConnectionFor(document)?.Sync.Flush();
+
     private void OnDocumentSaved(OpenDocument document)
-    {
-        if (document.Sync is not null)
-            document.Client?.DidSave(document.Uri, document.Document.Text);
-    }
+        => ConnectionFor(document)?.Client.DidSave(document.Uri, document.Document.Text);
 
     // ---------------------------------------------------------------- diagnostics
 
@@ -141,23 +153,23 @@ public sealed class LanguageSessionService
 
     private void OnDiagnosticsRefreshNeeded(LspClient client)
     {
-        foreach (var document in _documents.Documents.Where(document => ReferenceEquals(document.Client, client)))
-            _ = PullDiagnosticsAsync(document);
+        foreach (var (document, connection) in _connections.ToArray())
+            if (ReferenceEquals(connection.Client, client))
+                _ = PullDiagnosticsAsync(document);
     }
 
     private async Task PullDiagnosticsAsync(OpenDocument document)
     {
-        if (document.Client is not { SupportsPullDiagnostics: true } client
-            || document.Sync is not { } sync)
+        if (ConnectionFor(document) is not { Client.SupportsPullDiagnostics: true } connection)
             return;
 
-        document.PullCts?.Cancel();
-        var cancellation = document.PullCts = new CancellationTokenSource();
-        var version = sync.Version;
+        connection.PullCts?.Cancel();
+        var cancellation = connection.PullCts = new CancellationTokenSource();
+        var version = connection.Sync.Version;
 
         try
         {
-            var diagnostics = await client.PullDiagnosticsAsync(document.Uri, cancellation.Token);
+            var diagnostics = await connection.Client.PullDiagnosticsAsync(document.Uri, cancellation.Token);
             if (!cancellation.IsCancellationRequested)
                 ApplyDiagnostics(document, diagnostics, version);
         }
@@ -172,8 +184,14 @@ public sealed class LanguageSessionService
 
     private void ApplyDiagnostics(OpenDocument document, IReadOnlyList<LspDiagnostic> diagnostics, int? version)
     {
-        if (document.ApplyDiagnostics(diagnostics, version))
-            _messenger.Send(new DiagnosticsChangedMessage(document));
+        // Stale: the user has typed since the server analysed, so its offsets would be wrong.
+        // The server will publish again after it has seen the newer text.
+        if (ConnectionFor(document)?.Sync is { } sync
+            && (sync.HasPendingChanges || version is { } v && v != sync.Version))
+            return;
+
+        document.ApplyDiagnostics(diagnostics);
+        _messenger.Send(new DiagnosticsChangedMessage(document));
     }
 
     private void OnServerStatusChanged()
@@ -190,7 +208,7 @@ public sealed class LanguageSessionService
     /// </summary>
     public async Task<bool> FormatDocumentAsync(OpenDocument document, bool reportUnchanged)
     {
-        if (document.Client is not { } client || document.Sync is not { } sync)
+        if (ConnectionFor(document) is not { Client: var client, Sync: var sync })
         {
             if (reportUnchanged)
                 Status("Open a document with an active language server to format it.");

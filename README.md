@@ -11,30 +11,27 @@ AXamlIDE is an IDE built with Avalonia and .NET for XML/AXAML development. It pr
 - 🧪 Integrated diagnostic rendering and occurrence tracking
 
 ## Folder Structure
-Classic MVVM folders, each split by feature. A folder is a namespace (`Views/Editor/Hover` is
-`AXamlIDE.Views.Editor.Hover`); `Models/` is one flat namespace. Dependencies only point downwards:
-Views -> ViewModels -> Services / Models / Messages.
+MVVM folders. A folder is a namespace (`Editor/Hover` is `AXamlIDE.Editor.Hover`). Dependencies point one way:
+Views -> ViewModels / Commands -> Services / Models / Messages.
 
 ```
 App.axaml(.cs), Program.cs   Startup; AppServices.cs registers every service (dependency injection)
-Views/                       Windows, panels and editor UI (anything that is an Avalonia control)
-  Shell/                       MainWindow, KeyMap (all shortcuts), ToolPanels (the bottom tool tabs)
-  Documents/                   DocumentWellView: tab strip + outline + editor + preview
-  Editor/                      EditorPaneView and its feature controllers:
-    CodeCompletion/ Hover/ SignatureHelp/ CodeActions/ Folding/ Navigation/ Highlighting/ Debugging/
-  Workspace/ Problems/ Search/ Running/ Preview/ Settings/   the other panels and windows
-  Dialogs/                     DialogService (implements IDialogService)
-ViewModels/                  One view model per panel/window, plus command sets
-  Shell/ Documents/ Workspace/ Problems/ Outline/ Running/ Search/ Preview/ Settings/ Editor/
+Views/                       Every window and panel (.axaml + code-behind), DialogService, view helpers
+ViewModels/                  One view model per window/panel (MainWindow, DocumentWell, Explorer, Problems,
+                             Outline, Run (+ .Debug), Search, Preview, Settings, Workspace)
+Commands/                    Command sets shared by menus, KeyMap and panels: DocumentCommands, EditorCommands
+Shell/                       Window composition: KeyMap (all shortcuts), ToolPanels / ToolPanel (bottom tool tabs)
+Editor/                      The text editor's feature controllers (used by Views/EditorPaneView):
+  CodeCompletion/ Hover/ SignatureHelp/ CodeActions/ Folding/ Navigation/ Highlighting/ Debugging/
 Models/                      App-side data: OpenDocument, ProblemItem, DiagnosticSegment, EditorTheme...
-Messages/                    IMessenger messages (status, tool tabs, editor navigation, diagnostics)
+Messages/                    IMessenger messages (status, tool tabs, editor actions/navigation, diagnostics)
 Services/                    App-side services that need Avalonia/AvaloniaEdit:
   Documents/ (DocumentManager, saving, DocumentHost)  Languages/ (LanguageSessionService, DocumentSync)
-  Editor/ Dialogs/ Settings/ Preview/ (designer host process)
+  Editor/ (EditorServices)  Dialogs/ (IDialogService)  Settings/ (IEditorSettings)  Preview/ (designer host)
 Assets/, Styles/             Theme JSON, icons, shared styles
 Projects/
   AXamlIDE.Core/             Everything without a UI (no Avalonia reference allowed). Same namespaces as the app:
-    CompletionEngine/          XAML completion engine, forked from the Avalonia VS extension (see its LICENSE.md)
+    CompletionEngine/          XAML completion engine, forked from the Avalonia VS extension (see its UPSTREAM.md)
     Services/Lsp/              language server client, server configs, LSP types
     Services/Debugging/        netcoredbg debug adapter session
     Services/Workspace/        workspace model, solutions, MSBuild host client
@@ -57,7 +54,7 @@ How the pieces are put together and talk:
 - **Panels are self-contained views** with their own view model (`ExplorerView`, `DocumentWellView`, and the tool
   panels listed in `Shell/ToolPanels.cs`). They don't depend on `MainWindow`, so they can later live in other windows.
 - **The selected tab** is `DocumentManager.Active`; tab strips, the outline, preview and status bar all follow it.
-- **The editor pane** is set up by its `DocumentWellView` (`EditorPane.Initialize`) and otherwise reached only by
+- **The editor pane** (`Views/EditorPaneView`) is set up by its `DocumentWellView` (`EditorPane.Initialize`) and otherwise reached only by
   messages (`EditorActionMessage` for commands, `NavigateTo*Message` for navigation).
 - Anything that opens a window goes through `IDialogService`.
 

@@ -5,16 +5,14 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading;
 using AvaloniaEdit.Document;
-using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Search;
 
 namespace AXamlIDE.Models;
 
 /// <summary>Everything the IDE knows about one open file.</summary>
-public sealed class OpenDocument : INotifyPropertyChanged, IDisposable, ITextBuffer
+public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 {
     private readonly List<ITextAnchor> _breakpoints = [];
 
@@ -41,14 +39,7 @@ public sealed class OpenDocument : INotifyPropertyChanged, IDisposable, ITextBuf
     public int ErrorCount { get; private set; }
     public int WarningCount { get; private set; }
 
-    /// <summary>The server this document was opened on; null if its language has no server.</summary>
-    public LspClient? Client { get; set; }
-
-    /// <summary>Non-null once that server has been told about this document (didOpen sent).</summary>
-    public DocumentSync? Sync { get; set; }
-
-    /// <summary>The in-flight pull-diagnostics request, if any (cancelled when a newer one starts).</summary>
-    public CancellationTokenSource? PullCts { get; set; }
+    // Its language-server connection (if any) is kept by LanguageSessionService, not here.
 
     // View state. CaretOffset is kept current by the editor while the document is active;
     // the scroll offsets are saved on tab switch. All are restored when the tab returns.
@@ -116,18 +107,11 @@ public sealed class OpenDocument : INotifyPropertyChanged, IDisposable, ITextBuf
     }
 
     /// <summary>
-    /// Returns false (and changes nothing) if the result is stale: the user has typed
-    /// since the server analysed, so its offsets would be wrong. The server will
-    /// publish again after it has seen the newer text.
+    /// Replace the diagnostics with a server result. The caller (LanguageSessionService) has already
+    /// checked the result isn't stale.
     /// </summary>
-    public bool ApplyDiagnostics(IReadOnlyList<LspDiagnostic> list, int? serverVersion)
+    public void ApplyDiagnostics(IReadOnlyList<LspDiagnostic> list)
     {
-        if (Sync is { } sync)
-        {
-            if (sync.HasPendingChanges) return false;
-            if (serverVersion is { } v && v != sync.Version) return false;
-        }
-
         Diagnostics.Clear();
         int errors = 0, warnings = 0;
 
@@ -157,7 +141,6 @@ public sealed class OpenDocument : INotifyPropertyChanged, IDisposable, ITextBuf
 
         ErrorCount = errors;
         WarningCount = warnings;
-        return true;
     }
 
     public void ClearDiagnostics()
@@ -174,12 +157,6 @@ public sealed class OpenDocument : INotifyPropertyChanged, IDisposable, ITextBuf
         if (line0 >= Document.LineCount) return Document.TextLength;
         var line = Document.GetLineByNumber(line0 + 1);
         return line.Offset + Math.Min(char0, line.Length);
-    }
-
-    public void Dispose()
-    {
-        PullCts?.Cancel();
-        Sync?.Dispose();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

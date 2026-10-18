@@ -3,7 +3,6 @@ using System.Windows.Input;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using AXamlIDE.ViewModels;
-using MainWindowViewModel = AXamlIDE.ViewModels.MainWindowViewModel;
 
 namespace AXamlIDE.Shell;
 

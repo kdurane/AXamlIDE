@@ -155,23 +155,6 @@ public sealed partial class NetCoreDbgSession : IDisposable
         using var response = await RequestAsync("continue", new { threadId }, cancellationToken);
     }
 
-    public async Task<(string Path, int Line)?> GetTopFrameAsync(
-        int threadId,
-        CancellationToken cancellationToken = default)
-    {
-        using var response = await RequestAsync("stackTrace", new { threadId, startFrame = 0, levels = 1 },
-            cancellationToken);
-        var frame = response.RootElement.GetProperty("body").GetProperty("stackFrames").EnumerateArray()
-            .FirstOrDefault();
-        if (frame.ValueKind != JsonValueKind.Object
-            || !frame.TryGetProperty("source", out var source)
-            || !source.TryGetProperty("path", out var path)
-            || !frame.TryGetProperty("line", out var line))
-            return null;
-
-        return (path.GetString()!, line.GetInt32());
-    }
-
     public async Task StopAsync()
     {
         if (_disposed)

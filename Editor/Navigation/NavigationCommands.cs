@@ -221,11 +221,11 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
 
     private bool TryGetActiveLanguageClient(out OpenDocument document, out LspClient client)
     {
-        if (ctx.Active is { Client: not null, Sync: not null } active)
+        if (ctx.Active is { } active && ctx.Languages.ConnectionFor(active) is { } connection)
         {
-            active.Sync.Flush();
+            connection.Sync.Flush();
             document = active;
-            client = active.Client;
+            client = connection.Client;
             return true;
         }
 

@@ -37,10 +37,11 @@ public sealed class SignatureHelpController
 
     public async Task RequestAsync(OpenDocument doc, string? triggerCharacter, bool isRetrigger = false)
     {
-        if (!ReferenceEquals(doc, _ctx.Active) || doc.Client is not { } client || doc.Sync is null)
+        if (!ReferenceEquals(doc, _ctx.Active)
+            || _ctx.Languages.ConnectionFor(doc) is not { Client: var client, Sync: var sync })
             return;
 
-        doc.Sync.Flush();
+        sync.Flush();
         var requestId = ++_signatureHelpSequence;
         _signatureHelpCts?.Cancel();
         var cancellation = _signatureHelpCts = new CancellationTokenSource();

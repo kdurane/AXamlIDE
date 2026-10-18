@@ -30,7 +30,7 @@ public sealed class DocumentSaveService(
             return false;
         }
 
-        if (settings.FormatOnSave && document.Client?.SupportsDocumentFormatting == true)
+        if (settings.FormatOnSave && languages.ClientFor(document)?.SupportsDocumentFormatting == true)
             await languages.FormatDocumentAsync(document, reportUnchanged: false);
 
         try

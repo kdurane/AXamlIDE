@@ -1,9 +1,8 @@
 <UserControl
     x:Class="AXamlIDE.Views.PreviewPaneView"
-    x:DataType="viewmodels:PreviewPaneViewModel"
+    x:DataType="vm:PreviewPaneViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:preview="clr-namespace:AXamlIDE.Preview"
-    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -61,7 +60,7 @@
             </StackPanel>
         </Border>
         <Grid Grid.Row="1" Name="PreviewViewport">
-            <preview:PreviewGridLines IsHitTestVisible="False" />
+            <views:PreviewGridLines IsHitTestVisible="False" />
             <ScrollViewer
                 HorizontalContentAlignment="Center"
                 HorizontalScrollBarVisibility="Auto"

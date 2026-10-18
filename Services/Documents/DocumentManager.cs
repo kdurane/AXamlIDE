@@ -21,6 +21,7 @@ public sealed class DocumentManager
 
     public event Action<OpenDocument>? Opened;    // -> didOpen + create DocumentSync
     public event Action<OpenDocument>? Closing;   // -> didClose
+    public event Action<OpenDocument>? Saving;    // -> flush pending didChange
     public event Action<OpenDocument>? Saved;     // -> didSave
 
     /// <summary>Raised when the active (front) tab changes; the argument is null when no tab is open.</summary>
@@ -79,7 +80,6 @@ public sealed class DocumentManager
         Documents.Remove(doc);
         if (ReferenceEquals(Active, doc))
             Active = null;
-        doc.Dispose();
         return true;
     }
 
@@ -88,7 +88,7 @@ public sealed class DocumentManager
         if (doc.IsReadOnly)
             throw new InvalidOperationException("This document is read-only.");
 
-        doc.Sync?.Flush();    // make sure the server has the latest text first
+        Saving?.Invoke(doc);  // e.g. flush pending edits to the language server first
         doc.Save();
         Saved?.Invoke(doc);
     }

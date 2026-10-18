@@ -4,6 +4,7 @@ using AvaloniaEdit.Document;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
@@ -25,6 +26,7 @@ public sealed class EditorContext(
     IEditorSettings settings,
     XamlLanguageService xaml,
     IDocumentHost documents,
+    LanguageSessionService languages,
     IMessenger messenger)
 {
     private TextDocument? _hooked;
@@ -37,6 +39,9 @@ public sealed class EditorContext(
     public IDocumentHost Documents { get; } = documents;
 
     public IMessenger Messenger { get; } = messenger;
+
+    /// <summary>Language-server connections: <c>Languages.ConnectionFor(doc)</c> is null when a document has none.</summary>
+    public LanguageSessionService Languages { get; } = languages;
 
     /// <summary>Single place controllers report status.</summary>
     public void Status(string text) => Messenger.Send(new StatusMessage(text));

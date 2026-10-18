@@ -89,9 +89,9 @@ public sealed class CompletionController
             }
         }
 
-        if (doc.Client is not { } client || doc.Sync is null) return;
+        if (_ctx.Languages.ConnectionFor(doc) is not { Client: var client, Sync: var sync }) return;
 
-        doc.Sync.Flush(); // the server has to see what's on screen
+        sync.Flush(); // the server has to see what's on screen
         var loc = doc.Document.GetLocation(caret);
         IReadOnlyList<LspCompletionItem> items;
         try

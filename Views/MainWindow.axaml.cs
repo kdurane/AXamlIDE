@@ -3,12 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using AvaloniaEdit.TextMate;
 using AXamlIDE.Messages;
-using AXamlIDE.Running;
 using AXamlIDE.Shell;
 using AXamlIDE.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 using static AXamlIDE.Editor.Highlighting.TextMateController;
-using MainWindowViewModel = AXamlIDE.ViewModels.MainWindowViewModel;
 
 namespace AXamlIDE.Views;
 

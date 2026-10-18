@@ -12,7 +12,6 @@ using AXamlIDE.Services.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using DocumentCommands = AXamlIDE.Commands.DocumentCommands;
 
 namespace AXamlIDE.ViewModels;
 

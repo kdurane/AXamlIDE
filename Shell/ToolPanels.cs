@@ -3,12 +3,6 @@ using System.Linq;
 using AXamlIDE.Messages;
 using AXamlIDE.ViewModels;
 using AXamlIDE.Views;
-using OutputView = AXamlIDE.Views.OutputView;
-using ProblemsView = AXamlIDE.Views.ProblemsView;
-using ProblemsViewModel = AXamlIDE.ViewModels.ProblemsViewModel;
-using RunViewModel = AXamlIDE.ViewModels.RunViewModel;
-using SearchView = AXamlIDE.Views.SearchView;
-using SearchViewModel = AXamlIDE.ViewModels.SearchViewModel;
 
 namespace AXamlIDE.Shell;
 

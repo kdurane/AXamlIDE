@@ -1,11 +1,10 @@
 <UserControl
     x:Class="AXamlIDE.Views.DocumentWellView"
-    x:DataType="viewmodels:DocumentWellViewModel"
+    x:DataType="vm:DocumentWellViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:editor="using:AXamlIDE.Views"
     xmlns:models="using:AXamlIDE.Models"
-    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
-    xmlns:views="clr-namespace:AXamlIDE.Views"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  Tabs + outline on top; one editor (it swaps documents on tab change) and the preview below.  -->
@@ -58,7 +57,7 @@
                 <ColumnDefinition Width="0" />
                 <ColumnDefinition Width="0" />
             </Grid.ColumnDefinitions>
-            <editor:EditorPaneView Grid.Column="0" Name="EditorPane" />
+            <views:EditorPaneView Grid.Column="0" Name="EditorPane" />
             <GridSplitter
                 Background="#FF555555"
                 Grid.Column="1"

@@ -25,6 +25,7 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
 {
     private readonly DocumentManager _documents;
     private readonly IMessenger _messenger;
+    private readonly LanguageSessionService _languages;
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     private OpenDocument? _document;          // the active document whose text we are watching
@@ -35,6 +36,7 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
     {
         _documents = documents;
         _messenger = messenger;
+        _languages = languages;
 
         _timer.Tick += OnTimer;
         _documents.ActiveChanged += OnActiveDocumentChanged;
@@ -107,7 +109,7 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
 
         if (!ReferenceEquals(_documents.Active, document)
             || document.LanguageId != LanguageIds.CSharp
-            || document.Client is not { } client)
+            || _languages.ClientFor(document) is not { } client)
         {
             Clear();
             return;

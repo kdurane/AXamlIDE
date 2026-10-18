@@ -33,7 +33,7 @@ public sealed class CodeActionController
 
         _margin = new CodeActionMargin(
             (line, anchor) => ShowCodeActionsAsync(line, anchor),
-            () => _ctx.Active?.Client?.SupportsCodeActions == true);
+            () => _ctx.Languages.ClientFor(_ctx.Active)?.SupportsCodeActions == true);
         _ctx.Editor.TextArea.LeftMargins.Insert(1, _margin);
 
         _ctx.Attached += doc => _margin.SetDocument(doc);
@@ -50,7 +50,8 @@ public sealed class CodeActionController
     {
         var editor = _ctx.Editor;
 
-        if (_ctx.Active is not { Client: { } client, Sync: { } sync } document)
+        if (_ctx.Active is not { } document
+            || _ctx.Languages.ConnectionFor(document) is not { Client: var client, Sync: var sync })
         {
             _ctx.Status("Open a document with an active language server to request quick actions.");
             return false;

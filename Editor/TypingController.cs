@@ -58,21 +58,21 @@ public sealed class TypingController
                 break;
         }
 
-        var client = doc.Client;
+        var client = _ctx.Languages.ClientFor(doc);   // null when the document has no server connection
         var xamlTrigger = doc.LanguageId == LanguageIds.Axaml
             && (IsNameStart(e.Text[0]) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
 
         if (doc.LanguageId == LanguageIds.Axaml && !_completion.IsOpen
             && (xamlTrigger || client?.CompletionTriggerCharacters.Contains(e.Text) == true))
             _ = _completion.ShowCompletionAsync(doc, triggerChar: e.Text);
-        else if (client is not null && doc.Sync is not null
+        else if (client is not null
                  && client.CompletionTriggerCharacters.Contains(e.Text))
             _ = _completion.ShowCompletionAsync(doc, triggerChar: e.Text);
-        else if (client is not null && doc.Sync is not null
+        else if (client is not null
                  && !_completion.IsOpen && IsNameStart(e.Text[0]))
             _ = _completion.ShowCompletionAsync(doc, triggerChar: null);
 
-        if (client is null || doc.Sync is null)
+        if (client is null)
             return;
 
         if (client.SignatureHelpTriggerCharacters.Contains(e.Text))

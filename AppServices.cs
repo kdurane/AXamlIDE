@@ -13,14 +13,6 @@ using AXamlIDE.Views;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using TextMateSharp.Grammars;
-using DocumentCommands = AXamlIDE.Commands.DocumentCommands;
-using ExplorerViewModel = AXamlIDE.ViewModels.ExplorerViewModel;
-using MainWindowViewModel = AXamlIDE.ViewModels.MainWindowViewModel;
-using OutlineViewModel = AXamlIDE.ViewModels.OutlineViewModel;
-using ProblemsViewModel = AXamlIDE.ViewModels.ProblemsViewModel;
-using RunViewModel = AXamlIDE.ViewModels.RunViewModel;
-using SearchViewModel = AXamlIDE.ViewModels.SearchViewModel;
-using WorkspaceViewModel = AXamlIDE.ViewModels.WorkspaceViewModel;
 
 namespace AXamlIDE;
 

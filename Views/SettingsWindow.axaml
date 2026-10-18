@@ -7,10 +7,9 @@
     Width="560"
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.SettingsWindow"
-    x:DataType="viewmodels:SettingsViewModel"
+    x:DataType="vm:SettingsViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
-    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 

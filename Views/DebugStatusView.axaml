@@ -1,8 +1,7 @@
 <UserControl
     x:Class="AXamlIDE.Views.DebugStatusView"
-    x:DataType="viewmodels:RunViewModel"
+    x:DataType="vm:RunViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--  The original Debug tab (superseded by the floating toolbar; see REFACTOR_PLAN "New features")  -->

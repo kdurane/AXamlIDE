@@ -1,11 +1,11 @@
 using System;
 using System.Collections.ObjectModel;
+using AXamlIDE.Commands;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TextMateSharp.Grammars;
-using DocumentCommands = AXamlIDE.Commands.DocumentCommands;
 
 namespace AXamlIDE.ViewModels;
 

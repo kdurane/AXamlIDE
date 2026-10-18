@@ -74,12 +74,7 @@ public sealed partial class ProblemsViewModel : IRecipient<DiagnosticsChangedMes
                 var location = document.Document.GetLocation(diagnostic.StartOffset);
                 Problems.Add(new ProblemItem(
                     document,
-                    diagnostic.Severity switch
-                    {
-                        LspDiagnosticSeverity.Error => "Error",
-                        LspDiagnosticSeverity.Warning => "Warning",
-                        _ => "Info"
-                    },
+                    diagnostic.Severity,
                     location.Line,
                     diagnostic.StartOffset,
                     diagnostic.Message));
