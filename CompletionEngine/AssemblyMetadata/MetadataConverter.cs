@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using AXamlIDE.Helpers;
 
 namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
 

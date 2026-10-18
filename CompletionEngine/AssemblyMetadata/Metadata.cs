@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using AXamlIDE.Helpers;
 // ReSharper disable TypeWithSuspiciousEqualityIsUsedInRecord.Global
 
 namespace AXamlIDE.CompletionEngine.AssemblyMetadata;

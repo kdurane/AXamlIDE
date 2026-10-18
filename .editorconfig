@@ -1,0 +1,24 @@
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,axaml,xaml,csproj,props,targets}]
+indent_size = 4
+
+[*.json]
+indent_size = 2
+
+[*.cs]
+# Layout
+csharp_style_namespace_declarations = file_scoped:warning
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+
+# Vendored code (forked from the Avalonia VS extension): leave its style alone.
+[CompletionEngine/**.cs]
+csharp_style_namespace_declarations = block_scoped:none

@@ -1,0 +1,54 @@
+<UserControl
+    x:Class="AXamlIDE.Editor.EditorPaneView"
+    x:DataType="shell:MainWindowViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:edit="using:AvaloniaEdit"
+    xmlns:editing="using:AvaloniaEdit.Editing"
+    xmlns:shell="using:AXamlIDE.Shell"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    Moved verbatim from MainWindow.axaml (the edit:TextEditor named "Editor").
+    DataContext is inherited from MainWindow (MainWindowViewModel), so the context-menu
+    command bindings are unchanged. That coupling goes away when the view model is split.
+    -->
+    <edit:TextEditor
+        FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+        FontSize="13"
+        FontWeight="Light"
+        HorizontalScrollBarVisibility="Auto"
+        Margin="0"
+        Name="Editor"
+        ShowLineNumbers="True"
+        VerticalScrollBarVisibility="Visible">
+        <edit:TextEditor.ContextFlyout>
+            <MenuFlyout>
+                <MenuItem
+                    Click="OnCopyClick"
+                    Header="Copy"
+                    InputGesture="ctrl+C" />
+                <MenuItem
+                    Click="OnCutClick"
+                    Header="Cut"
+                    InputGesture="ctrl+X" />
+                <MenuItem
+                    Click="OnPasteClick"
+                    Header="Paste"
+                    InputGesture="ctrl+V" />
+                <MenuItem Header="-" />
+                <MenuItem Click="OnCodeActionsClick" Header="Quick Actions..." />
+                <MenuItem Command="{Binding FormatActiveDocumentCommand}" Header="Format Document" />
+                <MenuItem Header="-" />
+                <MenuItem
+                    Click="OnSelectAllClick"
+                    Header="Select All"
+                    InputGesture="ctrl+A" />
+            </MenuFlyout>
+        </edit:TextEditor.ContextFlyout>
+        <edit:TextEditor.Styles>
+            <Style Selector="editing|LineNumberMargin">
+                <Setter Property="MinWidthInDigits" Value="3" />
+            </Style>
+        </edit:TextEditor.Styles>
+    </edit:TextEditor>
+</UserControl>

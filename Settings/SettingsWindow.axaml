@@ -1,0 +1,79 @@
+﻿<Window
+    Height="440"
+    MinHeight="380"
+    MinWidth="500"
+    Title="Settings"
+    Width="560"
+    Background="{DynamicResource ThemeBorderHighBrush}"
+    WindowStartupLocation="CenterOwner"
+    x:Class="AXamlIDE.Settings.SettingsWindow"
+    x:DataType="vm:SettingsViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.Settings"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Margin="20" RowDefinitions="Auto,*">
+        <TextBlock
+            FontSize="18"
+            FontWeight="SemiBold"
+            Margin="0,0,0,16"
+            Text="Settings" />
+
+        <TabControl Grid.Row="1" TabStripPlacement="Left">
+            <TabItem FontSize="16" Header="Text Editor">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,12" Spacing="16">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="Appearance" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Color theme" />
+                            <ComboBox
+                                ItemsSource="{Binding AvailableThemes}"
+                                MinWidth="220"
+                                SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ThemeViewModel">
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Font family" />
+                            <ComboBox
+                                ItemsSource="{Binding AvailableEditorFontFamilies}"
+                                MinWidth="260"
+                                SelectedItem="{Binding EditorFontFamily, Mode=TwoWay}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Font size" />
+                            <ComboBox
+                                ItemsSource="{Binding AvailableEditorFontSizes}"
+                                MinWidth="100"
+                                SelectedItem="{Binding EditorFontSize, Mode=TwoWay}" />
+                        </StackPanel>
+
+                        <CheckBox Content="Show line numbers" IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}" />
+                        <CheckBox Content="Highlight current line" IsChecked="{Binding HighlightCurrentLine, Mode=TwoWay}" />
+                        <TextBlock FontWeight="SemiBold" Text="Formatting" />
+                        <CheckBox Content="Format documents on save when supported" IsChecked="{Binding FormatOnSave, Mode=TwoWay}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem FontSize="16" Header="Environment">
+                <StackPanel Margin="20,12" Spacing="16">
+                    <TextBlock
+                        FontSize="16"
+                        FontWeight="SemiBold"
+                        Text="Window layout" />
+                    <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
+                </StackPanel>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

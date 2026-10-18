@@ -6,8 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.CompletionEngine.Parsing;
-using AXamlIDE.Helpers;
-using AXamlIDE.Interfaces;
+using AXamlIDE.CompletionEngine.NamespaceTrasformations;
 // ReSharper disable PreferConcreteValueOverDefault
 
 namespace AXamlIDE.CompletionEngine.Completion;

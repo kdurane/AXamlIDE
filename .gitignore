@@ -22,3 +22,6 @@
 # Build and test artefacts
 TestResults/
 artifacts/
+
+# Local refactor tracking notes
+REFACTOR_PLAN.md

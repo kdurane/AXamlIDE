@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "AXamlIDE": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "AXAMLIDE_DAP_TRACE": "/tmp/dap.log"
+      }
+    }
+  }
+}

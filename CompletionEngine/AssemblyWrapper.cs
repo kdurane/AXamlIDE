@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AXamlIDE.CompletionEngine.AssemblyMetadata;
-using AXamlIDE.Models;
 using dnlib.DotNet;
 
 namespace AXamlIDE.CompletionEngine;

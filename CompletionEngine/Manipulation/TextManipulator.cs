@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using AXamlIDE.CompletionEngine.Parsing;
-using AXamlIDE.Helpers;
-using AXamlIDE.Interfaces;
 
 namespace AXamlIDE.CompletionEngine.Manipulation;
     

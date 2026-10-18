@@ -17,6 +17,13 @@
         </ItemGroup>
         <Copy SourceFiles="@(HostFiles)" DestinationFiles="@(HostFiles->'$(OutDir)msbuildhost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     </Target>
+    <!-- The debugger (netcoredbg) is optional; when present in Projects/netcoredbg it is copied next to the app. -->
+    <Target Name="CopyNetCoreDbg" AfterTargets="Build" Condition="Exists('Projects/netcoredbg')">
+        <ItemGroup>
+            <DebuggerFiles Include="Projects/netcoredbg/**/*.*;Projects/netcoredbg/netcoredbg" Exclude="Projects/netcoredbg/.netcoredbg_hist" />
+        </ItemGroup>
+        <Copy SourceFiles="@(DebuggerFiles)" DestinationFiles="@(DebuggerFiles->'$(OutDir)netcoredbg\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    </Target>
 
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="12.1.4" />
@@ -28,6 +35,7 @@
         <PackageReference Include="dnlib" Version="4.5.0" />
         <PackageReference Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
         <PackageReference Include="Markdig" Version="1.4.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
         <PackageReference Include="TextMateSharp" Version="2.0.4" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
         <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
