@@ -272,9 +272,9 @@
                             ToolTip.Tip="Navigate to a C# type or member" />
                     </Grid>
 
-                    <Grid Grid.Row="1" Name="DocumentSurface">                    
-                        
-    <views:DebugToolbar DataContext="{Binding Run}" IsVisible="{Binding IsDebugging}" />
+                    <Grid Grid.Row="1" Name="DocumentSurface">
+
+
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition MinWidth="160" Width="*" />
                             <ColumnDefinition Width="0" />
@@ -385,7 +385,7 @@
                                     <DataTemplate x:DataType="local:ProblemItem">
                                         <Grid ColumnDefinitions="76,*,Auto,Auto">
                                             <TextBlock Grid.Column="0" Text="{Binding Severity}" />
-                                            <TextBlock
+                                            <SelectableTextBlock
                                                 Grid.Column="1"
                                                 Text="{Binding Message}"
                                                 TextTrimming="CharacterEllipsis" />
@@ -451,7 +451,7 @@
                             <ItemsControl ItemsSource="{Binding Run.ConsoleOutput}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock
+                                        <SelectableTextBlock
                                             FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
                                             FontSize="11"
                                             Text="{Binding}" />

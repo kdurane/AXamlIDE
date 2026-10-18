@@ -2,25 +2,15 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TextMateSharp.Grammars;
-// If EditorSettings / EditorSettingsStore / ThemeViewModel live in a namespace not listed above,
-// copy the matching using from MainWindowViewModel.cs.
 
-namespace AXamlIDE.ViewModels
-{
-    /// <summary>
-    /// Editor settings: fonts, line numbers, theme, explorer side, format-on-save.
-    /// Everything here was in MainWindowViewModel; property names are unchanged so the
-    /// settings window's bindings keep working.
-    ///
-    /// It knows nothing about TextMate or the editor. Theme changes are announced through
-    /// <see cref="ThemeChanged"/> and the window applies them (this removed the view model's
-    /// last dependency on TextMate).
-    /// </summary>
-    public sealed class SettingsViewModel : ObservableObject
+namespace AXamlIDE.ViewModels;
+
+    public sealed class SettingsViewModel : ObservableObject,IEditorSettings
     {
         private readonly EditorSettingsStore _settingsStore;
         private EditorSettings _editorSettings;
@@ -59,7 +49,6 @@ namespace AXamlIDE.ViewModels
         public ObservableCollection<double> AvailableEditorFontSizes { get; } =
             [.. Enumerable.Range(6, 67).Select(size => (double)size)];
 
-        public event Action? EditorSettingsChanged;
         public event Action<bool>? SolutionExplorerSideChanged;
         public event Action<ThemeViewModel>? ThemeChanged;
 
@@ -153,7 +142,6 @@ namespace AXamlIDE.ViewModels
             OnPropertyChanged(nameof(HighlightCurrentLine));
             OnPropertyChanged(nameof(SolutionExplorerOnRight));
             OnPropertyChanged(nameof(FormatOnSave));
-            EditorSettingsChanged?.Invoke();
             if (explorerSideChanged)
                 SolutionExplorerSideChanged?.Invoke(settings.SolutionExplorerOnRight);
 
@@ -167,4 +155,4 @@ namespace AXamlIDE.ViewModels
             }
         }
     }
-}
+

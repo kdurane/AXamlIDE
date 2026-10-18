@@ -40,14 +40,14 @@ namespace AXamlIDE.Services
 
             var executable = OperatingSystem.IsWindows() ? "netcoredbg.exe" : "netcoredbg";
             var path = Environment.GetEnvironmentVariable("PATH");
-            if (path is not null)
+            if (path is null)
+                throw new FileNotFoundException(
+                    "NetCoreDbg was not found on PATH. Install the NetCoreDbg standalone executable or set AXAMLIDE_NETCOREDBG_PATH.");
+            foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
             {
-                foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var candidate = Path.Combine(directory, executable);
-                    if (File.Exists(candidate))
-                        return candidate;
-                }
+                var candidate = Path.Combine(directory, executable);
+                if (File.Exists(candidate))
+                    return candidate;
             }
 
             throw new FileNotFoundException(
@@ -133,10 +133,7 @@ namespace AXamlIDE.Services
             }
         }
 
-        public async Task SetBreakpointsAsync(
-            string sourcePath,
-            IReadOnlyList<int> lines,
-            CancellationToken cancellationToken = default)
+        public async Task<string> SetBreakpointsAsync(string sourcePath, IReadOnlyList<int> lines, CancellationToken cancellationToken = default)
         {
             using var response = await RequestAsync("setBreakpoints", new
             {
@@ -144,6 +141,7 @@ namespace AXamlIDE.Services
                 breakpoints = lines.Distinct().Order().Select(line => new { line }).ToArray(),
                 lines
             }, cancellationToken);
+            return response.RootElement.GetRawText();
         }
 
         public async Task ContinueAsync(int threadId, CancellationToken cancellationToken = default)
@@ -257,6 +255,7 @@ namespace AXamlIDE.Services
                        && await _transport.ReadMessageAsync(_shutdown.Token) is { } payload)
                 {
                     using var message = JsonDocument.Parse(payload);
+                   // Trace("<-", payload); 
                     var root = message.RootElement;
                     if (!root.TryGetProperty("type", out var type))
                         throw new InvalidDataException("NetCoreDbg sent a DAP message without a type.");
@@ -327,5 +326,20 @@ namespace AXamlIDE.Services
             _process.Dispose();
             _shutdown.Dispose();
         }
+        
+        private static readonly string? TracePath =
+            Environment.GetEnvironmentVariable("AXAMLIDE_DAP_TRACE");   // e.g. /tmp/dap.log
+
+        private static readonly object TraceLock = new();
+
+        private static void Trace(string direction, byte[] json)
+        {
+            if (TracePath is null)
+                return;
+            lock (TraceLock)
+                File.AppendAllText(TracePath, $"{direction} {Encoding.UTF8.GetString(json)}{Environment.NewLine}");
+        }
     }
+    
+    
 }

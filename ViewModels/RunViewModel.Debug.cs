@@ -108,12 +108,19 @@ public partial class RunViewModel
             session.Failed += error => Dispatcher.UIThread.Post(() =>
                 EndDebugSession(session, $"Debugger failed: {error.Message}"));
 
-            var projects = await Task.Run(() => GetProjectClosure(projectPath));
-
+             var projects = await Task.Run(() => GetProjectClosure(projectPath));
+            AppendConsoleOutput($"[debug] closure: {string.Join(" | ", projects)}");
+            // var breakpoints = _documents
+            //     .Where(document => document is { LanguageId: "csharp", BreakpointLines.Count: > 0 }
+            //                        && _workspace.FindProjectForDocument(document.Path) is { } p
+            //                        && projects.Contains(p))
+            //     .ToDictionary(
+            //         document => document.Path,
+            //         document => document.BreakpointLines,
+            //         PathComparer);
+            
             var breakpoints = _documents
-                .Where(document => document is { LanguageId: "csharp", BreakpointLines.Count: > 0 }
-                                   && _workspace.FindProjectForDocument(document.Path) is { } p
-                                   && projects.Contains(p))
+                .Where(document => document is { LanguageId: "csharp", BreakpointLines.Count: > 0 })
                 .ToDictionary(
                     document => document.Path,
                     document => document.BreakpointLines,
@@ -271,25 +278,25 @@ public partial class RunViewModel
                     && outputBody.TryGetProperty("output", out var output))
                     AppendConsoleOutput(output.GetString() ?? string.Empty);
                 break;
-            //case "stopped":
-            //    if (!message.TryGetProperty("body", out var stoppedBody))
-            //        return;
-            //    var reason = stoppedBody.TryGetProperty("reason", out var reasonElement)
-            //        ? reasonElement.GetString() ?? "breakpoint"
-            //        : "breakpoint";
-            //    var threadId = stoppedBody.TryGetProperty("threadId", out var threadElement)
-            //        ? threadElement.GetInt32()
-            //        : 1;
-            //    _stoppedThreadId = threadId;
-            //    Dispatcher.UIThread.Post(() =>
-            //    {
-            //        if (!ReferenceEquals(_debugSession, session))
-            //            return;
-            //        IsDebugStopped = true;
-            //        DebugStatus = $"Paused ({reason}).";
-            //    });
-            //    _ = NavigateToTopFrameAsync(session, threadId);
-            //    break;
+            // case "stopped":
+            //     if (!message.TryGetProperty("body", out var stoppedBody))
+            //         return;
+            //     var reason = stoppedBody.TryGetProperty("reason", out var reasonElement)
+            //         ? reasonElement.GetString() ?? "breakpoint"
+            //         : "breakpoint";
+            //     var threadId = stoppedBody.TryGetProperty("threadId", out var threadElement)
+            //         ? threadElement.GetInt32()
+            //         : 1;
+            //     _stoppedThreadId = threadId;
+            //     Dispatcher.UIThread.Post(() =>
+            //     {
+            //         if (!ReferenceEquals(_debugSession, session))
+            //             return;
+            //         IsDebugStopped = true;
+            //         DebugStatus = $"Paused ({reason}).";
+            //     });
+            //     _ = NavigateToTopFrameAsync(session, threadId);
+            //     break;
             case "continued":
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -348,21 +355,19 @@ public partial class RunViewModel
     {
         if (_debugSession is not { } session || document.LanguageId != "csharp")
             return;
-        if (_debugProjectPath is null
-            || !PathsEqual(_workspace.FindProjectForDocument(document.Path), _debugProjectPath))
-            return;
+        // if (_debugProjectPath is null
+        //     || !PathsEqual(_workspace.FindProjectForDocument(document.Path), _debugProjectPath))
+        //     return;
 
         _ = UpdateDebugBreakpointsAsync(session, document.Path, document.BreakpointLines);
     }
 
-    private async Task UpdateDebugBreakpointsAsync(
-        NetCoreDbgSession session,
-        string path,
-        IReadOnlyList<int> lines)
+    private async Task UpdateDebugBreakpointsAsync(NetCoreDbgSession session, string path, IReadOnlyList<int> lines)
     {
         try
         {
-            await session.SetBreakpointsAsync(path, lines);
+            var reply = await session.SetBreakpointsAsync(path, lines);
+            AppendConsoleOutput($"[debug] setBreakpoints {Path.GetFileName(path)} [{string.Join(", ", lines)}] -> {reply}");
         }
         catch (Exception ex)
         {

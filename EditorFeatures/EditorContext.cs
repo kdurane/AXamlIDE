@@ -1,58 +1,46 @@
 using System;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
-using AXamlIDE.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.EditorFeatures;
 
 /// <summary>
-/// The small hub every editor controller shares: the TextEditor, the active document,
-/// and three events. MainWindow tells it when the tab changes; controllers listen.
+/// The hub every editor controller shares: the TextEditor, the active document, and the
+/// document lifecycle events. It knows nothing about MainWindow or any view model.
+/// Everything outside the editor is reached through a narrow interface or a message.
 ///
-/// Call order inside MainWindow.OnTabSelectionChanged:
-///   _ctx.Detach();                   // BEFORE Editor.Document is swapped (old doc still attached)
-///   Editor.Document = doc.Document;  // existing line
-///   _ctx.Attach(doc);                // AFTER the swap (Attach(null) when no tab is selected)
+/// Call order (done by EditorPaneView.SetDocument):
+///   Detach();                        // BEFORE Editor.Document is swapped (old doc still attached)
+///   Editor.Document = doc.Document;
+///   Attach(doc);                     // AFTER the swap (Attach(null) when no tab is open)
 /// </summary>
-public sealed class EditorContext(TextEditor editor, Func<MainWindowViewModel> viewModel, XamlLanguageService xaml, SettingsViewModel settings)
+public sealed class EditorContext(
+    TextEditor editor,
+    IEditorSettings settings,
+    XamlLanguageService xaml,
+    IDocumentHost documents,
+    IMessenger messenger)
 {
     private TextDocument? _hooked;
 
-    private readonly Func<MainWindowViewModel> _viewModel = viewModel;
-
     public TextEditor Editor { get; } = editor;
-
-    /// <summary>Font, line numbers, highlight-line. The editor reads these here, not from the main VM.</summary>
-    public SettingsViewModel Settings { get; } = settings;
-
-    /// <summary>AXAML completion / hover / decompile. The editor no longer asks the view model for these.</summary>
+    public IEditorSettings Settings { get; } = settings;
     public XamlLanguageService Xaml { get; } = xaml;
 
-    /// <summary>
-    /// TEMPORARY coupling: controllers reach the view model through here so their bodies stay
-    /// copy-paste from MainWindow. Later this becomes narrow interfaces / messages.
-    /// </summary>
-    public MainWindowViewModel ViewModel => _viewModel();
+    /// <summary>Open / activate documents. Replaces the old ActivateDocument callback.</summary>
+    public IDocumentHost Documents { get; } = documents;
 
-    /// <summary>Single place controllers report status. Swap for a messenger send later.</summary>
-    public void Status(string text) => ViewModel.ShowStatusMessage(text);
+    public IMessenger Messenger { get; } = messenger;
 
-    /// <summary>
-    /// How to make a document the active tab. MainWindow sets this to
-    /// <c>doc => DocTabs.SelectedItem = doc</c>. Selecting the tab swaps the editor
-    /// synchronously, exactly as the old inline code relied on.
-    /// </summary>
-    public Action<OpenDocument> ActivateDocument { get; set; } = _ => { };
+    /// <summary>Single place controllers report status.</summary>
+    public void Status(string text) => Messenger.Send(new StatusMessage(text));
 
-    /// <summary>Was <c>DocTabs.SelectedItem = ViewModel.OpenDocument(path)</c> (about eight copies).</summary>
-    public OpenDocument OpenAndActivate(string path)
-    {
-        var document = ViewModel.OpenDocument(path);
-        ActivateDocument(document);
-        return document;
-    }
+    /// <summary>Kept so existing call sites compile; prefer ctx.Documents.OpenAndActivate.</summary>
+    public OpenDocument OpenAndActivate(string path) => Documents.OpenAndActivate(path);
 
     /// <summary>The document currently shown in the editor (null between Detach and Attach).</summary>
     public OpenDocument? Active { get; private set; }

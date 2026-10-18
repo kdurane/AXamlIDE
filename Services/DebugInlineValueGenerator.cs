@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 
@@ -51,9 +52,7 @@ public sealed partial class DebugInlineValueGenerator : VisualLineElementGenerat
         if (offset != line.EndOffset || HintFor(doc, line.LineNumber) is not { } hint)
             return null;
 
-        var element = new FormattedTextElement("    " + hint, 0);
-        element.TextRunProperties.SetForegroundBrush(Brush);
-        return element;
+        return new HintElement("    " + hint, Brush);
     }
 
     private string? HintFor(TextDocument doc, int lineNumber)
@@ -79,11 +78,24 @@ public sealed partial class DebugInlineValueGenerator : VisualLineElementGenerat
             }
         }
 
+
         var result = parts.Count == 0 ? null : string.Join(", ", parts);
         _cache[lineNumber] = result;
         return result;
     }
 
+    private sealed class HintElement(string text, IBrush brush) : FormattedTextElement(text, 0)
+    {
+        public override TextRun CreateTextRun(int startVisualColumn, ITextRunConstructionContext context)
+        {
+            // TextRunProperties is only assigned after ConstructElement returns, so colour it here.
+            TextRunProperties?.SetForegroundBrush(brush);
+            return base.CreateTextRun(startVisualColumn, context);
+        }
+    }
+
     [GeneratedRegex(@"[A-Za-z_]\w*")]
     private static partial Regex IdentifierRegex();
 }
+
+

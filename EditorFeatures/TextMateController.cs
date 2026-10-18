@@ -26,13 +26,13 @@ namespace AXamlIDE.EditorFeatures;
         private readonly EditorContext _ctx;
         private readonly TextMate.Installation _textMate;
         private readonly RegistryOptions? _registryOptions;
-        private readonly CustomMargin? _customMargin;
+        private readonly BreakpointMargin? _customMargin;
 
         public TextMateController(
             EditorContext ctx,
             TextMate.Installation textMate,
             RegistryOptions? registryOptions,
-            CustomMargin? customMargin)
+            BreakpointMargin? customMargin)
         {
             _ctx = ctx;
             _textMate = textMate;

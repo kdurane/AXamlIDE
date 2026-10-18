@@ -45,10 +45,15 @@ namespace AXamlIDE.EditorFeatures;
             if (_ctx.Active is not { } doc || string.IsNullOrEmpty(e.Text))
                 return;
 
-            if (doc.LanguageId == "axaml" && e.Text == ">")
-                TryInsertXamlClosingTag(doc.Document);
-            else if (doc.LanguageId == "csharp" && e.Text == "{")
-                TryInsertClosingBrace(doc.Document);
+            switch (doc.LanguageId)
+            {
+                case "axaml" when e.Text == ">":
+                    TryInsertXamlClosingTag(doc.Document);
+                    break;
+                case "csharp" when e.Text == "{":
+                    TryInsertClosingBrace(doc.Document);
+                    break;
+            }
 
             var client = doc.Client;
             var xamlTrigger = doc.LanguageId == "axaml"
@@ -75,17 +80,23 @@ namespace AXamlIDE.EditorFeatures;
             {
                 _ = _signature.RequestAsync(doc, e.Text, isRetrigger: true);
             }
-            else if (e.Text == "(")
+            else switch (e.Text)
             {
-                _ = _signature.RequestAsync(doc, triggerCharacter: null);
-            }
-            else if (e.Text == "," && _signature.IsVisible)
-            {
-                _ = _signature.RequestAsync(doc, e.Text, isRetrigger: true);
-            }
-            else if (_signature.IsVisible)
-            {
-                _ = _signature.RequestAsync(doc, triggerCharacter: null, isRetrigger: true);
+                case "(":
+                    _ = _signature.RequestAsync(doc, triggerCharacter: null);
+                    break;
+                case "," when _signature.IsVisible:
+                    _ = _signature.RequestAsync(doc, e.Text, isRetrigger: true);
+                    break;
+                default:
+                {
+                    if (_signature.IsVisible)
+                    {
+                        _ = _signature.RequestAsync(doc, triggerCharacter: null, isRetrigger: true);
+                    }
+
+                    break;
+                }
             }
         }
 

@@ -4,7 +4,7 @@
     MinWidth="500"
     Title="Settings"
     Width="560"
-    Background="{DynamicResource ThemeBackgroundBrush}"
+    Background="{DynamicResource ThemeBorderHighBrush}"
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.SettingsWindow"
     x:DataType="vm:SettingsViewModel"

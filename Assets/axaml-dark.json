@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "AxamlDark",
   "type": "dark",
   "colors": {
@@ -236,15 +236,7 @@
       "settings": {
         "foreground": "#B267E6"
       }
-    },
-    {
-      "scope": [
-        "comment.block.xml"
-      ],
-      "settings": {
-        "foreground": "#FFFF00"
-      }
-    }
+    }   
   ],
   "semanticHighlighting": true
 }

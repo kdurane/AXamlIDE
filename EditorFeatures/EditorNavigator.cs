@@ -1,35 +1,65 @@
+using System;
+using System.IO;
 using Avalonia.Threading;
 using AXamlIDE.Editor;
+using AXamlIDE.Interfaces;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
-using System;
-using System.IO;
+using AXamlIDE.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.EditorFeatures;
 
 /// <summary>
-/// Every "go to this place in the editor" move. These were scattered through MainWindow as
-/// NavigateToProblem, NavigateToDebugLocation, OnSearchResultClick, OnOutlineSelectionChanged
-/// and NavigateToLocationAsync. Bodies are copy-paste; _active -> _ctx.Active,
-/// DocTabs.SelectedItem = ... -> _ctx.ActivateDocument(...).
+/// Every "go to this place in the editor" move. Driven by messages; it never touches a view
+/// model. Anything it used to read from one now arrives inside the message
+/// (the search query, the outline item), and opening files goes through IDocumentHost.
+/// The public methods stay so NavigationCommands can still call them directly.
 /// </summary>
-public sealed class EditorNavigator(EditorContext ctx)
+public sealed class EditorNavigator :
+    IRecipient<NavigateToProblemMessage>,
+    IRecipient<NavigateToDebugLocationMessage>,
+    IRecipient<NavigateToSearchResultMessage>,
+    IRecipient<NavigateToOutlineItemMessage>,
+    IRecipient<NavigateToLocationMessage>,
+    IRecipient<DebugSnapshotChangedMessage>
 {
-    private readonly EditorContext _ctx = ctx;
+    private readonly EditorContext _ctx;
     private readonly DebugInlineValueGenerator _inlineValues = new();
     private bool _inlineValuesAttached;
     private StopSnapshot? _debugSnapshot;
 
-    /// <summary>Subscribed to RunViewModel.DebugSnapshotChanged (null = running/ended).</summary>
+    public EditorNavigator(EditorContext ctx)
+    {
+        _ctx = ctx;
+        _ctx.Messenger.RegisterAll(this);
+
+        // Switching tabs while paused: show (or clear) the inline values for the new document.
+        _ctx.Attached += _ => ApplyDebugValues();
+    }
+
+    public void Dispose() => _ctx.Messenger.UnregisterAll(this);
+
+    // ------------------------------------------------------------- message entry points
+
+    public void Receive(NavigateToProblemMessage m) => ToProblem(m.Problem);
+    public void Receive(NavigateToDebugLocationMessage m) => ToDebugLocation(m.Path, m.Line);
+    public void Receive(NavigateToSearchResultMessage m) => ToSearchResult(m.Result, m.SearchQuery);
+    public void Receive(NavigateToOutlineItemMessage m) => ToOutlineItem(m.Item);
+    public void Receive(NavigateToLocationMessage m) => ToLocation(m.Location);
+    public void Receive(DebugSnapshotChangedMessage m) => ShowDebugValues(m.Snapshot);
+
+    // ------------------------------------------------------------------ debug values
+
+    /// <summary>null = running/ended.</summary>
     public void ShowDebugValues(StopSnapshot? snapshot)
     {
         _debugSnapshot = snapshot;
         ApplyDebugValues();
     }
 
-    /// <summary>Also call this whenever the active document changes while paused.</summary>
-    public void ApplyDebugValues()
+    private void ApplyDebugValues()
     {
         var editor = _ctx.Editor;
         if (!_inlineValuesAttached)
@@ -48,23 +78,19 @@ public sealed class EditorNavigator(EditorContext ctx)
         editor.TextArea.TextView.Redraw();
     }
 
-    /// <summary>Was NavigateToProblem (and the OnProblemClick target).</summary>
+    // ------------------------------------------------------------------- navigation
+
     public void ToProblem(ProblemItem problem)
     {
         var editor = _ctx.Editor;
 
-        _ctx.ActivateDocument(problem.Document);
+        _ctx.Documents.Activate(problem.Document);
         editor.CaretOffset = Math.Min(problem.Offset, editor.Document.TextLength);
         editor.Focus();
 
-        Dispatcher.UIThread.Post(() =>
-        {
-            var caret = editor.TextArea.Caret;
-            editor.ScrollTo(caret.Line, caret.Column);
-        }, DispatcherPriority.Render);
+        ScrollCaretIntoView();
     }
 
-    /// <summary>Was NavigateToDebugLocation.</summary>
     public void ToDebugLocation(string path, int line)
     {
         var editor = _ctx.Editor;
@@ -72,8 +98,7 @@ public sealed class EditorNavigator(EditorContext ctx)
         OpenDocument document;
         try
         {
-            document = _ctx.ViewModel.OpenDocument(path);
-
+            document = _ctx.Documents.Open(path);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -81,7 +106,7 @@ public sealed class EditorNavigator(EditorContext ctx)
             return;
         }
 
-        _ctx.ActivateDocument(document);
+        _ctx.Documents.Activate(document);
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -96,21 +121,20 @@ public sealed class EditorNavigator(EditorContext ctx)
         }, DispatcherPriority.Loaded);
     }
 
-    /// <summary>Was the body of OnSearchResultClick (MainWindow keeps the Click handler).</summary>
-    public void ToSearchResult(WorkspaceSearchResult result)
+    /// <param name="searchQuery">Was ctx.ViewModel.Search.SearchQuery; the sender supplies it now.</param>
+    public void ToSearchResult(WorkspaceSearchResult result, string? searchQuery)
     {
         var editor = _ctx.Editor;
 
         try
         {
-            _ctx.OpenAndActivate(result.FilePath);
+            _ctx.Documents.OpenAndActivate(result.FilePath);
             if (editor.Document.LineCount < result.LineNumber)
                 return;
 
             var line = editor.Document.GetLineByNumber(result.LineNumber);
             var column = Math.Clamp(result.Column, 0, line.Length);
             var offset = line.Offset + column;
-            var searchQuery = _ctx.ViewModel.Search.SearchQuery;
             var matchLength = 0;
             if (!string.IsNullOrEmpty(searchQuery)
                 && column <= line.Length - searchQuery.Length
@@ -133,29 +157,20 @@ public sealed class EditorNavigator(EditorContext ctx)
         }
     }
 
-    /// <summary>Was the body of OnOutlineSelectionChanged (MainWindow keeps the SelectionChanged handler).</summary>
-    public void ToSelectedOutlineItem()
+    /// <param name="item">Was ctx.ViewModel.SelectedDocumentOutlineItem; the sender supplies it now.</param>
+    public void ToOutlineItem(DocumentOutlineItem item)
     {
         var editor = _ctx.Editor;
 
-        if (_ctx.ViewModel.SelectedDocumentOutlineItem is not { } item
-            || item.StartOffset <= editor.CaretOffset && editor.CaretOffset <= item.EndOffset)
+        if (item.StartOffset <= editor.CaretOffset && editor.CaretOffset <= item.EndOffset)
             return;
 
         editor.CaretOffset = Math.Clamp(item.NavigationOffset, 0, editor.Document.TextLength);
         editor.Focus();
 
-        Dispatcher.UIThread.Post(() =>
-        {
-            var caret = editor.TextArea.Caret;
-            editor.ScrollTo(caret.Line, caret.Column);
-        }, DispatcherPriority.Render);
+        ScrollCaretIntoView();
     }
 
-    /// <summary>
-    /// Was NavigateToLocationAsync. It never actually awaited anything (just
-    /// <c>await Task.CompletedTask</c>), so it is synchronous now.
-    /// </summary>
     public void ToLocation(LspLocation location)
     {
         if (!Uri.TryCreate(location.Uri, UriKind.Absolute, out var uri) || !uri.IsFile)
@@ -167,7 +182,7 @@ public sealed class EditorNavigator(EditorContext ctx)
         try
         {
             var editor = _ctx.Editor;
-            var document = _ctx.OpenAndActivate(uri.LocalPath);
+            var document = _ctx.Documents.OpenAndActivate(uri.LocalPath);
             var offset = document.OffsetOf(location.Range.StartLine, location.Range.StartChar);
             editor.CaretOffset = offset;
             var endOffset = document.OffsetOf(location.Range.EndLine, location.Range.EndChar);
@@ -179,5 +194,15 @@ public sealed class EditorNavigator(EditorContext ctx)
         {
             _ctx.Status($"Couldn't open location '{uri.LocalPath}': {ex.Message}");
         }
+    }
+
+    private void ScrollCaretIntoView()
+    {
+        var editor = _ctx.Editor;
+        Dispatcher.UIThread.Post(() =>
+        {
+            var caret = editor.TextArea.Caret;
+            editor.ScrollTo(caret.Line, caret.Column);
+        }, DispatcherPriority.Render);
     }
 }

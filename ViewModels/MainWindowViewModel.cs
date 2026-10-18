@@ -9,20 +9,12 @@ using System.Threading.Tasks;
 using System.Text.Json;
 using System.Collections.Specialized;
 using System.Xml;
-using Avalonia;
-using Avalonia.Platform.Storage;
 using Avalonia.Threading;
-using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
-using Avalonia.Layout;
-using Avalonia.Media;
 using AXamlIDE.Enums;
 using AXamlIDE.Interfaces;
 using AXamlIDE.Lsp;
 using AXamlIDE.Models;
 using AXamlIDE.Services;
-using AXamlIDE.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -44,8 +36,6 @@ namespace AXamlIDE.ViewModels
         private readonly XamlLanguageService _xaml;
         private CancellationTokenSource? _outlineRequestCts;
         private int _outlineRequestSequence;
-        private readonly IStorageProvider _storageProvider;
-
         public ObservableCollection<ProjectTreeNode> WorkspaceRoots => _workspace.WorkspaceRoots;
         public ObservableCollection<OpenDocument> Documents => _documents.Documents;
         public ObservableCollection<ProblemItem> Problems { get; } = [];
@@ -72,7 +62,7 @@ namespace AXamlIDE.ViewModels
         public event Action<OpenDocument>? DiagnosticsChanged;
         public event Action<ProblemItem>? NavigateToProblemRequested;
         public Func<JsonElement, Task<bool>>? WorkspaceEditRequested { get; set; }
-        public SettingsViewModel Settings { get; }
+        private SettingsViewModel Settings { get; }
         public RunViewModel Run { get; }
         public SearchViewModel Search { get; }
         private readonly IDialogService _dialogs;
@@ -589,7 +579,7 @@ namespace AXamlIDE.ViewModels
 
         [RelayCommand]
         private Task OpenSettings() => _dialogs.ShowSettingsAsync(Settings);
-    
+
 
 
         public void Dispose()
