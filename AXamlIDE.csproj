@@ -11,6 +11,54 @@
         <Compile Remove="Projects/**/*.cs" />
         <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
         <ProjectReference Include="Projects/AXamlIDE.Core/AXamlIDE.Core.csproj" />
+        <Compile Update="Views\DocumentWellView.axaml.cs">
+          <DependentUpon>DocumentWellView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\EditorPaneView.axaml.cs">
+          <DependentUpon>EditorPaneView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\PreviewPaneView.axaml.cs">
+          <DependentUpon>PreviewPaneView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\ProblemsView.axaml.cs">
+          <DependentUpon>ProblemsView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\DebugToolbarWindow.axaml.cs">
+          <DependentUpon>DebugToolbarWindow.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\OutputView.axaml.cs">
+          <DependentUpon>OutputView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\SearchView.axaml.cs">
+          <DependentUpon>SearchView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\SettingsWindow.axaml.cs">
+          <DependentUpon>SettingsWindow.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\MainWindow.axaml.cs">
+          <DependentUpon>MainWindow.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\ExplorerView.axaml.cs">
+          <DependentUpon>ExplorerView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\ConsoleView.axaml.cs">
+          <DependentUpon>ConsoleView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
+        <Compile Update="Views\DebugStatusView.axaml.cs">
+          <DependentUpon>DebugStatusView.axaml</DependentUpon>
+          <SubType>Code</SubType>
+        </Compile>
     </ItemGroup>
     <Target Name="CopyMsBuildHost" AfterTargets="Build">
         <ItemGroup>
@@ -42,5 +90,14 @@
 
     <ItemGroup>
       <AvaloniaResource Include="Assets/*.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Views\Dialogs\" />
+      <Folder Include="Views\Documents\" />
+      <Folder Include="Views\Problems\" />
+      <Folder Include="Views\Search\" />
+      <Folder Include="Views\Settings\" />
+      <Folder Include="Views\Workspace\" />
     </ItemGroup>
 </Project>

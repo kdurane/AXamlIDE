@@ -1,7 +1,7 @@
 using Avalonia.Controls;
-using AXamlIDE.ViewModels.Settings;
+using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views.Settings;
+namespace AXamlIDE.Views;
 
 public partial class SettingsWindow : Window
 {

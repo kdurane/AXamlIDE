@@ -2,9 +2,11 @@ using System;
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
-using AXamlIDE.ViewModels.Running;
+using AXamlIDE.ViewModels;
+using AXamlIDE.Views;
+using RunViewModel = AXamlIDE.ViewModels.RunViewModel;
 
-namespace AXamlIDE.Views.Running;
+namespace AXamlIDE.Running;
 
 /// <summary>
 /// Shows the floating debug toolbar while a debug session is running and closes it afterwards,

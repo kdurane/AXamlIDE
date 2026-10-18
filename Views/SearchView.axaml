@@ -1,9 +1,10 @@
 <UserControl
-    x:Class="AXamlIDE.Views.Search.SearchView"
-    x:DataType="vm:SearchViewModel"
+    x:Class="AXamlIDE.Views.SearchView"
+    x:DataType="viewmodels:SearchViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
-    xmlns:vm="using:AXamlIDE.ViewModels.Search"
+    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid RowDefinitions="Auto,Auto,Auto,*">
         <Grid ColumnDefinitions="*,Auto" Margin="8">
@@ -48,7 +49,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:WorkspaceSearchResult">
                         <Button
-                            Command="{Binding $parent[UserControl].((vm:SearchViewModel)DataContext).OpenResultCommand}"
+                            Command="{Binding $parent[UserControl].((viewmodels:SearchViewModel)DataContext).OpenResultCommand}"
                             CommandParameter="{Binding}"
                             HorizontalContentAlignment="Stretch"
                             Padding="6,3">

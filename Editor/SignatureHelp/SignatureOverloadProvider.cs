@@ -4,7 +4,7 @@ using System.ComponentModel;
 using AvaloniaEdit.CodeCompletion;
 using AXamlIDE.Models;
 
-namespace AXamlIDE.Views.Editor.SignatureHelp;
+namespace AXamlIDE.Editor.SignatureHelp;
 
 public sealed class SignatureOverloadProvider : IOverloadProvider
 {

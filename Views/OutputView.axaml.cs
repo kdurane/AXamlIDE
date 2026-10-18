@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace AXamlIDE.Views.Running;
+namespace AXamlIDE.Views;
 
 public partial class OutputView : UserControl
 {

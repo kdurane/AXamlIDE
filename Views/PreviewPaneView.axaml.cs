@@ -6,9 +6,9 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using AXamlIDE.ViewModels.Preview;
+using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views.Preview;
+namespace AXamlIDE.Views;
 
 /// <summary>
 /// The pixels half of the preview: shows the frame, sizes the image, and owns zoom /
@@ -98,8 +98,8 @@ public partial class PreviewPaneView : UserControl
             PreviewZoomLevels.OrderBy(level => Math.Abs(level / 100 - currentZoom)).First());
         var nextIndex = Math.Clamp(currentIndex + direction, 0, PreviewZoomLevels.Length - 1);
         var text = $"{PreviewZoomLevels[nextIndex]:0.##}%";
-        PreviewZoomComboBox.SelectedItem = PreviewZoomComboBox.Items
-            .OfType<ComboBoxItem>()
+        PreviewZoomComboBox.SelectedItem = Enumerable
+            .OfType<ComboBoxItem>(PreviewZoomComboBox.Items)
             .FirstOrDefault(item => string.Equals(item.Content?.ToString(), text, StringComparison.Ordinal));
     }
 

@@ -13,11 +13,9 @@ using Avalonia.Platform.Storage;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Lsp;
-using AXamlIDE.ViewModels.Settings;
-using AXamlIDE.Views.Settings;
-using AXamlIDE.Views.Shell;
+using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views.Dialogs;
+namespace AXamlIDE.Views;
 
 /// <summary>
 /// The "build a Window, ShowDialog(Owner)" helpers. Implements <see cref="IDialogService"/> so view

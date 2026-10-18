@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 using TextMateSharp.Grammars;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The live editor settings (the Settings window binds to it, the editor reads it through

@@ -2,7 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 
-namespace AXamlIDE.Views.Running;
+namespace AXamlIDE.Views;
 
 public partial class DebugToolbarWindow : Window
 {

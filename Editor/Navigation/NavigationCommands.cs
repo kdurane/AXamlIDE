@@ -9,7 +9,7 @@ using AXamlIDE.Services.Lsp;
 using ICSharpCode.Decompiler;
 using static AXamlIDE.Services.Lsp.LspHelpers;
 
-namespace AXamlIDE.Views.Editor.Navigation;
+namespace AXamlIDE.Editor.Navigation;
 
 /// <summary>
 /// The user-invokable navigation commands: Go to Definition, Find References, Rename,

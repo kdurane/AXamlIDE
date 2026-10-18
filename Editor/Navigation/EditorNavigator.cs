@@ -1,15 +1,15 @@
 using System;
 using System.IO;
 using Avalonia.Threading;
+using AXamlIDE.Editor.Debugging;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Debugging;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Lsp;
-using AXamlIDE.Views.Editor.Debugging;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Views.Editor.Navigation;
+namespace AXamlIDE.Editor.Navigation;
 
 /// <summary>
 /// Every "go to this place in the editor" move. Driven by messages (see EditorMessages.cs);

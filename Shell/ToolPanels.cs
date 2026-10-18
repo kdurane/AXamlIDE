@@ -1,14 +1,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using AXamlIDE.Messages;
-using AXamlIDE.ViewModels.Problems;
-using AXamlIDE.ViewModels.Running;
-using AXamlIDE.ViewModels.Search;
-using AXamlIDE.Views.Problems;
-using AXamlIDE.Views.Running;
-using AXamlIDE.Views.Search;
+using AXamlIDE.ViewModels;
+using AXamlIDE.Views;
+using OutputView = AXamlIDE.Views.OutputView;
+using ProblemsView = AXamlIDE.Views.ProblemsView;
+using ProblemsViewModel = AXamlIDE.ViewModels.ProblemsViewModel;
+using RunViewModel = AXamlIDE.ViewModels.RunViewModel;
+using SearchView = AXamlIDE.Views.SearchView;
+using SearchViewModel = AXamlIDE.ViewModels.SearchViewModel;
 
-namespace AXamlIDE.Views.Shell;
+namespace AXamlIDE.Shell;
 
 /// <summary>
 /// The tool panels shown in the bottom tab strip, in order. To add a panel: write a self-contained

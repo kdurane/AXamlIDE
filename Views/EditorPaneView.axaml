@@ -1,5 +1,5 @@
 <UserControl
-    x:Class="AXamlIDE.Views.Editor.EditorPaneView"
+    x:Class="AXamlIDE.Views.EditorPaneView"
     xmlns="https://github.com/avaloniaui"
     xmlns:edit="using:AvaloniaEdit"
     xmlns:editing="using:AvaloniaEdit.Editing"
@@ -30,7 +30,10 @@
                     Header="Paste"
                     InputGesture="ctrl+V" />
                 <MenuItem Header="-" />
-                <MenuItem Click="OnCodeActionsClick" Header="Quick Actions..." InputGesture="Ctrl+." />
+                <MenuItem
+                    Click="OnCodeActionsClick"
+                    Header="Quick Actions..."
+                    InputGesture="Ctrl+." />
                 <MenuItem Click="OnFormatClick" Header="Format Document" />
                 <MenuItem Header="-" />
                 <MenuItem

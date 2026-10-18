@@ -6,7 +6,7 @@ using Avalonia.Media.TextFormatting;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 
-namespace AXamlIDE.Views.Editor.Debugging;
+namespace AXamlIDE.Editor.Debugging;
 
 /// <summary>
 /// Draws "name = value" hints at the end of lines within <see cref="Window"/> lines of the current debug line.

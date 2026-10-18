@@ -2,7 +2,7 @@ using AXamlIDE.Messages;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.ViewModels.Editor;
+namespace AXamlIDE.Commands;
 
 /// <summary>
 /// One command per editor action, for menus and the KeyMap to bind to. Each just sends an

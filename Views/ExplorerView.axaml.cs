@@ -12,7 +12,7 @@ using AXamlIDE.ViewModels;
 
 // ReSharper disable AsyncVoidEventHandlerMethod
 
-namespace AXamlIDE.Views.Workspace;
+namespace AXamlIDE.Views;
 
 /// <summary>The Explorer panel (workspace tree). DataContext: <see cref="ExplorerViewModel"/>.</summary>
 public partial class ExplorerView : UserControl

@@ -13,7 +13,7 @@ using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using MarkdownInline = Markdig.Syntax.Inlines.Inline;
 
-namespace AXamlIDE.Views.Editor.Hover;
+namespace AXamlIDE.Editor.Hover;
 
 public static class MarkdownContentRenderer
 {

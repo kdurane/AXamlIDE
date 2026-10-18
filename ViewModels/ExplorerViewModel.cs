@@ -7,7 +7,7 @@ using AXamlIDE.Services.Documents;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The Explorer panel: the workspace tree plus what you can do to a node (open, refresh, build,

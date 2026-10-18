@@ -7,7 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using TextMateSharp.Grammars;
 using DocumentCommands = AXamlIDE.Commands.DocumentCommands;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// One document area: a tab strip, the outline drop-down, an editor and the AXAML preview.

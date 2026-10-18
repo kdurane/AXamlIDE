@@ -14,7 +14,7 @@ using AXamlIDE.Services.Lsp;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The C# outline drop-down above the editor: types and members of the active document,

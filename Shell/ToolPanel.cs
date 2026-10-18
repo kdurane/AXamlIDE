@@ -1,7 +1,7 @@
 using System;
 using Avalonia.Controls;
 
-namespace AXamlIDE.Views.Shell;
+namespace AXamlIDE.Shell;
 
 /// <summary>
 /// One tool panel (Problems, Output, Search...): an id, a title, and its view. The view is created on

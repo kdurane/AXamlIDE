@@ -13,7 +13,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The debug half of RunViewModel: the netcoredbg session, the stopped/running state, and

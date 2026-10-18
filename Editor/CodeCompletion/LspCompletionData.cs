@@ -5,7 +5,7 @@ using AvaloniaEdit.Document;
 using AvaloniaEdit.Editing;
 using AXamlIDE.Services.Lsp;
 
-namespace AXamlIDE.Views.Editor.CodeCompletion;
+namespace AXamlIDE.Editor.CodeCompletion;
 
 /// <summary>Adapts one LSP CompletionItem to AvaloniaEdit's completion list.</summary>
 public sealed class LspCompletionData(LspCompletionItem item, int editStartOffset, double priority) : ICompletionData

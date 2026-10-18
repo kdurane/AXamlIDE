@@ -6,7 +6,7 @@ using AvaloniaEdit.Rendering;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
 
-namespace AXamlIDE.Views.Editor.Highlighting;
+namespace AXamlIDE.Editor.Highlighting;
 
 /// <summary>
 /// One renderer for the one shared editor. On tab switch, point <see cref="Segments"/>

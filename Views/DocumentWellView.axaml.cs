@@ -4,11 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using AXamlIDE.Models;
-using AXamlIDE.Services.Editor;
-using AXamlIDE.ViewModels.Documents;
-using AXamlIDE.Views.Editor;
+using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views.Documents;
+namespace AXamlIDE.Views;
 
 /// <summary>
 /// A document area (tabs, outline, editor, preview). DataContext: <see cref="DocumentWellViewModel"/>.

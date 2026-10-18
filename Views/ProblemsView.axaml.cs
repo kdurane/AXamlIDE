@@ -1,9 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
 using AXamlIDE.Models;
-using AXamlIDE.ViewModels.Problems;
+using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views.Problems;
+namespace AXamlIDE.Views;
 
 /// <summary>The Problems tool panel. DataContext: <see cref="ProblemsViewModel"/>.</summary>
 public partial class ProblemsView : UserControl

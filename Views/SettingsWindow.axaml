@@ -1,16 +1,17 @@
 <Window
+    Background="{DynamicResource ThemeBorderHighBrush}"
     Height="440"
     MinHeight="380"
     MinWidth="500"
     Title="Settings"
     Width="560"
-    Background="{DynamicResource ThemeBorderHighBrush}"
     WindowStartupLocation="CenterOwner"
-    x:Class="AXamlIDE.Views.Settings.SettingsWindow"
-    x:DataType="vm:SettingsViewModel"
+    x:Class="AXamlIDE.Views.SettingsWindow"
+    x:DataType="viewmodels:SettingsViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
-    xmlns:vm="using:AXamlIDE.ViewModels.Settings"
+    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid Margin="20" RowDefinitions="Auto,*">

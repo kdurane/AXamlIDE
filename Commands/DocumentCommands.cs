@@ -8,7 +8,7 @@ using AXamlIDE.Services.Languages;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.ViewModels.Documents;
+namespace AXamlIDE.Commands;
 
 /// <summary>
 /// Commands on documents that work the same from any window: they act on the given document, or on

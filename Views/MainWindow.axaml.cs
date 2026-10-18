@@ -3,14 +3,14 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using AvaloniaEdit.TextMate;
 using AXamlIDE.Messages;
-using AXamlIDE.ViewModels.Settings;
-using AXamlIDE.ViewModels.Shell;
-using AXamlIDE.Views.Editor.Highlighting;
-using AXamlIDE.Views.Running;
+using AXamlIDE.Running;
+using AXamlIDE.Shell;
+using AXamlIDE.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
-using static AXamlIDE.Views.Editor.Highlighting.TextMateController;
+using static AXamlIDE.Editor.Highlighting.TextMateController;
+using MainWindowViewModel = AXamlIDE.ViewModels.MainWindowViewModel;
 
-namespace AXamlIDE.Views.Shell;
+namespace AXamlIDE.Views;
 
 /// <summary>
 /// The main window. It only places the panels (see MainWindow.axaml) and does what needs the

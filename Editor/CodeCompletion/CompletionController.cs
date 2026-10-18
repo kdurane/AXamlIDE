@@ -7,12 +7,12 @@ using Avalonia.Input;
 using Avalonia.Threading;
 using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
+using AXamlIDE.Editor.Hover;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
-using AXamlIDE.Views.Editor.Hover;
-using static AXamlIDE.Views.Editor.NameChars;
+using static AXamlIDE.Editor.NameChars;
 
-namespace AXamlIDE.Views.Editor.CodeCompletion;
+namespace AXamlIDE.Editor.CodeCompletion;
 
 /// <summary>
 /// Completion popup. AXAML uses the built-in XAML completion engine; other languages ask the language server.

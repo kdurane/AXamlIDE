@@ -2,9 +2,9 @@ using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
-using AXamlIDE.ViewModels.Search;
+using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views.Search;
+namespace AXamlIDE.Views;
 
 /// <summary>The Search tool panel. DataContext: <see cref="SearchViewModel"/>.</summary>
 public partial class SearchView : UserControl

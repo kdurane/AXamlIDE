@@ -1,11 +1,11 @@
 <UserControl
-    x:Class="AXamlIDE.Views.Documents.DocumentWellView"
-    x:DataType="vm:DocumentWellViewModel"
+    x:Class="AXamlIDE.Views.DocumentWellView"
+    x:DataType="viewmodels:DocumentWellViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:editor="using:AXamlIDE.Views.Editor"
+    xmlns:editor="using:AXamlIDE.Views"
     xmlns:models="using:AXamlIDE.Models"
-    xmlns:preview="using:AXamlIDE.Views.Preview"
-    xmlns:vm="using:AXamlIDE.ViewModels.Documents"
+    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
+    xmlns:views="clr-namespace:AXamlIDE.Views"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  Tabs + outline on top; one editor (it swaps documents on tab change) and the preview below.  -->
@@ -67,7 +67,7 @@
                 ResizeBehavior="PreviousAndNext"
                 ResizeDirection="Columns"
                 ShowsPreview="False" />
-            <preview:PreviewPaneView
+            <views:PreviewPaneView
                 DataContext="{Binding Preview}"
                 Grid.Column="2"
                 IsVisible="False"

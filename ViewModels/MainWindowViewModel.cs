@@ -14,7 +14,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using DocumentCommands = AXamlIDE.Commands.DocumentCommands;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The main window's view model: the one main UI (menus, activity bar, status bar) and the panels it

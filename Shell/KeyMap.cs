@@ -2,11 +2,10 @@ using System.Collections.Generic;
 using System.Windows.Input;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using AXamlIDE.ViewModels.Documents;
-using AXamlIDE.ViewModels.Editor;
-using AXamlIDE.ViewModels.Shell;
+using AXamlIDE.ViewModels;
+using MainWindowViewModel = AXamlIDE.ViewModels.MainWindowViewModel;
 
-namespace AXamlIDE.Views.Shell;
+namespace AXamlIDE.Shell;
 
 /// <summary>One keyboard shortcut: the gesture, the command it runs, and the command parameter.</summary>
 public sealed record KeyMapEntry(KeyGesture Gesture, ICommand Command, object? Parameter = null);

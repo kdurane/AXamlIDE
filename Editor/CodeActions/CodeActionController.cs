@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -8,11 +7,11 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using AXamlIDE.Editor.Navigation;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
-using AXamlIDE.Views.Editor.Navigation;
 
-namespace AXamlIDE.Views.Editor.CodeActions;
+namespace AXamlIDE.Editor.CodeActions;
 
 /// <summary>
 /// Quick actions (lightbulb margin, Ctrl+., hover on a diagnostic).

@@ -2,14 +2,14 @@
     Title="AXxamlIde"
     d:DesignHeight="800"
     d:DesignWidth="1200"
-    x:Class="AXamlIDE.Views.Shell.MainWindow"
-    x:DataType="shell:MainWindowViewModel"
+    x:Class="AXamlIDE.Views.MainWindow"
+    x:DataType="viewmodels:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:documents="using:AXamlIDE.Views.Documents"
-    xmlns:shared="using:AXamlIDE.Views.Shell"
-    xmlns:workspace="using:AXamlIDE.Views.Workspace"
-    xmlns:shell="using:AXamlIDE.ViewModels.Shell"
+    xmlns:documents="using:AXamlIDE.Views"
+    xmlns:shared="clr-namespace:AXamlIDE.Shell"
+    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
+    xmlns:workspace="using:AXamlIDE.Views"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid RowDefinitions="auto,*,Auto">
@@ -178,7 +178,7 @@
                 </StackPanel>
             </Border>
 
-            <workspace:ExplorerView
+            <documents:ExplorerView
                 DataContext="{Binding Explorer}"
                 Grid.Column="1"
                 Name="ExplorerPane" />

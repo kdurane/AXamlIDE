@@ -7,7 +7,7 @@ using Avalonia.Threading;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
 
-namespace AXamlIDE.Views.Editor.Navigation;
+namespace AXamlIDE.Editor.Navigation;
 
 /// <summary>
 /// Applies LSP workspace edits (rename, code actions, server-initiated edits).

@@ -12,7 +12,7 @@ using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// Everything about the AXAML preview that isn't pixels: the designer-host process, the

@@ -9,7 +9,7 @@ using AXamlIDE.Services.Problems;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Viewmodels;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The Problems tool tab: every diagnostic in every open document, and F8 / Shift+F8 navigation.

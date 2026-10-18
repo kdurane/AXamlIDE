@@ -4,7 +4,7 @@ using Avalonia.Threading;
 using AvaloniaEdit.Folding;
 using AXamlIDE.Models;
 
-namespace AXamlIDE.Views.Editor.Folding;
+namespace AXamlIDE.Editor.Folding;
 
 /// <summary>
 /// Code folding for the shared editor. Recomputes folds 250ms after the user stops typing.

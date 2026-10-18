@@ -8,7 +8,7 @@ using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Views.Editor;
+namespace AXamlIDE.Editor;
 
 /// <summary>
 /// The hub every editor controller shares: the TextEditor, the active document, and the

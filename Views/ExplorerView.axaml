@@ -1,8 +1,9 @@
 <UserControl
-    x:Class="AXamlIDE.Views.Workspace.ExplorerView"
-    x:DataType="vm:ExplorerViewModel"
+    x:Class="AXamlIDE.Views.ExplorerView"
+    x:DataType="viewmodels:ExplorerViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
+    xmlns:viewmodels="clr-namespace:AXamlIDE.ViewModels"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">

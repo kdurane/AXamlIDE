@@ -11,23 +11,23 @@ using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
+using AXamlIDE.Editor;
+using AXamlIDE.Editor.CodeActions;
+using AXamlIDE.Editor.CodeCompletion;
+using AXamlIDE.Editor.Debugging;
+using AXamlIDE.Editor.Folding;
+using AXamlIDE.Editor.Highlighting;
+using AXamlIDE.Editor.Hover;
+using AXamlIDE.Editor.Navigation;
+using AXamlIDE.Editor.SignatureHelp;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Settings;
-using AXamlIDE.ViewModels.Documents;
-using AXamlIDE.Views.Editor.CodeActions;
-using AXamlIDE.Views.Editor.CodeCompletion;
-using AXamlIDE.Views.Editor.Debugging;
-using AXamlIDE.Views.Editor.Folding;
-using AXamlIDE.Views.Editor.Highlighting;
-using AXamlIDE.Views.Editor.Hover;
-using AXamlIDE.Views.Editor.Navigation;
-using AXamlIDE.Views.Editor.SignatureHelp;
 using CommunityToolkit.Mvvm.Messaging;
 using TextMateSharp.Grammars;
 
-namespace AXamlIDE.Views.Editor;
+namespace AXamlIDE.Views;
 
 /// <summary>
 /// The editor, as a pane. Owns the TextEditor, its margins and renderers, TextMate, and every

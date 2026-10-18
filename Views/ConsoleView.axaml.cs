@@ -1,6 +1,7 @@
 using Avalonia.Controls;
+using Avalonia;
 
-namespace AXamlIDE.Views.Running;
+namespace AXamlIDE.Views;
 
 public partial class ConsoleView : UserControl
 {
