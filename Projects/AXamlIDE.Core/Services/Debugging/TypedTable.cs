@@ -7,21 +7,27 @@ using System.Text.Json;
 namespace AXamlIDE.Services.Debugging;
 
 /// <summary>
-/// A JSON array laid out as a table with typed columns, for the visualizer: a string holding a DB / API response
-/// is read in one evaluate and shown like a DataTable, sorting numbers as numbers and dates as dates.
+/// A table with typed cells for the visualizer, read in one go: a JSON string (<see cref="JsonTables"/>) or a
+/// collection read straight from the paused process's memory (<see cref="HeapTables"/>). Numbers sort as numbers
+/// and dates as dates.
 /// </summary>
-/// <param name="Columns">"#" (the row's index), then one per property, in order of first appearance.</param>
-/// <param name="Rows">Cells typed per column: long, decimal, double, bool, DateTime, Guid, string; null for null/missing.</param>
-/// <param name="Path">Where the array was ("$" for the root, "$.data" for a property).</param>
-public sealed record JsonTable(IReadOnlyList<string> Columns, IReadOnlyList<object?[]> Rows, string Path);
+/// <param name="Columns">The index column first, then one per member, in order.</param>
+/// <param name="Rows">Cells typed per column: long, decimal, double, bool, DateTime, Guid, string...; null for null/missing.</param>
+/// <param name="Source">Where it came from, for the status line ("JSON array at $.data", "read from memory").</param>
+/// <param name="TotalCount">Items in the collection (more than <see cref="Rows"/> when it was cut short).</param>
+public sealed record TypedTable(IReadOnlyList<string> Columns, IReadOnlyList<object?[]> Rows, string Source, int TotalCount);
 
+/// <summary>
+/// A JSON array laid out as a <see cref="TypedTable"/>: a string holding a DB / API response is read in one evaluate
+/// and shown like a DataTable.
+/// </summary>
 public static class JsonTables
 {
     /// <summary>
     /// The table in <paramref name="json"/>: the root array, or else the largest array among the root object's
     /// properties (an API's {"data": [...], "total": 8000}). Null when it isn't JSON or has no array.
     /// </summary>
-    public static JsonTable? TryRead(string json)
+    public static TypedTable? TryRead(string json)
     {
         var trimmed = json.TrimStart();
         if (trimmed.Length == 0 || trimmed[0] is not ('[' or '{'))
@@ -53,7 +59,7 @@ public static class JsonTables
         return (best, bestPath);
     }
 
-    private static JsonTable Read(JsonElement array, string path)
+    private static TypedTable Read(JsonElement array, string path)
     {
         var elements = array.EnumerateArray().ToList();
         var objects = elements.Count > 0 && elements.All(element => element.ValueKind is JsonValueKind.Object or JsonValueKind.Null);
@@ -86,7 +92,7 @@ public static class JsonTables
                 row[c + 1] = Cell(elements[i], columns[c]) is { } value ? Convert(value, types[c]) : null;
             rows.Add(row);
         }
-        return new JsonTable(["#", .. columns], rows, path);
+        return new TypedTable(["#", .. columns], rows, $"JSON array at {path}", rows.Count);
     }
 
     // ---------------------------------------------------------------- types (after the user's ConvertJsonElement)

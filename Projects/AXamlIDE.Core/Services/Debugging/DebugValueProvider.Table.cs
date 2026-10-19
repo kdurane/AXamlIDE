@@ -81,6 +81,37 @@ public sealed partial class DebugValueProvider
         return Snapshot(0);
     }
 
+    /// <summary>
+    /// The collection read straight from the debuggee's memory (<see cref="HeapTables"/>): the whole of it in a fraction
+    /// of a second, typed. Null when that isn't possible (no process id, not a collection it reads, more than one
+    /// like it on the heap, ClrMD can't attach): then use <see cref="TableAsync"/>.
+    /// </summary>
+    public async Task<TypedTable?> MemoryTableAsync(DebugValue collection, CancellationToken ct = default)
+    {
+        if (debugger.ProcessId is not { } processId || collection.Expression is not { } expression || collection.Type is not { } type)
+            return null;
+        if (!CollectionShapes.IsArray(type) && collection.Children is not CollectionChildren { Shape: not (CollectionShape.ImmutableArray or CollectionShape.Indexed) })
+            return null;
+        if (CollectionShapes.IsArray(type) && type.Contains("[,"))
+            return null;   // a rectangular array ("int[3, 2]") is read quickly enough the usual way
+
+        // What makes this collection unique on the heap: its count, and its version where it has one.
+        var count = collection.Count ?? await IntAsync(CollectionShapes.IsArray(type) ? $"{expression}.Length" : $"{expression}.Count", ct).ConfigureAwait(false);
+        if (count is not { } items)
+            return null;
+        int? version = null;
+        if (collection.Children is CollectionChildren { Shape: var shape })
+            version = await IntAsync(shape == CollectionShape.Wrapper ? $"{expression}.Items._version" : $"{expression}._version", ct).ConfigureAwait(false);
+
+        return await Task.Run(() => HeapTables.TryRead(processId, new HeapFingerprint(type, items, version), MaxTableRows, ct), ct).ConfigureAwait(false);
+    }
+
+    private async Task<int?> IntAsync(string expression, CancellationToken ct)
+    {
+        var result = await debugger.EvaluateAsync(frameId, expression, "hover", ct).ConfigureAwait(false);
+        return result.Value is { } value && int.TryParse(value.Value, out var number) ? number : null;
+    }
+
     /// <summary>A rectangular array's "[r, c]" items as a grid: a row per r, a column per c.</summary>
     private static DebugTable? TwoDimensional(List<DebugValue> items)
     {

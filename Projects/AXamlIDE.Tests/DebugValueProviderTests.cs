@@ -39,6 +39,8 @@ public class DebugValueProviderTests
 
         public IReadOnlyCollection<string> LoadedModules => [];
 
+        public int? ProcessId => null;
+
         public void Value(string expression, string value, string type = "int", int reference = 0)
             => Values[expression] = new DebugVariable(expression, value, type, reference, expression);
     }

@@ -30,4 +30,7 @@ public interface IDebugEvaluator
 
     /// <summary>Paths of the assemblies loaded in the debuggee so far (for [DebuggerDisplay] and friends).</summary>
     IReadOnlyCollection<string> LoadedModules { get; }
+
+    /// <summary>The debuggee's process id, once it's running (for reading its memory directly: HeapTables).</summary>
+    int? ProcessId { get; }
 }

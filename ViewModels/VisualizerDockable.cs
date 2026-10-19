@@ -34,7 +34,7 @@ public sealed partial class VisualizerDockable : PageDockable
     private CancellationTokenSource _load = new();
     private List<object?[]> _allRows = [];
     private Type[] _columnTypes = [];
-    private JsonTable? _jsonTable;
+    private TypedTable? _jsonTable;
     private string _rawText = "";
 
     public VisualizerDockable(string expression, IClipboardService clipboard)
@@ -96,7 +96,7 @@ public sealed partial class VisualizerDockable : PageDockable
         {
             (IsText, IsTable) = (false, true);
             SetTypedTable(table.Columns, table.Rows.ToList());
-            Status = $"{table.Rows.Count:N0} rows (JSON array at {table.Path})";
+            Status = $"{table.Rows.Count:N0} rows ({table.Source})";
             return;
         }
         (IsText, IsTable) = (true, false);
@@ -138,7 +138,20 @@ public sealed partial class VisualizerDockable : PageDockable
         SetTypedTable([], []);
         try
         {
-            // Off the UI thread: thousands of requests, and the grid stays responsive. Rows arrive in chunks.
+            // Straight from the paused process's memory: the whole collection, typed, in a fraction of a second.
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            if (await Task.Run(() => provider.MemoryTableAsync(value, ct), ct) is { } memory)
+            {
+                if (ct.IsCancellationRequested)
+                    return;
+                SetTypedTable(memory.Columns, memory.Rows.ToList());
+                Status = (memory.Rows.Count < memory.TotalCount
+                    ? $"Showing the first {memory.Rows.Count:N0} of {memory.TotalCount:N0} items"
+                    : $"{memory.TotalCount:N0} items") + $" (read from memory in {watch.Elapsed.TotalSeconds:0.0} s)";
+                return;
+            }
+
+            // Otherwise through the debugger, one object per request: rows arrive in chunks, off the UI thread.
             var read = 0;
             var chunks = new Progress<DebugTable>(chunk =>
             {

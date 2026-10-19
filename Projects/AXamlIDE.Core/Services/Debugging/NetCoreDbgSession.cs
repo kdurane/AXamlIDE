@@ -26,6 +26,9 @@ public sealed partial class NetCoreDbgSession : IDisposable
 
     public IReadOnlyCollection<string> LoadedModules => _modules.Keys.ToArray();
 
+    /// <summary>The debuggee's process id (from the adapter's "process" event).</summary>
+    public int? ProcessId { get; private set; }
+
     public event Action<string>? OutputReceived;
     public event Action<JsonElement>? EventReceived;
     public event Action<Exception>? Failed;
@@ -274,6 +277,9 @@ public sealed partial class NetCoreDbgSession : IDisposable
                         _initialized.TrySetResult();
                     else if (eventName == "module")
                         RememberModule(root);
+                    else if (eventName == "process" && root.TryGetProperty("body", out var process)
+                             && process.TryGetProperty("systemProcessId", out var pid) && pid.TryGetInt32(out var id))
+                        ProcessId = id;
                     EventReceived?.Invoke(root.Clone());
                 }
             }

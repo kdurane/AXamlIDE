@@ -18,7 +18,7 @@ public class JsonTableTests
         var table = JsonTables.TryRead(json)!;
 
         Assert.Equal(["#", "id", "name", "score", "active", "joined", "key", "extra"], table.Columns);
-        Assert.Equal("$", table.Path);
+        Assert.Equal("JSON array at $", table.Source);
         var first = table.Rows[0];
         Assert.Equal(0L, first[0]);
         Assert.Equal(1L, first[1]);
@@ -37,7 +37,7 @@ public class JsonTableTests
     public void The_largest_array_inside_an_object_is_used()
     {
         var table = JsonTables.TryRead("""{"total": 2, "tags": ["x"], "data": [{"a": 1}, {"a": 2}]}""")!;
-        Assert.Equal("$.data", table.Path);
+        Assert.Equal("JSON array at $.data", table.Source);
         Assert.Equal(2, table.Rows.Count);
     }
 
