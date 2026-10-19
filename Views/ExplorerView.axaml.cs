@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
@@ -54,71 +55,36 @@ public partial class ExplorerView : UserControl
         ViewModel?.OpenFileCommand.Execute(node);
     }
 
-    // Right-click: select the node and show what can be done to it.
+    // Right-click selects the node under the pointer; the menu (ExplorerView.axaml) then opens for it.
+    private ProjectTreeNode? _menuNode;
+
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!e.GetCurrentPoint(FileTree).Properties.IsRightButtonPressed || ViewModel is not { } vm)
+        if (!e.GetCurrentPoint(FileTree).Properties.IsRightButtonPressed)
             return;
 
         var control = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
-        if (control is not { DataContext: ProjectTreeNode node })
-            return;
-
-        control.IsSelected = true;
-        var menu = new ContextMenu();
-        if (node.Kind == NodeKind.File)
-            menu.Items.Add(Item("Open", vm.OpenFileCommand, node));
-
-        // Visual Studio's order: cut/copy/paste, then delete/rename.
-        if (menu.Items.Count > 0)
-            menu.Items.Add(new Separator());
-        var canChange = vm.CanChange(node);
-        if (canChange)
-        {
-            menu.Items.Add(Item("Cut", vm.CutCommand, node, new KeyGesture(Key.X, KeyModifiers.Control)));
-            menu.Items.Add(Item("Copy", vm.CopyCommand, node, new KeyGesture(Key.C, KeyModifiers.Control)));
-        }
-        menu.Items.Add(Item("Paste", vm.PasteCommand, node, new KeyGesture(Key.V, KeyModifiers.Control)));
-        if (canChange)
-        {
-            menu.Items.Add(Item("Delete", vm.DeleteCommand, node, new KeyGesture(Key.Delete)));
-            menu.Items.Add(Item("Rename", vm.RenameCommand, node, new KeyGesture(Key.F2)));
-        }
-        menu.Items.Add(new Separator());
-
-        if (!string.IsNullOrEmpty(node.FullPath))
-        {
-            var copy = new MenuItem { Header = "Copy Path" };
-            copy.Click += async (_, _) => await CopyPathAsync(node);
-            menu.Items.Add(copy);
-        }
-        if (node.Kind is NodeKind.Directory or NodeKind.Solution or NodeKind.Project or NodeKind.Folder)
-            menu.Items.Add(Item("Refresh", vm.RefreshCommand, node));
-        if (node.Kind == NodeKind.Project
-            || node.Kind == NodeKind.File && node.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
-        {
-            menu.Items.Add(new Separator());
-            menu.Items.Add(Item("Build", vm.Run.BuildProjectCommand, node));
-            menu.Items.Add(Item("Run", vm.Run.RunProjectCommand, node));
-            menu.Items.Add(Item("Start Debugging", vm.Run.StartDebuggingCommand, node));
-        }
-
-        if (GitMenu(vm.Git, node) is { } git)
-        {
-            menu.Items.Add(new Separator());
-            menu.Items.Add(git);
-        }
-
-        menu.Items.Add(new Separator());
-        menu.Items.Add(new MenuItem { Header = "Properties", Command = vm.Properties.ShowCommand, InputGesture = new KeyGesture(Key.F4) });
-
-        control.ContextMenu = menu;
-        menu.Open(control);
-        e.Handled = true;
+        _menuNode = control?.DataContext as ProjectTreeNode;
+        if (control is not null)
+            control.IsSelected = true;
     }
 
-    private static MenuItem Item(string header, ICommand command, object parameter, KeyGesture? gesture = null)
-        => new() { Header = header, Command = command, CommandParameter = parameter, InputGesture = gesture };
+    private void OnMenuOpening(object? sender, CancelEventArgs e)
+    {
+        if (sender is not ContextMenu menu || ViewModel is not { } vm || _menuNode is not { } node)
+        {
+            e.Cancel = true;   // not over a node
+            return;
+        }
+        menu.DataContext = new ExplorerNodeMenu(node, vm);
+        _menuNode = null;
+    }
+
+    private async void OnCopyPathClick(object? sender, RoutedEventArgs e)
+    {
+        if ((sender as MenuItem)?.DataContext is ExplorerNodeMenu { Node: var node })
+            await CopyPathAsync(node);
+    }
 
     // F2, Delete and Ctrl+X/C/V act on the selected node while the tree has focus.
     private void OnTreeKeyDown(object? sender, KeyEventArgs e)
@@ -139,41 +105,6 @@ public partial class ExplorerView : UserControl
             return;
         command.Execute(node);
         e.Handled = true;
-    }
-
-    /// <summary>
-    /// The Git submenu (as in Rider) for a file, folder or project inside the repository: diff, stage/unstage,
-    /// and add to / remove from .gitignore. A project acts on its folder. Null when nothing applies.
-    /// </summary>
-    private static MenuItem? GitMenu(GitViewModel git, ProjectTreeNode node)
-    {
-        var path = node.Kind switch
-        {
-            NodeKind.File or NodeKind.Directory or NodeKind.Folder => node.FullPath,
-            NodeKind.Project => Path.GetDirectoryName(node.FullPath),
-            _ => null
-        };
-        if (string.IsNullOrEmpty(path) || !git.Contains(path))
-            return null;
-
-        var menu = new MenuItem { Header = "Git" };
-        if (node.Kind == NodeKind.File && git.ChangeFor(path) is not null)
-            menu.Items.Add(Item("Show Diff", git.ShowDiffCommand, path));
-        if (git.HasUnstagedChanges(path))
-            menu.Items.Add(Item("Add", git.StagePathCommand, path));
-        if (git.HasStagedChanges(path))
-            menu.Items.Add(Item("Unstage", git.UnstagePathCommand, path));
-
-        if (node.Kind is NodeKind.File or NodeKind.Directory or NodeKind.Folder)
-        {
-            if (menu.Items.Count > 0)
-                menu.Items.Add(new Separator());
-            menu.Items.Add(node.GitState == GitFileState.Ignored
-                ? Item("Remove from .gitignore", git.UnignoreCommand, path)
-                : Item("Add to .gitignore", git.IgnoreCommand, path));
-        }
-
-        return menu.Items.Count > 0 ? menu : null;
     }
 
     // Uses the clipboard of whichever window this panel is in.

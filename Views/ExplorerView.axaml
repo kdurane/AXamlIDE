@@ -44,6 +44,117 @@
                     </StackPanel>
                 </TreeDataTemplate>
             </TreeView.ItemTemplate>
+            <!--
+                Right-click menu (the standard ContextMenu template lays it out and lines up the shortcuts).
+                Its DataContext is an ExplorerNodeMenu for the clicked node, set when it opens (ExplorerView.axaml.cs).
+            -->
+            <TreeView.ContextMenu>
+                <ContextMenu Opening="OnMenuOpening" x:DataType="vm:ExplorerNodeMenu">
+                    <MenuItem
+                        Command="{Binding Explorer.OpenFileCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Open"
+                        IsVisible="{Binding IsFile}" />
+                    <Separator IsVisible="{Binding IsFile}" />
+
+                    <MenuItem
+                        Command="{Binding Explorer.CutCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Cut"
+                        InputGesture="Ctrl+X"
+                        IsVisible="{Binding CanChange}" />
+                    <MenuItem
+                        Command="{Binding Explorer.CopyCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Copy"
+                        InputGesture="Ctrl+C"
+                        IsVisible="{Binding CanChange}" />
+                    <MenuItem
+                        Command="{Binding Explorer.PasteCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Paste"
+                        InputGesture="Ctrl+V" />
+                    <MenuItem
+                        Command="{Binding Explorer.DeleteCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Delete"
+                        InputGesture="Delete"
+                        IsVisible="{Binding CanChange}" />
+                    <MenuItem
+                        Command="{Binding Explorer.RenameCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Rename"
+                        InputGesture="F2"
+                        IsVisible="{Binding CanChange}" />
+                    <Separator />
+
+                    <MenuItem
+                        Click="OnCopyPathClick"
+                        Header="Copy Path"
+                        IsVisible="{Binding HasPath}" />
+                    <MenuItem
+                        Command="{Binding Explorer.RefreshCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Refresh"
+                        IsVisible="{Binding CanRefresh}" />
+
+                    <Separator IsVisible="{Binding CanBuild}" />
+                    <MenuItem
+                        Command="{Binding Explorer.Run.BuildProjectCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Build"
+                        InputGesture="Ctrl+Shift+B"
+                        IsVisible="{Binding CanBuild}" />
+                    <MenuItem
+                        Command="{Binding Explorer.Run.RunProjectCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Run"
+                        InputGesture="Ctrl+F5"
+                        IsVisible="{Binding CanBuild}" />
+                    <MenuItem
+                        Command="{Binding Explorer.Run.StartDebuggingCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Start Debugging"
+                        InputGesture="F5"
+                        IsVisible="{Binding CanBuild}" />
+
+                    <Separator IsVisible="{Binding ShowGit}" />
+                    <MenuItem Header="Git" IsVisible="{Binding ShowGit}">
+                        <MenuItem
+                            Command="{Binding Explorer.Git.ShowDiffCommand}"
+                            CommandParameter="{Binding GitPath}"
+                            Header="Show Diff"
+                            IsVisible="{Binding CanShowDiff}" />
+                        <MenuItem
+                            Command="{Binding Explorer.Git.StagePathCommand}"
+                            CommandParameter="{Binding GitPath}"
+                            Header="Add"
+                            IsVisible="{Binding CanStage}" />
+                        <MenuItem
+                            Command="{Binding Explorer.Git.UnstagePathCommand}"
+                            CommandParameter="{Binding GitPath}"
+                            Header="Unstage"
+                            IsVisible="{Binding CanUnstage}" />
+                        <Separator IsVisible="{Binding ShowGitSeparator}" />
+                        <MenuItem
+                            Command="{Binding Explorer.Git.IgnoreCommand}"
+                            CommandParameter="{Binding GitPath}"
+                            Header="Add to .gitignore"
+                            IsVisible="{Binding CanIgnore}" />
+                        <MenuItem
+                            Command="{Binding Explorer.Git.UnignoreCommand}"
+                            CommandParameter="{Binding GitPath}"
+                            Header="Remove from .gitignore"
+                            IsVisible="{Binding CanUnignore}" />
+                    </MenuItem>
+
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding Explorer.Properties.ShowCommand}"
+                        Header="Properties"
+                        InputGesture="F4" />
+                </ContextMenu>
+            </TreeView.ContextMenu>
             <TreeView.Resources>
                 <x:Double x:Key="TreeViewItemIndent">10</x:Double>
             </TreeView.Resources>
