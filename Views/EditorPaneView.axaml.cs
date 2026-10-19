@@ -131,7 +131,7 @@ public partial class EditorPaneView : UserControl,
         Editor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
-        _hover = new HoverController(_ctx, _codeActions);
+        _hover = new HoverController(_ctx, _codeActions, HoverPopup);
         _signatureHelp = new SignatureHelpController(_ctx);
         _completion = new CompletionController(_ctx, _hover);
         _typing = new TypingController(_ctx, _hover, _completion, _signatureHelp);

@@ -44,6 +44,15 @@
     <Color x:Key="diffEditor.removedLineBackground">#331D41</Color>   <!-- default -->
     <Color x:Key="diffEditor.diagonalFill">#15355E</Color>   <!-- default -->
 
+    <!--  Hover card and diagnostics (Editor/Hover).  -->
+    <Color x:Key="editorHoverWidget.background">#001C40</Color>
+    <Color x:Key="editorHoverWidget.foreground">#FFFFFF</Color>   <!-- default -->
+    <Color x:Key="editorHoverWidget.border">#445E7F</Color>
+    <Color x:Key="editorError.foreground">#F14C4C</Color>   <!-- default -->
+    <Color x:Key="editorWarning.foreground">#CCA700</Color>   <!-- default -->
+    <Color x:Key="editorInfo.foreground">#3794FF</Color>   <!-- default -->
+    <Color x:Key="textLink.foreground">#3794FF</Color>   <!-- default -->
+
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#1E3E65</Color>
     <Color x:Key="app.panelHeader.activeBackground">#14355E</Color>

@@ -3,8 +3,8 @@ using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Editor.Hover;
 using AXamlIDE.Models;
-using AXamlIDE.Services.Lsp;
 
 namespace AXamlIDE.Editor.Highlighting;
 
@@ -14,10 +14,6 @@ namespace AXamlIDE.Editor.Highlighting;
 /// </summary>
 public sealed class DiagnosticRenderer : IBackgroundRenderer
 {
-    private static readonly IPen ErrorPen = new Pen(Brushes.Red);
-    private static readonly IPen WarningPen = new Pen(Brushes.Goldenrod);
-    private static readonly IPen InfoPen = new Pen(Brushes.DodgerBlue);
-
     public TextSegmentCollection<DiagnosticSegment>? Segments { get; set; }
 
     public KnownLayer Layer => KnownLayer.Selection;
@@ -32,12 +28,8 @@ public sealed class DiagnosticRenderer : IBackgroundRenderer
 
         foreach (var seg in Segments.FindOverlappingSegments(viewStart, viewEnd - viewStart))
         {
-            var pen = seg.Severity switch
-            {
-                LspDiagnosticSeverity.Error => ErrorPen,
-                LspDiagnosticSeverity.Warning => WarningPen,
-                _ => InfoPen
-            };
+            // The theme's error / warning / info colour (the same as in the hover card).
+            var pen = new Pen(HoverCard.DiagnosticBrush(seg.Severity) ?? Brushes.Red);
 
             foreach (var r in BackgroundGeometryBuilder.GetRectsForSegment(textView, seg))
                 DrawSquiggle(dc, pen, r.BottomLeft, r.Width);

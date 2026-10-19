@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using AXamlIDE.Editor.Hover;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
@@ -14,7 +15,7 @@ using AXamlIDE.Services.Lsp;
 namespace AXamlIDE.Editor.CodeActions;
 
 /// <summary>
-/// Quick actions (lightbulb margin, Ctrl+., hover on a diagnostic).
+/// Quick actions (lightbulb margin, Ctrl+., the hover card's Quick Fix... link).
 /// Inserts its margin at index 1, so construct it after the breakpoint margin (index 0) is added.
 /// </summary>
 public sealed class CodeActionController
@@ -122,6 +123,10 @@ public sealed class CodeActionController
         }
     }
 
+    /// <summary>
+    /// The quick-fix list: the diagnostics it's for (in their colour), then one item per fix. A MenuFlyout, so
+    /// it's light dismissable and keyboard-driven (it takes focus on purpose: it was asked for).
+    /// </summary>
     private void ShowCodeActionFlyout(IReadOnlyList<LspCodeAction> actions, LspClient client,
         Control anchor, string? diagnosticHeader, bool showAtPointer)
     {
@@ -131,17 +136,12 @@ public sealed class CodeActionController
             flyout.Items.Add(new MenuItem
             {
                 IsEnabled = false,
-                FontSize = 10,
-                Padding = new Thickness(8, 6),
                 Header = new TextBlock
                 {
                     Text = diagnosticHeader,
-                    FontSize = 10,
-                    FontWeight = FontWeight.SemiBold,
-                    Foreground = Brushes.Salmon,
+                    Foreground = HoverCard.DiagnosticBrush(LspDiagnosticSeverity.Error),
                     TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 360,
-                    HorizontalAlignment = HorizontalAlignment.Left
+                    MaxWidth = 420
                 }
             });
             flyout.Items.Add(new Separator());
@@ -151,30 +151,13 @@ public sealed class CodeActionController
         {
             var item = new MenuItem
             {
-                FontSize = 10,
-                Padding = new Thickness(8, 4),
-                Header = new StackPanel
+                Header = new TextBlock { Text = action.Title, TextWrapping = TextWrapping.Wrap, MaxWidth = 420 },
+                Icon = new PathIcon
                 {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    Children =
-                              {
-                                  new PathIcon
-                                  {
-                                      Data = Geometry.Parse(
-                                          "M12 2a7 7 0 0 0-4 12.75V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.25A7 7 0 0 0 12 2m2 13.5V17h-4v-1.5l-.8-.55a5 5 0 1 1 5.6 0zM10 21h4v1h-4z"),
-                                      Width = 14,
-                                      Height = 14,
-                                      Foreground = Brushes.DarkGoldenrod
-                                  },
-                                  new TextBlock
-                                  {
-                                      Text = action.Title,
-                                      FontSize = 10,
-                                      VerticalAlignment = VerticalAlignment.Center,
-                                      TextWrapping = TextWrapping.Wrap
-                                  }
-                              }
+                    Data = LightbulbIcon,
+                    Width = 14,
+                    Height = 14,
+                    Foreground = HoverCard.DiagnosticBrush(LspDiagnosticSeverity.Warning)
                 }
             };
             item.Click += async (_, _) => await ApplyCodeActionAsync(action, client);
@@ -183,6 +166,9 @@ public sealed class CodeActionController
 
         flyout.ShowAt(anchor, showAtPointer);
     }
+
+    private static readonly Geometry LightbulbIcon = Geometry.Parse(
+        "M12 2a7 7 0 0 0-4 12.75V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.25A7 7 0 0 0 12 2m2 13.5V17h-4v-1.5l-.8-.55a5 5 0 1 1 5.6 0zM10 21h4v1h-4z");
 
     private async Task ApplyCodeActionAsync(LspCodeAction action, LspClient client)
     {

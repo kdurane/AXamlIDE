@@ -6,52 +6,68 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  No bindings to a parent view model: everything goes through EditorServices (see Initialize).  -->
-    <edit:TextEditor
-        FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
-        FontSize="13"
-        FontWeight="Light"
-        HorizontalScrollBarVisibility="Auto"
-        Margin="0"
-        Name="Editor"
-        ShowLineNumbers="True"
-        VerticalScrollBarVisibility="Visible">
-        <edit:TextEditor.ContextFlyout>
-            <MenuFlyout Opening="OnContextMenuOpening">
-                <MenuItem
-                    Click="OnCopyClick"
-                    Header="Copy"
-                    InputGesture="ctrl+C" />
-                <MenuItem
-                    Click="OnCutClick"
-                    Header="Cut"
-                    InputGesture="ctrl+X" />
-                <MenuItem
-                    Click="OnPasteClick"
-                    Header="Paste"
-                    InputGesture="ctrl+V" />
-                <MenuItem Header="-" />
-                <!--  C# only (shown by OnContextMenuOpening): renames the symbol and every reference to it  -->
-                <MenuItem
-                    Click="OnRenameClick"
-                    Header="Rename..."
-                    InputGesture="Ctrl+R"
-                    Name="RenameMenuItem" />
-                <MenuItem
-                    Click="OnCodeActionsClick"
-                    Header="Quick Actions..."
-                    InputGesture="Ctrl+." />
-                <MenuItem Click="OnFormatClick" Header="Format Document" />
-                <MenuItem Header="-" />
-                <MenuItem
-                    Click="OnSelectAllClick"
-                    Header="Select All"
-                    InputGesture="ctrl+A" />
-            </MenuFlyout>
-        </edit:TextEditor.ContextFlyout>
-        <edit:TextEditor.Styles>
-            <Style Selector="editing|LineNumberMargin">
-                <Setter Property="MinWidthInDigits" Value="3" />
-            </Style>
-        </edit:TextEditor.Styles>
-    </edit:TextEditor>
+    <Panel>
+        <edit:TextEditor
+            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+            FontSize="13"
+            FontWeight="Light"
+            HorizontalScrollBarVisibility="Auto"
+            Margin="0"
+            Name="Editor"
+            ShowLineNumbers="True"
+            VerticalScrollBarVisibility="Visible">
+            <edit:TextEditor.ContextFlyout>
+                <MenuFlyout Opening="OnContextMenuOpening">
+                    <MenuItem
+                        Click="OnCopyClick"
+                        Header="Copy"
+                        InputGesture="ctrl+C" />
+                    <MenuItem
+                        Click="OnCutClick"
+                        Header="Cut"
+                        InputGesture="ctrl+X" />
+                    <MenuItem
+                        Click="OnPasteClick"
+                        Header="Paste"
+                        InputGesture="ctrl+V" />
+                    <MenuItem Header="-" />
+                    <!--  C# only (shown by OnContextMenuOpening): renames the symbol and every reference to it  -->
+                    <MenuItem
+                        Click="OnRenameClick"
+                        Header="Rename..."
+                        InputGesture="Ctrl+R"
+                        Name="RenameMenuItem" />
+                    <MenuItem
+                        Click="OnCodeActionsClick"
+                        Header="Quick Actions..."
+                        InputGesture="Ctrl+." />
+                    <MenuItem Click="OnFormatClick" Header="Format Document" />
+                    <MenuItem Header="-" />
+                    <MenuItem
+                        Click="OnSelectAllClick"
+                        Header="Select All"
+                        InputGesture="ctrl+A" />
+                </MenuFlyout>
+            </edit:TextEditor.ContextFlyout>
+            <edit:TextEditor.Styles>
+                <Style Selector="editing|LineNumberMargin">
+                    <Setter Property="MinWidthInDigits" Value="3" />
+                </Style>
+            </edit:TextEditor.Styles>
+        </edit:TextEditor>
+
+        <!--
+            The hover card (Editor/Hover/HoverController fills and places it). A popup has to be in the tree to open.
+            Light dismiss: a click outside closes it and still reaches the editor. It never takes focus.
+        -->
+        <Popup
+            Focusable="False"
+            IsLightDismissEnabled="True"
+            Name="HoverPopup"
+            OverlayDismissEventPassThrough="True"
+            Placement="AnchorAndGravity"
+            PlacementAnchor="BottomLeft"
+            PlacementConstraintAdjustment="FlipY, SlideX"
+            PlacementGravity="BottomRight" />
+    </Panel>
 </UserControl>

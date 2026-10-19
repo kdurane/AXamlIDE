@@ -137,4 +137,13 @@
     <SolidColorBrush Color="{DynamicResource diffEditor.insertedLineBackground}" x:Key="DiffInsertedLineBrush" />
     <SolidColorBrush Color="{DynamicResource diffEditor.removedLineBackground}" x:Key="DiffRemovedLineBrush" />
     <SolidColorBrush Color="{DynamicResource diffEditor.diagonalFill}" x:Key="DiffFillerLineBrush" />
+
+    <!--  Hover card and diagnostics (Editor/Hover/HoverCard)  -->
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.background}" x:Key="HoverBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.foreground}" x:Key="HoverForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.border}" x:Key="HoverBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorError.foreground}" x:Key="DiagnosticErrorBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWarning.foreground}" x:Key="DiagnosticWarningBrush" />
+    <SolidColorBrush Color="{DynamicResource editorInfo.foreground}" x:Key="DiagnosticInfoBrush" />
+    <SolidColorBrush Color="{DynamicResource textLink.foreground}" x:Key="LinkBrush" />
 </ResourceDictionary>

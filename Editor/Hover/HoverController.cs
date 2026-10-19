@@ -4,253 +4,249 @@ using System.Linq;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
-using AXamlIDE.Models;
+using AvaloniaEdit;
+using AvaloniaEdit.Rendering;
 using AXamlIDE.Editor.CodeActions;
+using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
 
 namespace AXamlIDE.Editor.Hover;
 
 /// <summary>
-/// Hover tooltip: the pointer rests on an offset, a debounce timer fires, the server is asked.
-/// Diagnostics under the pointer are shown too, and for AXAML the XAML engine supplies the text.
+/// The hover card (<see cref="HoverCard"/>), the same for C# and AXAML: the diagnostics under the pointer (with
+/// a Quick Fix... link) and the symbol's signature and documentation.
+///
+///   - It appears when the pointer rests over the text itself (not past the end of a line, and not while a mouse
+///     button is down, e.g. selecting), after a short pause; the language server (or XAML engine) is asked then.
+///   - It's a popup that never takes focus, so Enter and typing stay with the editor; any key, click, scroll or
+///     edit closes it, and so does a click outside it (light dismiss).
+///   - It stays open while the pointer is over the hovered text or the card itself (so its text can be selected
+///     and the link clicked), and closes shortly after the pointer leaves both.
+///   - Quick fixes are only listed when asked for (the link, the lightbulb, or Ctrl+.), never on hover.
 /// </summary>
 public sealed class HoverController
 {
+    private static readonly TimeSpan ShowDelay = TimeSpan.FromMilliseconds(400);
+    private static readonly TimeSpan HideDelay = TimeSpan.FromMilliseconds(300);
+
     private readonly EditorContext _ctx;
     private readonly CodeActionController _codeActions;
-
-    // Hover: the pointer rests on an offset, a debounce timer fires, the server is asked.
-    private readonly DispatcherTimer _hoverTimer = new() { Interval = TimeSpan.FromMilliseconds(350) };
+    private readonly DispatcherTimer _showTimer = new() { Interval = ShowDelay };
+    private readonly DispatcherTimer _hideTimer = new() { Interval = HideDelay };
+    private readonly Popup _popup;
     private CancellationTokenSource? _hoverCts;
-    private int _hoverOffset = -1;
-    private (int Start, int End)? _tipRange; // non-null while our tooltip is open
-    private bool _tipOpen;
+    private int? _hoverOffset;               // the character the pointer rests on
+    private (int Start, int End)? _tipRange; // what the open card is about
+    private bool _pointerOverCard;
 
-    public HoverController(EditorContext ctx, CodeActionController codeActions)
+    /// <param name="popup">The popup to show the card in (EditorPaneView.axaml: placed under the text, light dismiss).</param>
+    public HoverController(EditorContext ctx, CodeActionController codeActions, Popup popup)
     {
         _ctx = ctx;
         _codeActions = codeActions;
-
+        _popup = popup;
         var editor = ctx.Editor;
+        var textView = editor.TextArea.TextView;
+        _popup.PlacementTarget = textView;
+        _popup.Closed += (_, _) => _tipRange = null;
 
         // handledEventsToo: the text area marks pointer events handled while selecting.
-        editor.AddHandler(InputElement.PointerMovedEvent, OnEditorPointerMoved,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble, handledEventsToo: true);
-        editor.PointerExited += (_, _) => Hide(resetOffset: true);
+        editor.AddHandler(InputElement.PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+        editor.AddHandler(InputElement.PointerPressedEvent, (_, _) => Hide(resetOffset: true), RoutingStrategies.Tunnel, handledEventsToo: true);
+        editor.AddHandler(InputElement.KeyDownEvent, (_, _) => Hide(resetOffset: true), RoutingStrategies.Tunnel, handledEventsToo: true);
+        editor.PointerExited += OnPointerExited;
+        textView.ScrollOffsetChanged += (_, _) => Hide(resetOffset: true);
+        editor.TextChanged += (_, _) => Hide(resetOffset: true);
 
-        _hoverTimer.Tick += OnHoverTimer;
+        _showTimer.Tick += OnShowTimer;
+        _hideTimer.Tick += (_, _) =>
+        {
+            _hideTimer.Stop();
+            if (!_pointerOverCard)
+                Hide();
+        };
 
-        // The quick-actions flyout replaces the tooltip.
         codeActions.FlyoutOpening += () => Hide(resetOffset: true);
     }
 
-    // Pointer moves are cheap: just note where it is and restart the debounce. The server
-    // is only asked once the pointer has rested for a moment.
-    private void OnEditorPointerMoved(object? sender, PointerEventArgs e)
+    private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        var editor = _ctx.Editor;
-        if (_ctx.Active is not { } doc || editor.GetPositionFromPoint(e.GetPosition(editor)) is not { } pos)
+        // Selecting with the mouse (or any drag): no hover, and none popping up underneath.
+        if (e.GetCurrentPoint(_ctx.Editor).Properties is { IsLeftButtonPressed: true } or { IsRightButtonPressed: true } or { IsMiddleButtonPressed: true })
         {
             Hide(resetOffset: true);
             return;
         }
 
-        // Below the last line the editor can report a spot past the end of the text.
-        var offset = Math.Min(doc.Document.GetOffset(pos.Location), doc.Document.TextLength);
+        var offset = CharacterUnderPointer(e.GetPosition(_ctx.Editor.TextArea.TextView));
 
-        // Still over what the open tooltip is about: leave it alone.
-        if (_tipRange is { } range && offset >= range.Start && offset <= range.End) return;
-        if (offset == _hoverOffset) return;
+        // Still over what the open card is about: keep it.
+        if (_tipRange is { } range && offset is { } over && over >= range.Start && over <= Math.Max(range.End, range.Start + 1) - 1)
+        {
+            _hideTimer.Stop();
+            return;
+        }
+
+        if (_popup.IsOpen)
+            _hideTimer.Start();   // moving away (maybe towards the card): close soon unless it gets there
+        if (offset == _hoverOffset)
+            return;
 
         _hoverOffset = offset;
-        Hide();
-        _hoverTimer.Start();
+        _showTimer.Stop();
+        if (offset is not null)
+            _showTimer.Start();
     }
 
-    private static bool IsInDocument(OpenDocument doc, int offset)
-        => offset >= 0 && offset <= doc.Document.TextLength;
-
-    private async void OnHoverTimer(object? sender, EventArgs e)
+    // Only a real exit counts: when the card opens over the editor (or the pointer moves onto it), the editor gets
+    // PointerExited although the pointer is still within its area; the card's own events take over then.
+    private void OnPointerExited(object? sender, PointerEventArgs e)
     {
-        _hoverTimer.Stop();
-        if (_ctx.Active is not { } doc || _hoverOffset < 0) return;
-
-        var offset = _hoverOffset;
-        if (!IsInDocument(doc, offset)) return;   // the text got shorter since the pointer stopped
-
-        // Diagnostics are local and instant; the server's hover text is added if it has any.
-        var segments = doc.Diagnostics.FindSegmentsContaining(offset).ToList();
-        var diagText = string.Join(Environment.NewLine, segments.Select(d => d.Message));
-        (int Start, int End)? range = segments.Count > 0 ? (segments[0].StartOffset, segments[0].EndOffset) : null;
-
-        if (segments.Count > 0 && _ctx.Languages.ClientFor(doc)?.SupportsCodeActions == true)
-        {
-            var diagnosticHeader = string.Join(
-                Environment.NewLine,
-                segments.Select(segment => segment.Message).Distinct(StringComparer.Ordinal));
-            var lineNumber = doc.Document.GetLineByOffset(offset).LineNumber;
-            if (await _codeActions.ShowCodeActionsAsync(lineNumber, _ctx.Editor, diagnosticHeader, showAtPointer: true))
-                return;
-            if (!ReferenceEquals(doc, _ctx.Active) || offset != _hoverOffset)
-                return;
-        }
-
-        string? hoverText = null;
-        var hoverIsMarkdown = false;
-
-        if (doc.LanguageId == LanguageIds.Axaml)
-        {
-            var cts = _hoverCts = new CancellationTokenSource();
-            try
-            {
-                hoverText = await _ctx.Xaml.GetHoverAsync(doc.Path, doc.Document.Text, offset);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[AXAML hover] {ex}");
-            }
-
-            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(doc, _ctx.Active))
-                return;
-        }
-        else if (_ctx.Languages.ConnectionFor(doc) is { Client: var client, Sync: var sync })
-        {
-            sync.Flush(); // the server has to see what's on screen
-
-            if (!IsInDocument(doc, offset)) return;   // edited while the quick-actions lookup was awaited
-            var cts = _hoverCts = new CancellationTokenSource();
-            var loc = doc.Document.GetLocation(offset);
-
-            try
-            {
-                var hover = await client.HoverAsync(doc.Uri, loc.Line - 1, loc.Column - 1, cts.Token);
-                if (hover is not null)
-                {
-                    hoverText = hover.Text;
-                    hoverIsMarkdown = hover.IsMarkdown;
-                    if (hover.Range is { } r)
-                        range = (doc.OffsetOf(r.StartLine, r.StartChar), doc.OffsetOf(r.EndLine, r.EndChar));
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[{doc.LanguageId} hover] {ex}");
-            }
-
-            // The pointer moved on, or the tab changed, while we were waiting.
-            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(doc, _ctx.Active))
-                return;
-        }
-
-        ShowTip(diagText, hoverText, hoverIsMarkdown, range ?? (offset, offset));
+        if (new Rect(_ctx.Editor.Bounds.Size).Contains(e.GetPosition(_ctx.Editor)))
+            return;
+        _showTimer.Stop();
+        _hoverOffset = null;
+        if (_popup.IsOpen)
+            _hideTimer.Start();
     }
 
-    private void ShowTip(string diagnostics, string? hover, bool hoverIsMarkdown, (int Start, int End) range)
+    /// <summary>The offset of the character the pointer is over, or null when it isn't over any text.</summary>
+    private int? CharacterUnderPointer(Point pointInTextView)
+    {
+        var view = _ctx.Editor.TextArea.TextView;
+        if (_ctx.Active is not { } document || !view.VisualLinesValid)
+            return null;
+        var point = pointInTextView + view.ScrollOffset;
+        if (view.GetVisualLineFromVisualTop(point.Y) is not { } line)
+            return null;
+
+        var column = line.GetVisualColumnFloor(point);
+        if (column >= line.VisualLength)
+            return null;   // past the end of the line
+        var left = line.GetVisualPosition(column, VisualYPosition.LineTop).X;
+        var right = line.GetVisualPosition(column + 1, VisualYPosition.LineTop).X;
+        if (point.X < left || point.X > right)
+            return null;
+
+        var offset = line.FirstDocumentLine.Offset + line.GetRelativeOffset(column);
+        return offset < document.Document.TextLength ? offset : null;
+    }
+
+    private async void OnShowTimer(object? sender, EventArgs e)
+    {
+        _showTimer.Stop();
+        if (_ctx.Active is not { } document || _hoverOffset is not { } offset || offset >= document.Document.TextLength)
+            return;
+
+        _hoverCts?.Cancel();
+        var cts = _hoverCts = new CancellationTokenSource();
+
+        // Diagnostics are local and instant: the ones covering this character.
+        var segments = document.Diagnostics.FindSegmentsContaining(offset)
+            .Where(segment => offset >= segment.StartOffset && (offset < segment.EndOffset || segment.Length == 0))
+            .ToList();
+        var diagnostics = segments
+            .OrderBy(segment => segment.Severity)
+            .Select(segment => new HoverDiagnostic(segment.Severity, segment.Message))
+            .DistinctBy(diagnostic => diagnostic.Message)
+            .ToList();
+        (int Start, int End) range = segments.Count > 0 ? (segments[0].StartOffset, segments[0].EndOffset) : (offset, offset + 1);
+
+        var (signature, documentation, symbolRange) = await GetSymbolHoverAsync(document, offset, cts.Token);
+        if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
+            return;   // the pointer moved on, or the tab changed, while we were waiting
+
+        if (segments.Count == 0 && symbolRange is { } symbol)
+            range = symbol;
+        var content = new HoverContent(diagnostics, signature, documentation);
+        if (!content.IsEmpty)
+            Show(content, range, quickFixLine: diagnostics.Count > 0 && _ctx.Languages.ClientFor(document)?.SupportsCodeActions == true
+                ? document.Document.GetLineByOffset(offset).LineNumber
+                : null);
+    }
+
+    /// <summary>The symbol's hover from the XAML engine (AXAML) or the language server, read into one shape.</summary>
+    private async System.Threading.Tasks.Task<(string? Signature, string? Documentation, (int, int)? Range)> GetSymbolHoverAsync(
+        OpenDocument document, int offset, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (document.LanguageId == LanguageIds.Axaml)
+            {
+                var text = await _ctx.Xaml.GetHoverAsync(document.Path, document.Document.Text, offset);
+                if (text is null)
+                    return (null, null, null);
+                var (signature, documentation) = HoverContent.FromPlainText(text);
+                return (signature, documentation, null);
+            }
+
+            if (_ctx.Languages.ConnectionFor(document) is not { Client: var client, Sync: var sync })
+                return (null, null, null);
+            sync.Flush();   // the server has to see what's on screen
+            var location = document.Document.GetLocation(offset);
+            if (await client.HoverAsync(document.Uri, location.Line - 1, location.Column - 1, cancellationToken) is not { } hover)
+                return (null, null, null);
+
+            var (codeSignature, docs) = hover.IsMarkdown ? HoverContent.FromMarkdown(hover.Text) : HoverContent.FromPlainText(hover.Text);
+            (int, int)? range = hover.Range is { } r
+                ? (document.OffsetOf(r.StartLine, r.StartChar), document.OffsetOf(r.EndLine, r.EndChar))
+                : null;
+            return (codeSignature, docs, range);
+        }
+        catch (OperationCanceledException)
+        {
+            return (null, null, null);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[{document.LanguageId} hover] {ex}");
+            return (null, null, null);
+        }
+    }
+
+    private void Show(HoverContent content, (int Start, int End) range, int? quickFixLine)
     {
         var editor = _ctx.Editor;
-        var panel = new StackPanel { Spacing = 8, MaxWidth = 520 };
+        var view = editor.TextArea.TextView;
+        var start = _ctx.Active!.Document.GetLocation(range.Start);
+        var position = view.GetVisualPosition(new TextViewPosition(start), VisualYPosition.LineBottom) - view.ScrollOffset;
 
-        if (diagnostics.Length > 0)
-            panel.Children.Add(new TextBlock
+        Action? quickFix = quickFixLine is { } line
+            ? () =>
             {
-                Text = diagnostics,
-                TextWrapping = TextWrapping.Wrap,
-                Foreground = Brushes.Salmon
-            });
-
-        if (!string.IsNullOrEmpty(hover))
-        {
-            Control hoverContent;
-            if (_ctx.Active?.LanguageId == LanguageIds.Axaml)
-            {
-                hoverContent = new TextBlock
-                {
-                    Text = hoverIsMarkdown ? MarkdownContentRenderer.ToPlainText(hover) : hover,
-                    TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 520,
-                    Foreground = Brushes.Gainsboro
-                };
+                var header = string.Join(Environment.NewLine, content.Diagnostics.Select(diagnostic => diagnostic.Message));
+                Hide(resetOffset: true);
+                _ = _codeActions.ShowCodeActionsAsync(line, editor, header, showAtPointer: true);
             }
-            else if (hoverIsMarkdown)
-            {
-                var renderedMarkdown = MarkdownContentRenderer.Render(hover);
-                if (renderedMarkdown is Panel { Children.Count: 0 })
-                {
-                    Debug.WriteLine($"[{_ctx.Active?.LanguageId} hover] Markdown contained no renderable blocks.");
-                    hoverContent = new TextBlock
-                    {
-                        Text = hover,
-                        TextWrapping = TextWrapping.Wrap,
-                        Foreground = Brushes.Gainsboro
-                    };
-                }
-                else
-                    hoverContent = renderedMarkdown;
-            }
-            else
-                hoverContent = new TextBlock
-                {
-                    Text = hover,
-                    TextWrapping = TextWrapping.Wrap,
-                    Foreground = Brushes.Gainsboro
-                };
+            : null;
 
-            panel.Children.Add(hoverContent);
-        }
-
-        if (panel.Children.Count == 0) return;
-
-        var background = new SolidColorBrush(Color.Parse("#2b2b2b"));
-        var tooltipContent = new Border
-        {
-            Background = background,
-            BorderBrush = new SolidColorBrush(Color.Parse("#555555")),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(10),
-            Child = new ScrollViewer
-            {
-                MaxWidth = 536,
-                MaxHeight = 420,
-                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                Content = panel
-            }
-        };
-
-        ToolTip.SetTip(editor, tooltipContent);
-        ToolTip.SetPlacement(editor, PlacementMode.Pointer);
-        ToolTip.SetIsOpen(editor, true);
-
-        _tipOpen = true;
+        var card = HoverCard.Create(content, editor.FontFamily, Math.Max(editor.FontSize - 1, 10), quickFix);
+        // On the card itself: the popup's own pointer events don't see its content (it lives in another window).
+        card.PointerEntered += (_, _) => { _pointerOverCard = true; _hideTimer.Stop(); };
+        card.PointerExited += (_, _) => { _pointerOverCard = false; _hideTimer.Start(); };
+        _popup.Child = card;
+        _popup.PlacementRect = new Rect(position.X, position.Y - 1, 1, 1);
+        _popup.IsOpen = true;
         _tipRange = range;
+        _pointerOverCard = false;
+        _hideTimer.Stop();
     }
 
     public void Hide(bool resetOffset = false)
     {
-        var editor = _ctx.Editor;
-
-        _hoverTimer.Stop();
-        _hoverCts?.Cancel(); // abandons an in-flight hover request (and tells the server)
-        if (resetOffset) _hoverOffset = -1;
-
-        if (!_tipOpen) return;
-
-        ToolTip.SetIsOpen(editor, false);
-        ToolTip.SetTip(editor, null);
-        _tipOpen = false;
+        _showTimer.Stop();
+        _hideTimer.Stop();
+        _hoverCts?.Cancel();   // abandons an in-flight hover request (and tells the server)
+        if (resetOffset)
+            _hoverOffset = null;
+        if (_popup.IsOpen)
+            _popup.IsOpen = false;
         _tipRange = null;
+        _pointerOverCard = false;
     }
 }
