@@ -85,6 +85,24 @@
             A code lens's references ("3 references" clicked; Editor/CodeLens/CodeLensController fills and places it).
             Click a line, or Enter, to go there; click outside or Escape to close.
         -->
+        <!--  The colour picker behind the colour swatches (ColorSwatchController). Picking rewrites the colour in the code.  -->
+        <Popup
+            IsLightDismissEnabled="True"
+            Name="ColorPopup"
+            Placement="AnchorAndGravity"
+            PlacementAnchor="TopLeft"
+            PlacementConstraintAdjustment="FlipY, SlideX"
+            PlacementGravity="BottomRight">
+            <Border
+                Background="{DynamicResource HoverBackgroundBrush}"
+                BorderBrush="{DynamicResource HoverBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="8">
+                <ColorView IsAccentColorsVisible="False" Name="ColorPicker" />
+            </Border>
+        </Popup>
+
         <Popup
             IsLightDismissEnabled="True"
             Name="ReferencesPopup"
