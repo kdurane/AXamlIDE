@@ -39,6 +39,9 @@ public sealed class KeyMap
             Bind(Key.S, Ctrl, shell.DocumentCommands.SaveDocumentCommand),     // null parameter = the selected tab
             Bind(Key.W, Ctrl, shell.DocumentCommands.CloseDocumentCommand),
             Bind(Key.OemComma, Ctrl, shell.OpenSettingsCommand),
+            Bind(Key.A, Ctrl | Shift, shell.Explorer.NewItemCommand),       // VS's Add New Item / Add Class; into the explorer selection
+            Bind(Key.C, Shift | Alt, shell.Explorer.NewClassCommand),
+            Bind(Key.N, Shift | Alt, shell.Explorer.NewFolderCommand),
 
             // ---- Edit (undo, cut, copy... are the editor's own keys)
             Bind(Key.R, Ctrl, editor.RenameSymbol),

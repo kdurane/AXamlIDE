@@ -13,6 +13,7 @@ using Avalonia.Platform.Storage;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Workspace;
 using AXamlIDE.ViewModels;
 
 namespace AXamlIDE.Views;
@@ -460,4 +461,11 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
     public Task ShowSettingsAsync()
         => new SettingsWindow(settings).ShowDialog(Owner);
+
+    public async Task<IReadOnlyList<NewItemFile>?> AddNewItemAsync(string folder, string? workspaceRoot, string? templateName = null)
+    {
+        var viewModel = new AddNewItemViewModel(folder, workspaceRoot, templateName);
+        var added = await new AddNewItemWindow { DataContext = viewModel }.ShowDialog<bool>(Owner);
+        return added ? viewModel.Files : null;
+    }
 }

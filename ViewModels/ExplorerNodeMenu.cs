@@ -18,6 +18,7 @@ public sealed class ExplorerNodeMenu
         IsFile = node.Kind == NodeKind.File;
         CanChange = explorer.CanChange(node);
         HasPath = !string.IsNullOrEmpty(node.FullPath);
+        CanAdd = HasPath && node.Kind is NodeKind.Directory or NodeKind.Folder or NodeKind.Project or NodeKind.Solution or NodeKind.File;
         CanRefresh = node.Kind is NodeKind.Directory or NodeKind.Solution or NodeKind.Project or NodeKind.Folder;
         // A project node in a solution; in an opened folder, projects are plain .csproj files.
         IsProject = NuGetManager.IsProject(node);
@@ -48,6 +49,8 @@ public sealed class ExplorerNodeMenu
     public bool IsFile { get; }
     public bool CanChange { get; }
     public bool HasPath { get; }
+    /// <summary>Add > New Item / New Folder / Class: into the node's folder (a file's: next to it).</summary>
+    public bool CanAdd { get; }
     public bool CanRefresh { get; }
     public bool IsProject { get; }
     public bool CanBuild { get; }

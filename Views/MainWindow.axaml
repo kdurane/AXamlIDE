@@ -31,6 +31,10 @@
                     <MenuItem Command="{Binding Workspace.OpenSolutionCommand}" Header="Open _Solution..." />
                     <MenuItem Command="{Binding CloseSolutionCommand}" Header="_Close Solution" />
                     <Separator />
+                    <MenuItem Command="{Binding Explorer.NewItemCommand}" Header="New _Item..." />
+                    <MenuItem Command="{Binding Explorer.NewClassCommand}" Header="New C_lass..." />
+                    <MenuItem Command="{Binding Explorer.NewFolderCommand}" Header="New Fol_der..." />
+                    <Separator />
                     <MenuItem Command="{Binding DocumentCommands.SaveDocumentCommand}" Header="_Save" />
                     <MenuItem Command="{Binding DocumentCommands.CloseDocumentCommand}" Header="Close _Tab" />
                     <Separator />

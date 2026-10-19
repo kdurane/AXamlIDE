@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Services.Dialogs;
 
@@ -33,4 +34,10 @@ public interface IDialogService
 
     // Windows
     Task ShowSettingsAsync();
+
+    /// <summary>
+    /// Visual Studio's Add New Item for <paramref name="folder"/>, starting on <paramref name="templateName"/>
+    /// (else Class): the files to write (checked: valid name, nothing there yet), or null if cancelled.
+    /// </summary>
+    Task<IReadOnlyList<NewItemFile>?> AddNewItemAsync(string folder, string? workspaceRoot, string? templateName = null);
 }

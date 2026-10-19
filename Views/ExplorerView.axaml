@@ -6,9 +6,39 @@
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <!--  Small flat icon buttons in the header (new item, new folder), as in GitView.  -->
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.icon PathIcon">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+        </Style>
+    </UserControl.Styles>
     <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">
-        <Grid ColumnDefinitions="*,Auto" Margin="6,4">
-        </Grid>
+        <!--  VS Code's explorer header buttons: new item / new folder in the selected folder.  -->
+        <StackPanel
+            HorizontalAlignment="Right"
+            Margin="6,2"
+            Orientation="Horizontal"
+            Spacing="2">
+            <Button
+                Classes="icon"
+                Command="{Binding NewItemCommand}"
+                ToolTip.Tip="New Item... (Ctrl+Shift+A)">
+                <PathIcon Data="{DynamicResource Icon.FilePlus}" />
+            </Button>
+            <Button
+                Classes="icon"
+                Command="{Binding NewFolderCommand}"
+                ToolTip.Tip="New Folder... (Shift+Alt+N)">
+                <PathIcon Data="{DynamicResource Icon.FolderPlus}" />
+            </Button>
+        </StackPanel>
         <TreeView
             Foreground="{DynamicResource ThemeForegroundBrush}"
             Grid.Row="1"
@@ -61,6 +91,26 @@
             -->
             <TreeView.ContextMenu>
                 <ContextMenu Opening="OnMenuOpening" x:DataType="vm:ExplorerNodeMenu">
+                    <!--  Visual Studio's Add submenu.  -->
+                    <MenuItem Header="Add" IsVisible="{Binding CanAdd}">
+                        <MenuItem
+                            Command="{Binding Explorer.NewItemCommand}"
+                            CommandParameter="{Binding Node}"
+                            Header="New Item..."
+                            InputGesture="Ctrl+Shift+A" />
+                        <MenuItem
+                            Command="{Binding Explorer.NewFolderCommand}"
+                            CommandParameter="{Binding Node}"
+                            Header="New Folder..."
+                            InputGesture="Shift+Alt+N" />
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding Explorer.NewClassCommand}"
+                            CommandParameter="{Binding Node}"
+                            Header="Class..."
+                            InputGesture="Shift+Alt+C" />
+                    </MenuItem>
+                    <Separator IsVisible="{Binding CanAdd}" />
                     <MenuItem
                         Command="{Binding Explorer.OpenFileCommand}"
                         CommandParameter="{Binding Node}"

@@ -39,6 +39,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         DocumentCommands documentCommands,
         LanguageSessionService languages,
         WorkspaceViewModel workspace,
+        ExplorerViewModel explorer,
         DockLayoutViewModel docking,
         WorkspaceSession session,
         SearchViewModel search,
@@ -62,6 +63,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         DocumentCommands = documentCommands;
         EditorCommands = editorCommands;
         Workspace = workspace;
+        Explorer = explorer;
         Docking = docking;
         Session = session;
         Search = search;
@@ -94,6 +96,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     // Areas the menus and KeyMap bind to.
     public WorkspaceViewModel Workspace { get; }
+    public ExplorerViewModel Explorer { get; }
     public ProblemsViewModel Problems { get; }
     public RunViewModel Run { get; }
     public PropertiesViewModel Properties { get; }

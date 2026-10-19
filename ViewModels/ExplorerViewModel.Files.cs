@@ -5,14 +5,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Workspace;
 using CommunityToolkit.Mvvm.Input;
 
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// The explorer's file operations (right-click menu, and F2 / Delete / Ctrl+X/C/V in the tree): cut, copy, paste,
-/// rename, delete to the trash. The work on disk is <see cref="FileOperations"/>; this keeps open documents and
+/// The explorer's file operations (right-click menu, and F2 / Delete / Ctrl+X/C/V in the tree): add a new item or
+/// folder, cut, copy, paste, rename, delete to the trash. The work on disk is <see cref="FileOperations"/>; this keeps open documents and
 /// the tree in step. A renamed or moved file that's open is closed and reopened at its new path (refused while it
 /// has unsaved changes); a deleted one is closed.
 /// </summary>
@@ -27,6 +28,89 @@ public sealed partial class ExplorerViewModel
            && !Workspace.Roots.Contains(node);
 
     public bool HasClipboard => _clipboard is not null;
+
+    /// <summary>
+    /// Add > New Item... (Ctrl+Shift+A): Visual Studio's Add New Item into the node's folder (the selection's when
+    /// there's no node, from a key or the File menu), then open what it made.
+    /// </summary>
+    [RelayCommand]
+    private Task NewItem(ProjectTreeNode? node) => AddItemAsync(node, null);
+
+    /// <summary>Add > Class... (Shift+Alt+C): Add New Item on the Class template, as in Visual Studio.</summary>
+    [RelayCommand]
+    private Task NewClass(ProjectTreeNode? node) => AddItemAsync(node, "Class");
+
+    private async Task AddItemAsync(ProjectTreeNode? node, string? templateName)
+    {
+        if (TargetFolder(node) is not var (folderNode, folder))
+        {
+            Status("Open a folder or solution first.");
+            return;
+        }
+        if (await dialogs.AddNewItemAsync(folder, Workspace.Roots.FirstOrDefault()?.FullPath is { } root ? FolderOf(root) : null, templateName)
+            is not [var main, ..] files)
+            return;
+
+        try
+        {
+            ItemTemplates.Write(files);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Status($"Couldn't add '{Path.GetFileName(main.Path)}': {ex.Message}");
+            return;
+        }
+
+        await ReloadAsync(folderNode, select: main.Path);
+        documents.OpenAndActivate(main.Path);
+        Status(files.Count == 1 ? $"Added {Path.GetFileName(main.Path)}." : $"Added {string.Join(", ", files.Select(file => Path.GetFileName(file.Path)))}.");
+    }
+
+    /// <summary>Add > New Folder... (Shift+Alt+N).</summary>
+    [RelayCommand]
+    private async Task NewFolder(ProjectTreeNode? node)
+    {
+        if (TargetFolder(node) is not var (folderNode, folder))
+        {
+            Status("Open a folder or solution first.");
+            return;
+        }
+        if (await dialogs.PromptForTextAsync("New Folder", "Folder name", "Add", "NewFolder") is not { } name || name.Trim().Length == 0)
+            return;
+        name = name.Trim();
+        if (FileOperations.InvalidNameReason(name) is { } reason)
+        {
+            Status(reason);
+            return;
+        }
+        var path = Path.Combine(folder, name);
+        if (Directory.Exists(path) || File.Exists(path))
+        {
+            Status($"'{name}' already exists here.");
+            return;
+        }
+
+        try
+        {
+            Directory.CreateDirectory(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Status($"Couldn't add the folder '{name}': {ex.Message}");
+            return;
+        }
+        await ReloadAsync(folderNode, select: path);
+    }
+
+    /// <summary>Where a new item goes: the node's folder; with no node, the selection's, else the workspace root's.</summary>
+    private (ProjectTreeNode Node, string Folder)? TargetFolder(ProjectTreeNode? node)
+    {
+        node ??= Workspace.SelectedNode ?? Workspace.Roots.FirstOrDefault();
+        return node is not null && FolderFor(node) is { } folder ? (node, folder) : null;
+    }
+
+    /// <summary>A root's folder: itself, or the folder its .sln / .csproj is in.</summary>
+    private static string FolderOf(string path) => Directory.Exists(path) ? path : Path.GetDirectoryName(path) ?? path;
 
     [RelayCommand]
     private void Cut(ProjectTreeNode? node) => PutAside(node, isCut: true);
