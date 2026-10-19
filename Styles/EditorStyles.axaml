@@ -9,6 +9,16 @@
     xmlns:cc="using:AvaloniaEdit.CodeCompletion"
     xmlns:rendering="using:AvaloniaEdit.Rendering"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--  The debugger's DataTip (Editor/Hover/DataTips): the hover card's look around a value view.  -->
+    <Style Selector="Border.dataTip">
+        <Setter Property="Background" Value="{DynamicResource HoverBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource HoverBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource HoverForegroundBrush}" />
+    </Style>
+
     <Style Selector="rendering|TextView">
         <Setter Property="LinkTextForegroundBrush" Value="{DynamicResource EditorLinkBrush}" />
     </Style>

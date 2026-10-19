@@ -1,0 +1,37 @@
+<!--
+    The Watch window: watched expressions (WatchViewModel) in the shared value view, and a box to add one
+    (Visual Studio's "Add item to watch" row). Delete removes the selected watch.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.WatchView"
+    x:DataType="vm:WatchViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:local="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <Grid
+            ColumnDefinitions="*,Auto"
+            DockPanel.Dock="Bottom"
+            Margin="4">
+            <TextBox
+                MinHeight="0"
+                Padding="6,3"
+                PlaceholderText="Add item to watch (Enter)"
+                Text="{Binding NewExpression}">
+                <TextBox.KeyBindings>
+                    <KeyBinding Command="{Binding AddNewCommand}" Gesture="Enter" />
+                </TextBox.KeyBindings>
+            </TextBox>
+            <Button
+                Command="{Binding RemoveAllCommand}"
+                Grid.Column="1"
+                Margin="4,0,0,0"
+                Padding="8,3"
+                ToolTip.Tip="Delete all watches">
+                Clear
+            </Button>
+        </Grid>
+        <local:DebugValueTreeView DataContext="{Binding Tree}" DeleteCommand="{Binding $parent[local:WatchView].((vm:WatchViewModel)DataContext).RemoveCommand}" />
+    </DockPanel>
+</UserControl>

@@ -59,7 +59,10 @@ public sealed class DockFactory : Factory
         var output = new ToolDockable(ToolTab.Output, "Output");
         var console = new ToolDockable(ToolTab.Console, "Debug Console");
         var search = new ToolDockable(ToolTab.Search, "Search");
-        Tools = new[] { explorer, git, properties, problems, output, console, search }.ToDictionary(tool => tool.Id);
+        var locals = new ToolDockable(ToolTab.Locals, "Locals");
+        var watch = new ToolDockable(ToolTab.Watch, "Watch");
+        var callStack = new ToolDockable(ToolTab.CallStack, "Call Stack");
+        Tools = new[] { explorer, git, properties, problems, output, console, search, locals, watch, callStack }.ToDictionary(tool => tool.Id);
 
         MainDocuments = new DocumentDock
         {
@@ -76,7 +79,7 @@ public sealed class DockFactory : Factory
         var propertiesDock = Locked(ToolDock("PropertiesTools", Alignment.Bottom, 0.25, properties));   // shown on demand
         ExplorerColumn = Row("ExplorerColumn", Orientation.Vertical, explorerDock);
         ExplorerColumn.Proportion = 0.2;
-        var bottomDock = ToolDock("BottomTools", Alignment.Bottom, 0.25, problems, output, console);
+        var bottomDock = ToolDock("BottomTools", Alignment.Bottom, 0.25, problems, output, console, locals, watch, callStack);
         bottomDock.ActiveDockable = output;
 
         var centre = Row("Centre", Orientation.Vertical, MainDocuments, new ProportionalDockSplitter(), bottomDock);
@@ -89,7 +92,7 @@ public sealed class DockFactory : Factory
         _homes[explorer.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[git.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[properties.Id] = new ToolHome(propertiesDock, ExplorerColumn, AtStart: false);
-        foreach (var tool in new[] { problems, output, console })
+        foreach (var tool in new[] { problems, output, console, locals, watch, callStack })
             _homes[tool.Id] = new ToolHome(bottomDock, centre, AtStart: false);
 
         var root = CreateRootDock();

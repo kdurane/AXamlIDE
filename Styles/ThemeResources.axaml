@@ -155,6 +155,31 @@
     <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="EditorSplitterBrush" />
     <SolidColorBrush Color="{DynamicResource editorLink.activeForeground}" x:Key="EditorLinkBrush" />
     <SolidColorBrush Color="{DynamicResource editorCodeLens.foreground}" x:Key="CodeLensForegroundBrush" />
+    <!--  Avalonia's DataGrid (the debugger's table visualizer): its own keys, mapped to the theme.  -->
+    <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.background}" x:Key="DataGridColumnHeaderBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.foreground}" x:Key="DataGridColumnHeaderForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="DataGridColumnHeaderHoveredBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.inactiveSelectionBackground}" x:Key="DataGridColumnHeaderPressedBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="DataGridGridLinesBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.background}" x:Key="DataGridRowBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.background}" x:Key="DataGridCellBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionBackground}" x:Key="DataGridRowSelectedBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.inactiveSelectionBackground}" x:Key="DataGridRowSelectedUnfocusedBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionBackground}" x:Key="DataGridRowSelectedHoveredBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.inactiveSelectionBackground}" x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundBrush" />
+
+    <!--  Debugger: DataTips / Locals / Watch values by kind, changed values, the current statement and its arrow.  -->
+    <SolidColorBrush Color="{DynamicResource debugTokenExpression.name}" x:Key="DebugNameBrush" />
+    <SolidColorBrush Color="{DynamicResource debugTokenExpression.value}" x:Key="DebugValueBrush" />
+    <SolidColorBrush Color="{DynamicResource debugTokenExpression.string}" x:Key="DebugStringBrush" />
+    <SolidColorBrush Color="{DynamicResource debugTokenExpression.boolean}" x:Key="DebugBooleanBrush" />
+    <SolidColorBrush Color="{DynamicResource debugTokenExpression.number}" x:Key="DebugNumberBrush" />
+    <SolidColorBrush Color="{DynamicResource debugTokenExpression.error}" x:Key="DebugErrorBrush" />
+    <SolidColorBrush Color="{DynamicResource app.debug.changedValueForeground}" x:Key="DebugChangedValueBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.stackFrameHighlightBackground}" x:Key="StackFrameHighlightBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.focusedStackFrameHighlightBackground}" x:Key="FocusedStackFrameHighlightBrush" />
+    <SolidColorBrush Color="{DynamicResource debugIcon.breakpointCurrentStackframeForeground}" x:Key="CurrentStatementArrowBrush" />
+    <SolidColorBrush Color="{DynamicResource debugIcon.breakpointStackframeForeground}" x:Key="StackFrameArrowBrush" />
     <SolidColorBrush Color="{DynamicResource widget.shadow}" x:Key="WidgetShadowBrush" />
 
     <!--  Overview ruler beside the editor's scrollbar (Editor/Highlighting/OverviewRuler)  -->

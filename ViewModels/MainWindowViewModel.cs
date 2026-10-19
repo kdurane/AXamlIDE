@@ -46,6 +46,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         RunViewModel run,
         PropertiesViewModel properties,
         NuGetManager nuGet,
+        VisualizerManager visualizers,
         EditorCommands editorCommands,
         SettingsViewModel settings,
         EditorSettingsLoadResult settingsLoad,
@@ -68,6 +69,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Run = run;
         Properties = properties;
         NuGet = nuGet;
+        Visualizers = visualizers;
 
         _documents.ActiveChanged += _ => UpdateEditorStatus();
         messenger.RegisterAll(this);
@@ -96,6 +98,9 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public RunViewModel Run { get; }
     public PropertiesViewModel Properties { get; }
     public NuGetManager NuGet { get; }
+
+    /// <summary>Opens debugger visualizer tabs (created with the shell so it listens from the start).</summary>
+    public VisualizerManager Visualizers { get; }
 
     /// <summary>Save / close / format, acting on the selected tab wherever it is.</summary>
     public DocumentCommands DocumentCommands { get; }

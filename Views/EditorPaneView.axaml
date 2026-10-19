@@ -44,6 +44,12 @@
                         Header="Quick Actions..."
                         InputGesture="Ctrl+." />
                     <MenuItem Click="OnFormatClick" Header="Format Document" />
+                    <!--  While paused in C#: watch the selection or the expression at the caret  -->
+                    <MenuItem
+                        Click="OnAddWatchClick"
+                        Header="Add Watch"
+                        InputGesture="Shift+F9"
+                        Name="AddWatchMenuItem" />
                     <MenuItem Header="-" />
                     <MenuItem
                         Click="OnSelectAllClick"
@@ -81,10 +87,6 @@
             PlacementConstraintAdjustment="FlipY, SlideX"
             PlacementGravity="BottomRight" />
 
-        <!--
-            A code lens's references ("3 references" clicked; Editor/CodeLens/CodeLensController fills and places it).
-            Click a line, or Enter, to go there; click outside or Escape to close.
-        -->
         <!--  The colour picker behind the colour swatches (ColorSwatchController). Picking rewrites the colour in the code.  -->
         <Popup
             IsLightDismissEnabled="True"
@@ -103,6 +105,10 @@
             </Border>
         </Popup>
 
+        <!--
+            A code lens's references ("3 references" clicked; Editor/CodeLens/CodeLensController fills and places it).
+            Click a line, or Enter, to go there; click outside or Escape to close.
+        -->
         <Popup
             IsLightDismissEnabled="True"
             Name="ReferencesPopup"

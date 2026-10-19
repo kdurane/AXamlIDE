@@ -24,7 +24,10 @@ public sealed class ToolPanels
         PropertiesViewModel properties,
         ProblemsViewModel problems,
         RunViewModel run,
-        SearchViewModel search)
+        SearchViewModel search,
+        LocalsViewModel locals,
+        WatchViewModel watch,
+        CallStackViewModel callStack)
     {
         _create = new()
         {
@@ -35,6 +38,9 @@ public sealed class ToolPanels
             [ToolTab.Output] = () => new OutputView { DataContext = run },
             [ToolTab.Console] = () => new ConsoleView { DataContext = run },
             [ToolTab.Search] = () => new SearchView { DataContext = search },
+            [ToolTab.Locals] = () => new LocalsView { DataContext = locals },
+            [ToolTab.Watch] = () => new WatchView { DataContext = watch },
+            [ToolTab.CallStack] = () => new CallStackView { DataContext = callStack },
         };
     }
 

@@ -1,0 +1,20 @@
+<!--  The Locals window: the selected frame's variables (LocalsViewModel), in the shared value view.  -->
+<UserControl
+    x:Class="AXamlIDE.Views.LocalsView"
+    x:DataType="vm:LocalsViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:local="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Panel>
+        <local:DebugValueTreeView DataContext="{Binding Tree}" />
+        <TextBlock
+            HorizontalAlignment="Center"
+            IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}"
+            Margin="12,36,12,0"
+            Opacity="0.7"
+            Text="{Binding Message}"
+            TextWrapping="Wrap"
+            VerticalAlignment="Top" />
+    </Panel>
+</UserControl>

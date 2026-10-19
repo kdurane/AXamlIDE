@@ -1,0 +1,75 @@
+<!--
+    The Call Stack window (CallStackViewModel): frames top first, external code collapsed. The arrow marks the frame
+    being looked at; double-click or Enter switches to a frame.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.CallStackView"
+    x:DataType="vm:CallStackViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="TextBlock.external">
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="FontStyle" Value="Italic" />
+        </Style>
+    </UserControl.Styles>
+    <Panel>
+        <ListBox
+            Background="Transparent"
+            DoubleTapped="OnDoubleTapped"
+            ItemsSource="{Binding Frames}"
+            KeyDown="OnKeyDown"
+            Name="List"
+            SelectedItem="{Binding Selected}">
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Command="{Binding ActivateCommand}" CommandParameter="{Binding Selected}" Header="_Switch to Frame" />
+                    <MenuItem Command="{Binding CopyAllCommand}" Header="_Copy All" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:CallStackRow">
+                    <Grid ColumnDefinitions="18,*,Auto">
+                        <Panel>
+                            <PathIcon
+                                Data="{StaticResource Icon.Play}"
+                                Foreground="{DynamicResource CurrentStatementArrowBrush}"
+                                Height="10"
+                                IsVisible="{Binding IsTop}"
+                                Width="10" />
+                            <PathIcon
+                                Data="{StaticResource Icon.Play}"
+                                Foreground="{DynamicResource StackFrameArrowBrush}"
+                                Height="10"
+                                IsVisible="{Binding IsSelected}"
+                                Width="10" />
+                        </Panel>
+                        <TextBlock
+                            Classes.external="{Binding IsExternal}"
+                            Grid.Column="1"
+                            Text="{Binding Name}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTip.Tip="{Binding Name}" />
+                        <TextBlock
+                            Grid.Column="2"
+                            Margin="16,0,0,0"
+                            Opacity="0.75"
+                            Text="{Binding Location}" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock
+            HorizontalAlignment="Center"
+            IsVisible="{Binding IsEmpty}"
+            Margin="12,24,12,0"
+            Opacity="0.7"
+            Text="The call stack is shown while the debugger is paused."
+            VerticalAlignment="Top" />
+    </Panel>
+</UserControl>

@@ -14,6 +14,7 @@ public sealed record EditorServices(
     XamlLanguageService Xaml,
     IDocumentHost Documents,
     IDialogService Dialogs,
+    IClipboardService Clipboard,
     LanguageSessionService Languages,
     NavigationService Navigation,
     WorkspaceEditService WorkspaceEdits,

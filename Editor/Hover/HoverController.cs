@@ -37,6 +37,7 @@ public sealed class HoverController
 
     private readonly EditorContext _ctx;
     private readonly CodeActionController _codeActions;
+    private readonly DataTips _dataTips;
     private readonly DispatcherTimer _showTimer = new() { Interval = ShowDelay };
     private readonly DispatcherTimer _hideTimer = new() { Interval = HideDelay };
     private readonly Popup _popup;
@@ -46,10 +47,12 @@ public sealed class HoverController
     private bool _pointerOverCard;
 
     /// <param name="popup">The popup to show the card in (EditorPaneView.axaml: placed under the text, light dismiss).</param>
-    public HoverController(EditorContext ctx, CodeActionController codeActions, Popup popup)
+    /// <param name="dataTips">While the debugger is paused, hovering an expression shows its value instead (DataTips).</param>
+    public HoverController(EditorContext ctx, CodeActionController codeActions, Popup popup, DataTips dataTips)
     {
         _ctx = ctx;
         _codeActions = codeActions;
+        _dataTips = dataTips;
         _popup = popup;
         var editor = ctx.Editor;
         var textView = editor.TextArea.TextView;
@@ -147,6 +150,17 @@ public sealed class HoverController
         _hoverCts?.Cancel();
         var cts = _hoverCts = new CancellationTokenSource();
 
+        // Paused in the debugger: the value of the expression under the pointer (Visual Studio's DataTip).
+        if (await _dataTips.CreateAsync(document, offset) is { } dataTip)
+        {
+            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
+                return;
+            ShowCard(dataTip.View, dataTip.Range);
+            return;
+        }
+        if (cts.IsCancellationRequested || offset != _hoverOffset)
+            return;
+
         // Diagnostics are local and instant: the ones covering this character.
         var segments = document.Diagnostics.FindSegmentsContaining(offset)
             .Where(segment => offset >= segment.StartOffset && (offset < segment.EndOffset || segment.Length == 0))
@@ -223,10 +237,6 @@ public sealed class HoverController
     private void Show(HoverContent content, (int Start, int End) range, int? quickFixLine)
     {
         var editor = _ctx.Editor;
-        var view = editor.TextArea.TextView;
-        var start = _ctx.Active!.Document.GetLocation(range.Start);
-        var position = view.GetVisualPosition(new TextViewPosition(start), VisualYPosition.LineBottom) - view.ScrollOffset;
-
         Action? quickFix = quickFixLine is { } line
             ? () =>
             {
@@ -236,7 +246,16 @@ public sealed class HoverController
             }
             : null;
 
-        var card = HoverCard.Create(content, editor.FontFamily, Math.Max(editor.FontSize - 1, 10), quickFix);
+        ShowCard(HoverCard.Create(content, editor.FontFamily, Math.Max(editor.FontSize - 1, 10), quickFix), range);
+    }
+
+    /// <summary>Open the popup with a card (the hover card, or a DataTip) under the start of <paramref name="range"/>.</summary>
+    private void ShowCard(Control card, (int Start, int End) range)
+    {
+        var view = _ctx.Editor.TextArea.TextView;
+        var start = _ctx.Active!.Document.GetLocation(range.Start);
+        var position = view.GetVisualPosition(new TextViewPosition(start), VisualYPosition.LineBottom) - view.ScrollOffset;
+
         // On the card itself: the popup's own pointer events don't see its content (it lives in another window).
         card.PointerEntered += (_, _) => { _pointerOverCard = true; _hideTimer.Stop(); };
         card.PointerExited += (_, _) => { _pointerOverCard = false; _hideTimer.Start(); };

@@ -76,6 +76,10 @@ public sealed class KeyMap
             Bind(Key.F10, None, run.StepOverCommand),
             Bind(Key.F11, None, run.StepIntoCommand),
             Bind(Key.F11, Shift, run.StepOutCommand),
+            Bind(Key.F9, Shift, editor.AddWatch),
+            Bind(Key.D3, Alt, shell.ShowToolCommand, ToolTab.Watch),       // VS's classic debugger window keys
+            Bind(Key.D4, Alt, shell.ShowToolCommand, ToolTab.Locals),
+            Bind(Key.D7, Alt, shell.ShowToolCommand, ToolTab.CallStack),
         ];
     }
 

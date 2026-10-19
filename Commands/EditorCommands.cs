@@ -28,6 +28,9 @@ public sealed class EditorCommands(IMessenger messenger)
     public IRelayCommand Paste { get; } = Make(messenger, EditorAction.Paste);
     public IRelayCommand SelectAll { get; } = Make(messenger, EditorAction.SelectAll);
 
+    /// <summary>Debug > Add Watch (and the editor's menu while paused): the selection, or the expression at the caret.</summary>
+    public IRelayCommand AddWatch { get; } = Make(messenger, EditorAction.AddWatch);
+
     private static IRelayCommand Make(IMessenger messenger, EditorAction action)
         => new RelayCommand(() => messenger.Send(new EditorActionMessage(action)));
 }

@@ -41,6 +41,7 @@ public partial class RunViewModel
     public bool IsDebugging => _debugSession is not null;
 
     private DebugInspector? _inspector;
+    private bool _hasStopped;
 
     // ---------------------------------------------------------------- start
 
@@ -97,6 +98,7 @@ public partial class RunViewModel
             var session = new NetCoreDbgSession(NetCoreDbgSession.ResolveExecutablePath());
             _debugSession = session;
             _debugProjectPath = projectPath;
+            _hasStopped = false;
             var inspector = new DebugInspector(session);
             _inspector = inspector;
             inspector.Output += AppendConsoleOutput;          // stack trace goes to the console pane
@@ -106,6 +108,11 @@ public partial class RunViewModel
                     return;
                 _stoppedThreadId = snapshot.ThreadId;
                 IsDebugStopped = true;
+                if (!_hasStopped)
+                {
+                    _hasStopped = true;   // the first stop of a session brings up Locals (VS shows its debugger windows)
+                    _messenger.Send(new ShowToolTabMessage(ToolTab.Locals));
+                }
                 DebugStatus = $"Paused ({snapshot.Reason}).";
                 if (snapshot.Top is { Path: { } path } top && File.Exists(path))
                     _messenger.Send(new NavigateToDebugLocationMessage(path, top.Line)); // navigate first so the doc is open...

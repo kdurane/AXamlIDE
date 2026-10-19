@@ -143,6 +143,26 @@
                     <MenuItem Command="{Binding Run.StepOverCommand}" Header="Step _Over" />
                     <MenuItem Command="{Binding Run.StepIntoCommand}" Header="Step _Into" />
                     <MenuItem Command="{Binding Run.StepOutCommand}" Header="Step O_ut" />
+                    <Separator />
+                    <MenuItem Command="{Binding EditorCommands.AddWatch}" Header="Add _Watch" />
+                    <MenuItem Header="Win_dows">
+                        <MenuItem
+                            Command="{Binding ShowToolCommand}"
+                            CommandParameter="{x:Static msg:ToolTab.Locals}"
+                            Header="_Locals" />
+                        <MenuItem
+                            Command="{Binding ShowToolCommand}"
+                            CommandParameter="{x:Static msg:ToolTab.Watch}"
+                            Header="_Watch" />
+                        <MenuItem
+                            Command="{Binding ShowToolCommand}"
+                            CommandParameter="{x:Static msg:ToolTab.CallStack}"
+                            Header="_Call Stack" />
+                        <MenuItem
+                            Command="{Binding ShowToolCommand}"
+                            CommandParameter="{x:Static msg:ToolTab.Console}"
+                            Header="Debug C_onsole" />
+                    </MenuItem>
                 </MenuItem>
                 <MenuItem Header="_Tools">
                     <MenuItem Command="{Binding NuGet.ManagePackagesForCurrentProjectCommand}" Header="Manage _NuGet Packages..." />

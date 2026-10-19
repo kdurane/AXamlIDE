@@ -16,7 +16,8 @@ public enum EditorAction
     Cut,
     Copy,
     Paste,
-    SelectAll
+    SelectAll,
+    AddWatch
 }
 
 /// <summary>Ask the editor pane to perform an action on the active document. Handled by EditorPaneView.</summary>

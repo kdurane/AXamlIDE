@@ -135,13 +135,13 @@ public partial class EditorPaneView : UserControl,
         Editor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
-        _hover = new HoverController(_ctx, _codeActions, HoverPopup);
+        _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
         _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesList, ReferencesTitle);
         _colorSwatches = new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
         _signatureHelp = new SignatureHelpController(_ctx);
         _completion = new CompletionController(_ctx, _hover);
         _typing = new TypingController(_ctx, _hover, _completion, _signatureHelp);
-        _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots);
+        _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots, _breakpointMargin);
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
         _whitespaceSelection = new WhitespaceSelectionController(_ctx);
@@ -334,6 +334,7 @@ public partial class EditorPaneView : UserControl,
             case EditorAction.Copy: Editor.Copy(); break;
             case EditorAction.Paste: Editor.Paste(); break;
             case EditorAction.SelectAll: Editor.SelectAll(); break;
+            case EditorAction.AddWatch: AddWatchAtCaret(); break;
         }
     }
 
@@ -351,7 +352,35 @@ public partial class EditorPaneView : UserControl,
 
     // Context-menu "Quick Actions..." (the View menu uses EditorCommands.QuickActions).
     private void OnContextMenuOpening(object? sender, EventArgs e)
-        => RenameMenuItem.IsVisible = _ctx?.Active?.LanguageId == LanguageIds.CSharp;
+    {
+        var csharp = _ctx?.Active?.LanguageId == LanguageIds.CSharp;
+        RenameMenuItem.IsVisible = csharp;
+        AddWatchMenuItem.IsVisible = csharp && _services.DebugSnapshots.Current is not null;
+    }
+
+    private void OnAddWatchClick(object? sender, RoutedEventArgs e) => AddWatchAtCaret();
+
+    /// <summary>Watch the selected text, or the expression at the caret (as a DataTip would show it).</summary>
+    private void AddWatchAtCaret()
+    {
+        if (_ctx.Active is not { LanguageId: LanguageIds.CSharp } document)
+            return;
+        var expression = Editor.SelectionLength > 0 && !Editor.SelectedText.Contains('\n')
+            ? Editor.SelectedText.Trim()
+            : null;
+        if (expression is null)
+        {
+            var caret = Editor.CaretOffset;
+            var line = document.Document.GetLineByOffset(caret);
+            var text = document.Document.GetText(line);
+            var column = caret - line.Offset;
+            // The caret sits after the word it's on when at its end: look one character back too.
+            expression = (Services.Debugging.DebugExpressionLocator.Find(text, column)
+                          ?? Services.Debugging.DebugExpressionLocator.Find(text, column - 1))?.Expression;
+        }
+        if (!string.IsNullOrWhiteSpace(expression))
+            _ctx.Messenger.Send(new AddWatchMessage(expression));
+    }
 
     private void OnRenameClick(object? sender, RoutedEventArgs e) => _ = _navigation.RenameSymbolAsync();
 

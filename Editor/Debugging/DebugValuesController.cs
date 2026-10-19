@@ -1,38 +1,59 @@
 using System;
+using AvaloniaEdit.Rendering;
 using AXamlIDE.Services.Editor;
 
 namespace AXamlIDE.Editor.Debugging;
 
 /// <summary>
-/// Shows the debugger's inline values in this editor while paused, when the stop is in its document.
+/// While paused, in this editor: the current statement (line highlight + the margin's arrow; green for another
+/// frame picked in the Call Stack) and the inline "name = value" hints near the top frame's line.
 /// </summary>
 public sealed class DebugValuesController : IDisposable
 {
     private readonly EditorContext _ctx;
     private readonly DebugSnapshotTracker _snapshots;
+    private readonly BreakpointMargin _margin;
     private readonly DebugInlineValueGenerator _inlineValues = new();
+    private readonly CurrentStatementRenderer _statement = new();
 
-    public DebugValuesController(EditorContext ctx, DebugSnapshotTracker snapshots)
+    public DebugValuesController(EditorContext ctx, DebugSnapshotTracker snapshots, BreakpointMargin margin)
     {
         _ctx = ctx;
         _snapshots = snapshots;
-        ctx.Editor.TextArea.TextView.ElementGenerators.Add(_inlineValues);
+        _margin = margin;
+        var textView = ctx.Editor.TextArea.TextView;
+        textView.ElementGenerators.Add(_inlineValues);
+        textView.BackgroundRenderers.Add(_statement);
 
         _snapshots.Changed += Apply;
+        _snapshots.InlineValuesChanged += Apply;
         _ctx.Attached += _ => Apply();
     }
 
-    public void Dispose() => _snapshots.Changed -= Apply;
+    public void Dispose()
+    {
+        _snapshots.Changed -= Apply;
+        _snapshots.InlineValuesChanged -= Apply;
+    }
 
     private void Apply()
     {
-        if (_snapshots.Current?.Top is { Path: { } path } top
-            && _ctx.Active is { } active
-            && string.Equals(path, active.Path, StringComparison.Ordinal))
-            _inlineValues.Show(_snapshots.Current.Values, top.Line);
+        var stop = _snapshots.Current;
+        var path = _ctx.Active?.Path;
+
+        if (stop?.Top is { Path: { } topPath } top && string.Equals(topPath, path, StringComparison.Ordinal))
+            _inlineValues.Show(_snapshots.InlineValues, top.Line);
         else
             _inlineValues.Clear();
 
-        _ctx.Editor.TextArea.TextView.Redraw();
+        (int, bool)? statement = _snapshots.SelectedFrame is { Path: { } framePath } frame && string.Equals(framePath, path, StringComparison.Ordinal)
+            ? (frame.Line, frame == stop?.Top)
+            : null;
+        _statement.Statement = statement;
+        _margin.CurrentStatement = statement;
+
+        var textView = _ctx.Editor.TextArea.TextView;
+        textView.Redraw();
+        textView.InvalidateLayer(KnownLayer.Background);
     }
 }

@@ -98,4 +98,17 @@
     <!--  Ours: the preview's design grid, a blue that shows on light and dark previews.  -->
     <Color x:Key="app.preview.gridLine">#190E5EFD</Color>
     <Color x:Key="app.preview.gridLineMajor">#4D0E5EFD</Color>
+
+    <!--  Debugger: value views, the current statement.  -->
+    <Color x:Key="debugTokenExpression.name">#9B46B0</Color>   <!-- default: debugger views: names, values by kind -->
+    <Color x:Key="debugTokenExpression.value">#6C6C6C</Color>   <!-- default -->
+    <Color x:Key="debugTokenExpression.string">#A31515</Color>   <!-- default -->
+    <Color x:Key="debugTokenExpression.boolean">#0000FF</Color>   <!-- default -->
+    <Color x:Key="debugTokenExpression.number">#098658</Color>   <!-- default -->
+    <Color x:Key="debugTokenExpression.error">#E51400</Color>   <!-- default -->
+    <Color x:Key="editor.stackFrameHighlightBackground">#66FFFF66</Color>   <!-- default: the current statement while paused (alpha kept) -->
+    <Color x:Key="editor.focusedStackFrameHighlightBackground">#2DCEE7CE</Color>   <!-- default: another frame picked in the Call Stack (alpha kept) -->
+    <Color x:Key="debugIcon.breakpointCurrentStackframeForeground">#BE8700</Color>   <!-- default: the current-statement arrow -->
+    <Color x:Key="debugIcon.breakpointStackframeForeground">#89D185</Color>   <!-- default -->
+    <Color x:Key="app.debug.changedValueForeground">#E51400</Color>   <!-- default: ours: a value changed since the last step (VS shows it red) -->
 </ResourceDictionary>

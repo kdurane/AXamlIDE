@@ -12,7 +12,8 @@ using AXamlIDE.Models;
 namespace AXamlIDE.Editor.Debugging;
 
 /// <summary>
-/// A custom margin that draws document-owned breakpoint markers.
+/// A custom margin that draws document-owned breakpoint markers, and Visual Studio's arrow at the current statement
+/// while paused (yellow; green for another frame picked in the Call Stack).
 /// </summary>
 public sealed class BreakpointMargin : AbstractMargin
 {
@@ -25,6 +26,20 @@ public sealed class BreakpointMargin : AbstractMargin
 
     private int _pointerOverLine = -1;
     private OpenDocument? _document;
+    private (int Line, bool IsTop)? _statement;
+
+    /// <summary>The paused statement's line in this document, and whether it's the top frame's; null for none.</summary>
+    public (int Line, bool IsTop)? CurrentStatement
+    {
+        get => _statement;
+        set
+        {
+            if (_statement == value)
+                return;
+            _statement = value;
+            InvalidateVisual();
+        }
+    }
 
     public IBrush BackgroundBrush
     {
@@ -126,6 +141,25 @@ public sealed class BreakpointMargin : AbstractMargin
         base.OnPointerPressed(e);
     }
 
+    /// <summary>VS's statement arrow: a block arrow pointing right, over the breakpoint (if any).</summary>
+    private static void DrawArrow(DrawingContext context, double y, bool isTop)
+    {
+        var fill = Views.ThemeBrushes.Get(isTop ? "CurrentStatementArrowBrush" : "StackFrameArrowBrush") ?? Brushes.Gold;
+        var geometry = new StreamGeometry();
+        using (var g = geometry.Open())
+        {
+            g.BeginFigure(new Point(2, y - 3), true);
+            g.LineTo(new Point(9, y - 3));
+            g.LineTo(new Point(9, y - 7));
+            g.LineTo(new Point(17, y));
+            g.LineTo(new Point(9, y + 7));
+            g.LineTo(new Point(9, y + 3));
+            g.LineTo(new Point(2, y + 3));
+            g.EndFigure(true);
+        }
+        context.DrawGeometry(fill, new Pen(Brushes.Black, 0.8), geometry);
+    }
+
     public override void Render(DrawingContext context)
     {
         context.DrawRectangle(_backgroundBrush, null, Bounds);
@@ -140,6 +174,9 @@ public sealed class BreakpointMargin : AbstractMargin
                     context.DrawEllipse(_markerBrush, _markerPen, new Point(10, y), 8, 8);
                 else if (_pointerOverLine == visualLine.FirstDocumentLine.LineNumber)
                     context.DrawEllipse(_pointerOverBrush, _pointerOverPen, new Point(10, y), 8, 8);
+
+                if (_statement is { } statement && statement.Line == visualLine.FirstDocumentLine.LineNumber)
+                    DrawArrow(context, y, statement.IsTop);
             }
         }
 

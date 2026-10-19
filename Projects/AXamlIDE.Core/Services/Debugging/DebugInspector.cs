@@ -8,12 +8,16 @@ using System.Threading.Tasks;
 
 namespace AXamlIDE.Services.Debugging;
 
+/// <param name="Debugger">The paused session, for reading values (valid until the debuggee runs again).</param>
+/// <param name="Attributes">The session's [DebuggerDisplay] / [DebuggerBrowsable] index.</param>
 public sealed record StopSnapshot(
     string Reason,
     int ThreadId,
     IReadOnlyList<DebugFrame> Frames,
     IReadOnlyDictionary<string, string> Values,
-    string? ExceptionText)
+    string? ExceptionText,
+    IDebugEvaluator Debugger,
+    DebuggerAttributeIndex Attributes)
 {
     /// <summary>First frame that has source (justMyCode already hides framework frames).</summary>
     public DebugFrame? Top => Frames.FirstOrDefault(f => f.Path is not null);
@@ -26,6 +30,7 @@ public sealed record StopSnapshot(
 public sealed class DebugInspector
 {
     private readonly NetCoreDbgSession _session;
+    private readonly DebuggerAttributeIndex _attributes;
 
     public int ThreadId { get; private set; }
     public StopSnapshot? Current { get; private set; }
@@ -37,6 +42,7 @@ public sealed class DebugInspector
     public DebugInspector(NetCoreDbgSession session)
     {
         _session = session;
+        _attributes = new DebuggerAttributeIndex(() => session.LoadedModules);
         session.EventReceived += OnEvent;
     }
 
@@ -76,7 +82,7 @@ public sealed class DebugInspector
 
             var exception = reason == "exception" ? await _session.GetExceptionTextAsync(threadId, ct) : null;
 
-            var snapshot = new StopSnapshot(reason, threadId, frames, values, exception);
+            var snapshot = new StopSnapshot(reason, threadId, frames, values, exception, _session, _attributes);
             Current = snapshot;
             Output?.Invoke(FormatStop(snapshot));
             Stopped?.Invoke(snapshot);

@@ -1,0 +1,81 @@
+<!--
+    A debugger visualizer tab (VisualizerDockable): a collection as a sortable table with a filter box and Copy as
+    CSV, or a string as text (Text / JSON / XML). The table's columns are made in code (VisualizerView.axaml.cs):
+    they come from the data.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.VisualizerView"
+    x:DataType="vm:VisualizerDockable"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel Background="{DynamicResource DockSurfaceEditorBrush}">
+        <!--  Toolbar: what it is, how many, and the actions for the kind shown.  -->
+        <Grid
+            ColumnDefinitions="Auto,*,Auto"
+            DockPanel.Dock="Top"
+            Margin="8,6">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock FontWeight="SemiBold" Text="{Binding Expression}" />
+                <TextBlock Opacity="0.75" Text="{Binding Status}" />
+                <TextBlock
+                    Foreground="{DynamicResource DiagnosticWarningBrush}"
+                    IsVisible="{Binding IsStale}"
+                    Text="The debuggee has moved on: these values are from an earlier stop." />
+            </StackPanel>
+            <StackPanel
+                Grid.Column="2"
+                IsVisible="{Binding IsTable}"
+                Orientation="Horizontal"
+                Spacing="6">
+                <TextBox
+                    MinHeight="0"
+                    Padding="6,3"
+                    PlaceholderText="Filter"
+                    Text="{Binding Filter}"
+                    Width="200" />
+                <Button Command="{Binding CopyAsCsvCommand}" Padding="8,3" ToolTip.Tip="Copy the rows shown, as CSV">Copy as CSV</Button>
+            </StackPanel>
+            <StackPanel
+                Grid.Column="2"
+                IsVisible="{Binding IsText}"
+                Orientation="Horizontal"
+                Spacing="6">
+                <ComboBox
+                    ItemsSource="{Binding Formats}"
+                    MinHeight="0"
+                    Padding="8,3"
+                    SelectedItem="{Binding Format}"
+                    ToolTip.Tip="Show the text as it is, or formatted" />
+                <Button Command="{Binding CopyTextCommand}" Padding="8,3">Copy</Button>
+            </StackPanel>
+        </Grid>
+
+        <ProgressBar
+            DockPanel.Dock="Top"
+            Height="2"
+            IsIndeterminate="True"
+            IsVisible="{Binding IsLoading}"
+            MinHeight="0" />
+
+        <Panel>
+            <DataGrid
+                CanUserReorderColumns="True"
+                CanUserResizeColumns="True"
+                CanUserSortColumns="True"
+                GridLinesVisibility="All"
+                IsReadOnly="True"
+                IsVisible="{Binding IsTable}"
+                ItemsSource="{Binding Rows}"
+                Name="Table" />
+            <avaloniaEdit:TextEditor
+                FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                IsReadOnly="True"
+                IsVisible="{Binding IsText}"
+                Name="TextView"
+                ShowLineNumbers="True"
+                WordWrap="True" />
+        </Panel>
+    </DockPanel>
+</UserControl>

@@ -1,0 +1,228 @@
+<!--
+    A debugger value view (Visual Studio's Locals / Watch / DataTip): Name | Value | Type, rows indented by depth,
+    with an expander, a magnifier for visualizers, and in-place editing (double-click or F2 on an editable value).
+    DataContext: a DebugValueTree. Its rows are a flat list, so long lists virtualize and the columns line up.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.DebugValueTreeView"
+    x:DataType="vm:DebugValueTree"
+    x:Name="Root"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:local="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="TextBlock.name">
+            <Setter Property="Foreground" Value="{DynamicResource DebugNameBrush}" />
+        </Style>
+        <Style Selector="TextBlock.name.group">
+            <Setter Property="Foreground" Value="{DynamicResource HoverForegroundBrush}" />
+            <Setter Property="FontStyle" Value="Italic" />
+        </Style>
+        <Style Selector="TextBlock.value">
+            <Setter Property="Foreground" Value="{DynamicResource DebugValueBrush}" />
+        </Style>
+        <Style Selector="TextBlock.value.string">
+            <Setter Property="Foreground" Value="{DynamicResource DebugStringBrush}" />
+        </Style>
+        <Style Selector="TextBlock.value.number">
+            <Setter Property="Foreground" Value="{DynamicResource DebugNumberBrush}" />
+        </Style>
+        <Style Selector="TextBlock.value.boolean">
+            <Setter Property="Foreground" Value="{DynamicResource DebugBooleanBrush}" />
+        </Style>
+        <Style Selector="TextBlock.value.changed">
+            <Setter Property="Foreground" Value="{DynamicResource DebugChangedValueBrush}" />
+        </Style>
+        <Style Selector="TextBlock.value.error">
+            <Setter Property="Foreground" Value="{DynamicResource DebugErrorBrush}" />
+        </Style>
+        <Style Selector="TextBlock.value.more, TextBlock.name.more">
+            <Setter Property="Opacity" Value="0.7" />
+            <Setter Property="FontStyle" Value="Italic" />
+        </Style>
+        <Style Selector="Thumb.splitter">
+            <Setter Property="Width" Value="5" />
+            <Setter Property="Cursor" Value="SizeWestEast" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}">
+                        <Rectangle
+                            Fill="{DynamicResource DockSeparatorBrush}"
+                            HorizontalAlignment="Center"
+                            Width="1" />
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+
+    <DockPanel>
+        <!--  Column headers; the thumbs resize the Name and Type columns.  -->
+        <Grid
+            ColumnDefinitions="Auto,Auto,*,Auto,Auto"
+            DockPanel.Dock="Top"
+            IsVisible="{Binding #Root.ShowHeader}"
+            Margin="4,2,4,2">
+            <TextBlock
+                FontWeight="SemiBold"
+                Text="Name"
+                Width="{Binding #Root.NameColumnWidth}" />
+            <Thumb
+                Classes="splitter"
+                DragDelta="OnNameSplitterDrag"
+                Grid.Column="1" />
+            <TextBlock
+                FontWeight="SemiBold"
+                Grid.Column="2"
+                Margin="4,0,0,0"
+                Text="Value" />
+            <Thumb
+                Classes="splitter"
+                DragDelta="OnTypeSplitterDrag"
+                Grid.Column="3"
+                IsVisible="{Binding #Root.ShowTypeColumn}" />
+            <TextBlock
+                FontWeight="SemiBold"
+                Grid.Column="4"
+                IsVisible="{Binding #Root.ShowTypeColumn}"
+                Text="Type"
+                Width="{Binding #Root.TypeColumnWidth}" />
+        </Grid>
+
+        <ListBox
+            Background="Transparent"
+            DoubleTapped="OnRowDoubleTapped"
+            ItemsSource="{Binding Rows}"
+            KeyDown="OnListKeyDown"
+            Name="List"
+            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListBox.ContextMenu>
+                <ContextMenu Opening="OnMenuOpening">
+                    <MenuItem
+                        Click="OnCopyValue"
+                        Header="_Copy Value"
+                        InputGesture="Ctrl+C" />
+                    <MenuItem Click="OnCopyExpression" Header="Copy _Expression" />
+                    <MenuItem
+                        Click="OnEditValue"
+                        Header="_Edit Value"
+                        InputGesture="F2"
+                        Name="EditItem" />
+                    <Separator />
+                    <MenuItem Click="OnAddWatch" Header="Add _Watch" Name="AddWatchItem" />
+                    <MenuItem Click="OnVisualize" Header="_Visualize..." Name="VisualizeItem" />
+                    <MenuItem
+                        Click="OnDelete"
+                        Header="_Delete Watch"
+                        InputGesture="Delete"
+                        Name="DeleteItem" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:DebugValueNode">
+                    <Grid ColumnDefinitions="Auto,*,Auto" Height="22">
+                        <!--  Name, indented; the expander or a gap where it would be.  -->
+                        <!--  The indent is inside the column, so the Value column lines up at every depth.  -->
+                        <Border Width="{Binding $parent[local:DebugValueTreeView].NameColumnWidth}">
+                        <StackPanel
+                            Margin="{Binding Level, Converter={x:Static local:DebugConverters.Indent}}"
+                            Orientation="Horizontal">
+                            <Button
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding ToggleCommand}"
+                                Focusable="False"
+                                Height="18"
+                                IsVisible="{Binding HasChildren}"
+                                Padding="0"
+                                VerticalAlignment="Center"
+                                Width="16">
+                                <PathIcon
+                                    Data="{Binding IsExpanded, Converter={x:Static local:DebugConverters.Chevron}}"
+                                    Height="12"
+                                    Width="12" />
+                            </Button>
+                            <Panel IsVisible="{Binding !HasChildren}" Width="16" />
+                            <TextBlock
+                                Classes="name"
+                                Classes.group="{Binding IsGroup}"
+                                Classes.more="{Binding IsMore}"
+                                Text="{Binding Name}"
+                                TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center" />
+                        </StackPanel>
+                        </Border>
+
+                        <!--  Value: text, or the editor while editing; the magnifier opens a visualizer.  -->
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            Grid.Column="1"
+                            Margin="9,0,0,0">
+                            <TextBlock
+                                Classes="value"
+                                Classes.boolean="{Binding IsBoolean}"
+                                Classes.changed="{Binding IsChanged}"
+                                Classes.error="{Binding IsError}"
+                                Classes.more="{Binding IsMore}"
+                                Classes.number="{Binding IsNumber}"
+                                Classes.string="{Binding IsString}"
+                                IsVisible="{Binding !IsEditing}"
+                                Text="{Binding Display}"
+                                TextTrimming="CharacterEllipsis"
+                                ToolTip.Tip="{Binding Display}"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                IsVisible="{Binding IsLoading}"
+                                Opacity="0.7"
+                                Text="Reading..."
+                                VerticalAlignment="Center" />
+                            <TextBox
+                                IsVisible="{Binding IsEditing}"
+                                LostFocus="OnEditLostFocus"
+                                MinHeight="0"
+                                Padding="2,0"
+                                Text="{Binding EditText}"
+                                VerticalContentAlignment="Center">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Command="{Binding CommitEditCommand}" Gesture="Enter" />
+                                    <KeyBinding Command="{Binding CancelEditCommand}" Gesture="Escape" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                            <Button
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Command="{Binding VisualizeCommand}"
+                                Focusable="False"
+                                Grid.Column="1"
+                                IsVisible="{Binding CanVisualize}"
+                                Padding="3,0"
+                                ToolTip.Tip="Visualize (table or text)">
+                                <PathIcon
+                                    Data="{StaticResource Icon.Search}"
+                                    Height="12"
+                                    Width="12" />
+                            </Button>
+                        </Grid>
+
+                        <TextBlock
+                            Grid.Column="2"
+                            IsVisible="{Binding $parent[local:DebugValueTreeView].ShowTypeColumn}"
+                            Margin="9,0,0,0"
+                            Opacity="0.75"
+                            Text="{Binding Type}"
+                            TextTrimming="CharacterEllipsis"
+                            ToolTip.Tip="{Binding Type}"
+                            VerticalAlignment="Center"
+                            Width="{Binding $parent[local:DebugValueTreeView].TypeColumnWidth}" />
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

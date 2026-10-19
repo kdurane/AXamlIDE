@@ -125,6 +125,7 @@ public sealed class DockViewCache : IControlRecycling
         {
             DiffDockable diff => new DiffView(diff, _editorServices),
             NuGetDockable nuget => new NuGetView { DataContext = nuget },
+            VisualizerDockable visualizer => new VisualizerView { DataContext = visualizer },
             _ => null
         };
         if (view is not null)
