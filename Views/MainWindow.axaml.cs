@@ -11,7 +11,7 @@ namespace AXamlIDE.Views;
 /// <summary>
 /// The main window. It only places the panels (see MainWindow.axaml) and does what needs a window:
 /// keyboard shortcuts (here and in every floating tab window), the activity bar's side, and the
-/// floating debug toolbar. Its colours are app resources set from the theme (Views/ThemeResources).
+/// floating debug toolbar. Its colours come from the theme (Styles/ThemeResources.axaml).
 /// </summary>
 public partial class MainWindow : Window
 {
@@ -70,7 +70,11 @@ public partial class MainWindow : Window
 
     private HostWindow CreateFloatingWindow()
     {
-        var window = new HostWindow();
+        // Dock's style lets a lone tool's header stand in for the window's title bar. That hides the system
+        // close button, and dragging the header becomes a plain window move, which can't drop into a dock.
+        // Keeping the system title bar gives a close button (its tabs go back, see DockLayoutViewModel), and
+        // the tool's header stays a Dock drag handle, so the tool can be dragged back into a dock.
+        var window = new HostWindow { ToolChromeControlsWholeWindow = false };
         window.Bind(BackgroundProperty, window.GetResourceObservable("AppWindowBackgroundBrush"));
         _keyMap.AttachTo(window);
         return window;

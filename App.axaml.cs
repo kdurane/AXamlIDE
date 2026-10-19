@@ -23,7 +23,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var services = AppServices.Build();
-            services.GetRequiredService<ThemeResources>().Apply();
+            services.GetRequiredService<ThemeSwitcher>().Apply();
             UseDockViews(services);
             desktop.MainWindow = services.GetRequiredService<MainWindow>();
             desktop.Exit += (_, _) => services.Dispose();

@@ -1,0 +1,140 @@
+<!--
+    The UI colours for every theme in Settings, switched by Avalonia's theme variants.
+
+    1. ThemeDictionaries: one entry per theme (Views/ThemeVariants), each a Styles/Themes/<Id>.axaml file of
+       colours named after VS Code's theme keys ("editor.background", "sideBar.background"...). Selecting a
+       theme sets Application.RequestedThemeVariant (Views/ThemeSwitcher); Avalonia does the rest.
+       Each theme is based on Dark or Light, so Dock's matching preset and Fluent's matching look fill in
+       anything not set here.
+    2. Brushes: the resource keys the views use (our App*/Theme* brushes, and the Dock and Fluent ones we
+       restyle), each coloured from a theme key with {DynamicResource}, so they follow the theme.
+
+    To colour another part of the UI: add a brush below (from an existing key, or add the key to every
+    file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
+-->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <!--  The base looks: what a theme falls back to.  -->
+        <ResourceDictionary x:Key="Dark">
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Dock.Avalonia.Themes.Fluent/Presets/Ide/VsCodeDark.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Dock.Avalonia.Themes.Fluent/Presets/Ide/VsCodeLight.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+
+        <!--  The themes in Settings.  -->
+        <ResourceInclude Source="/Styles/Themes/Abbys.axaml" x:Key="{x:Static views:ThemeVariants.Abbys}" />
+        <ResourceInclude Source="/Styles/Themes/Dark.axaml" x:Key="{x:Static views:ThemeVariants.Dark}" />
+        <ResourceInclude Source="/Styles/Themes/DarkPlus.axaml" x:Key="{x:Static views:ThemeVariants.DarkPlus}" />
+        <ResourceInclude Source="/Styles/Themes/DimmedMonokai.axaml" x:Key="{x:Static views:ThemeVariants.DimmedMonokai}" />
+        <ResourceInclude Source="/Styles/Themes/KimbieDark.axaml" x:Key="{x:Static views:ThemeVariants.KimbieDark}" />
+        <ResourceInclude Source="/Styles/Themes/Light.axaml" x:Key="{x:Static views:ThemeVariants.Light}" />
+        <ResourceInclude Source="/Styles/Themes/LightPlus.axaml" x:Key="{x:Static views:ThemeVariants.LightPlus}" />
+        <ResourceInclude Source="/Styles/Themes/OneDark.axaml" x:Key="{x:Static views:ThemeVariants.OneDark}" />
+        <ResourceInclude Source="/Styles/Themes/Monokai.axaml" x:Key="{x:Static views:ThemeVariants.Monokai}" />
+        <ResourceInclude Source="/Styles/Themes/QuietLight.axaml" x:Key="{x:Static views:ThemeVariants.QuietLight}" />
+        <ResourceInclude Source="/Styles/Themes/Red.axaml" x:Key="{x:Static views:ThemeVariants.Red}" />
+        <ResourceInclude Source="/Styles/Themes/SolarizedDark.axaml" x:Key="{x:Static views:ThemeVariants.SolarizedDark}" />
+        <ResourceInclude Source="/Styles/Themes/SolarizedLight.axaml" x:Key="{x:Static views:ThemeVariants.SolarizedLight}" />
+        <ResourceInclude Source="/Styles/Themes/TomorrowNightBlue.axaml" x:Key="{x:Static views:ThemeVariants.TomorrowNightBlue}" />
+        <ResourceInclude Source="/Styles/Themes/HighContrastLight.axaml" x:Key="{x:Static views:ThemeVariants.HighContrastLight}" />
+        <ResourceInclude Source="/Styles/Themes/HighContrastDark.axaml" x:Key="{x:Static views:ThemeVariants.HighContrastDark}" />
+        <ResourceInclude Source="/Styles/Themes/Dracula.axaml" x:Key="{x:Static views:ThemeVariants.Dracula}" />
+        <ResourceInclude Source="/Styles/Themes/AtomOneLight.axaml" x:Key="{x:Static views:ThemeVariants.AtomOneLight}" />
+        <ResourceInclude Source="/Styles/Themes/AtomOneDark.axaml" x:Key="{x:Static views:ThemeVariants.AtomOneDark}" />
+        <ResourceInclude Source="/Styles/Themes/VisualStudioLight.axaml" x:Key="{x:Static views:ThemeVariants.VisualStudioLight}" />
+        <ResourceInclude Source="/Styles/Themes/VisualStudioDark.axaml" x:Key="{x:Static views:ThemeVariants.VisualStudioDark}" />
+        <ResourceInclude Source="/Styles/Themes/AxamlDark.axaml" x:Key="{x:Static views:ThemeVariants.AxamlDark}" />
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!--  Window and editor area  -->
+    <SolidColorBrush Color="{DynamicResource editor.background}" x:Key="AppWindowBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.background}" x:Key="DockSurfaceEditorBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.background}" x:Key="DockSurfaceWorkbenchBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.foreground}" x:Key="AppForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.foreground}" x:Key="ThemeForegroundBrush" />
+
+    <!--  Side bar, tool panels, trees and lists  -->
+    <SolidColorBrush Color="{DynamicResource sideBar.background}" x:Key="ThemeBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBar.background}" x:Key="AppDocumentBarBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBar.background}" x:Key="DockSurfaceSidebarBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBar.background}" x:Key="DockSurfacePanelBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBar.background}" x:Key="TreeViewItemBackground" />
+    <SolidColorBrush Color="{DynamicResource sideBar.background}" x:Key="ListBoxItemBackground" />
+    <SolidColorBrush Color="{DynamicResource sideBar.foreground}" x:Key="TreeViewItemForeground" />
+    <SolidColorBrush Color="{DynamicResource sideBar.foreground}" x:Key="ListBoxItemForeground" />
+    <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.background}" x:Key="DockSurfaceHeaderBrush" />
+    <SolidColorBrush Color="{DynamicResource app.panelHeader.activeBackground}" x:Key="DockSurfaceHeaderActiveBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.foreground}" x:Key="DockWindowChromeForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.foreground}" x:Key="DockChromeButtonForegroundBrush" />
+
+    <!--  Tabs  -->
+    <SolidColorBrush Color="{DynamicResource tab.inactiveBackground}" x:Key="DockTabBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.inactiveForeground}" x:Key="DockTabForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource app.tab.selectedBackground}" x:Key="DockTabActiveBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.activeForeground}" x:Key="DockTabActiveForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.activeForeground}" x:Key="DockTabSelectedForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.activeForeground}" x:Key="DockDocumentTabSelectedForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.activeForeground}" x:Key="DockDocumentTabPointerOverForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.border}" x:Key="DockBorderSubtleBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.border}" x:Key="DockSeparatorBrush" />
+    <SolidColorBrush Color="{DynamicResource tab.border}" x:Key="DockTabActiveIndicatorBrush" />
+
+    <!--  Hover and selection  -->
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="DockTabHoverBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="TreeViewItemBackgroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="ListBoxItemBackgroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="ComboBoxItemBackgroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="MenuFlyoutItemBackgroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.inactiveSelectionBackground}" x:Key="TreeViewItemBackgroundSelected" />
+    <SolidColorBrush Color="{DynamicResource list.inactiveSelectionBackground}" x:Key="ListBoxItemBackgroundSelected" />
+    <SolidColorBrush Color="{DynamicResource list.inactiveSelectionBackground}" x:Key="ComboBoxItemBackgroundSelected" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionBackground}" x:Key="TreeViewItemBackgroundSelectedPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionBackground}" x:Key="ListBoxItemBackgroundSelectedPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionBackground}" x:Key="ComboBoxItemBackgroundSelectedPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionForeground}" x:Key="TreeViewItemForegroundSelected" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionForeground}" x:Key="ListBoxItemForegroundSelected" />
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionForeground}" x:Key="ComboBoxItemForegroundSelected" />
+
+    <!--  Title bar, activity bar, status bar  -->
+    <SolidColorBrush Color="{DynamicResource titleBar.activeBackground}" x:Key="AppTitleBarBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource titleBar.activeBackground}" x:Key="DockWindowChromeTitleBarBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource titleBar.activeForeground}" x:Key="AppTitleBarForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource activityBar.background}" x:Key="AppActivityBarBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource activityBar.foreground}" x:Key="AppActivityBarForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource statusBar.background}" x:Key="AppStatusBarBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource statusBar.foreground}" x:Key="AppStatusBarForegroundBrush" />
+
+    <!--  Drop-downs and menus  -->
+    <SolidColorBrush Color="{DynamicResource dropdown.background}" x:Key="ComboBoxBackground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.background}" x:Key="ComboBoxBackgroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource dropdown.background}" x:Key="ComboBoxDropDownBackground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.background}" x:Key="ComboBoxItemBackground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.background}" x:Key="MenuFlyoutPresenterBackground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="ComboBoxForeground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="ComboBoxItemForeground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="MenuFlyoutItemForeground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="ComboBoxBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="ComboBoxDropDownBorderBrush" />
+
+    <!--  Git (Views/GitStateConverters picks one per file state)  -->
+    <SolidColorBrush Color="{DynamicResource gitDecoration.modifiedResourceForeground}" x:Key="GitModifiedBrush" />
+    <SolidColorBrush Color="{DynamicResource gitDecoration.addedResourceForeground}" x:Key="GitAddedBrush" />
+    <SolidColorBrush Color="{DynamicResource gitDecoration.untrackedResourceForeground}" x:Key="GitUntrackedBrush" />
+    <SolidColorBrush Color="{DynamicResource gitDecoration.deletedResourceForeground}" x:Key="GitDeletedBrush" />
+    <SolidColorBrush Color="{DynamicResource gitDecoration.renamedResourceForeground}" x:Key="GitRenamedBrush" />
+    <SolidColorBrush Color="{DynamicResource gitDecoration.conflictingResourceForeground}" x:Key="GitConflictedBrush" />
+    <SolidColorBrush Color="{DynamicResource gitDecoration.ignoredResourceForeground}" x:Key="GitIgnoredBrush" />
+
+    <!--  Diff view (Editor/Diff/DiffLineRenderer)  -->
+    <SolidColorBrush Color="{DynamicResource diffEditor.insertedLineBackground}" x:Key="DiffInsertedLineBrush" />
+    <SolidColorBrush Color="{DynamicResource diffEditor.removedLineBackground}" x:Key="DiffRemovedLineBrush" />
+    <SolidColorBrush Color="{DynamicResource diffEditor.diagonalFill}" x:Key="DiffFillerLineBrush" />
+</ResourceDictionary>

@@ -73,7 +73,7 @@ public static class AppServices
         // ---- views: the tool panels, the dock tabs' view cache (see App.axaml.cs), the window
         services.AddSingleton<ToolPanels>();
         services.AddSingleton<DockViewCache>();
-        services.AddSingleton<ThemeResources>();
+        services.AddSingleton<ThemeSwitcher>();
         services.AddSingleton<MainWindow>();
 
         return services.BuildServiceProvider(new ServiceProviderOptions

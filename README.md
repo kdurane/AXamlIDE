@@ -61,9 +61,13 @@ How the pieces are put together and talk:
 - **Per-workspace state** lives in a hidden `.axamlide/workspace.json` in the opened folder (open files, caret and
   scroll, preview layout, dock sizes, the Search window's place): `ViewModels/WorkspaceSession` restores it on open
   and saves it on close/exit, using `Services/Workspace/WorkspaceStateStore` (Core).
-- **Colours** all come from the theme chosen in Settings (the `colors` of a VS Code theme such as
-  `Assets/axaml-dark.json`): `Views/ThemeResources` copies each one into app-wide resources (Dock's, Fluent's and our
-  `App*` brushes), and views use them as `{DynamicResource ...}`. To colour another part, add a line to its `Map`.
+- **Colours** use Avalonia's theme variants. Each theme in Settings is a `ThemeVariant` (`Views/ThemeVariants`, based
+  on Dark or Light) with its own colour file, `Styles/Themes/<Id>.axaml`, whose keys are VS Code's theme colour names
+  (`editor.background`, `sideBar.background`...). `Styles/ThemeResources.axaml` lists the themes and defines the brushes
+  the views use (our `App*`/`Theme*` ones and the Dock/Fluent ones we restyle), each coloured from a theme key.
+  Choosing a theme only sets `Application.RequestedThemeVariant` (`Views/ThemeSwitcher`); Fluent and Dock fall back to
+  their Dark or Light look for anything not set. To colour another part, add a brush there and use it as
+  `{DynamicResource ...}`. The editor's syntax colours come from the same theme through TextMate.
 - **Panels are self-contained views** with their own view model (listed in `Shell/ToolPanels.cs`). They don't depend
   on the window they're in.
 - **The selected tab** is `DocumentManager.Active`, in whichever window it is; the menus, outline, preview and status

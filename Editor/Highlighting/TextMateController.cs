@@ -11,7 +11,7 @@ namespace AXamlIDE.Editor.Highlighting;
 
 /// <summary>
 /// Grammar selection and the editor's own theme colours (background, selection, line numbers...).
-/// The rest of the UI is coloured from the same theme by Views/ThemeResources.
+/// The rest of the UI is coloured from the same theme by Views/ThemeSwitcher.
 ///
 /// Must be constructed before the first SetTheme call, or the first theme is missed.
 /// </summary>

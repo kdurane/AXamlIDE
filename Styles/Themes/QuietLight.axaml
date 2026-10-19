@@ -1,0 +1,50 @@
+<!--
+    QuietLight: the UI colours for this theme, from TextMate's built-in QuietLight theme (its "colors" section).
+    Base variant: Light (Fluent and Dock use their light look for anything not set here).
+    Keys are VS Code's theme colour names; Styles/ThemeResources.axaml turns them into brushes.
+    "default" marks a key the theme doesn't set (VS Code's default for a light theme is used).
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Color x:Key="editor.background">#F5F5F5</Color>
+    <Color x:Key="editor.foreground">#000000</Color>   <!-- default -->
+    <Color x:Key="sideBar.background">#F2F2F2</Color>
+    <Color x:Key="sideBar.foreground">#000000</Color>   <!-- default -->
+    <Color x:Key="sideBarSectionHeader.background">#EDE8EF</Color>
+    <Color x:Key="sideBarSectionHeader.foreground">#000000</Color>   <!-- default -->
+    <Color x:Key="tab.activeBackground">#F5F5F5</Color>   <!-- default -->
+    <Color x:Key="tab.activeForeground">#333333</Color>   <!-- default -->
+    <Color x:Key="tab.inactiveBackground">#ECECEC</Color>   <!-- default -->
+    <Color x:Key="tab.inactiveForeground">#717171</Color>   <!-- default -->
+    <Color x:Key="tab.border">#F3F3F3</Color>   <!-- default -->
+    <Color x:Key="list.hoverBackground">#E0E0E0</Color>
+    <Color x:Key="list.inactiveSelectionBackground">#D3DBCD</Color>
+    <Color x:Key="list.activeSelectionBackground">#C4D9B1</Color>
+    <Color x:Key="list.activeSelectionForeground">#6C6C6C</Color>
+    <Color x:Key="titleBar.activeBackground">#C4B7D7</Color>
+    <Color x:Key="titleBar.activeForeground">#000000</Color>   <!-- default -->
+    <Color x:Key="activityBar.background">#EDEDF5</Color>
+    <Color x:Key="activityBar.foreground">#705697</Color>
+    <Color x:Key="statusBar.background">#705697</Color>
+    <Color x:Key="statusBar.foreground">#FFFFFF</Color>   <!-- default -->
+    <Color x:Key="dropdown.background">#F5F5F5</Color>
+    <Color x:Key="dropdown.foreground">#000000</Color>   <!-- default -->
+    <Color x:Key="dropdown.border">#CECECE</Color>   <!-- default -->
+
+    <!--  Git: file name colours in the explorer and the Git tab.  -->
+    <Color x:Key="gitDecoration.modifiedResourceForeground">#895503</Color>   <!-- default -->
+    <Color x:Key="gitDecoration.addedResourceForeground">#587C0C</Color>   <!-- default -->
+    <Color x:Key="gitDecoration.untrackedResourceForeground">#007100</Color>   <!-- default -->
+    <Color x:Key="gitDecoration.deletedResourceForeground">#AD0707</Color>   <!-- default -->
+    <Color x:Key="gitDecoration.renamedResourceForeground">#007100</Color>   <!-- default -->
+    <Color x:Key="gitDecoration.conflictingResourceForeground">#AD0707</Color>   <!-- default -->
+    <Color x:Key="gitDecoration.ignoredResourceForeground">#CD5C5C</Color>   <!-- ours: IndianRed, as elsewhere in the app -->
+
+    <!--  Diff view: line backgrounds (alpha flattened onto editor.background).  -->
+    <Color x:Key="diffEditor.insertedLineBackground">#E3E9D5</Color>   <!-- default -->
+    <Color x:Key="diffEditor.removedLineBackground">#F7C4C4</Color>   <!-- default -->
+    <Color x:Key="diffEditor.diagonalFill">#DFDFDF</Color>   <!-- default -->
+
+    <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
+    <Color x:Key="app.tab.selectedBackground">#DDDDDD</Color>
+    <Color x:Key="app.panelHeader.activeBackground">#E5E5E5</Color>
+</ResourceDictionary>
