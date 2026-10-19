@@ -86,18 +86,12 @@
         <NetCoreDbgFolder Condition="'$(NetCoreDbgFolder)' == ''">$(NetCoreDbgDownloadFolder)netcoredbg/</NetCoreDbgFolder>
     </PropertyGroup>
 
-    <Target Name="DownloadNetCoreDbg"
-            Condition="!Exists('$(NetCoreDbgFolder)$(NetCoreDbgExecutable)') And '$(NetCoreDbgArchive)' != '' And '$(NetCoreDbgDownload)' != 'false'">
+    <Target Name="DownloadNetCoreDbg" Condition="!Exists('$(NetCoreDbgFolder)$(NetCoreDbgExecutable)') And '$(NetCoreDbgArchive)' != '' And '$(NetCoreDbgDownload)' != 'false'">
         <Message Importance="high" Text="Downloading the debugger: netcoredbg $(NetCoreDbgVersion) ($(NetCoreDbgArchive))" />
-        <DownloadFile SourceUrl="https://github.com/Samsung/netcoredbg/releases/download/$(NetCoreDbgVersion)/$(NetCoreDbgArchive)"
-                      DestinationFolder="$(NetCoreDbgDownloadFolder)" ContinueOnError="WarnAndContinue" />
-        <Unzip Condition="$(NetCoreDbgArchive.EndsWith('.zip')) And Exists('$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)')"
-               SourceFiles="$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)" DestinationFolder="$(NetCoreDbgDownloadFolder)"
-               ContinueOnError="WarnAndContinue" />
+        <DownloadFile SourceUrl="https://github.com/Samsung/netcoredbg/releases/download/$(NetCoreDbgVersion)/$(NetCoreDbgArchive)" DestinationFolder="$(NetCoreDbgDownloadFolder)" ContinueOnError="WarnAndContinue" />
+        <Unzip Condition="$(NetCoreDbgArchive.EndsWith('.zip')) And Exists('$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)')" SourceFiles="$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)" DestinationFolder="$(NetCoreDbgDownloadFolder)" ContinueOnError="WarnAndContinue" />
         <!-- tar keeps the executable bit (it ships with Linux, macOS and Windows 10+). -->
-        <Exec Condition="$(NetCoreDbgArchive.EndsWith('.tar.gz')) And Exists('$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)')"
-              Command="tar -xzf &quot;$(NetCoreDbgArchive)&quot;" WorkingDirectory="$(NetCoreDbgDownloadFolder)"
-              ContinueOnError="WarnAndContinue" />
+        <Exec Condition="$(NetCoreDbgArchive.EndsWith('.tar.gz')) And Exists('$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)')" Command="tar -xzf &quot;$(NetCoreDbgArchive)&quot;" WorkingDirectory="$(NetCoreDbgDownloadFolder)" ContinueOnError="WarnAndContinue" />
     </Target>
 
     <!-- Conditions are on the steps, not the target: they must be checked after the download has run. -->
@@ -120,8 +114,8 @@
         <PackageReference Include="Dock.Avalonia" Version="12.1.0.12" />
         <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.1.0.12" />
         <PackageReference Include="Dock.Model.Mvvm" Version="12.1.0.12" />
-        <PackageReference Include="Markdig" Version="1.4.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+        <PackageReference Include="Markdig" Version="1.4.2" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
         <PackageReference Include="TextMateSharp" Version="2.0.4" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
         <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
@@ -131,14 +125,5 @@
     <ItemGroup>
       <AvaloniaResource Include="Assets/*.json" />
       <AvaloniaResource Include="Assets/Grammars/*.json" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Views\Dialogs\" />
-      <Folder Include="Views\Documents\" />
-      <Folder Include="Views\Problems\" />
-      <Folder Include="Views\Search\" />
-      <Folder Include="Views\Settings\" />
-      <Folder Include="Views\Workspace\" />
     </ItemGroup>
 </Project>

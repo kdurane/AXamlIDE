@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -147,7 +147,7 @@ public sealed partial class VisualizerDockable : PageDockable
             {
                 if (ct.IsCancellationRequested)
                     return;
-                SetTypedTable(memory.Columns, memory.Rows.ToList());
+                SetTypedTable(memory.Columns, [.. memory.Rows]);
                 Status = (memory.Rows.Count < memory.TotalCount
                     ? $"Showing the first {memory.Rows.Count:N0} of {memory.TotalCount:N0} items"
                     : $"{memory.TotalCount:N0} items") + $" (read from memory in {watch.Elapsed.TotalSeconds:0.0} s)";
@@ -169,7 +169,7 @@ public sealed partial class VisualizerDockable : PageDockable
                 return;
             // Anything not reported yet (the last chunk), or the whole table when it came in one go.
             if (table.Columns.SequenceEqual(Columns) && table.Rows.Count >= _raw.Count)
-                AddDebugRows(table.Columns, table.Rows.Skip(_raw.Count).ToList());
+                AddDebugRows(table.Columns, [.. table.Rows.Skip(_raw.Count)]);
             else
             {
                 _raw = [];
@@ -208,7 +208,7 @@ public sealed partial class VisualizerDockable : PageDockable
         {
             // New members turned up: line the earlier rows up with the new columns, then re-type everything.
             var old = Columns.ToList();
-            _raw = _raw.Select(row => columns.Select(column => old.IndexOf(column) is var at and >= 0 && at < row.Length ? row[at] : "").ToArray()).ToList();
+            _raw = [.. _raw.Select(row => columns.Select(column => old.IndexOf(column) is var at and >= 0 && at < row.Length ? row[at] : "").ToArray())];
             _raw.AddRange(added);
             Retype(columns);
             return;
@@ -229,7 +229,7 @@ public sealed partial class VisualizerDockable : PageDockable
     private void Retype(IReadOnlyList<string> columns)
     {
         var types = ColumnTypes(columns.Count, _raw);
-        SetTypedTable(columns, _raw.Select(row => row.Select((cell, c) => Typed(cell, types[c])).ToArray()).ToList());
+        SetTypedTable(columns, [.. _raw.Select(row => row.Select((cell, c) => Typed(cell, types[c])).ToArray())]);
         _columnTypes = types;
     }
 

@@ -1,22 +1,28 @@
-<!--
+﻿<!--
     A debugger visualizer tab (VisualizerDockable): a collection as a sortable table with a filter box and Open in
     Excel / as CSV, or a string as text (Text / JSON / XML). The table's columns are made in code (VisualizerView.axaml.cs):
     they come from the data.
 -->
 <UserControl
+d:DesignHeight="400"
     x:Class="AXamlIDE.Views.VisualizerView"
     x:DataType="vm:VisualizerDockable"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns="https://github.com/avaloniaui"
     xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    
     <DockPanel Background="{DynamicResource DockSurfaceEditorBrush}">
         <!--  Toolbar: what it is, how many, and the actions for the kind shown.  -->
         <Grid
             ColumnDefinitions="Auto,*,Auto"
             DockPanel.Dock="Top"
             Margin="8,6">
-            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="12"
+                VerticalAlignment="Center">
                 <TextBlock FontWeight="SemiBold" Text="{Binding Expression}" />
                 <TextBlock Opacity="0.75" Text="{Binding Status}" />
                 <TextBlock
@@ -82,6 +88,7 @@
                 CanUserReorderColumns="True"
                 CanUserResizeColumns="True"
                 CanUserSortColumns="True"
+                FontSize="11"
                 GridLinesVisibility="All"
                 IsReadOnly="True"
                 IsVisible="{Binding IsTable}"

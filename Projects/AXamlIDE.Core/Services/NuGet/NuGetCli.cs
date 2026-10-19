@@ -32,7 +32,7 @@ public static partial class NuGetCli
         if (exitCode != 0)
             return null;
         var line = output.Split('\n').FirstOrDefault(l => l.StartsWith("global-packages:", StringComparison.Ordinal));
-        return line?["global-packages:".Length..].Trim();
+        return line?["global-packages:".Length..]?.Trim();
     }
 
     /// <summary>The packages the project references directly, with the version restore resolved.</summary>
