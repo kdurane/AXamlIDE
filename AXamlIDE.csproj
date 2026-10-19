@@ -66,12 +66,46 @@
         </ItemGroup>
         <Copy SourceFiles="@(HostFiles)" DestinationFiles="@(HostFiles->'$(OutDir)msbuildhost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     </Target>
-    <!-- The debugger (netcoredbg) is optional; when present in Projects/netcoredbg it is copied next to the app. -->
-    <Target Name="CopyNetCoreDbg" AfterTargets="Build" Condition="Exists('Projects/netcoredbg')">
-        <ItemGroup>
-            <DebuggerFiles Include="Projects/netcoredbg/**/*.*;Projects/netcoredbg/netcoredbg" Exclude="Projects/netcoredbg/.netcoredbg_hist" />
+    <!--
+        The debugger (Samsung's netcoredbg) is copied next to the app, from:
+          - Projects/netcoredbg, when it has this OS's executable (a local copy; the Windows one is committed), else
+          - the official release for this OS and CPU, downloaded once into obj/netcoredbg/<version>/.
+        A failed download (e.g. offline) is only a warning: the app builds, debugging just isn't available.
+        Set NetCoreDbgDownload=false to never download.
+    -->
+    <PropertyGroup>
+        <NetCoreDbgVersion>3.2.0-1092</NetCoreDbgVersion>
+        <NetCoreDbgExecutable Condition="$([MSBuild]::IsOSPlatform('Windows'))">netcoredbg.exe</NetCoreDbgExecutable>
+        <NetCoreDbgExecutable Condition="'$(NetCoreDbgExecutable)' == ''">netcoredbg</NetCoreDbgExecutable>
+        <NetCoreDbgArchive Condition="$([MSBuild]::IsOSPlatform('Windows'))">netcoredbg-win64.zip</NetCoreDbgArchive>
+        <NetCoreDbgArchive Condition="$([MSBuild]::IsOSPlatform('OSX'))">netcoredbg-osx-arm64.zip</NetCoreDbgArchive>
+        <NetCoreDbgArchive Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)' == 'Arm64'">netcoredbg-linux-arm64.tar.gz</NetCoreDbgArchive>
+        <NetCoreDbgArchive Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(NetCoreDbgArchive)' == ''">netcoredbg-linux-amd64.tar.gz</NetCoreDbgArchive>
+        <NetCoreDbgDownloadFolder>$(MSBuildProjectDirectory)/$(BaseIntermediateOutputPath)netcoredbg/$(NetCoreDbgVersion)/</NetCoreDbgDownloadFolder>
+        <NetCoreDbgFolder Condition="Exists('$(MSBuildProjectDirectory)/Projects/netcoredbg/$(NetCoreDbgExecutable)')">$(MSBuildProjectDirectory)/Projects/netcoredbg/</NetCoreDbgFolder>
+        <NetCoreDbgFolder Condition="'$(NetCoreDbgFolder)' == ''">$(NetCoreDbgDownloadFolder)netcoredbg/</NetCoreDbgFolder>
+    </PropertyGroup>
+
+    <Target Name="DownloadNetCoreDbg"
+            Condition="!Exists('$(NetCoreDbgFolder)$(NetCoreDbgExecutable)') And '$(NetCoreDbgArchive)' != '' And '$(NetCoreDbgDownload)' != 'false'">
+        <Message Importance="high" Text="Downloading the debugger: netcoredbg $(NetCoreDbgVersion) ($(NetCoreDbgArchive))" />
+        <DownloadFile SourceUrl="https://github.com/Samsung/netcoredbg/releases/download/$(NetCoreDbgVersion)/$(NetCoreDbgArchive)"
+                      DestinationFolder="$(NetCoreDbgDownloadFolder)" ContinueOnError="WarnAndContinue" />
+        <Unzip Condition="$(NetCoreDbgArchive.EndsWith('.zip')) And Exists('$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)')"
+               SourceFiles="$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)" DestinationFolder="$(NetCoreDbgDownloadFolder)"
+               ContinueOnError="WarnAndContinue" />
+        <!-- tar keeps the executable bit (it ships with Linux, macOS and Windows 10+). -->
+        <Exec Condition="$(NetCoreDbgArchive.EndsWith('.tar.gz')) And Exists('$(NetCoreDbgDownloadFolder)$(NetCoreDbgArchive)')"
+              Command="tar -xzf &quot;$(NetCoreDbgArchive)&quot;" WorkingDirectory="$(NetCoreDbgDownloadFolder)"
+              ContinueOnError="WarnAndContinue" />
+    </Target>
+
+    <!-- Conditions are on the steps, not the target: they must be checked after the download has run. -->
+    <Target Name="CopyNetCoreDbg" AfterTargets="Build" DependsOnTargets="DownloadNetCoreDbg">
+        <ItemGroup Condition="Exists('$(NetCoreDbgFolder)$(NetCoreDbgExecutable)')">
+            <DebuggerFiles Include="$(NetCoreDbgFolder)**/*" Exclude="$(NetCoreDbgFolder).netcoredbg_hist" />
         </ItemGroup>
-        <Copy SourceFiles="@(DebuggerFiles)" DestinationFiles="@(DebuggerFiles->'$(OutDir)netcoredbg\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+        <Copy Condition="'@(DebuggerFiles)' != ''" SourceFiles="@(DebuggerFiles)" DestinationFiles="@(DebuggerFiles->'$(OutDir)netcoredbg/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     </Target>
 
     <ItemGroup>
