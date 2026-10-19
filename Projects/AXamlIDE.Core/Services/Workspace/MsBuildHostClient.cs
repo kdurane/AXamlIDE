@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using AXamlIDE.Models;
+using AXamlIDE.MsBuildHost;
 
 namespace AXamlIDE.Services.Workspace;
 
@@ -82,28 +84,48 @@ public sealed class MsBuildHostClient : IDisposable
     public string? GetProjectAssetsFile(string projectPath)
         => GetProjectData(projectPath).ProjectAssetsFile;
 
-    private HostResponse GetProjectData(string projectPath)
+    // ---- one file's build action and metadata (the Properties panel)
+
+    public ProjectItemProperties GetItemProperties(string projectPath, string filePath)
+        => ToProperties(Send(new HostRequest(projectPath, HostCommands.GetItem, filePath)));
+
+    /// <summary>Change the file's build action (item type); writes the project file.</summary>
+    public ProjectItemProperties SetItemType(string projectPath, string filePath, string itemType)
+        => ToProperties(Send(new HostRequest(projectPath, HostCommands.SetItem, filePath, ItemType: itemType)));
+
+    /// <summary>Change one metadata value of the file ("" clears it); writes the project file.</summary>
+    public ProjectItemProperties SetItemMetadata(string projectPath, string filePath, string name, string value)
+        => ToProperties(Send(new HostRequest(projectPath, HostCommands.SetItem, filePath, MetadataName: name, MetadataValue: value)));
+
+    private static ProjectItemProperties ToProperties(HostResponse response)
+        => response.Item is { } item
+            ? new ProjectItemProperties(item.ItemType, item.AvailableItemTypes, item.Metadata)
+            : throw new InvalidOperationException("MSBuild host returned no item.");
+
+    private HostResponse GetProjectData(string projectPath) => Send(new HostRequest(projectPath));
+
+    private HostResponse Send(HostRequest request)
     {
         lock (_lock)   // one request in flight at a time
         {
             try
             {
-                return Query(projectPath);
+                return Query(request);
             }
             catch (IOException)
             {
                 // Host died (or the pipe broke). Restart once and retry.
                 Restart();
-                return Query(projectPath);
+                return Query(request);
             }
         }
     }
 
-    private HostResponse Query(string projectPath)
+    private HostResponse Query(HostRequest request)
     {
         if (_process is null || _process.HasExited) Restart();
 
-        var requestJson = JsonSerializer.Serialize(new HostRequest(projectPath));
+        var requestJson = JsonSerializer.Serialize(request);
         _process!.StandardInput.WriteLine(requestJson);
         _process.StandardInput.Flush();
 
@@ -131,16 +153,4 @@ public sealed class MsBuildHostClient : IDisposable
     }
 
     public void Dispose() => Kill();
-
-    // Ideally shared with the host project via a linked file so the two can't drift.
-    private record HostRequest(string ProjectPath);
-    private record HostResponse(
-        bool Success,
-        string[] Files,
-        string[] ProjectReferences,
-        string? Error,
-        string? AssemblyName,
-        string? OutputType,
-        string? OutputPath,
-        string? ProjectAssetsFile);
 }

@@ -25,7 +25,7 @@ public sealed class KeyMap
     private const KeyModifiers Alt = KeyModifiers.Alt;
     private const KeyModifiers None = KeyModifiers.None;
 
-    public KeyMap(MainWindowViewModel shell)
+    public KeyMap(MainWindowViewModel shell, PropertiesViewModel properties)
     {
         var editor = shell.EditorCommands;
         var run = shell.Run;
@@ -44,6 +44,10 @@ public sealed class KeyMap
             Bind(Key.F, Ctrl | Shift, shell.ShowFindInFilesCommand),
             Bind(Key.F8, None, shell.Problems.NavigateDiagnosticCommand, true),
             Bind(Key.F8, Shift, shell.Problems.NavigateDiagnosticCommand, false),
+
+            // ---- panels
+            Bind(Key.F4, None, properties.ShowCommand),       // Properties of the explorer selection
+            Bind(Key.Enter, Alt, properties.ShowCommand),
 
             // ---- editing
             Bind(Key.R, Ctrl, editor.RenameSymbol),

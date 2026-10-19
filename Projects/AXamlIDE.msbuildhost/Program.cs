@@ -5,6 +5,7 @@
 // could JIT one of those types first.
 
 using System.Text.Json;
+using AXamlIDE.MsBuildHost;
 using Microsoft.Build.Definition;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Locator;
@@ -23,7 +24,13 @@ while (Console.ReadLine() is { } line)
         var request = JsonSerializer.Deserialize<HostRequest>(line);
         responseJson = request is null
             ? JsonSerializer.Serialize(new HostResponse(false, [], [], "Malformed request.", null, null, null, null))
-            : HandleRequest(request.ProjectPath);
+            : request.Command switch
+            {
+                HostCommands.GetItem => ItemResponse(() => ItemProperties.Get(request.ProjectPath, request.FilePath!)),
+                HostCommands.SetItem => ItemResponse(() => ItemProperties.Set(request.ProjectPath, request.FilePath!,
+                    request.ItemType, request.MetadataName, request.MetadataValue)),
+                _ => HandleRequest(request.ProjectPath)
+            };
     }
     catch (Exception ex)
     {
@@ -73,14 +80,14 @@ static string HandleRequest(string projectPath)
     }
 }
 
-record HostRequest(string ProjectPath);
-
-record HostResponse(
-    bool Success,
-    string[] Files,
-    string[] ProjectReferences,
-    string? Error,
-    string? AssemblyName,
-    string? OutputType,
-    string? OutputPath,
-    string? ProjectAssetsFile);
+static string ItemResponse(Func<HostItem> read)
+{
+    try
+    {
+        return JsonSerializer.Serialize(new HostResponse(true, [], [], null, null, null, null, null, read()));
+    }
+    catch (Exception ex)
+    {
+        return JsonSerializer.Serialize(new HostResponse(false, [], [], ex.Message, null, null, null, null));
+    }
+}

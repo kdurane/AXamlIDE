@@ -75,6 +75,10 @@ How the pieces are put together and talk:
   `ViewModels/GitViewModel` is the Git tab (stage, unstage, commit); `ViewModels/DiffDockable` + `Views/DiffView` are
   the side-by-side diff tabs (DiffPlex, via `Services/Git/SideBySideDiff`). Colours are the `gitDecoration.*` and
   `diffEditor.*` theme keys.
+- **Properties panel** (right-click > Properties, F4, Alt+Enter) sits under the explorer (`DockFactory.ExplorerColumn`) and
+  follows the explorer selection (`ViewModels/PropertiesViewModel`, `Views/PropertiesView`). A file's Build Action and
+  metadata are read and written by the MSBuild host (`ItemProperties.cs` there; requests in the shared
+  `Projects/AXamlIDE.msbuildhost/HostProtocol.cs`, compiled into Core too). Changes are written to the .csproj at once.
 - **Panels are self-contained views** with their own view model (listed in `Shell/ToolPanels.cs`). They don't depend
   on the window they're in.
 - **The selected tab** is `DocumentManager.Active`, in whichever window it is; the menus, outline, preview and status

@@ -69,6 +69,7 @@ public static class AppServices
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<GitTreeDecorator>();
         services.AddSingleton<GitViewModel>();
+        services.AddSingleton<PropertiesViewModel>();
         services.AddSingleton<ProblemsViewModel>();
         services.AddSingleton<OutlineViewModel>();
         services.AddSingleton<SearchViewModel>();

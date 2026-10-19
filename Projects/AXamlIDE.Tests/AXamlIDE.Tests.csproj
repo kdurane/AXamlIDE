@@ -16,5 +16,7 @@
     <ItemGroup>
         <Using Include="Xunit" />
         <ProjectReference Include="../AXamlIDE.Core/AXamlIDE.Core.csproj" />
+        <!-- Built first, so ProjectItemPropertiesTests can run the real MSBuild host. -->
+        <ProjectReference Include="../AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
     </ItemGroup>
 </Project>

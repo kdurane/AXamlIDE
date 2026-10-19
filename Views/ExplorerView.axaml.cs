@@ -90,8 +90,8 @@ public partial class ExplorerView : UserControl
             menu.Items.Add(git);
         }
 
-        if (menu.Items.Count == 0)
-            return;
+        menu.Items.Add(new Separator());
+        menu.Items.Add(new MenuItem { Header = "Properties", Command = vm.Properties.ShowCommand, InputGesture = new KeyGesture(Key.F4) });
 
 
         control.ContextMenu = menu;

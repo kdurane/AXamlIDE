@@ -20,6 +20,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The MSBuild host's request/response records, shared so the two sides can't drift. -->
+        <Compile Include="../AXamlIDE.msbuildhost/HostProtocol.cs" Link="Services/Workspace/HostProtocol.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <InternalsVisibleTo Include="AXamlIDE.Tests" />
     </ItemGroup>
 </Project>

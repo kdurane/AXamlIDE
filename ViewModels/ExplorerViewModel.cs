@@ -17,6 +17,7 @@ public sealed partial class ExplorerViewModel(
     WorkspaceViewModel workspace,
     RunViewModel run,
     GitViewModel git,
+    PropertiesViewModel properties,
     IDocumentHost documents,
     IMessenger messenger)
 {
@@ -24,6 +25,9 @@ public sealed partial class ExplorerViewModel(
 
     /// <summary>The Git commands for a node's file or folder (the explorer's Git submenu).</summary>
     public GitViewModel Git { get; } = git;
+
+    /// <summary>Right-click > Properties: the panel under the explorer, following the selection.</summary>
+    public PropertiesViewModel Properties { get; } = properties;
 
     /// <summary>Build / Run / Start Debugging for a node (the node is the command parameter).</summary>
     public RunViewModel Run { get; } = run;
