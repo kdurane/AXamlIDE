@@ -325,6 +325,12 @@ public partial class EditorPaneView : UserControl,
                 if (_ctx.Active is { } completionDocument && _ctx.Languages.ConnectionFor(completionDocument) is not null)
                     _ = _completion.ShowCompletionAsync(completionDocument, triggerChar: null);
                 break;
+            case EditorAction.Undo: Editor.Undo(); break;
+            case EditorAction.Redo: Editor.Redo(); break;
+            case EditorAction.Cut: Editor.Cut(); break;
+            case EditorAction.Copy: Editor.Copy(); break;
+            case EditorAction.Paste: Editor.Paste(); break;
+            case EditorAction.SelectAll: Editor.SelectAll(); break;
         }
     }
 

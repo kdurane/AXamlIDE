@@ -9,6 +9,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:models="using:AXamlIDE.Models"
+    xmlns:msg="using:AXamlIDE.Messages"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -16,105 +17,143 @@
 
         <Grid ColumnDefinitions="Auto,*,Auto,Auto" Grid.Row="0">
             <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="4" />
-            <Menu MinHeight="0" Padding="0">
+            <!--
+            The menus, Visual Studio / Rider style. Each item binds the same command as its button and key; the keys
+            shown come from Shell/KeyMap.cs (KeyMap.ShowGesturesIn), except the editor's own (undo, clipboard).
+            Build and Debug act on the startup project (the top bar's box).
+            -->
+            <Menu
+                MinHeight="0"
+                Padding="0"
+                x:Name="MainMenu">
                 <MenuItem Header="_File">
-                    <MenuItem Command="{Binding Workspace.OpenFolderCommand}" Header="_Open Folder..." />
+                    <MenuItem Command="{Binding Workspace.OpenFolderCommand}" Header="Open _Folder..." />
                     <MenuItem Command="{Binding Workspace.OpenSolutionCommand}" Header="Open _Solution..." />
                     <MenuItem Command="{Binding CloseSolutionCommand}" Header="_Close Solution" />
                     <Separator />
-                    <MenuItem
-                        Command="{Binding DocumentCommands.SaveDocumentCommand}"
-                        Header="_Save"
-                        InputGesture="Ctrl+S" />
+                    <MenuItem Command="{Binding DocumentCommands.SaveDocumentCommand}" Header="_Save" />
+                    <MenuItem Command="{Binding DocumentCommands.CloseDocumentCommand}" Header="Close _Tab" />
+                    <Separator />
+                    <MenuItem Command="{Binding ExitCommand}" Header="E_xit" />
                 </MenuItem>
-                <MenuItem Header="_Build">
+                <MenuItem Header="_Edit">
                     <MenuItem
-                        Command="{Binding Run.BuildProjectCommand}"
-                        CommandParameter="{Binding Workspace.SelectedNode}"
-                        Header="_Build Project"
-                        InputGesture="Ctrl+Shift+B" />
+                        Command="{Binding EditorCommands.Undo}"
+                        Header="_Undo"
+                        InputGesture="Ctrl+Z" />
                     <MenuItem
-                        Command="{Binding Run.RunProjectCommand}"
-                        CommandParameter="{Binding Workspace.SelectedNode}"
-                        Header="Run Without _Debugging"
-                        InputGesture="Ctrl+F5" />
-                    <MenuItem
-                        Command="{Binding Run.StartDebuggingCommand}"
-                        CommandParameter="{Binding Workspace.SelectedNode}"
-                        Header="_Start Debugging"
-                        InputGesture="F5" />
-                    <MenuItem
-                        Command="{Binding Run.ContinueDebuggingCommand}"
-                        Header="_Continue"
-                        InputGesture="F5" />
-                    <MenuItem
-                        Command="{Binding Run.PauseDebuggingCommand}"
-                        Header="_Pause"
-                        InputGesture="Ctrl+Alt+Pause" />
-                    <MenuItem
-                        Command="{Binding Run.RestartDebuggingCommand}"
-                        Header="R_estart Debugging"
-                        InputGesture="Ctrl+Shift+F5" />
-                    <MenuItem
-                        Command="{Binding Run.StopRunningProjectCommand}"
-                        Header="_Stop"
-                        InputGesture="Shift+F5"
-                        IsEnabled="{Binding Run.IsRunning}" />
-                </MenuItem>
-                <MenuItem Header="_View">
-                    <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide _Explorer" />
-                    <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="_Swap Panes" />
-                    <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
+                        Command="{Binding EditorCommands.Redo}"
+                        Header="_Redo"
+                        InputGesture="Ctrl+Y" />
                     <Separator />
                     <MenuItem
-                        Command="{Binding EditorCommands.QuickOpen}"
-                        Header="_Quick Open..."
-                        InputGesture="Ctrl+P" />
+                        Command="{Binding EditorCommands.Cut}"
+                        Header="Cu_t"
+                        InputGesture="Ctrl+X" />
                     <MenuItem
-                        Command="{Binding ShowFindInFilesCommand}"
-                        Header="Find in _Files..."
-                        InputGesture="Ctrl+Shift+F" />
+                        Command="{Binding EditorCommands.Copy}"
+                        Header="_Copy"
+                        InputGesture="Ctrl+C" />
                     <MenuItem
-                        Command="{Binding EditorCommands.WorkspaceSymbols}"
-                        Header="Go to _Symbol..."
-                        InputGesture="Ctrl+T" />
+                        Command="{Binding EditorCommands.Paste}"
+                        Header="_Paste"
+                        InputGesture="Ctrl+V" />
                     <MenuItem
-                        Command="{Binding EditorCommands.GoToDefinition}"
-                        Header="Go to _Definition"
-                        InputGesture="F12" />
+                        Command="{Binding EditorCommands.SelectAll}"
+                        Header="Select _All"
+                        InputGesture="Ctrl+A" />
+                    <Separator />
+                    <MenuItem Command="{Binding ShowFindInFilesCommand}" Header="Find in _Files..." />
+                    <Separator />
+                    <MenuItem Command="{Binding EditorCommands.RenameSymbol}" Header="Re_name Symbol..." />
+                    <MenuItem Command="{Binding EditorCommands.QuickActions}" Header="_Quick Actions..." />
+                    <MenuItem Command="{Binding DocumentCommands.FormatDocumentCommand}" Header="F_ormat Document" />
+                    <MenuItem Command="{Binding EditorCommands.Completion}" Header="Co_mplete Word" />
+                    <MenuItem Command="{Binding EditorCommands.SignatureHelp}" Header="Parameter _Info" />
+                </MenuItem>
+                <MenuItem Header="_View">
                     <MenuItem
-                        Command="{Binding EditorCommands.FindReferences}"
-                        Header="Find All _References"
-                        InputGesture="Shift+F12" />
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Explorer}"
+                        Header="_Explorer" />
                     <MenuItem
-                        Command="{Binding EditorCommands.RenameSymbol}"
-                        Header="_Rename Symbol..."
-                        InputGesture="Ctrl+R" />
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Git}"
+                        Header="_Git" />
+                    <MenuItem Command="{Binding Properties.ShowCommand}" Header="P_roperties" />
+                    <Separator />
                     <MenuItem
-                        Command="{Binding EditorCommands.SignatureHelp}"
-                        Header="_Signature Help"
-                        InputGesture="Ctrl+Shift+Space" />
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Problems}"
+                        Header="_Problems" />
                     <MenuItem
-                        Command="{Binding EditorCommands.QuickActions}"
-                        Header="Quick _Actions..."
-                        InputGesture="Ctrl+." />
-                    <MenuItem Command="{Binding DocumentCommands.FormatDocumentCommand}" Header="_Format Document" />
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Output}"
+                        Header="_Output" />
+                    <MenuItem
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Console}"
+                        Header="_Debug Console" />
+                    <MenuItem Command="{Binding ShowFindInFilesCommand}" Header="_Search" />
+                    <Separator />
+                    <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
+                    <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="Move Side Bar to Other Side" />
+                </MenuItem>
+                <MenuItem Header="_Navigate">
+                    <MenuItem Command="{Binding EditorCommands.QuickOpen}" Header="Go to _File..." />
+                    <MenuItem Command="{Binding EditorCommands.WorkspaceSymbols}" Header="Go to _Symbol..." />
+                    <Separator />
+                    <MenuItem Command="{Binding EditorCommands.GoToDefinition}" Header="Go to _Definition" />
+                    <MenuItem Command="{Binding EditorCommands.FindReferences}" Header="Find All _References" />
                     <Separator />
                     <MenuItem
                         Command="{Binding Problems.NavigateDiagnosticCommand}"
                         CommandParameter="{x:True}"
-                        Header="_Next Diagnostic"
-                        InputGesture="F8" />
+                        Header="_Next Problem" />
                     <MenuItem
                         Command="{Binding Problems.NavigateDiagnosticCommand}"
                         CommandParameter="{x:False}"
-                        Header="_Previous Diagnostic"
-                        InputGesture="Shift+F8" />
+                        Header="_Previous Problem" />
+                </MenuItem>
+                <MenuItem Header="_Build">
+                    <MenuItem Command="{Binding Run.BuildCommand}" Header="_Build" />
+                    <MenuItem
+                        Command="{Binding Run.BuildProjectCommand}"
+                        Header="Build _Selected Project"
+                        IsEnabled="{Binding Workspace.SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </MenuItem>
+                <MenuItem Header="_Debug">
+                    <MenuItem
+                        Command="{Binding Run.StartDebuggingCommand}"
+                        Header="_Start Debugging"
+                        InputGesture="F5" />
+                    <MenuItem Command="{Binding Run.RunProjectCommand}" Header="Start _Without Debugging" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding Run.ContinueDebuggingCommand}"
+                        Header="_Continue"
+                        InputGesture="F5" />
+                    <MenuItem Command="{Binding Run.PauseDebuggingCommand}" Header="_Pause" />
+                    <MenuItem
+                        Command="{Binding Run.StopRunningProjectCommand}"
+                        Header="S_top"
+                        IsEnabled="{Binding Run.IsRunning}" />
+                    <MenuItem Command="{Binding Run.RestartDebuggingCommand}" Header="_Restart" />
+                    <Separator />
+                    <MenuItem Command="{Binding Run.StepOverCommand}" Header="Step _Over" />
+                    <MenuItem Command="{Binding Run.StepIntoCommand}" Header="Step _Into" />
+                    <MenuItem Command="{Binding Run.StepOutCommand}" Header="Step O_ut" />
+                </MenuItem>
+                <MenuItem Header="_Tools">
+                    <MenuItem Command="{Binding NuGet.ManagePackagesForCurrentProjectCommand}" Header="Manage _NuGet Packages..." />
+                    <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
+                    <Separator />
+                    <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Settings..." />
                 </MenuItem>
             </Menu>
             <!--
-            Startup project, configuration and play (Visual Studio's): play starts debugging the startup
-            project and turns into stop while it runs. Run Without Debugging is Ctrl+F5 / the Build menu.
+            Visual Studio's toolbar: Build, the startup project, the configuration, play (Start Debugging; a stop
+            square while it runs) and the hollow play (Start Without Debugging). Same commands as the menus and keys.
             -->
             <StackPanel
                 Grid.Column="1"
@@ -122,6 +161,18 @@
                 HorizontalAlignment="Right"
                 Orientation="Horizontal"
                 Spacing="4">
+                <Button
+                    AutomationProperties.Name="Build"
+                    Background="Transparent"
+                    Command="{Binding Run.BuildCommand}"
+                    Padding="6,0"
+                    ToolTip.Tip="Build (Ctrl+Shift+B)"
+                    VerticalAlignment="Stretch">
+                    <PathIcon
+                        Data="{StaticResource Icon.Hammer}"
+                        Height="16"
+                        Width="16" />
+                </Button>
                 <ComboBox
                     AutomationProperties.Name="Startup project"
                     FontSize="11"
@@ -176,6 +227,20 @@
                             IsVisible="{Binding Run.IsRunning}"
                             Width="16" />
                     </Panel>
+                </Button>
+                <Button
+                    AutomationProperties.Name="Start Without Debugging"
+                    Background="Transparent"
+                    Command="{Binding Run.RunProjectCommand}"
+                    IsEnabled="{Binding !Run.IsRunning}"
+                    Padding="6,0"
+                    ToolTip.Tip="Start Without Debugging (Ctrl+F5)"
+                    VerticalAlignment="Stretch">
+                    <PathIcon
+                        Data="{StaticResource Icon.PlayOutline}"
+                        Foreground="{DynamicResource DebugStartBrush}"
+                        Height="16"
+                        Width="16" />
                 </Button>
             </StackPanel>
 

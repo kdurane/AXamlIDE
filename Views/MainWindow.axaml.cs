@@ -47,8 +47,10 @@ public partial class MainWindow : Window
         };
 
         DataContext = viewModel;
+        viewModel.ExitRequested += Close;
 
         keyMap.AttachTo(this);
+        keyMap.ShowGesturesIn(MainMenu.Items);
         _debugToolbar = new DebugToolbarController(this, viewModel.Run, keyMap.AttachTo);
 
         settings.PropertyChanged += OnSettingsPropertyChanged;

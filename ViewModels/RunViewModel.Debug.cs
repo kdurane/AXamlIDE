@@ -32,7 +32,11 @@ public partial class RunViewModel
     [NotifyCanExecuteChangedFor(nameof(ViewModels.RunViewModel.ContinueDebuggingCommand), nameof(ViewModels.RunViewModel.StepOverCommand),
         nameof(ViewModels.RunViewModel.StepIntoCommand), nameof(ViewModels.RunViewModel.StepOutCommand), nameof(ViewModels.RunViewModel.PauseDebuggingCommand))]
     public partial bool IsDebugStopped { get; set; }
+
+    /// <summary>What the debugger is doing ("Paused (breakpoint).", "Stepping..."); shown in the status bar.</summary>
     [ObservableProperty] public partial string DebugStatus { get; set; } = "No active debug session.";
+
+    partial void OnDebugStatusChanged(string value) => ShowStatus(value);
 
     public bool IsDebugging => _debugSession is not null;
 

@@ -20,6 +20,14 @@ public sealed class EditorCommands(IMessenger messenger)
     public IRelayCommand SignatureHelp { get; } = Make(messenger, EditorAction.SignatureHelp);
     public IRelayCommand Completion { get; } = Make(messenger, EditorAction.Completion);
 
+    // The editor handles these keys itself (Ctrl+Z, Ctrl+C...); the commands are for the Edit menu.
+    public IRelayCommand Undo { get; } = Make(messenger, EditorAction.Undo);
+    public IRelayCommand Redo { get; } = Make(messenger, EditorAction.Redo);
+    public IRelayCommand Cut { get; } = Make(messenger, EditorAction.Cut);
+    public IRelayCommand Copy { get; } = Make(messenger, EditorAction.Copy);
+    public IRelayCommand Paste { get; } = Make(messenger, EditorAction.Paste);
+    public IRelayCommand SelectAll { get; } = Make(messenger, EditorAction.SelectAll);
+
     private static IRelayCommand Make(IMessenger messenger, EditorAction action)
         => new RelayCommand(() => messenger.Send(new EditorActionMessage(action)));
 }

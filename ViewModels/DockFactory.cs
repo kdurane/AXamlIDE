@@ -57,7 +57,7 @@ public sealed class DockFactory : Factory
         var properties = new ToolDockable(ToolTab.Properties, "Properties") { CanDrag = false, CanFloat = false, CanClose = true };
         var problems = new ToolDockable(ToolTab.Problems, "Problems");
         var output = new ToolDockable(ToolTab.Output, "Output");
-        var console = new ToolDockable(ToolTab.Console, "Console");
+        var console = new ToolDockable(ToolTab.Console, "Debug Console");
         var search = new ToolDockable(ToolTab.Search, "Search");
         Tools = new[] { explorer, git, properties, problems, output, console, search }.ToDictionary(tool => tool.Id);
 

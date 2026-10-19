@@ -44,6 +44,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         SearchViewModel search,
         ProblemsViewModel problems,
         RunViewModel run,
+        PropertiesViewModel properties,
+        NuGetManager nuGet,
         EditorCommands editorCommands,
         SettingsViewModel settings,
         EditorSettingsLoadResult settingsLoad,
@@ -64,6 +66,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Search = search;
         Problems = problems;
         Run = run;
+        Properties = properties;
+        NuGet = nuGet;
 
         _documents.ActiveChanged += _ => UpdateEditorStatus();
         messenger.RegisterAll(this);
@@ -90,6 +94,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public WorkspaceViewModel Workspace { get; }
     public ProblemsViewModel Problems { get; }
     public RunViewModel Run { get; }
+    public PropertiesViewModel Properties { get; }
+    public NuGetManager NuGet { get; }
 
     /// <summary>Save / close / format, acting on the selected tab wherever it is.</summary>
     public DocumentCommands DocumentCommands { get; }
@@ -150,6 +156,17 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     [RelayCommand]
     private void ToggleExplorer() => Docking.ToggleExplorer();
+
+    /// <summary>The View menu: bring a tool panel (a <see cref="ToolTab"/> id) to the front, putting it back if closed.</summary>
+    [RelayCommand]
+    private void ShowTool(string id) => Docking.ShowTool(id);
+
+    /// <summary>File > Exit: closes the main window (which asks about unsaved changes and saves the session).</summary>
+    [RelayCommand]
+    private void Exit() => ExitRequested?.Invoke();
+
+    /// <summary>Raised by <see cref="ExitCommand"/>; MainWindow closes itself.</summary>
+    public event Action? ExitRequested;
 
     /// <summary>Ask about unsaved changes, then close every document and the workspace.</summary>
     [RelayCommand]

@@ -52,6 +52,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     /// <summary>True while a folder or solution is open.</summary>
     public bool IsOpen => Roots.Count > 0;
 
+    /// <summary>The open solution's .sln/.slnx, or null when a folder (or nothing) is open.</summary>
+    public string? SolutionPath => Roots.FirstOrDefault(root => root.Kind == NodeKind.Solution)?.FullPath;
+
     /// <summary>A folder or solution was opened (or re-opened by a refresh). See WorkspaceSession.</summary>
     public event Action? Opened;
 

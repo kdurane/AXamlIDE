@@ -70,23 +70,39 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
     // ---------------------------------------------------------------- build
 
+    /// <summary>
+    /// Build (the Build menu, Ctrl+Shift+B and the top bar's button), like Visual Studio's Build Solution: the open
+    /// solution, else the startup project, else the explorer selection's project (asking when that's ambiguous too).
+    /// </summary>
+    [RelayCommand]
+    private async Task Build()
+    {
+        var path = _explorer.SolutionPath
+                   ?? StartupProjectPath
+                   ?? (_explorer.SelectedNode is { } node ? ResolveProject(node) : await ChooseStartupProjectAsync(null));
+        if (path is not null)
+            await BuildAsync(path);
+    }
+
+    /// <summary>The explorer's "Build" on a project (or a file in it); null = the explorer's selection.</summary>
     [RelayCommand]
     private async Task BuildProject(ProjectTreeNode? selection)
     {
-        var node = selection ?? _explorer.SelectedNode;
-        var projectPath = node is null && StartupProjectPath is { } startup ? startup : ResolveProject(node);
-        if (projectPath is null)
-            return;
+        if (ResolveProject(selection ?? _explorer.SelectedNode) is { } projectPath)
+            await BuildAsync(projectPath);
+    }
 
+    private async Task BuildAsync(string path)
+    {
         if (IsBusy || !await _saver.SaveAllAsync())   // like other IDEs: save everything before building
             return;
 
         var configuration = Configuration;
-        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration})");
+        BeginBuildOutput($"Building {Path.GetFileName(path)} ({configuration})");
         IsBusy = true;
         try
         {
-            var exitCode = await _projectRunner.BuildAsync(projectPath, configuration);
+            var exitCode = await _projectRunner.BuildAsync(path, configuration);
             AppendBuildOutput(exitCode == 0
                 ? "Build succeeded."
                 : $"Build failed with exit code {exitCode}.");

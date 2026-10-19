@@ -10,7 +10,13 @@ public enum EditorAction
     WorkspaceSymbols,
     QuickActions,
     SignatureHelp,
-    Completion
+    Completion,
+    Undo,
+    Redo,
+    Cut,
+    Copy,
+    Paste,
+    SelectAll
 }
 
 /// <summary>Ask the editor pane to perform an action on the active document. Handled by EditorPaneView.</summary>

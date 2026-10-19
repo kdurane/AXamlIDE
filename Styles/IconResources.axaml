@@ -418,6 +418,12 @@
     <!--  https://pictogrammers.com/library/mdi/icon/stop/  -->
     <StreamGeometry x:Key="Icon.Stop">M18 18H6V6h12z</StreamGeometry>
 
+    <!--  https://pictogrammers.com/library/mdi/icon/play-outline/  -->
+    <StreamGeometry x:Key="Icon.PlayOutline">M8.5 8.64 13.77 12 8.5 15.36zM6.5 5v14l11-7</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/hammer/  -->
+    <StreamGeometry x:Key="Icon.Hammer">M2 19.63 13.43 8.2l-.71-.7 1.42-1.43L12 3.89c1.2-1.19 3.09-1.19 4.27 0l3.6 3.61-1.42 1.41h2.84l.71.71-3.55 3.59-.71-.71V9.62l-1.47 1.42-.71-.71L4.13 21.76z</StreamGeometry>
+
     <!--  https://pictogrammers.com/library/mdi/icon/pause/  -->
     <StreamGeometry x:Key="Icon.Pause">M14 19h4V5h-4M6 19h4V5H6z</StreamGeometry>
 
