@@ -54,6 +54,12 @@ public static partial class NuGetCli
         return new NuGetChangeResult(exitCode == 0, output);
     }
 
+    public static async Task<NuGetChangeResult> RestoreAsync(string projectPath, CancellationToken ct)
+    {
+        var (exitCode, output) = await RunAsync(Path.GetDirectoryName(projectPath)!, ct, "restore", projectPath);
+        return new NuGetChangeResult(exitCode == 0, output);
+    }
+
     // ---------------------------------------------------------------- parsing (tested)
 
     /// <summary>

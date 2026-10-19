@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -137,12 +138,55 @@ public sealed class NuGetService : IDisposable
 
     public Task<InstalledPackages> GetInstalledAsync(string projectPath, CancellationToken ct) => NuGetCli.ListInstalledAsync(projectPath, ct);
 
-    /// <summary>Install, or change the version of, a package (dotnet add package; restores).</summary>
-    public Task<NuGetChangeResult> InstallAsync(string projectPath, string id, string version, CancellationToken ct)
-        => NuGetCli.AddAsync(projectPath, id, version, ct);
+    /// <summary>Install, or change the version of, a package, then restore.</summary>
+    public async Task<NuGetChangeResult> InstallAsync(string projectPath, string id, string version, CancellationToken ct)
+        => await EditAndRestoreAsync(projectPath, text => PackageReferenceEditor.AddOrUpdate(text, id, version), ct)
+           ?? await NuGetCli.AddAsync(projectPath, id, version, ct);
 
-    public Task<NuGetChangeResult> UninstallAsync(string projectPath, string id, CancellationToken ct)
-        => NuGetCli.RemoveAsync(projectPath, id, ct);
+    public async Task<NuGetChangeResult> UninstallAsync(string projectPath, string id, CancellationToken ct)
+        => await EditAndRestoreAsync(projectPath, text => PackageReferenceEditor.Remove(text, id), ct)
+           ?? await NuGetCli.RemoveAsync(projectPath, id, ct);
+
+    /// <summary>
+    /// Change the project's text (keeping the rest of the file as written, unlike dotnet add / remove) and restore.
+    /// If the restore fails (an incompatible version, say) the file is put back, as dotnet add does. Null when the
+    /// edit can't be made as text (central package management, unusual references): use dotnet instead.
+    /// </summary>
+    private static async Task<NuGetChangeResult?> EditAndRestoreAsync(string projectPath, Func<string, string?> edit, CancellationToken ct)
+    {
+        if (UsesCentralPackageManagement(projectPath))
+            return null;
+
+        var bytes = await File.ReadAllBytesAsync(projectPath, ct);
+        var hasBom = bytes is [0xEF, 0xBB, 0xBF, ..];
+        var encoding = new UTF8Encoding(hasBom);
+        var original = encoding.GetString(bytes, hasBom ? 3 : 0, bytes.Length - (hasBom ? 3 : 0));
+        if (edit(original) is not { } changed)
+            return null;
+
+        await File.WriteAllTextAsync(projectPath, changed, encoding, ct);
+        var restored = false;
+        try
+        {
+            var restore = await NuGetCli.RestoreAsync(projectPath, ct);
+            restored = restore.Succeeded;
+            return restored ? restore : restore with { Output = restore.Output + "\nThe project file was put back as it was." };
+        }
+        finally
+        {
+            if (!restored)
+                await File.WriteAllTextAsync(projectPath, original, encoding, CancellationToken.None);
+        }
+    }
+
+    /// <summary>A Directory.Packages.props above the project: versions live there, so dotnet does the edit.</summary>
+    private static bool UsesCentralPackageManagement(string projectPath)
+    {
+        for (var folder = Path.GetDirectoryName(Path.GetFullPath(projectPath)); folder is not null; folder = Path.GetDirectoryName(folder))
+            if (File.Exists(Path.Combine(folder, "Directory.Packages.props")))
+                return true;
+        return false;
+    }
 
     public void Dispose() => _http.Dispose();
 }
