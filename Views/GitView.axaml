@@ -180,10 +180,10 @@
             </TextBox>
             <Button
                 Command="{Binding CommitCommand}"
-                Content="Commit Staged"
+                Content="{Binding CommitButtonText}"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Center"
-                ToolTip.Tip="Commit the staged changes (Ctrl+Enter)" />
+                ToolTip.Tip="{Binding CommitButtonToolTip}" />
         </StackPanel>
 
         <!--  Staged and unstaged changes  -->

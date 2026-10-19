@@ -85,6 +85,13 @@ public sealed partial class GitViewModel : ObservableObject
     public string PushHeader => _tracker.Current is { Upstream: null, Branch: not null } ? "Publish Branch" : "Push";
     public string ChangesHeader => $"Changes ({Changes.Count})";
 
+    /// <summary>The commit button (Visual Studio's): "Commit Staged" when something is staged, else "Commit All".</summary>
+    public string CommitButtonText => Staged.Count > 0 ? "Commit Staged" : "Commit All";
+
+    public string CommitButtonToolTip => Staged.Count > 0
+        ? "Commit the staged changes (Ctrl+Enter)"
+        : "Stage and commit all changes (Ctrl+Enter)";
+
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(CommitCommand))]
     public partial string CommitMessage { get; set; } = "";
@@ -105,6 +112,8 @@ public sealed partial class GitViewModel : ObservableObject
         OnPropertyChanged(nameof(StagedHeader));
         OnPropertyChanged(nameof(ChangesHeader));
         OnPropertyChanged(nameof(PushHeader));
+        OnPropertyChanged(nameof(CommitButtonText));
+        OnPropertyChanged(nameof(CommitButtonToolTip));
         CommitCommand.NotifyCanExecuteChanged();
     }
 
@@ -138,9 +147,16 @@ public sealed partial class GitViewModel : ObservableObject
         => Staged.Count == 0 ? Task.CompletedTask
             : RunAsync(root => _git.UnstageAsync(root, Staged.Select(item => item.Change.FullPath).ToList()));
 
+    /// <summary>The commit button and Ctrl+Enter: commit the staged changes, or everything when nothing is staged.</summary>
     [RelayCommand(CanExecute = nameof(CanCommit))]
     private async Task Commit()
     {
+        if (Staged.Count == 0)
+        {
+            await CommitAll();
+            return;
+        }
+
         var message = CommitMessage.Trim();
         var count = Staged.Count;
         if (await RunAsync(root => _git.CommitAsync(root, message)))
@@ -150,7 +166,7 @@ public sealed partial class GitViewModel : ObservableObject
         }
     }
 
-    private bool CanCommit() => !IsBusy && Staged.Count > 0 && !string.IsNullOrWhiteSpace(CommitMessage);
+    private bool CanCommit() => !IsBusy && Staged.Count + Changes.Count > 0 && !string.IsNullOrWhiteSpace(CommitMessage);
 
     /// <summary>Show the change side by side in a diff tab (double-click).</summary>
     [RelayCommand]
