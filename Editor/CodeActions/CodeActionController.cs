@@ -7,8 +7,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
-using AXamlIDE.Editor.Navigation;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
 
 namespace AXamlIDE.Editor.CodeActions;

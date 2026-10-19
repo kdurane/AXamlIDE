@@ -16,16 +16,15 @@ using CommunityToolkit.Mvvm.Messaging;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// The main window's view model: the one main UI (menus, activity bar, status bar) and the panels it
-/// places. Each panel has its own view model (Explorer, DocumentWell, the tool panels); this class
-/// only holds them and owns what belongs to the window as a whole: which tool panel is in front,
-/// whether the explorer is shown, the status bar text, and workspace-wide commands.
+/// The main window's view model: the one main UI (menus, top bar, activity bar, status bar), which acts
+/// on the selected tab wherever it is (main window or a floating one). The tabs and tool panels are in
+/// <see cref="Docking"/>; each panel has its own view model. This class owns what belongs to the app as a
+/// whole: the status bar text and workspace-wide commands.
 ///
-/// Handles <see cref="StatusMessage"/>, <see cref="ShowToolTabMessage"/> and
-/// <see cref="EditorStateChangedMessage"/> from any area.
+/// Handles <see cref="StatusMessage"/> and <see cref="EditorStateChangedMessage"/> from any area.
 /// </summary>
 public sealed partial class MainWindowViewModel : ObservableObject,
-    IRecipient<StatusMessage>, IRecipient<ShowToolTabMessage>, IRecipient<EditorStateChangedMessage>
+    IRecipient<StatusMessage>, IRecipient<EditorStateChangedMessage>
 {
     private readonly DocumentManager _documents;
     private readonly DocumentSaveService _saver;
@@ -40,8 +39,9 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         DocumentCommands documentCommands,
         LanguageSessionService languages,
         WorkspaceViewModel workspace,
-        ExplorerViewModel explorer,
-        DocumentWellViewModel documentWell,
+        DockLayoutViewModel docking,
+        WorkspaceSession session,
+        SearchViewModel search,
         ProblemsViewModel problems,
         RunViewModel run,
         EditorCommands editorCommands,
@@ -59,17 +59,13 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         DocumentCommands = documentCommands;
         EditorCommands = editorCommands;
         Workspace = workspace;
-        Explorer = explorer;
-        DocumentWell = documentWell;
+        Docking = docking;
+        Session = session;
+        Search = search;
         Problems = problems;
         Run = run;
 
-        _documents.ActiveChanged += _ =>
-        {
-            OnPropertyChanged(nameof(IsEditorVisible));
-            OnPropertyChanged(nameof(IsWelcomeVisible));
-            UpdateEditorStatus();
-        };
+        _documents.ActiveChanged += _ => UpdateEditorStatus();
         messenger.RegisterAll(this);
 
         if (settingsLoad.Warnings.Count > 0)
@@ -78,10 +74,17 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     // ---------------------------------------------------------------- panels
 
-    public ExplorerViewModel Explorer { get; }
-    public DocumentWellViewModel DocumentWell { get; }
-    /// <summary>Id of the tool panel in front (a <see cref="ToolTab"/> id); the window shows the matching panel.</summary>
-    [ObservableProperty] public partial string SelectedToolPanelId { get; set; } = ToolTab.Output;
+    /// <summary>The document tabs and tool panels, in every window.</summary>
+    public DockLayoutViewModel Docking { get; }
+
+    /// <summary>The open workspace's remembered session (open files, layout). MainWindow saves it on exit.</summary>
+    public WorkspaceSession Session { get; }
+
+    /// <summary>Find in files (the top bar's search box sends its query here).</summary>
+    public SearchViewModel Search { get; }
+
+    /// <summary>The top bar's search box text.</summary>
+    [ObservableProperty] public partial string TopBarSearchText { get; set; } = "";
 
     // Areas the menus and KeyMap bind to.
     public WorkspaceViewModel Workspace { get; }
@@ -96,10 +99,6 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     // ---------------------------------------------------------------- window state
 
-    public bool IsEditorVisible => _documents.Active is not null;
-    public bool IsWelcomeVisible => _documents.Active is null;
-
-    [ObservableProperty] public partial bool IsExplorerVisible { get; set; } = true;
     [ObservableProperty] public partial string StatusText { get; set; } = "language servers: idle";
     [ObservableProperty] public partial string CaretText { get; set; } = "";
     [ObservableProperty] public partial string DiagnosticsText { get; set; } = "";
@@ -107,9 +106,6 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public void ShowStatusMessage(string message) => StatusText = message;
 
     public void Receive(StatusMessage message) => ShowStatusMessage(message.Text);
-
-    public void Receive(ShowToolTabMessage message)
-        => SelectedToolPanelId = message.PanelId;
 
     /// <summary>Caret moved or diagnostics changed in the editor.</summary>
     public void Receive(EditorStateChangedMessage message) => UpdateEditorStatus();
@@ -133,12 +129,27 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     [RelayCommand]
     private void ShowFindInFiles()
     {
-        SelectedToolPanelId = ToolTab.Search;
+        Docking.ShowTool(ToolTab.Search);
         _messenger.Send(new FocusFindInFilesMessage());
     }
 
+    /// <summary>The top bar's search box: search the workspace for its text, in the Search window.</summary>
     [RelayCommand]
-    private void ToggleExplorer() => IsExplorerVisible = !IsExplorerVisible;
+    private void SearchFromTopBar()
+    {
+        if (string.IsNullOrWhiteSpace(TopBarSearchText))
+        {
+            ShowFindInFiles();
+            return;
+        }
+
+        Search.SearchQuery = TopBarSearchText;
+        Docking.ShowTool(ToolTab.Search);
+        Search.SearchWorkspaceCommand.Execute(null);
+    }
+
+    [RelayCommand]
+    private void ToggleExplorer() => Docking.ToggleExplorer();
 
     /// <summary>Ask about unsaved changes, then close every document and the workspace.</summary>
     [RelayCommand]
@@ -159,6 +170,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
         if (Run.IsDebugging) Run.StopRunningProject();
 
+        Session.Close();   // remember what was open before closing it
         foreach (var document in _documents.Documents.ToArray())
             _documents.Close(document, force: true);
 

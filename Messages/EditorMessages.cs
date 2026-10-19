@@ -1,4 +1,3 @@
-using AvaloniaEdit.TextMate;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Debugging;
 using AXamlIDE.Services.Lsp;
@@ -26,4 +25,3 @@ public sealed record DebugSnapshotChangedMessage(StopSnapshot? Snapshot);
 
 /// <summary>Caret moved or diagnostics changed; whoever owns the status bar refreshes it.</summary>
 public sealed record EditorStateChangedMessage;
-public sealed record EditorThemeAppliedMessage(TextMate.Installation Installation);

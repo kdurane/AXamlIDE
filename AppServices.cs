@@ -45,26 +45,35 @@ public static class AppServices
 
         // ---- workspace, documents, languages
         services.AddSingleton<WorkspaceModel>();
+        services.AddSingleton<WorkspaceStateStore>();
         services.AddSingleton<DocumentManager>();
         services.AddSingleton<DocumentSaveService>();
         services.AddSingleton<DocumentCommands>();
         services.AddSingleton<IDocumentHost, DocumentHost>();
+        services.AddSingleton<NavigationService>();
+        services.AddSingleton<WorkspaceEditService>();
+        services.AddSingleton<DebugSnapshotTracker>();
         services.AddSingleton<EditorServices>();
         services.AddSingleton(_ => new LspManager(LspServers.Defaults));
         services.AddSingleton<XamlLanguageService>();
         services.AddSingleton<LanguageSessionService>();
 
-        // ---- view models and the window
+        // ---- view models
         services.AddSingleton<PreviewPaneViewModel>();
         services.AddSingleton<WorkspaceViewModel>();
         services.AddSingleton<ExplorerViewModel>();
-        services.AddSingleton<DocumentWellViewModel>();
         services.AddSingleton<ProblemsViewModel>();
         services.AddSingleton<OutlineViewModel>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<RunViewModel>();
-        services.AddSingleton<ToolPanels>();
+        services.AddSingleton<DockLayoutViewModel>();
+        services.AddSingleton<WorkspaceSession>();
         services.AddSingleton<MainWindowViewModel>();
+
+        // ---- views: the tool panels, the dock tabs' view cache (see App.axaml.cs), the window
+        services.AddSingleton<ToolPanels>();
+        services.AddSingleton<DockViewCache>();
+        services.AddSingleton<ThemeResources>();
         services.AddSingleton<MainWindow>();
 
         return services.BuildServiceProvider(new ServiceProviderOptions

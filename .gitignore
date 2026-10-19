@@ -25,3 +25,6 @@ artifacts/
 
 # Local refactor tracking notes
 REFACTOR_PLAN.md
+
+# AXamlIDE per-workspace state (open files, layout)
+.axamlide/

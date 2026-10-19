@@ -33,9 +33,14 @@ namespace AXamlIDE.Views;
 /// The editor, as a pane. Owns the TextEditor, its margins and renderers, TextMate, and every
 /// editor feature controller (completion, hover, folding, navigation...).
 ///
-/// Inputs:   Initialize(services) once, SetDocument() on every tab change, and messages
-///           (navigation, debug snapshot, diagnostics changed).
-/// Outputs:  messages only (StatusMessage, EditorStateChangedMessage, EditorThemeAppliedMessage).
+/// There is one per open document (each tab owns its editor, so a tab can be dragged to another
+/// window with its editor state). Several can be visible at once, in different windows, so:
+///   - editor actions (EditorActionMessage) only run in the pane showing DocumentManager.Active;
+///   - navigation is asked of the document (OpenDocument.Reveal), and this pane applies it.
+///
+/// Inputs:   Initialize(services) and SetDocument(doc) once, document reveal requests, and messages
+///           (editor actions, diagnostics changed).
+/// Outputs:  messages only (StatusMessage, EditorStateChangedMessage).
 /// It holds no reference to MainWindow or any view model.
 /// </summary>
 public partial class EditorPaneView : UserControl,
@@ -56,14 +61,18 @@ public partial class EditorPaneView : UserControl,
     public EditorPaneView()
     {
         InitializeComponent();
+
+        // Dock takes a background tab's view off screen and puts it back when shown. Keep its scroll
+        // position across that, and apply any reveal asked for while it was off screen.
+        DetachedFromVisualTree += (_, _) => SaveViewState();
+        AttachedToVisualTree += (_, _) => Dispatcher.UIThread.Post(RestoreViewState, DispatcherPriority.Loaded);
     }
 
     // Feature controllers. Private: the outside world reaches the editor through
     // Initialize / SetDocument / Shutdown and messages (EditorActionMessage, navigation...).
     private TextMate.Installation _textMate = null!;
-    private EditorNavigator _navigator = null!;
+    private DebugValuesController _debugValues = null!;
     private NavigationCommands _navigation = null!;
-    private WorkspaceEditService _workspaceEdits = null!;
     private CodeActionController _codeActions = null!;
     private SignatureHelpController _signatureHelp = null!;
     private CompletionController _completion = null!;
@@ -71,11 +80,11 @@ public partial class EditorPaneView : UserControl,
     // ------------------------------------------------------------- initialise
 
     /// <summary>
-    /// Call once, from the hosting DocumentWellView. It applies the current theme, so register for
-    /// EditorThemeAppliedMessage (and EditorStateChangedMessage) BEFORE calling this.
+    /// Call once, from whoever creates the pane (DocumentView).
     /// </summary>
-    public void Initialize(RegistryOptions registryOptions, EditorServices services)
+    public void Initialize(EditorServices services)
     {
+        var registryOptions = services.RegistryOptions;
         _settings = services.Settings;
         _services = services;
         _registryOptions = registryOptions;
@@ -91,6 +100,23 @@ public partial class EditorPaneView : UserControl,
             _ctx.Messenger.Send(new EditorStateChangedMessage());
         };
 
+        // Typing or clicking in an editor makes its tab the selected one, in whichever window it is.
+        Editor.TextArea.GotFocus += (_, _) =>
+        {
+            if (_ctx.Active is { } focused)
+                _services.Documents.Activate(focused);
+        };
+
+        // Keep the document's scroll position current (it is saved with the workspace session).
+        Editor.TextArea.TextView.ScrollOffsetChanged += (_, _) =>
+        {
+            if (_ctx.Active is { } scrolled && TopLevel.GetTopLevel(this) is not null)
+            {
+                scrolled.VerticalOffset = Editor.VerticalOffset;
+                scrolled.HorizontalOffset = Editor.HorizontalOffset;
+            }
+        };
+
         Editor.HorizontalScrollBarVisibility = ScrollBarVisibility.Visible;
 
         Editor.Options.EnableTextDragDrop = true;
@@ -102,20 +128,17 @@ public partial class EditorPaneView : UserControl,
         _breakpointMargin = new BreakpointMargin();
         Editor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
 
-        _workspaceEdits = new WorkspaceEditService(_ctx);
-        services.Languages.WorkspaceEditRequested = _workspaceEdits.ApplyServerEditAsync;   // server-pushed edits
-        _codeActions = new CodeActionController(_ctx, _workspaceEdits); // inserts its margin at index 1
+        _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
         _hover = new HoverController(_ctx, _codeActions);
         _signatureHelp = new SignatureHelpController(_ctx);
         _completion = new CompletionController(_ctx, _hover);
         _typing = new TypingController(_ctx, _hover, _completion, _signatureHelp);
-        _navigator = new EditorNavigator(_ctx);                 // registers for navigation messages
-        _navigation = new NavigationCommands(_ctx, services.Dialogs, _workspaceEdits, _navigator);
+        _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots);
+        _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
 
         _textMate = Editor.InstallTextMate(registryOptions);
         _textMateController = new TextMateController(_ctx, _textMate, registryOptions, _breakpointMargin);
-        _textMateController.ThemeApplied += e => _ctx.Messenger.Send(new EditorThemeAppliedMessage(e));
 
         // Settings are observed here, so nobody has to call ApplyEditorSettings from outside.
         _settings.PropertyChanged += OnSettingsChanged;
@@ -128,7 +151,9 @@ public partial class EditorPaneView : UserControl,
     {
         _settings.PropertyChanged -= OnSettingsChanged;
         _ctx.Messenger.UnregisterAll(this);
-        _navigator.Dispose();
+        if (_ctx.Active is { } document)
+            document.RevealRequested -= OnRevealRequested;
+        _debugValues.Dispose();
         _breakpointMargin?.SetDocument(null);
         _folding.Dispose();
         _textMate.Dispose();
@@ -137,8 +162,8 @@ public partial class EditorPaneView : UserControl,
     // ------------------------------------------------------------ the one direct input
 
     /// <summary>
-    /// Call on every tab change (null = no tab open). Stays a direct call, not a message,
-    /// because it has to run in a fixed order relative to the rest of the tab-change handling.
+    /// The document this pane shows (null = none). Each pane is made for one document, but swapping
+    /// is supported: the view state of the document being left is saved and restored on return.
     /// </summary>
     public void SetDocument(OpenDocument? doc)
     {
@@ -149,6 +174,7 @@ public partial class EditorPaneView : UserControl,
             prev.CaretOffset = Editor.CaretOffset;
             prev.VerticalOffset = Editor.VerticalOffset;
             prev.HorizontalOffset = Editor.HorizontalOffset;
+            prev.RevealRequested -= OnRevealRequested;
         }
 
         // FoldingManager installs document-bound generators; detach them while
@@ -173,14 +199,71 @@ public partial class EditorPaneView : UserControl,
         _diagnosticRenderer.Segments = doc.Diagnostics;
         _textMateController.SetGrammarForFile(doc.Path);
         Editor.CaretOffset = Math.Min(doc.CaretOffset, doc.Document.TextLength);
+        doc.RevealRequested += OnRevealRequested;
 
-        // Scrolling needs a layout pass first.
+        // Scrolling needs a layout pass first. A pending reveal wins over the saved scroll position.
         Dispatcher.UIThread.Post(() =>
         {
+            if (!ReferenceEquals(_ctx.Active, doc))
+                return;
+            if (doc.PendingReveal is not null)
+            {
+                ApplyPendingReveal();
+                return;
+            }
+
             Editor.ScrollToVerticalOffset(doc.VerticalOffset);
             Editor.ScrollToHorizontalOffset(doc.HorizontalOffset);
         }, DispatcherPriority.Loaded);
 
+        if (ReferenceEquals(doc, _services.Documents.Active))
+            Editor.Focus();
+    }
+
+    // ------------------------------------------------------ view state
+
+    private void SaveViewState()
+    {
+        if (_ctx?.Active is not { } document)
+            return;
+        document.CaretOffset = Editor.CaretOffset;
+        document.VerticalOffset = Editor.VerticalOffset;
+        document.HorizontalOffset = Editor.HorizontalOffset;
+    }
+
+    private void RestoreViewState()
+    {
+        if (_ctx?.Active is not { } document || TopLevel.GetTopLevel(this) is null)
+            return;
+        if (document.PendingReveal is not null)
+        {
+            ApplyPendingReveal();
+            return;
+        }
+
+        Editor.ScrollToVerticalOffset(document.VerticalOffset);
+        Editor.ScrollToHorizontalOffset(document.HorizontalOffset);
+    }
+
+    // ------------------------------------------------------ reveal (navigation)
+
+    private void OnRevealRequested()
+        => Dispatcher.UIThread.Post(ApplyPendingReveal, DispatcherPriority.Loaded);
+
+    /// <summary>Select, scroll to and focus the range the document asked to reveal (once on screen).</summary>
+    private void ApplyPendingReveal()
+    {
+        if (_ctx.Active is not { } document || TopLevel.GetTopLevel(this) is not { } topLevel)
+            return;   // not on screen: stays pending until this pane is shown
+        if (document.TakePendingReveal() is not { } reveal)
+            return;
+
+        Editor.Select(reveal.Offset, reveal.Length);
+        var caret = Editor.TextArea.Caret;
+        Editor.ScrollTo(caret.Line, caret.Column);
+
+        if (topLevel is Window { IsActive: false } window)
+            window.Activate();   // the tab may be in another (floating) window
         Editor.Focus();
     }
 
@@ -218,6 +301,9 @@ public partial class EditorPaneView : UserControl,
     /// <summary>An editor action from a menu or key binding (see EditorCommands).</summary>
     public void Receive(EditorActionMessage message)
     {
+        if (!ReferenceEquals(_ctx.Active, _services.Documents.Active))
+            return;   // another pane shows the selected tab
+
         switch (message.Action)
         {
             case EditorAction.GoToDefinition: _ = _navigation.GoToDefinitionAsync(); break;

@@ -1,4 +1,6 @@
 <Window
+    Background="{DynamicResource AppWindowBackgroundBrush}"
+    Foreground="{DynamicResource AppForegroundBrush}"
     Title="AXamlIDE"
     d:DesignHeight="800"
     d:DesignWidth="1200"
@@ -6,15 +8,13 @@
     x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:shell="using:AXamlIDE.Shell"
-    xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid RowDefinitions="auto,*,Auto">
 
-        <Grid ColumnDefinitions="*,Auto" Grid.Row="0">
-            <Border Background="#262626" Grid.ColumnSpan="2" />
+        <Grid ColumnDefinitions="*,Auto,Auto" Grid.Row="0">
+            <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="3" />
             <Menu MinHeight="0" Padding="0">
                 <MenuItem Header="_File">
                     <MenuItem Command="{Binding Workspace.OpenFolderCommand}" Header="_Open Folder..." />
@@ -111,11 +111,26 @@
                         InputGesture="Shift+F8" />
                 </MenuItem>
             </Menu>
+            <!--  Search the workspace; results open in the Search window.  -->
+            <TextBox
+                FontSize="11"
+                Grid.Column="1"
+                Margin="4,3"
+                MinHeight="0"
+                Padding="8,2"
+                Text="{Binding TopBarSearchText}"
+                VerticalContentAlignment="Center"
+                PlaceholderText="Search in files (Ctrl+Shift+F)"
+                Width="280">
+                <TextBox.KeyBindings>
+                    <KeyBinding Command="{Binding SearchFromTopBarCommand}" Gesture="Enter" />
+                </TextBox.KeyBindings>
+            </TextBox>
             <Button
                 AutomationProperties.Name="Settings"
-                Background="#262626"
+                Background="{DynamicResource AppTitleBarBackgroundBrush}"
                 Command="{Binding OpenSettingsCommand}"
-                Grid.Column="1"
+                Grid.Column="2"
                 HorizontalAlignment="Stretch"
                 Margin="0"
                 Padding="4"
@@ -129,13 +144,14 @@
             </Button>
         </Grid>
 
+        <!--  Activity bar beside the dock area (mirrored with the explorer setting).  -->
         <Grid
-            ColumnDefinitions="30,260,1,*"
+            ColumnDefinitions="30,*"
             Grid.Row="1"
             Name="ContentGrid">
 
             <Border
-                Background="#202020"
+                Background="{DynamicResource AppActivityBarBackgroundBrush}"
                 Grid.Column="0"
                 MinWidth="0"
                 Name="ActivityBar"
@@ -177,93 +193,22 @@
                 </StackPanel>
             </Border>
 
-            <views:ExplorerView
-                DataContext="{Binding Explorer}"
+            <!--  Document tabs and tool panels. Any tab can be dragged to another strip or out into its own window.  -->
+            <DockControl
                 Grid.Column="1"
-                Name="ExplorerPane" />
-
-            <GridSplitter
-                Grid.Column="2"
-                Name="Splitter"
-                ResizeDirection="Columns" />
-
-            <!--  Documents on top (or the welcome screen), tool panels below.  -->
-            <Grid
-                Grid.Column="3"
-                Name="EditorHost"
-                RowDefinitions="*,4,190">
-                <Panel Grid.Row="0" IsVisible="{Binding IsEditorVisible}">
-                    <views:DocumentWellView DataContext="{Binding DocumentWell}" Name="DocumentWell" />
-                </Panel>
-                <Border
-                    BorderBrush="{DynamicResource ThemeForegroundBrush}"
-                    BorderThickness="1"
-                    CornerRadius="8"
-                    HorizontalAlignment="Center"
-                    IsVisible="{Binding IsWelcomeVisible}"
-                    MaxWidth="560"
-                    Padding="32"
-                    VerticalAlignment="Center">
-                    <StackPanel HorizontalAlignment="Center" Spacing="12">
-                        <TextBlock
-                            FontSize="24"
-                            FontWeight="SemiBold"
-                            HorizontalAlignment="Center"
-                            Text="Welcome to AXamlIDE" />
-                        <TextBlock
-                            Foreground="{DynamicResource ThemeForegroundBrush}"
-                            HorizontalAlignment="Center"
-                            Text="Open a project folder or solution to get started, then choose a file in Explorer."
-                            TextWrapping="Wrap" />
-                        <StackPanel
-                            HorizontalAlignment="Center"
-                            Orientation="Horizontal"
-                            Spacing="8">
-                            <Button
-                                Command="{Binding Workspace.OpenFolderCommand}"
-                                Content="Open Folder..."
-                                HorizontalContentAlignment="Center" />
-                            <Button
-                                Command="{Binding Workspace.OpenSolutionCommand}"
-                                Content="Open Solution..."
-                                HorizontalContentAlignment="Center" />
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <GridSplitter
-                    Grid.Row="1"
-                    Height="4"
-                    HorizontalAlignment="Stretch"
-                    ResizeDirection="Rows" />
-
-                <!--  Filled from Shell/ToolPanels.cs in code-behind; each tab shows that panel's own view.  -->
-                <TabControl
-                    FontSize="11"
-                    Grid.Row="2"
-                    Name="ToolTabs">
-                    <TabControl.ItemTemplate>
-                        <DataTemplate x:DataType="shell:ToolPanel">
-                            <TextBlock FontSize="11" Text="{Binding Title}" />
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
-                    <TabControl.ContentTemplate>
-                        <DataTemplate x:DataType="shell:ToolPanel">
-                            <ContentControl Content="{Binding View}" />
-                        </DataTemplate>
-                    </TabControl.ContentTemplate>
-                </TabControl>
-            </Grid>
+                Layout="{Binding Docking.Root}"
+                Name="DockArea" />
         </Grid>
 
         <Border
+            Background="{DynamicResource AppStatusBarBackgroundBrush}"
             Grid.Row="2"
             Padding="8,2"
+            TextElement.Foreground="{DynamicResource AppStatusBarForegroundBrush}"
             x:Name="StatusBar">
             <Grid ColumnDefinitions="*,Auto,Auto">
                 <TextBlock
                     Grid.Column="0"
-                    Name="LspStatus"
                     Text="{Binding StatusText}" />
                 <TextBlock
                     Grid.Column="1"

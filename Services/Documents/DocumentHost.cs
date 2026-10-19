@@ -14,6 +14,8 @@ public sealed class DocumentHost(DocumentManager documents, WorkspaceModel works
 {
     private readonly WorkspaceSearchService _search = new();
 
+    public OpenDocument? Active => documents.Active;
+
     public OpenDocument Open(string path) => documents.Open(path);
 
     public OpenDocument OpenReadOnly(string path, string text, string languageId)

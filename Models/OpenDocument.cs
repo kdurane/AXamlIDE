@@ -49,6 +49,33 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 
     public bool IsDirty => !Document.UndoStack.IsOriginalFile;
 
+    /// <summary>
+    /// A "show the user this range" request (from navigation, search, debugging...) that the editor
+    /// showing this document hasn't applied yet. Navigation never needs to know which editor that is,
+    /// or whether one exists yet: a newly created editor applies the pending request when it opens.
+    /// </summary>
+    public (int Offset, int Length)? PendingReveal { get; private set; }
+
+    /// <summary>Raised by <see cref="Reveal"/>; the editor showing this document applies it.</summary>
+    public event Action? RevealRequested;
+
+    /// <summary>Ask the editor showing this document to select the range, scroll to it and take focus.</summary>
+    public void Reveal(int offset, int length = 0)
+    {
+        offset = Math.Clamp(offset, 0, Document.TextLength);
+        PendingReveal = (offset, Math.Clamp(length, 0, Document.TextLength - offset));
+        CaretOffset = offset;
+        RevealRequested?.Invoke();
+    }
+
+    /// <summary>Returns the pending reveal request (if any) and clears it.</summary>
+    public (int Offset, int Length)? TakePendingReveal()
+    {
+        var pending = PendingReveal;
+        PendingReveal = null;
+        return pending;
+    }
+
     /// <summary>The whole text (<see cref="ITextBuffer"/>, used by replace-in-files).</summary>
     string ITextBuffer.Text
     {

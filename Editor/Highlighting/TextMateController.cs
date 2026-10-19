@@ -10,9 +10,8 @@ using TextMateSharp.Grammars;
 namespace AXamlIDE.Editor.Highlighting;
 
 /// <summary>
-/// Grammar selection and the editor half of theme colouring. The window-level colours
-/// (status bar, window background) are applied by MainWindow, which listens for
-/// EditorThemeAppliedMessage and reuses <see cref="ApplyBrushAction"/>.
+/// Grammar selection and the editor's own theme colours (background, selection, line numbers...).
+/// The rest of the UI is coloured from the same theme by Views/ThemeResources.
 ///
 /// Must be constructed before the first SetTheme call, or the first theme is missed.
 /// </summary>
@@ -37,9 +36,6 @@ public sealed class TextMateController
         _textMate.AppliedTheme += OnAppliedTheme;
     }
 
-    /// <summary>Raised after the editor colours are applied. MainWindow colours the status bar and window.</summary>
-    public event Action<TextMate.Installation>? ThemeApplied;
-
     public void SetGrammarForFile(string path)
     {
         var language = string.IsNullOrEmpty(path)
@@ -59,7 +55,6 @@ public sealed class TextMateController
     private void OnAppliedTheme(object? sender, TextMate.Installation e)
     {
         ApplyThemeColorsToEditor(e);
-        ThemeApplied?.Invoke(e);
     }
 
     private void ApplyThemeColorsToEditor(TextMate.Installation e)

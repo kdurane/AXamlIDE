@@ -5,11 +5,14 @@ using AXamlIDE.Models;
 namespace AXamlIDE.Services.Documents;
 
 /// <summary>
-/// Opens files and brings their tab to the front. Implemented by the main window so the
-/// editor can open documents without knowing about tabs or view models.
+/// Opens files and brings their tab to the front, so the editor can open documents without
+/// knowing about tabs, docks or windows. Implemented by <see cref="DocumentHost"/>.
 /// </summary>
 public interface IDocumentHost
 {
+    /// <summary>The selected tab, in whichever window it is (null when no tab is open).</summary>
+    OpenDocument? Active { get; }
+
     OpenDocument Open(string path);
     OpenDocument OpenReadOnly(string path, string text, string languageId);
     void Activate(OpenDocument document);

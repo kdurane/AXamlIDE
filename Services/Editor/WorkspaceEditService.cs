@@ -4,22 +4,39 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Threading;
+using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
+using CommunityToolkit.Mvvm.Messaging;
 
-namespace AXamlIDE.Editor.Navigation;
+namespace AXamlIDE.Services.Editor;
 
 /// <summary>
-/// Applies LSP workspace edits (rename, code actions, server-initiated edits).
+/// Applies LSP workspace edits (rename, code actions, server-initiated edits) to the documents
+/// themselves, so it works the same whichever editor (or none) is showing them.
 /// </summary>
-public sealed class WorkspaceEditService(EditorContext ctx)
+public sealed class WorkspaceEditService
 {
+    private readonly IDocumentHost _documents;
+    private readonly IMessenger _messenger;
+
+    public WorkspaceEditService(IDocumentHost documents, LanguageSessionService languages, IMessenger messenger)
+    {
+        _documents = documents;
+        _messenger = messenger;
+
+        // A delegate rather than a message because the server needs the bool result back.
+        languages.WorkspaceEditRequested = ApplyServerEditAsync;
+    }
+
     public void Apply(Dictionary<string, List<(LspRange Range, string NewText)>> changes)
     {
         var prepared = new List<(OpenDocument Document, List<(int Start, int End, string Text)> Edits)>();
         foreach (var (path, textEdits) in changes)
         {
-            var document = ctx.Documents.Open(path);
+            var document = _documents.Open(path);
             if (document.IsReadOnly)
                 throw new InvalidOperationException($"Cannot apply an edit to read-only document '{path}'.");
             var offsets = textEdits.Select(edit =>
@@ -42,24 +59,13 @@ public sealed class WorkspaceEditService(EditorContext ctx)
             foreach (var edit in edits)
                 document.Document.Replace(edit.Start, edit.End - edit.Start, edit.Text);
 
-        if (prepared.FirstOrDefault(item => ReferenceEquals(item.Document, ctx.Active)) is not
+        // Move the caret of the selected tab to its first edit.
+        if (prepared.FirstOrDefault(item => ReferenceEquals(item.Document, _documents.Active)) is
             { Document: { } activeDocument, Edits.Count: > 0 } activeEdit)
-            return;
-
-        var editor = ctx.Editor;
-        editor.CaretOffset = Math.Clamp(
-            activeEdit.Edits.Min(edit => edit.Start),
-            0,
-            activeDocument.Document.TextLength);
-        editor.TextArea.Caret.BringCaretToView();
-        editor.Focus();
+            activeDocument.Reveal(activeEdit.Edits.Min(edit => edit.Start));
     }
 
-    /// <summary>
-    /// Applies an edit the language server pushed to us (workspace/applyEdit). Wired to
-    /// LanguageSessionService.WorkspaceEditRequested by EditorPaneView; a delegate rather than a message because
-    /// the server needs the bool result back.
-    /// </summary>
+    /// <summary>Applies an edit the language server pushed to us (workspace/applyEdit).</summary>
     public Task<bool> ApplyServerEditAsync(JsonElement workspaceEdit)
         => Dispatcher.UIThread.InvokeAsync(() =>
         {
@@ -69,13 +75,15 @@ public sealed class WorkspaceEditService(EditorContext ctx)
                 if (changes.Count == 0)
                     return false;
                 Apply(changes);
-                ctx.Status("Applied language-server edits. Review and save modified documents.");
+                Status("Applied language-server edits. Review and save modified documents.");
                 return true;
             }
             catch (Exception ex)
             {
-                ctx.Status($"Couldn't apply language-server edits: {ex.Message}");
+                Status($"Couldn't apply language-server edits: {ex.Message}");
                 return false;
             }
         }).GetTask();
+
+    private void Status(string text) => _messenger.Send(new StatusMessage(text));
 }

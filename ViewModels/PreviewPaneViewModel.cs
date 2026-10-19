@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
@@ -18,9 +21,15 @@ namespace AXamlIDE.ViewModels;
 /// Everything about the AXAML preview that isn't pixels: the designer-host process, the
 /// target, the 300ms debounce, the theme wrapper, and the status message.
 ///
-/// It is given a document (SetDocument) and a way to resolve the preview target, and it
-/// raises FrameChanged when there is a new bitmap. Zoom, fit-to-viewport and image sizing
-/// need the control's bounds and render scaling, so those stay in PreviewPaneView.
+/// It follows the selected tab and raises FrameChanged when there is a new frame. Zoom, fit-to-viewport
+/// and image sizing need the control's bounds and render scaling, so those stay in PreviewPaneView;
+/// the zoom chosen for each file is remembered here (<see cref="ZoomFor"/>).
+///
+/// The designer host is one process per project (it loads that project's build output). It is kept
+/// running while you switch tabs, including to non-AXAML files, and only restarted for another project.
+/// Updates run one at a time and only the newest one counts, so quick tab switches can't leave it
+/// half-started or showing the wrong file. Each file's last frame is kept, so returning to a tab shows
+/// it straight away while the fresh one renders.
 /// </summary>
 public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 {
@@ -32,10 +41,17 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _previewUpdateTimer =
         new() { Interval = TimeSpan.FromMilliseconds(300) };
 
+    private readonly SemaphoreSlim _updateGate = new(1, 1);
+    private readonly Dictionary<OpenDocument, WriteableBitmap> _lastFrames = [];
+    private readonly Dictionary<OpenDocument, string> _zooms = [];
+
     private XamlPreviewTarget? _previewTarget;
     private OpenDocument? _document;
     private TextDocument? _hookedDocument;
+    private WriteableBitmap? _currentFrame;
     private bool _hasFrame;
+    private bool _acceptFrames;     // false between a tab switch and the new file reaching the host
+    private int _requestVersion;
 
     private string _message = IdleMessage;
     private bool _isMessageVisible = true;
@@ -45,6 +61,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     {
         _xaml = xaml;
         documents.ActiveChanged += SetDocument;   // follows the front tab
+        documents.Closing += Forget;
 
         _previewUpdateTimer.Tick += OnPreviewUpdateTimer;
         _previewProcess.FrameReceived += OnPreviewFrameReceived;
@@ -53,6 +70,26 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 
     /// <summary>Raised on the UI thread. Null means "clear the image".</summary>
     public event Action<WriteableBitmap?>? FrameChanged;
+
+    /// <summary>The frame shown now (a view connecting later shows this first). Null when there is none.</summary>
+    public WriteableBitmap? CurrentFrame { get; private set; }
+
+    private void RaiseFrameChanged(WriteableBitmap? frame)
+    {
+        CurrentFrame = frame;
+        FrameChanged?.Invoke(frame);
+    }
+
+    /// <summary>Raised when the previewed file changes (the view restores that file's zoom).</summary>
+    public event Action? DocumentChanged;
+
+    /// <summary>The AXAML file being previewed (null when the selected tab isn't one).</summary>
+    public OpenDocument? Document => IsPreviewable(_document) ? _document : null;
+
+    /// <summary>The zoom chosen for a file ("100%", "137%", "Fit All"...), or null if none was chosen yet.</summary>
+    public string? ZoomFor(OpenDocument document) => _zooms.GetValueOrDefault(document);
+
+    public void RememberZoom(OpenDocument document, string zoom) => _zooms[document] = zoom;
 
     public string Message
     {
@@ -93,23 +130,50 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     /// </summary>
     private void SetDocument(OpenDocument? document)
     {
+        if (ReferenceEquals(document, _document))
+            return;
+
         if (_hookedDocument is not null)
         {
             _hookedDocument.Changed -= OnDocumentChanged;
             _hookedDocument = null;
         }
 
+        // Keep a copy of the frame we're leaving, to show when the user comes back.
+        if (_document is { } previous && _hasFrame && _currentFrame is { } frame)
+            _lastFrames[previous] = Copy(frame);
+
         _document = document;
+        _acceptFrames = false;
+        _previewUpdateTimer.Stop();
+        DocumentChanged?.Invoke();
 
         if (!IsPreviewable(document))
         {
-            HidePreview();
+            ShowIdle();   // the designer host keeps running for the next AXAML tab
             return;
+        }
+
+        if (_lastFrames.TryGetValue(document!, out var lastFrame))
+        {
+            _hasFrame = true;
+            RaiseFrameChanged(lastFrame);
+            IsMessageVisible = false;
+        }
+        else
+        {
+            ClearFrame();
         }
 
         _hookedDocument = document!.Document;
         _hookedDocument.Changed += OnDocumentChanged;
         _ = UpdatePreviewAsync(document);
+    }
+
+    private void Forget(OpenDocument document)
+    {
+        _lastFrames.Remove(document);
+        _zooms.Remove(document);
     }
 
     public async Task SetScalingAsync(double scaling)
@@ -136,6 +200,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         }
 
         _previewProcess.Dispose();
+        _updateGate.Dispose();
     }
 
     // ------------------------------------------------------------ the logic
@@ -156,15 +221,12 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     private void ClearFrame()
     {
         _hasFrame = false;
-        FrameChanged?.Invoke(null);
+        RaiseFrameChanged(null);
     }
 
-    private void HidePreview()
+    private void ShowIdle()
     {
-        _previewUpdateTimer.Stop();
         ClearFrame();
-        _previewProcess.Stop();
-        _previewTarget = null;
         Message = IdleMessage;
         IsMessageVisible = true;
     }
@@ -205,33 +267,40 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         return document.ToString(SaveOptions.DisableFormatting);
     }
 
+    /// <summary>
+    /// Send the document to the designer host (starting it first if needed). One at a time: a request
+    /// that is no longer the newest by the time it gets its turn (or after any await) gives up.
+    /// </summary>
     private async Task UpdatePreviewAsync(OpenDocument document)
     {
-        if (!ReferenceEquals(document, _document) || !IsPreviewable(document))
-            return;
+        var version = ++_requestVersion;
+        bool IsStale() => version != _requestVersion || !ReferenceEquals(document, _document);
 
-        Message = "Starting Avalonia preview...";
-        IsMessageVisible = !_hasFrame;
-
+        await _updateGate.WaitAsync();
         try
         {
-            var target = await _xaml.GetPreviewTargetAsync(document.Path);
-            if (!ReferenceEquals(document, _document))
+            if (IsStale() || !IsPreviewable(document))
                 return;
 
-            if (!_previewProcess.IsRunning || target != _previewTarget)
+            Message = "Starting Avalonia preview...";
+            IsMessageVisible = !_hasFrame;
+
+            var target = await _xaml.GetPreviewTargetAsync(document.Path);
+            if (IsStale())
+                return;
+
+            if (!_previewProcess.IsReady || target != _previewTarget)
             {
-                ClearFrame();
                 _previewProcess.Stop();
                 _previewTarget = target;
                 Message = "Connecting to the Avalonia designer host...";
-                IsMessageVisible = true;
+                IsMessageVisible = !_hasFrame;
                 await _previewProcess.StartAsync(target);
+                if (IsStale())
+                    return;
             }
 
-            if (!ReferenceEquals(document, _document))
-                return;
-
+            _acceptFrames = true;
             await _previewProcess.UpdateXamlAsync(
                 target.XamlAssemblyPath,
                 document.Path,
@@ -240,7 +309,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             Debug.WriteLine($"[preview] {ex}");
-            if (ReferenceEquals(document, _document))
+            if (!IsStale())
             {
                 ClearFrame();
                 _previewProcess.Stop();
@@ -249,14 +318,39 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
                 IsMessageVisible = true;
             }
         }
+        finally
+        {
+            _updateGate.Release();
+        }
+    }
+
+    /// <summary>A copy of a frame (the designer host reuses one bitmap for every frame).</summary>
+    private static WriteableBitmap Copy(WriteableBitmap source)
+    {
+        var copy = new WriteableBitmap(source.PixelSize, source.Dpi, source.Format, source.AlphaFormat);
+        using var from = source.Lock();
+        using var to = copy.Lock();
+        var rowBytes = Math.Min(from.RowBytes, to.RowBytes);
+        var row = new byte[rowBytes];
+        for (var y = 0; y < source.PixelSize.Height; y++)
+        {
+            Marshal.Copy(IntPtr.Add(from.Address, y * from.RowBytes), row, 0, rowBytes);
+            Marshal.Copy(row, 0, IntPtr.Add(to.Address, y * to.RowBytes), rowBytes);
+        }
+
+        return copy;
     }
 
     private void OnPreviewFrameReceived(WriteableBitmap? bitmap)
     {
         Dispatcher.UIThread.Post(() =>
         {
+            if (!_acceptFrames)
+                return;   // a late frame of the file we just left
+
+            _currentFrame = bitmap;
             _hasFrame = bitmap is not null;
-            FrameChanged?.Invoke(bitmap);
+            RaiseFrameChanged(bitmap);
 
             IsMessageVisible = bitmap is null;
             if (bitmap is null && string.IsNullOrEmpty(Message))

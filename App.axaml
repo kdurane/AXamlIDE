@@ -8,6 +8,7 @@
 
     <Application.Styles>
         <FluentTheme />
+        <DockFluentTheme DensityStyle="Compact" />
         <Style Selector="Window">
             <Setter Property="FontSize" Value="12" />
         </Style>
@@ -18,8 +19,27 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://Dock.Avalonia.Themes.Fluent/Presets/Ide/VsCodeDark.axaml" />
                 <ResourceInclude Source="/Styles/IconResources.axaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!--  Our UI colours. Views/ThemeResources.cs overwrites these from the theme chosen in Settings.  -->
+            <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#1E1E1E" />
+            <SolidColorBrush x:Key="AppForegroundBrush" Color="#D4D4D4" />
+            <SolidColorBrush x:Key="ThemeForegroundBrush" Color="#D4D4D4" />
+            <SolidColorBrush x:Key="ThemeBackgroundBrush" Color="#252526" />
+            <SolidColorBrush x:Key="AppTitleBarBackgroundBrush" Color="#262626" />
+            <SolidColorBrush x:Key="AppTitleBarForegroundBrush" Color="#D4D4D4" />
+            <SolidColorBrush x:Key="AppActivityBarBackgroundBrush" Color="#202020" />
+            <SolidColorBrush x:Key="AppActivityBarForegroundBrush" Color="#D4D4D4" />
+            <SolidColorBrush x:Key="AppStatusBarBackgroundBrush" Color="#007ACC" />
+            <SolidColorBrush x:Key="AppStatusBarForegroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppDocumentBarBackgroundBrush" Color="#252526" />
+
+            <!--  Dock tab sizing: a little roomier than Dock's compact density.  -->
+            <Thickness x:Key="DockDocumentTabItemPadding">10,3,6,3</Thickness>
+            <Thickness x:Key="DockToolTabItemPadding">10,3,10,3</Thickness>
+            <Thickness x:Key="DockToolTabItemSelectedPadding">10,3,10,3</Thickness>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

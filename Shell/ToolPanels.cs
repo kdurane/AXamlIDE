@@ -1,5 +1,6 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using Avalonia.Controls;
 using AXamlIDE.Messages;
 using AXamlIDE.ViewModels;
 using AXamlIDE.Views;
@@ -7,23 +8,39 @@ using AXamlIDE.Views;
 namespace AXamlIDE.Shell;
 
 /// <summary>
-/// The tool panels shown in the bottom tab strip, in order. To add a panel: write a self-contained
-/// view bound to its own view model, add a <see cref="ToolTab"/> id, and add a line here.
+/// The view for each tool panel (by <see cref="ToolTab"/> id). A view is created on first use and
+/// then kept, so it keeps its state when its tab is moved between tab strips or windows.
+/// Each view gets its own view model as DataContext and must not depend on the window it is in.
+/// To add a panel: add a <see cref="ToolTab"/> id, place it in ViewModels/DockFactory.cs, add a line here.
 /// </summary>
 public sealed class ToolPanels
 {
-    public ToolPanels(ProblemsViewModel problems, RunViewModel run, SearchViewModel search)
+    private readonly Dictionary<string, Func<Control>> _create;
+    private readonly Dictionary<string, Control> _views = [];
+
+    public ToolPanels(
+        ExplorerViewModel explorer,
+        ProblemsViewModel problems,
+        RunViewModel run,
+        SearchViewModel search)
     {
-        All =
-        [
-            new ToolPanel(ToolTab.Problems, "Problems", () => new ProblemsView { DataContext = problems }),
-            new ToolPanel(ToolTab.Output, "Output", () => new OutputView { DataContext = run }),
-            new ToolPanel(ToolTab.Console, "Console", () => new ConsoleView { DataContext = run }),
-            new ToolPanel(ToolTab.Search, "Search", () => new SearchView { DataContext = search }),
-        ];
+        _create = new()
+        {
+            [ToolTab.Explorer] = () => new ExplorerView { DataContext = explorer },
+            [ToolTab.Problems] = () => new ProblemsView { DataContext = problems },
+            [ToolTab.Output] = () => new OutputView { DataContext = run },
+            [ToolTab.Console] = () => new ConsoleView { DataContext = run },
+            [ToolTab.Search] = () => new SearchView { DataContext = search },
+        };
     }
 
-    public IReadOnlyList<ToolPanel> All { get; }
-
-    public ToolPanel? Find(string id) => All.FirstOrDefault(panel => panel.Id == id);
+    /// <summary>The panel's view, or null for an unknown id.</summary>
+    public Control? ViewFor(string id)
+    {
+        if (_views.TryGetValue(id, out var view))
+            return view;
+        if (!_create.TryGetValue(id, out var create))
+            return null;
+        return _views[id] = create();
+    }
 }

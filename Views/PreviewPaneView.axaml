@@ -6,15 +6,10 @@
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!--
-        Moved verbatim from MainWindow.axaml (the Grid named "PreviewPane").
-        Only changes: the message TextBlock/Border now bind to the view model instead of
-        being poked from code-behind. If your MainWindow.axaml maps the "controls" prefix
-        to a different namespace than AXamlIDE.Controls, copy that mapping here.
-    -->
+    <!--  Toolbar (zoom, theme) over the frame from the designer host; a message box while there is no frame.  -->
     <Grid RowDefinitions="Auto,*">
         <Border
-            Background="#262626"
+            Background="{DynamicResource AppDocumentBarBackgroundBrush}"
             Grid.Row="0"
             Padding="8,4">
             <StackPanel
@@ -27,10 +22,12 @@
                     VerticalAlignment="Center" />
                 <ComboBox
                     BorderThickness="0"
+                    IsEditable="True"
                     MinHeight="0"
-                    MinWidth="90"
+                    MinWidth="110"
                     Name="PreviewZoomComboBox"
-                    SelectedIndex="4">
+                    SelectedIndex="4"
+                    ToolTip.Tip="Pick a zoom, type one, or Ctrl+wheel over the preview">
                     <ComboBoxItem Content="800%" />
                     <ComboBoxItem Content="400%" />
                     <ComboBoxItem Content="200%" />

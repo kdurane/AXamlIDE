@@ -1,0 +1,20 @@
+<UserControl
+    x:Class="AXamlIDE.Views.OutlineView"
+    IsVisible="{Binding IsVisible}"
+    x:DataType="vm:OutlineViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  Types and members of the selected tab. One instance, moved into the selected tab's bar by DockViewCache.  -->
+    <ComboBox
+        DisplayMemberBinding="{Binding DisplayName}"
+        IsTextSearchEnabled="True"
+        ItemsSource="{Binding Items}"
+        MaxWidth="360"
+        MinHeight="0"
+        MinWidth="220"
+        Padding="6,1"
+        SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+        ToolTip.Tip="Navigate to a C# type or member" />
+</UserControl>

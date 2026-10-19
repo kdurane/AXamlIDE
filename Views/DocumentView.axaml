@@ -1,0 +1,85 @@
+<UserControl
+    x:Class="AXamlIDE.Views.DocumentView"
+    x:DataType="vm:DocumentDockable"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:models="using:AXamlIDE.Models"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Styles>
+        <Style Selector="Border#DocumentBar ToggleButton, Border#DocumentBar Button">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <!--
+        One document tab: a bar (the outline drop-down while this is the selected tab; the preview buttons for AXAML),
+        its editor and, for AXAML, the preview (code only / split / design only).
+    -->
+    <DockPanel>
+        <Border
+            Background="{DynamicResource AppDocumentBarBackgroundBrush}"
+            DockPanel.Dock="Top"
+            Name="DocumentBar"
+            Padding="4,2">
+            <DockPanel>
+                <StackPanel
+                    DockPanel.Dock="Right"
+                    IsVisible="{Binding IsPreviewable}"
+                    Name="PreviewButtons"
+                    Orientation="Horizontal"
+                    Spacing="2">
+                    <ToggleButton
+                        Command="{Binding SetPreviewModeCommand}"
+                        CommandParameter="{x:Static models:PreviewMode.Code}"
+                        Content="Code"
+                        Name="CodeButton"
+                        ToolTip.Tip="Code only" />
+                    <ToggleButton
+                        Command="{Binding SetPreviewModeCommand}"
+                        CommandParameter="{x:Static models:PreviewMode.Split}"
+                        Content="Split"
+                        Name="SplitButton"
+                        ToolTip.Tip="Code and preview" />
+                    <ToggleButton
+                        Command="{Binding SetPreviewModeCommand}"
+                        CommandParameter="{x:Static models:PreviewMode.Design}"
+                        Content="Design"
+                        Name="DesignButton"
+                        ToolTip.Tip="Preview only" />
+                    <Button
+                        Command="{Binding TogglePreviewSplitCommand}"
+                        Margin="6,0,0,0"
+                        Name="SplitDirectionButton" />
+                    <Button
+                        Command="{Binding SwapPreviewSideCommand}"
+                        Content="&#x21C4;"
+                        Name="SwapSidesButton" />
+                </StackPanel>
+                <ContentControl HorizontalAlignment="Left" Name="OutlineHost" />
+            </DockPanel>
+        </Border>
+
+        <!--  Rows or columns are set in code-behind from the tab's PreviewMode / PreviewSplit.  -->
+        <Grid Name="Surface">
+            <ContentControl Name="EditorHost" />
+            <GridSplitter
+                Background="#FF555555"
+                Name="Splitter"
+                ResizeBehavior="PreviousAndNext"
+                ShowsPreview="False" />
+            <ContentControl Name="PreviewHost">
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Name="PreviewPlaceholder"
+                    Opacity="0.7"
+                    Text="The preview follows the selected tab. Click in this tab to preview it."
+                    TextWrapping="Wrap"
+                    VerticalAlignment="Center" />
+            </ContentControl>
+        </Grid>
+    </DockPanel>
+</UserControl>

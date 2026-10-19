@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
 using ICSharpCode.Decompiler;
 using static AXamlIDE.Services.Lsp.LspHelpers;
@@ -17,7 +18,7 @@ namespace AXamlIDE.Editor.Navigation;
 /// ctx.Documents (IDocumentHost), ctx.Status (a message) and the dialog service.
 /// </summary>
 public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs, WorkspaceEditService edits,
-    EditorNavigator navigator)
+    NavigationService navigator)
 {
     // ------------------------------------------------------------ quick open
 

@@ -48,6 +48,12 @@ public sealed partial class WorkspaceViewModel : ObservableObject
 
     [ObservableProperty] public partial ProjectTreeNode? SelectedNode { get; set; }
 
+    /// <summary>True while a folder or solution is open.</summary>
+    public bool IsOpen => Roots.Count > 0;
+
+    /// <summary>A folder or solution was opened (or re-opened by a refresh). See WorkspaceSession.</summary>
+    public event Action? Opened;
+
     // ------------------------------------------------------------- open
 
     [RelayCommand]
@@ -82,6 +88,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         Roots.Clear();
         Roots.Add(root);
         _languages.SetWorkspace(new LspWorkspace(path, SolutionPath: null));
+        OnPropertyChanged(nameof(IsOpen));
+        Opened?.Invoke();
     }
 
     private void OpenSolution(string path)
@@ -100,6 +108,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         Roots.Clear();
         Roots.Add(root);
         _languages.SetWorkspace(new LspWorkspace(Path.GetDirectoryName(path)!, SolutionPath: path));
+        OnPropertyChanged(nameof(IsOpen));
+        Opened?.Invoke();
     }
 
     // ---------------------------------------------------------- refresh
@@ -142,5 +152,6 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         _workspace.SolutionProjects = [];
         _xaml.ClearPreviewTargets();
         _languages.ClearWorkspace();
+        OnPropertyChanged(nameof(IsOpen));
     }
 }

@@ -1,0 +1,85 @@
+<UserControl
+    x:Class="AXamlIDE.Views.WelcomeView"
+    x:DataType="vm:WelcomeViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Styles>
+        <Style Selector="Grid#Shortcuts TextBlock">
+            <Setter Property="Margin" Value="0,3" />
+        </Style>
+        <Style Selector="Grid#Shortcuts TextBlock.key">
+            <Setter Property="Opacity" Value="0.65" />
+            <Setter Property="Margin" Value="24,3,0,3" />
+        </Style>
+    </UserControl.Styles>
+
+    <!--  Shown by the main document area while it has no tabs: open buttons, or (with a workspace open) shortcuts.  -->
+    <Panel>
+        <Border
+            BorderBrush="{DynamicResource ThemeForegroundBrush}"
+            BorderThickness="1"
+            CornerRadius="8"
+            HorizontalAlignment="Center"
+            IsVisible="{Binding !Workspace.IsOpen}"
+            MaxWidth="560"
+            Padding="32"
+            VerticalAlignment="Center">
+            <StackPanel HorizontalAlignment="Center" Spacing="12">
+                <TextBlock
+                    FontSize="24"
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Center"
+                    Text="Welcome to AXamlIDE" />
+                <TextBlock
+                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                    HorizontalAlignment="Center"
+                    Text="Open a project folder or solution to get started, then choose a file in Explorer."
+                    TextWrapping="Wrap" />
+                <StackPanel
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        Command="{Binding Workspace.OpenFolderCommand}"
+                        Content="Open Folder..."
+                        HorizontalContentAlignment="Center" />
+                    <Button
+                        Command="{Binding Workspace.OpenSolutionCommand}"
+                        Content="Open Solution..."
+                        HorizontalContentAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!--  Keep these in step with Shell/KeyMap.cs.  -->
+        <Grid
+            ColumnDefinitions="Auto,Auto"
+            HorizontalAlignment="Center"
+            IsVisible="{Binding Workspace.IsOpen}"
+            Name="Shortcuts"
+            Opacity="0.8"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+            VerticalAlignment="Center">
+            <TextBlock Grid.Row="0" Text="Open a file" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="0" Text="Ctrl+P" />
+            <TextBlock Grid.Row="1" Text="Go to symbol" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="1" Text="Ctrl+T" />
+            <TextBlock Grid.Row="2" Text="Find in files" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="2" Text="Ctrl+Shift+F" />
+            <TextBlock Grid.Row="3" Text="Go to definition" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="3" Text="F12" />
+            <TextBlock Grid.Row="4" Text="Find all references" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="4" Text="Shift+F12" />
+            <TextBlock Grid.Row="5" Text="Rename symbol" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="5" Text="Ctrl+R" />
+            <TextBlock Grid.Row="6" Text="Build" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="6" Text="Ctrl+Shift+B" />
+            <TextBlock Grid.Row="7" Text="Start debugging" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="7" Text="F5" />
+            <TextBlock Grid.Row="8" Text="Run without debugging" />
+            <TextBlock Classes="key" Grid.Column="1" Grid.Row="8" Text="Ctrl+F5" />
+        </Grid>
+    </Panel>
+</UserControl>

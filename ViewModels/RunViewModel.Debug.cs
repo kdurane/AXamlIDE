@@ -126,7 +126,7 @@ public partial class RunViewModel
             IsRunning = true;
             IsDebugStopped = false;
             DebugStatus = $"Starting {Path.GetFileName(programPath)}...";
-            _messenger.Send(new ShowToolTabMessage(ToolTab.Debug));
+            _messenger.Send(new ShowToolTabMessage(ToolTab.Console));
             session.OutputReceived += AppendConsoleOutput;
             session.EventReceived += message => OnDebugAdapterEvent(session, message);
             session.Failed += error => Dispatcher.UIThread.Post(() =>
