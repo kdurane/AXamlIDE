@@ -76,6 +76,15 @@
     <Color x:Key="debugIcon.restartForeground">#388A34</Color>   <!-- default -->
     <Color x:Key="debugIcon.continueForeground">#007ACC</Color>   <!-- default -->
 
+    <!--  Overview ruler beside the editor's scrollbar (Editor/Highlighting/OverviewRuler).  -->
+    <Color x:Key="editorOverviewRuler.errorForeground">#B3FF1212</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.warningForeground">#BF8803</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.infoForeground">#1A85FF</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.selectionHighlightForeground">#CCA0A0A0</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.border">#4D7F7F7F</Color>   <!-- default -->
+    <Color x:Key="editorCursor.foreground">#54494B</Color>
+    <Color x:Key="scrollbarSlider.background">#66646464</Color>   <!-- default -->
+
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#DDDDDD</Color>
     <Color x:Key="app.panelHeader.activeBackground">#E5E5E5</Color>

@@ -155,6 +155,15 @@
     <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="EditorSplitterBrush" />
     <SolidColorBrush Color="{DynamicResource widget.shadow}" x:Key="WidgetShadowBrush" />
 
+    <!--  Overview ruler beside the editor's scrollbar (Editor/Highlighting/OverviewRuler)  -->
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.errorForeground}" x:Key="OverviewRulerErrorBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.warningForeground}" x:Key="OverviewRulerWarningBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.infoForeground}" x:Key="OverviewRulerInfoBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.selectionHighlightForeground}" x:Key="OverviewRulerOccurrenceBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.border}" x:Key="OverviewRulerBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorCursor.foreground}" x:Key="OverviewRulerCaretBrush" />
+    <SolidColorBrush Color="{DynamicResource scrollbarSlider.background}" x:Key="OverviewRulerViewportBrush" />
+
     <!--  Run and debug buttons (the toolbar's play/stop, the debug toolbar)  -->
     <SolidColorBrush Color="{DynamicResource debugIcon.startForeground}" x:Key="DebugStartBrush" />
     <SolidColorBrush Color="{DynamicResource debugIcon.stopForeground}" x:Key="DebugStopBrush" />

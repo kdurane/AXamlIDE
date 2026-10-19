@@ -11,6 +11,9 @@ public sealed class OccurrenceRenderer : IBackgroundRenderer
 {
     private readonly List<TextSegment> _segments = [];
 
+    /// <summary>The occurrences found by the last <see cref="Update"/> (the overview ruler marks them too).</summary>
+    public IReadOnlyList<TextSegment> Segments => _segments;
+
     public KnownLayer Layer => KnownLayer.Selection;
 
     public void Update(TextDocument? document, string? word)

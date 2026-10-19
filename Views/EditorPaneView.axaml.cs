@@ -94,6 +94,7 @@ public partial class EditorPaneView : UserControl,
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
         _occurrences = new OccurrenceController(_ctx);
+        OverviewRuler.Attach(_ctx, _occurrences);
 
         Editor.TextArea.Caret.PositionChanged += (_, _) =>
         {
@@ -289,13 +290,14 @@ public partial class EditorPaneView : UserControl,
         Editor.Options.HighlightCurrentLine = _settings.HighlightCurrentLine;
     }
 
-    /// <summary>The active document's diagnostics changed: redraw squiggles and lightbulbs.</summary>
+    /// <summary>The active document's diagnostics changed: redraw squiggles, lightbulbs and the overview ruler.</summary>
     public void Receive(DiagnosticsChangedMessage message)
     {
         var document = message.Document;
         if (!ReferenceEquals(document, _ctx.Active)) return;
         _codeActions.RefreshMargin(document);
         Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+        OverviewRuler.Refresh();
         _ctx.Messenger.Send(new EditorStateChangedMessage());
     }
 

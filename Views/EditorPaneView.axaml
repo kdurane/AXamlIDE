@@ -3,10 +3,11 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:edit="using:AvaloniaEdit"
     xmlns:editing="using:AvaloniaEdit.Editing"
+    xmlns:highlighting="using:AXamlIDE.Editor.Highlighting"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  No bindings to a parent view model: everything goes through EditorServices (see Initialize).  -->
-    <Panel>
+    <Grid ColumnDefinitions="*,Auto">
         <edit:TextEditor
             FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
             FontSize="13"
@@ -56,6 +57,12 @@
             </edit:TextEditor.Styles>
         </edit:TextEditor>
 
+        <!--  The whole file at a glance beside the scrollbar: diagnostics, occurrences, caret (Editor/Highlighting/OverviewRuler).  -->
+        <highlighting:OverviewRuler
+            Grid.Column="1"
+            Name="OverviewRuler"
+            Width="12" />
+
         <!--
             The hover card (Editor/Hover/HoverController fills and places it). A popup has to be in the tree to open.
             Light dismiss: a click outside closes it and still reaches the editor. It never takes focus.
@@ -69,5 +76,5 @@
             PlacementAnchor="BottomLeft"
             PlacementConstraintAdjustment="FlipY, SlideX"
             PlacementGravity="BottomRight" />
-    </Panel>
+    </Grid>
 </UserControl>
