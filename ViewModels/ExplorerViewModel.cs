@@ -20,6 +20,7 @@ public sealed partial class ExplorerViewModel(
     RunViewModel run,
     GitViewModel git,
     PropertiesViewModel properties,
+    NuGetManager nuget,
     IDocumentHost documents,
     DocumentManager openDocuments,
     IDialogService dialogs,
@@ -32,6 +33,9 @@ public sealed partial class ExplorerViewModel(
 
     /// <summary>Right-click > Properties: the panel under the explorer, following the selection.</summary>
     public PropertiesViewModel Properties { get; } = properties;
+
+    /// <summary>Right-click a project > Manage NuGet Packages...</summary>
+    public NuGetManager NuGet { get; } = nuget;
 
     /// <summary>Build / Run / Start Debugging for a node (the node is the command parameter).</summary>
     public RunViewModel Run { get; } = run;

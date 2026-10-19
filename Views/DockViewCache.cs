@@ -32,7 +32,7 @@ public sealed class DockViewCache : IControlRecycling
     private readonly OutlineViewModel _outlineViewModel;
     private readonly ControlRecycling _dockControls = new();
     private readonly Dictionary<DocumentDockable, DocumentView> _documentViews = [];
-    private readonly Dictionary<DiffDockable, DiffView> _diffViews = [];
+    private readonly Dictionary<PageDockable, Control> _pageViews = [];
     private DocumentView? _connected;   // the selected tab's view, connected to the outline and preview
 
     public DockViewCache(
@@ -65,7 +65,7 @@ public sealed class DockViewCache : IControlRecycling
         Control? view = data switch
         {
             DocumentDockable tab => DocumentViewFor(tab),
-            DiffDockable diff => DiffViewFor(diff),
+            PageDockable page => PageViewFor(page),
             ToolDockable tool => _toolPanels.ViewFor(tool.Id),
             _ => null
         };
@@ -85,9 +85,9 @@ public sealed class DockViewCache : IControlRecycling
             return true;
         }
 
-        if (data is DiffDockable diff && _diffViews.TryGetValue(diff, out var diffView))
+        if (data is PageDockable page && _pageViews.TryGetValue(page, out var pageView))
         {
-            control = diffView;
+            control = pageView;
             return true;
         }
 
@@ -96,7 +96,7 @@ public sealed class DockViewCache : IControlRecycling
 
     public void Add(object data, object control)
     {
-        if (data is not (DocumentDockable or DiffDockable or ToolDockable))
+        if (data is not (DocumentDockable or PageDockable or ToolDockable))
             _dockControls.Add(data, control);
     }
 
@@ -115,19 +115,29 @@ public sealed class DockViewCache : IControlRecycling
         return view;
     }
 
-    private DiffView DiffViewFor(DiffDockable diff)
+    /// <summary>The view of a page tab, made once (DiffView, NuGetView).</summary>
+    private Control? PageViewFor(PageDockable page)
     {
-        if (!_diffViews.TryGetValue(diff, out var view))
-            _diffViews[diff] = view = new DiffView(diff, _editorServices);
+        if (_pageViews.TryGetValue(page, out var view))
+            return view;
+
+        view = page switch
+        {
+            DiffDockable diff => new DiffView(diff, _editorServices),
+            NuGetDockable nuget => new NuGetView { DataContext = nuget },
+            _ => null
+        };
+        if (view is not null)
+            _pageViews[page] = view;
         return view;
     }
 
     private void OnTabRemoved(IDockable tab)
     {
-        if (tab is DiffDockable diff && _diffViews.Remove(diff, out var diffView))
+        if (tab is PageDockable page && _pageViews.Remove(page, out var pageView))
         {
-            Detach(diffView);
-            diffView.Shutdown();
+            Detach(pageView);
+            (pageView as DiffView)?.Shutdown();
             return;
         }
 

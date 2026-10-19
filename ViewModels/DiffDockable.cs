@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Git;
 using CommunityToolkit.Mvvm.Input;
-using Dock.Model.Mvvm.Controls;
 
 namespace AXamlIDE.ViewModels;
 
@@ -18,7 +17,7 @@ namespace AXamlIDE.ViewModels;
 /// It re-reads both sides whenever the Git status changes, so saving, staging or committing updates it.
 /// Opening the same file's diff again (same side) brings this tab back instead of making another.
 /// </summary>
-public sealed class DiffDockable : Document, IDisposable
+public sealed class DiffDockable : PageDockable
 {
     private readonly GitService _git;
     private readonly GitStatusTracker _tracker;
@@ -146,5 +145,5 @@ public sealed class DiffDockable : Document, IDisposable
             : starts.Cast<int?>().LastOrDefault(start => start < line) ?? starts.Cast<int?>().LastOrDefault();
     }
 
-    public void Dispose() => _tracker.Changed -= OnStatusChanged;
+    public override void Dispose() => _tracker.Changed -= OnStatusChanged;
 }

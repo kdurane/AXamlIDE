@@ -6,6 +6,7 @@ using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.NuGet;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Workspace;
 using AXamlIDE.Services.Xaml;
@@ -45,6 +46,8 @@ public static class AppServices
         services.AddSingleton<IEditorSettings>(sp => sp.GetRequiredService<SettingsViewModel>());
         services.AddSingleton(_ => new RegistryOptions(ThemeName.DarkPlus));
         services.AddSingleton<EditorGrammars>();   // the built-in grammars plus our AXAML grammar and colours
+        services.AddSingleton<NuGetService>();
+        services.AddSingleton<NuGetManager>();     // opens the NuGet manager tab (explorer: Manage NuGet Packages...)
 
         // ---- workspace, documents, languages
         services.AddSingleton<WorkspaceModel>();

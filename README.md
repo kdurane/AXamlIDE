@@ -94,6 +94,10 @@ How the pieces are put together and talk:
   the one showing `Active`. Navigation asks the document, not an editor: `NavigationService` opens/activates it and
   calls `OpenDocument.Reveal(...)`, and the editor showing it selects, scrolls and focuses (even one created later).
 - Anything that opens a window goes through `IDialogService`.
+- **NuGet** (explorer > right-click a project > Manage NuGet Packages...): a Visual Studio style tab. Browsing uses
+  our own small NuGet V3 client (`Services/NuGet`, Core); the user's sources, the global packages folder, the installed
+  list and installing / updating / uninstalling all go through the dotnet CLI, so nuget.config, central package
+  management and restore behave as on the command line.
 - **Run and Debug** start the startup project chosen in the top bar (Visual Studio style: startup project box,
   Debug/Release box, play button that becomes stop), built with that configuration (`ViewModels/RunViewModel.Startup`).
   The box lists the workspace's executable projects; with several and none chosen, Run/Debug ask. The choice is

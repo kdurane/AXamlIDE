@@ -20,8 +20,7 @@ public sealed class ExplorerNodeMenu
         HasPath = !string.IsNullOrEmpty(node.FullPath);
         CanRefresh = node.Kind is NodeKind.Directory or NodeKind.Solution or NodeKind.Project or NodeKind.Folder;
         // A project node in a solution; in an opened folder, projects are plain .csproj files.
-        IsProject = node.Kind == NodeKind.Project
-                    || IsFile && node.FullPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase);
+        IsProject = NuGetManager.IsProject(node);
         CanBuild = IsProject
                    || IsFile && node.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
 

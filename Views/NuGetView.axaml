@@ -1,0 +1,364 @@
+<!--
+    The NuGet package manager tab (DataContext: ViewModels/NuGetDockable), laid out like Visual Studio's:
+    tabs, search and source along the top; the package list on the left; the chosen package on the right.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.NuGetView"
+    x:DataType="vm:NuGetDockable"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Styles>
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.icon PathIcon">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+        </Style>
+        <!--  A link: looks like text, opens in the browser (OnLinkClick).  -->
+        <Style Selector="Button.link">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource LinkBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.link /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+        <Style Selector="TextBlock.heading">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+        <!--  Fluent's tab strip is sized for page headers; these are VS-sized tabs.  -->
+        <Style Selector="TabStripItem">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="ListBox.packages ListBoxItem">
+            <Setter Property="Padding" Value="8,6" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Background="{DynamicResource AppWindowBackgroundBrush}" RowDefinitions="Auto,Auto,Auto,*">
+
+        <!--  Browse / Installed / Updates, and the package source  -->
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="12,8,12,0">
+            <TabStrip SelectedIndex="{Binding TabIndex}">
+                <TabStripItem Content="Browse" />
+                <TabStripItem Content="{Binding InstalledHeader}" />
+                <TabStripItem Content="{Binding UpdatesHeader}" />
+            </TabStrip>
+            <TextBlock
+                Grid.Column="2"
+                Margin="0,0,8,0"
+                Text="Package source:"
+                VerticalAlignment="Center" />
+            <ComboBox
+                Grid.Column="3"
+                ItemsSource="{Binding SourceChoices}"
+                MinWidth="140"
+                SelectedItem="{Binding SelectedSource}"
+                VerticalAlignment="Center" />
+            <Button
+                Classes="icon"
+                Command="{Binding RefreshCommand}"
+                Grid.Column="4"
+                Margin="6,0,0,0"
+                ToolTip.Tip="Refresh">
+                <PathIcon Data="{StaticResource Icon.Sync}" />
+            </Button>
+        </Grid>
+
+        <!--  Search, prerelease, Update All (Updates tab), and which project this is for  -->
+        <Grid
+            ColumnDefinitions="Auto,Auto,Auto,*"
+            Grid.Row="1"
+            Margin="12,8,12,6">
+            <TextBox
+                PlaceholderText="Search"
+                Text="{Binding SearchText}"
+                Width="320" />
+            <CheckBox
+                Content="Include prerelease"
+                Grid.Column="1"
+                IsChecked="{Binding IncludePrerelease}"
+                Margin="12,0,0,0" />
+            <Button
+                Command="{Binding UpdateAllCommand}"
+                Content="Update All"
+                Grid.Column="2"
+                IsVisible="{Binding IsUpdatesTab}"
+                Margin="12,0,0,0" />
+            <TextBlock
+                Grid.Column="3"
+                HorizontalAlignment="Right"
+                Opacity="0.7"
+                Text="{Binding ProjectName, StringFormat='Project: {0}'}"
+                VerticalAlignment="Center" />
+        </Grid>
+
+        <ProgressBar
+            Grid.Row="2"
+            Height="2"
+            IsIndeterminate="True"
+            IsVisible="{Binding IsLoading}"
+            MinHeight="2" />
+
+        <Grid ColumnDefinitions="*,4,*" Grid.Row="3">
+
+            <!--  The package list  -->
+            <Panel>
+                <ListBox
+                    Background="Transparent"
+                    Classes="packages"
+                    ItemsSource="{Binding Packages}"
+                    SelectedItem="{Binding SelectedPackage}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:NuGetPackageRow">
+                            <Grid ColumnDefinitions="40,*,Auto">
+                                <Panel
+                                    Height="32"
+                                    VerticalAlignment="Top"
+                                    Width="32">
+                                    <!--  The placeholder shows until there's an icon (and for icons that can't be shown, e.g. SVG).  -->
+                                    <PathIcon
+                                        Data="{StaticResource Icon.Package}"
+                                        Height="24"
+                                        IsVisible="{Binding #RowIcon.Source, Converter={x:Static ObjectConverters.IsNull}}"
+                                        Opacity="0.6"
+                                        Width="24" />
+                                    <Image Name="RowIcon" Source="{Binding IconData, Converter={x:Static views:NuGetConverters.Icon}}" />
+                                </Panel>
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <!--  Id, verified tick, then "by authors  12M downloads" (cut short when long)  -->
+                                    <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                                        <TextBlock FontWeight="SemiBold" Text="{Binding Id}" />
+                                        <PathIcon
+                                            Data="{StaticResource Icon.CheckDecagram}"
+                                            Foreground="{DynamicResource LinkBrush}"
+                                            Grid.Column="1"
+                                            Height="12"
+                                            IsVisible="{Binding IsVerified}"
+                                            ToolTip.Tip="The owner's identity is verified on nuget.org"
+                                            Width="12" />
+                                        <TextBlock
+                                            Grid.Column="2"
+                                            Opacity="0.7"
+                                            TextTrimming="CharacterEllipsis">
+                                            <!--  OneWay: Run.Text binds two-way by default, which loops with a StringFormat.  -->
+                                            <Run Text="{Binding Authors, StringFormat='by {0}', Mode=OneWay}" />
+                                            <Run Text="  " />
+                                            <Run Text="{Binding DownloadsText, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </Grid>
+                                    <TextBlock
+                                        MaxLines="2"
+                                        Opacity="0.85"
+                                        Text="{Binding ShortDescription}"
+                                        TextTrimming="CharacterEllipsis"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                                <StackPanel
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Right"
+                                    Margin="12,0,0,0"
+                                    Spacing="2">
+                                    <TextBlock HorizontalAlignment="Right" Text="{Binding VersionText}" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="{DynamicResource GitAddedBrush}"
+                                        HorizontalAlignment="Right"
+                                        IsVisible="{Binding IsInstalled}"
+                                        Text="installed" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="{DynamicResource LinkBrush}"
+                                        HorizontalAlignment="Right"
+                                        IsVisible="{Binding HasUpdate}"
+                                        Text="update available" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    IsVisible="{Binding ListMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Margin="24"
+                    Opacity="0.7"
+                    Text="{Binding ListMessage}"
+                    TextWrapping="Wrap"
+                    VerticalAlignment="Top" />
+            </Panel>
+
+            <GridSplitter
+                Background="{DynamicResource EditorSplitterBrush}"
+                Grid.Column="1"
+                ResizeDirection="Columns" />
+
+            <!--  The chosen package  -->
+            <ScrollViewer Grid.Column="2" IsVisible="{Binding SelectedPackage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Margin="16,12" Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Panel Height="32" Width="32">
+                            <PathIcon
+                                Data="{StaticResource Icon.Package}"
+                                Height="24"
+                                IsVisible="{Binding #DetailsIconImage.Source, Converter={x:Static ObjectConverters.IsNull}}"
+                                Opacity="0.6"
+                                Width="24" />
+                            <Image Name="DetailsIconImage" Source="{Binding DetailsIcon, Converter={x:Static views:NuGetConverters.Icon}}" />
+                        </Panel>
+                        <TextBlock
+                            FontSize="18"
+                            FontWeight="SemiBold"
+                            Text="{Binding SelectedPackage.Id}"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!--  Installed version + Uninstall; chosen version + Install / Update  -->
+                    <Grid
+                        ColumnDefinitions="Auto,200,Auto"
+                        Margin="0,8,0,0"
+                        RowDefinitions="Auto,Auto"
+                        RowSpacing="6">
+                        <TextBlock
+                            Classes="label"
+                            IsVisible="{Binding SelectedInstalledVersion, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Text="Installed:"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Grid.Column="1"
+                            IsVisible="{Binding SelectedInstalledVersion, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Text="{Binding SelectedInstalledVersion}"
+                            VerticalAlignment="Center" />
+                        <Button
+                            Command="{Binding UninstallSelectedCommand}"
+                            Content="Uninstall"
+                            Grid.Column="2"
+                            IsVisible="{Binding SelectedInstalledVersion, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            Margin="8,0,0,0"
+                            MinWidth="90" />
+
+                        <TextBlock
+                            Classes="label"
+                            Grid.Row="1"
+                            Text="Version:"
+                            VerticalAlignment="Center" />
+                        <ComboBox
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            HorizontalAlignment="Stretch"
+                            ItemsSource="{Binding Versions}"
+                            SelectedItem="{Binding SelectedVersion}" />
+                        <Button
+                            Command="{Binding InstallSelectedCommand}"
+                            Content="{Binding PrimaryActionText}"
+                            Grid.Column="2"
+                            Grid.Row="1"
+                            Margin="8,0,0,0"
+                            MinWidth="90" />
+                    </Grid>
+
+                    <ProgressBar
+                        IsIndeterminate="True"
+                        IsVisible="{Binding IsBusy}"
+                        Margin="0,4" />
+                    <SelectableTextBlock
+                        Foreground="{DynamicResource DiagnosticErrorBrush}"
+                        IsVisible="{Binding ActionError, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Text="{Binding ActionError}"
+                        TextWrapping="Wrap" />
+
+                    <!--  Deprecation and vulnerabilities first, as VS does  -->
+                    <SelectableTextBlock
+                        Foreground="{DynamicResource DiagnosticWarningBrush}"
+                        IsVisible="{Binding Details.DeprecationMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Text="{Binding Details.DeprecationMessage}"
+                        TextWrapping="Wrap" />
+                    <SelectableTextBlock
+                        Foreground="{DynamicResource DiagnosticErrorBrush}"
+                        IsVisible="{Binding VulnerabilitiesText, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Text="{Binding VulnerabilitiesText}"
+                        TextWrapping="Wrap" />
+
+                    <TextBlock Classes="heading" Text="Description" />
+                    <SelectableTextBlock Text="{Binding Details.Description}" TextWrapping="Wrap" />
+
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        Margin="0,12,0,0"
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                        RowSpacing="4">
+                        <TextBlock Classes="label" Text="Version:" />
+                        <SelectableTextBlock Grid.Column="1" Text="{Binding Details.Version}" />
+                        <TextBlock
+                            Classes="label"
+                            Grid.Row="1"
+                            Text="Author(s):" />
+                        <SelectableTextBlock
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            Text="{Binding Details.Authors}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Classes="label"
+                            Grid.Row="2"
+                            Text="License:" />
+                        <Button
+                            Classes="link"
+                            Click="OnLinkClick"
+                            Content="{Binding LicenseText}"
+                            Grid.Column="1"
+                            Grid.Row="2"
+                            Tag="{Binding LicenseLink}" />
+                        <TextBlock
+                            Classes="label"
+                            Grid.Row="3"
+                            Text="Date published:" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Grid.Row="3"
+                            Text="{Binding PublishedText}" />
+                        <TextBlock
+                            Classes="label"
+                            Grid.Row="4"
+                            Text="Project URL:" />
+                        <Button
+                            Classes="link"
+                            Click="OnLinkClick"
+                            Content="{Binding Details.ProjectUrl}"
+                            Grid.Column="1"
+                            Grid.Row="4"
+                            Tag="{Binding Details.ProjectUrl}" />
+                        <TextBlock
+                            Classes="label"
+                            Grid.Row="5"
+                            Text="Tags:" />
+                        <SelectableTextBlock
+                            Grid.Column="1"
+                            Grid.Row="5"
+                            Text="{Binding TagsText}"
+                            TextWrapping="Wrap" />
+                    </Grid>
+
+                    <TextBlock Classes="heading" Text="Dependencies" />
+                    <SelectableTextBlock Text="{Binding DependenciesText}" TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -173,7 +173,7 @@ public sealed partial class GitViewModel : ObservableObject
     private void OpenDiff(GitChangeItem? item)
     {
         if (item is not null && _tracker.RepositoryRoot is { } root)
-            _docking.OpenDiff(new DiffDockable(item, root, _git, _tracker, _documents));
+            _docking.OpenPage(new DiffDockable(item, root, _git, _tracker, _documents));
     }
 
     /// <summary>Open the changed file itself (a deleted file has nothing to open).</summary>

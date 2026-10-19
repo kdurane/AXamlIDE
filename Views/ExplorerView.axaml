@@ -116,6 +116,11 @@
                         Header="Set as Startup Project"
                         IsVisible="{Binding IsProject}" />
                     <MenuItem
+                        Command="{Binding Explorer.NuGet.ManagePackagesCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Manage NuGet Packages..."
+                        IsVisible="{Binding IsProject}" />
+                    <MenuItem
                         Command="{Binding Explorer.Run.BuildProjectCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Build"

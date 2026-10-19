@@ -37,7 +37,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
     private readonly DocumentCommands _commands;
     private readonly SettingsViewModel _settings;
     private readonly Dictionary<OpenDocument, DocumentDockable> _tabs = [];
-    private readonly Dictionary<string, DiffDockable> _diffs = [];
+    private readonly Dictionary<string, PageDockable> _pages = [];
     private IDock? _lastActiveDock;
     private PreviewMode _previewMode = PreviewMode.Split;      // new AXAML tabs start like the last one changed
     private PreviewSplit _previewSplit = PreviewSplit.SideBySide;
@@ -255,40 +255,54 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         }
     }
 
-    // ------------------------------------------------------------- diff tabs
+    // ------------------------------------------------------------- page tabs (diffs, NuGet)
 
-    /// <summary>Show a diff tab beside the selected tab, or bring back the same file's diff if it's open.</summary>
-    public void OpenDiff(DiffDockable diff)
+    /// <summary>Bring an open page tab to the front; false when there's no page with that id open.</summary>
+    public bool ShowPage(string id)
     {
-        if (_diffs.TryGetValue(diff.Id, out var open) && _factory.IsInLayout(open))
+        if (!_pages.TryGetValue(id, out var page) || !_factory.IsInLayout(page))
+            return false;
+        Activate(page);
+        return true;
+    }
+
+    /// <summary>Show a page tab (diff, NuGet manager) beside the selected tab, or bring back the same page if it's open.</summary>
+    public void OpenPage(PageDockable page)
+    {
+        if (_pages.TryGetValue(page.Id, out var open) && _factory.IsInLayout(open))
         {
-            diff.Dispose();
-            diff = open;
+            page.Dispose();
+            page = open;
         }
         else
         {
             if (open is not null)
-                ForgetDiff(open);
-            _diffs[diff.Id] = diff;
-            _factory.AddDockable(TargetDocumentDock(), diff);
+                ForgetPage(open);
+            _pages[page.Id] = page;
+            _factory.AddDockable(TargetDocumentDock(), page);
         }
 
-        _factory.SetActiveDockable(diff);
-        if (diff.Owner is IDock owner)
-            _factory.SetFocusedDockable(owner, diff);
+        Activate(page);
+    }
+
+    private void Activate(PageDockable page)
+    {
+        _factory.SetActiveDockable(page);
+        if (page.Owner is IDock owner)
+            _factory.SetFocusedDockable(owner, page);
     }
 
     private void OnDockableClosed(object? sender, DockableClosedEventArgs e)
     {
-        if (e.Dockable is DiffDockable diff)
-            ForgetDiff(diff);
+        if (e.Dockable is PageDockable page)
+            ForgetPage(page);
     }
 
-    private void ForgetDiff(DiffDockable diff)
+    private void ForgetPage(PageDockable page)
     {
-        _diffs.Remove(diff.Id);
-        diff.Dispose();
-        TabRemoved?.Invoke(diff);
+        _pages.Remove(page.Id);
+        page.Dispose();
+        TabRemoved?.Invoke(page);
     }
 
     // ------------------------------------------------------------- closing
