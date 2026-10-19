@@ -25,6 +25,7 @@
         RowDefinitions="Auto,*,Auto,Auto">
         <!--  Search over the templates, above the middle and right columns.  -->
         <TextBox
+            Classes="SearchBox"
             Grid.Column="1"
             Grid.ColumnSpan="2"
             Margin="8,0,0,8"

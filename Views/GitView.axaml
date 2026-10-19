@@ -76,27 +76,9 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
-        <!--  Small flat icon buttons (refresh, stage, unstage)  -->
-        <Style Selector="Button.icon">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="3" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="Button.icon PathIcon">
-            <Setter Property="Width" Value="12" />
-            <Setter Property="Height" Value="12" />
-        </Style>
         <Style Selector="TextBlock.section">
             <Setter Property="FontWeight" Value="SemiBold" />
             <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
-        <Style Selector="ListBox.changes">
-            <Setter Property="Background" Value="Transparent" />
-        </Style>
-        <Style Selector="ListBox.changes ListBoxItem">
-            <Setter Property="Padding" Value="8,1" />
-            <Setter Property="MinHeight" Value="20" />
         </Style>
     </UserControl.Styles>
 
@@ -200,7 +182,7 @@
                     </Button>
                 </Grid>
                 <ListBox
-                    Classes="changes"
+                    Classes="compact"
                     DoubleTapped="OnChangeDoubleTapped"
                     ItemTemplate="{StaticResource GitChangeTemplate}"
                     ItemsSource="{Binding Staged}" />
@@ -216,7 +198,7 @@
                     </Button>
                 </Grid>
                 <ListBox
-                    Classes="changes"
+                    Classes="compact"
                     DoubleTapped="OnChangeDoubleTapped"
                     ItemTemplate="{StaticResource GitChangeTemplate}"
                     ItemsSource="{Binding Changes}" />

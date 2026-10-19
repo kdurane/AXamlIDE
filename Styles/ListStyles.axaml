@@ -1,0 +1,20 @@
+<!--
+    App-wide list looks, picked with a class on the ListBox (Classes="compact").
+-->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <ListBox Classes="compact" Width="200">
+            <ListBoxItem Content="One" />
+            <ListBoxItem Content="Two" />
+        </ListBox>
+    </Design.PreviewWith>
+
+    <!--  compact: dense rows for tool panels (Problems, Call Stack, Git changes), as in VS's tool windows.  -->
+    <Style Selector="ListBox.compact">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.compact ListBoxItem">
+        <Setter Property="Padding" Value="6,1" />
+        <Setter Property="MinHeight" Value="0" />
+    </Style>
+</Styles>

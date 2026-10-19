@@ -47,9 +47,9 @@ d:DesignHeight="400"
                     SelectedItem="{Binding Format}"
                     ToolTip.Tip="Show the string as it is, formatted, or (a JSON array) as a table" />
                 <TextBox
+                    Classes="SearchBox"
                     IsVisible="{Binding IsTable}"
                     MinHeight="0"
-                    Padding="6,3"
                     PlaceholderText="Filter"
                     Text="{Binding Filter}"
                     Width="200" />

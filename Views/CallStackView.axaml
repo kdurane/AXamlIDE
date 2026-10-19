@@ -9,10 +9,6 @@
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Styles>
-        <Style Selector="ListBoxItem">
-            <Setter Property="Padding" Value="4,1" />
-            <Setter Property="MinHeight" Value="0" />
-        </Style>
         <Style Selector="TextBlock.external">
             <Setter Property="Opacity" Value="0.6" />
             <Setter Property="FontStyle" Value="Italic" />
@@ -20,6 +16,7 @@
     </UserControl.Styles>
     <Panel>
         <ListBox
+            Classes="compact"
             Background="Transparent"
             DoubleTapped="OnDoubleTapped"
             ItemsSource="{Binding Frames}"

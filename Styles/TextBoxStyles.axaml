@@ -1,0 +1,58 @@
+<!--
+    App-wide text box looks, picked with a class. Colours come from Styles/ThemeResources.axaml.
+-->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <StackPanel Margin="20" Spacing="8" Width="280">
+            <TextBox Classes="SearchBox" />
+            <TextBox Classes="SearchBox" Text="with text" />
+        </StackPanel>
+    </Design.PreviewWith>
+
+    <!--
+        SearchBox: every search and filter box (NuGet, Search, the top bar, the visualizer filter, Add New Item).
+        A magnifier on the left, an x to clear it once there's text. PlaceholderText set on the box wins over "Search".
+    -->
+    <Style Selector="TextBox.SearchBox">
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="PlaceholderText" Value="Search" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="0,2,4,2" />
+        <Setter Property="InnerLeftContent">
+            <Template>
+                <PathIcon
+                    Data="{DynamicResource Icon.Search}"
+                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                    Height="14"
+                    Margin="6,0,4,0"
+                    Opacity="0.6"
+                    VerticalAlignment="Center"
+                    Width="14" />
+            </Template>
+        </Setter>
+    </Style>
+    <Style Selector="TextBox.SearchBox:not(:empty)">
+        <Setter Property="InnerRightContent">
+            <Template>
+                <Button
+                    Classes="clear"
+                    Command="{Binding $parent[TextBox].Clear}"
+                    Margin="0,0,4,0"
+                    ToolTip.Tip="Clear">
+                    <PathIcon Data="{DynamicResource Icon.Close}" />
+                </Button>
+            </Template>
+        </Setter>
+    </Style>
+    <Style Selector="TextBox.SearchBox:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource SearchPanelBackgroundBrush}" />
+    </Style>
+    <Style Selector="TextBox.SearchBox:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="{DynamicResource SearchPanelBackgroundBrush}" />
+        <Setter Property="BorderThickness" Value="0.5" />
+    </Style>
+</Styles>

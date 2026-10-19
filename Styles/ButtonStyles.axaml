@@ -1,0 +1,85 @@
+<!--
+    App-wide button looks, picked with a class (Classes="icon"). Colours come from Styles/ThemeResources.axaml.
+-->
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <StackPanel Margin="20" Spacing="8">
+            <Button Classes="icon">
+                <PathIcon Data="{DynamicResource Icon.Plus}" />
+            </Button>
+            <Button Classes="link" Content="https://avaloniaui.net" />
+            <ToggleButton Classes="row expander">
+                <StackPanel Orientation="Horizontal">
+                    <PathIcon Classes="chevron" Data="M 2,0 L 6,4 L 2,8 Z" Height="8" Margin="0,0,6,0" Width="8" />
+                    <TextBlock Text="A row that expands" />
+                </StackPanel>
+            </ToggleButton>
+            <Button Classes="row" Content="A clickable row" />
+        </StackPanel>
+    </Design.PreviewWith>
+
+    <!--  icon: a small flat button holding a PathIcon (refresh, stage, new item...), in panel headers and list rows.  -->
+    <Style Selector="Button.icon">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="3" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.icon PathIcon">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+    </Style>
+
+    <!--  link: looks like a hyperlink (the click handler opens it).  -->
+    <Style Selector="Button.link">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource LinkBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.link /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!--
+        row: a whole list row you click (search results), flat and highlighted on hover like a list item.
+        ToggleButton.row.expander is a group header: its PathIcon.chevron points down while it's open.
+    -->
+    <Style Selector="Button.row, ToggleButton.row">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.row /template/ ContentPresenter, ToggleButton.row /template/ ContentPresenter, ToggleButton.row:checked /template/ ContentPresenter, Button.row:pressed /template/ ContentPresenter, ToggleButton.row:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+    </Style>
+    <Style Selector="Button.row:pointerover /template/ ContentPresenter, ToggleButton.row:pointerover /template/ ContentPresenter, ToggleButton.row:checked:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}" />
+    </Style>
+    <Style Selector="ToggleButton.expander PathIcon.chevron">
+        <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.expander:checked PathIcon.chevron">
+        <Setter Property="RenderTransform" Value="rotate(90deg)" />
+    </Style>
+
+    <!--  clear: the small x that empties a box (TextBox.SearchBox shows it once there's text).  -->
+    <Style Selector="Button.clear">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.clear PathIcon">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+        <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+    </Style>
+</Styles>
