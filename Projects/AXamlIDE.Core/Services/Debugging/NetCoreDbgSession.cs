@@ -20,8 +20,11 @@ public sealed partial class NetCoreDbgSession : IDisposable
     private readonly SemaphoreSlim _requestWriteLock = new(1, 1);
     private readonly TaskCompletionSource _initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Task _messagePump;
+    private readonly ConcurrentDictionary<string, byte> _modules = new(StringComparer.Ordinal);
     private int _sequence;
     private bool _disposed;
+
+    public IReadOnlyCollection<string> LoadedModules => _modules.Keys.ToArray();
 
     public event Action<string>? OutputReceived;
     public event Action<JsonElement>? EventReceived;
@@ -221,7 +224,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
 
                 var raw = root.GetRawText();   // grab before Dispose
                 response.Dispose();
-                throw new InvalidOperationException(
+                throw new DebugAdapterException(command, (detail ?? message ?? "").Trim(),
                     $"'{command}' failed: {message} {detail}{Environment.NewLine}{raw}");
             }
 
@@ -234,6 +237,15 @@ public sealed partial class NetCoreDbgSession : IDisposable
                 completion.Task.Result.Dispose();
             throw;
         }
+    }
+
+    private void RememberModule(JsonElement message)
+    {
+        if (message.TryGetProperty("body", out var body)
+            && body.TryGetProperty("reason", out var reason) && reason.GetString() == "new"
+            && body.TryGetProperty("module", out var module)
+            && module.TryGetProperty("path", out var path) && path.GetString() is { Length: > 0 } modulePath)
+            _modules.TryAdd(modulePath, 0);
     }
 
     private async Task PumpMessagesAsync()
@@ -260,6 +272,8 @@ public sealed partial class NetCoreDbgSession : IDisposable
                     var eventName = root.GetProperty("event").GetString();
                     if (eventName == "initialized")
                         _initialized.TrySetResult();
+                    else if (eventName == "module")
+                        RememberModule(root);
                     EventReceived?.Invoke(root.Clone());
                 }
             }

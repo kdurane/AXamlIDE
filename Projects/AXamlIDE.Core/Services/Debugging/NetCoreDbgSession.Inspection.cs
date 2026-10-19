@@ -8,9 +8,7 @@ namespace AXamlIDE.Services.Debugging;
 
 public sealed record DebugFrame(int Id, string Name, string? Path, int Line);
 
-public sealed record DebugVariable(string Name, string Value, string? Type, int VariablesReference);
-
-public sealed partial class NetCoreDbgSession
+public sealed partial class NetCoreDbgSession : IDebugEvaluator
 {
     public Task StepOverAsync(int threadId, CancellationToken ct = default) => SendAsync("next", new { threadId }, ct);
     public Task StepIntoAsync(int threadId, CancellationToken ct = default) => SendAsync("stepIn", new { threadId }, ct);
@@ -79,23 +77,42 @@ public sealed partial class NetCoreDbgSession
         return list;
     }
 
-    /// <summary>For the hover tooltip later: context "hover" avoids side effects where the adapter supports it.</summary>
-    public async Task<DebugVariable?> EvaluateAsync(int frameId, string expression, string context = "hover",
+    public async Task<DebugEvaluation> EvaluateAsync(int frameId, string expression, string context = "hover",
         CancellationToken ct = default)
     {
         try
         {
             using var r = await RequestAsync("evaluate", new { expression, frameId, context }, ct);
             var body = r.RootElement.GetProperty("body");
-            return new DebugVariable(
+            return new DebugEvaluation(new DebugVariable(
                 expression,
                 body.TryGetProperty("result", out var res) ? res.GetString() ?? "" : "",
                 body.TryGetProperty("type", out var t) ? t.GetString() : null,
-                body.TryGetProperty("variablesReference", out var vr) ? vr.GetInt32() : 0);
+                body.TryGetProperty("variablesReference", out var vr) ? vr.GetInt32() : 0,
+                expression), null);
         }
-        catch (InvalidOperationException)
+        catch (DebugAdapterException ex)
         {
-            return null; // evaluation failed (e.g. not an expression)
+            return new DebugEvaluation(null, ex.AdapterMessage);
+        }
+    }
+
+    public async Task<DebugEvaluation> SetExpressionAsync(int frameId, string expression, string value, CancellationToken ct = default)
+    {
+        try
+        {
+            using var r = await RequestAsync("setExpression", new { expression, value, frameId }, ct);
+            var body = r.RootElement.GetProperty("body");
+            return new DebugEvaluation(new DebugVariable(
+                expression,
+                body.TryGetProperty("value", out var v) ? v.GetString() ?? "" : value,
+                body.TryGetProperty("type", out var t) ? t.GetString() : null,
+                body.TryGetProperty("variablesReference", out var vr) ? vr.GetInt32() : 0,
+                expression), null);
+        }
+        catch (DebugAdapterException ex)
+        {
+            return new DebugEvaluation(null, ex.AdapterMessage);
         }
     }
 
@@ -112,7 +129,7 @@ public sealed partial class NetCoreDbgSession
                 stack = st.GetString();
             return $"{id}: {desc}{(stack is null ? "" : Environment.NewLine + stack)}";
         }
-        catch (InvalidOperationException)
+        catch (DebugAdapterException)
         {
             return null;
         }
@@ -122,5 +139,6 @@ public sealed partial class NetCoreDbgSession
         v.GetProperty("name").GetString() ?? "?",
         v.TryGetProperty("value", out var val) ? val.GetString() ?? "" : "",
         v.TryGetProperty("type", out var t) ? t.GetString() : null,
-        v.TryGetProperty("variablesReference", out var vr) ? vr.GetInt32() : 0);
+        v.TryGetProperty("variablesReference", out var vr) ? vr.GetInt32() : 0,
+        v.TryGetProperty("evaluateName", out var e) ? e.GetString() : null);
 }
