@@ -13,6 +13,7 @@ using AvaloniaEdit.Rendering;
 using AvaloniaEdit.TextMate;
 using AXamlIDE.Editor;
 using AXamlIDE.Editor.CodeActions;
+using AXamlIDE.Editor.CodeLens;
 using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Debugging;
 using AXamlIDE.Editor.Folding;
@@ -59,6 +60,7 @@ public partial class EditorPaneView : UserControl,
     private OccurrenceController _occurrences = null!;
     private TypingController _typing = null!;
     private HoverController _hover = null!;
+    private CodeLensController _codeLens = null!;
 
     public EditorPaneView()
     {
@@ -132,6 +134,7 @@ public partial class EditorPaneView : UserControl,
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
         _hover = new HoverController(_ctx, _codeActions, HoverPopup);
+        _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesList, ReferencesTitle);
         _signatureHelp = new SignatureHelpController(_ctx);
         _completion = new CompletionController(_ctx, _hover);
         _typing = new TypingController(_ctx, _hover, _completion, _signatureHelp);

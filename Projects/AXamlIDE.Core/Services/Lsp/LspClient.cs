@@ -59,6 +59,9 @@ public sealed partial class LspClient : ILspSender, IDisposable
     public bool SupportsCodeActionResolve { get; private set; }
     public bool SupportsDocumentFormatting { get; private set; }
 
+    /// <summary>textDocument/codeLens: the "N references" lines above declarations.</summary>
+    public bool SupportsCodeLens { get; private set; }
+
     /// <summary>True if the server wants diagnostics pulled (textDocument/diagnostic) rather than pushing them.</summary>
     public bool SupportsPullDiagnostics { get; private set; }
 
@@ -75,6 +78,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
     private bool _staticCodeActionResolve;
     private bool _dynamicCodeActionResolve;
     private bool _staticDocumentFormatting;
+    private bool _staticCodeLens;
 
     // Work-done progress per token, for the status bar. Locked on itself.
     private readonly Dictionary<string, (string Title, string? Message)> _progress = new();
@@ -93,6 +97,9 @@ public sealed partial class LspClient : ILspSender, IDisposable
 
     /// <summary>The server wants open documents' diagnostics re-pulled. Background thread.</summary>
     public event Action? DiagnosticRefreshRequested;
+
+    /// <summary>The server's code lenses changed (e.g. references in another file): ask again. Background thread.</summary>
+    public event Action? CodeLensRefreshRequested;
     public Func<JsonElement, Task<bool>>? WorkspaceEditHandler { get; set; }
 
     /// <summary>Current work-done progress text ("Loading projects: ..."), or null when idle. Background thread.</summary>
@@ -192,6 +199,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
                     workspaceFolders = true,
                     configuration = true,
                     diagnostics = new { refreshSupport = true },
+                    codeLens = new { refreshSupport = true },
                     applyEdit = true,
                     workspaceEdit = new
                     {
@@ -218,6 +226,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
                         resolveSupport = new { properties = _supports }
                     },
                     hover = new { contentFormat = _hoverContext },
+                    codeLens = new { dynamicRegistration = true },
                     completion = new { completionItem = new { snippetSupport = false } },
                     signatureHelp = new
                     {
@@ -276,6 +285,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
                                        && codeActionProvider.TryGetProperty("resolveProvider", out var resolveProvider)
                                        && resolveProvider.ValueKind == JsonValueKind.True;
             _staticDocumentFormatting = HasProvider(caps, "documentFormattingProvider");
+            _staticCodeLens = HasProvider(caps, "codeLensProvider");
             SupportsDefinition = _staticDefinition || _dynamicCapabilities.Contains("textDocument/definition");
             SupportsReferences = _staticReferences || _dynamicCapabilities.Contains("textDocument/references");
             SupportsRename = _staticRename || _dynamicCapabilities.Contains("textDocument/rename");
@@ -285,6 +295,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
             SupportsCodeActionResolve = _staticCodeActionResolve || _dynamicCodeActionResolve;
             SupportsDocumentFormatting = _staticDocumentFormatting
                                          || _dynamicCapabilities.Contains("textDocument/formatting");
+            SupportsCodeLens = _staticCodeLens || _dynamicCapabilities.Contains("textDocument/codeLens");
 
             // DiagnosticOptions: its mere presence means the server supports pulling.
             if (caps.TryGetProperty("diagnosticProvider", out var diag)

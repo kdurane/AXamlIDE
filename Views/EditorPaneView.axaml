@@ -3,6 +3,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:edit="using:AvaloniaEdit"
     xmlns:editing="using:AvaloniaEdit.Editing"
+    xmlns:codeLens="using:AXamlIDE.Editor.CodeLens"
     xmlns:highlighting="using:AXamlIDE.Editor.Highlighting"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -79,5 +80,54 @@
             PlacementAnchor="BottomLeft"
             PlacementConstraintAdjustment="FlipY, SlideX"
             PlacementGravity="BottomRight" />
+
+        <!--
+            A code lens's references ("3 references" clicked; Editor/CodeLens/CodeLensController fills and places it).
+            Click a line, or Enter, to go there; click outside or Escape to close.
+        -->
+        <Popup
+            IsLightDismissEnabled="True"
+            Name="ReferencesPopup"
+            Placement="AnchorAndGravity"
+            PlacementAnchor="TopLeft"
+            PlacementConstraintAdjustment="FlipY, SlideX"
+            PlacementGravity="BottomRight">
+            <Border
+                Background="{DynamicResource HoverBackgroundBrush}"
+                BorderBrush="{DynamicResource HoverBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="4"
+                TextElement.Foreground="{DynamicResource HoverForegroundBrush}">
+                <DockPanel>
+                    <TextBlock
+                        DockPanel.Dock="Top"
+                        FontWeight="SemiBold"
+                        Margin="8,4,8,6"
+                        Name="ReferencesTitle" />
+                    <ListBox
+                        Background="Transparent"
+                        MaxHeight="320"
+                        MaxWidth="760"
+                        MinWidth="420"
+                        Name="ReferencesList">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="codeLens:ReferenceRow">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock
+                                        Margin="0,0,16,0"
+                                        Opacity="0.75"
+                                        Text="{Binding Place}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Text="{Binding Preview}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Popup>
     </Grid>
 </UserControl>

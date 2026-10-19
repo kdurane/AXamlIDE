@@ -147,17 +147,42 @@ public sealed partial class LspClient
         return ParseLocations(result);
     }
 
+    /// <param name="includeDeclaration">False for usages only (the code lens list), as Visual Studio shows them.</param>
     public async Task<IReadOnlyList<LspLocation>> ReferencesAsync(
-        string uri, int line, int character, CancellationToken ct = default)
+        string uri, int line, int character, CancellationToken ct = default, bool includeDeclaration = true)
     {
         var result = await RequestAsync("textDocument/references", new
         {
             textDocument = new { uri },
             position = new { line, character },
-            context = new { includeDeclaration = true }
+            context = new { includeDeclaration }
         }, ct);
         return ParseLocations(result);
     }
+
+    /// <summary>The document's code lenses (often unresolved: no title yet; see <see cref="ResolveCodeLensAsync"/>).</summary>
+    public async Task<IReadOnlyList<LspCodeLens>> CodeLensAsync(string uri, CancellationToken ct = default)
+    {
+        var result = await RequestAsync("textDocument/codeLens", new { textDocument = new { uri } }, ct);
+        return result.ValueKind == JsonValueKind.Array
+            ? [.. result.EnumerateArray().Where(lens => lens.TryGetProperty("range", out _)).Select(ParseCodeLens)]
+            : [];
+    }
+
+    /// <summary>Fill in a lens's title ("3 references"); the lens unchanged if the server has nothing to add.</summary>
+    public async Task<LspCodeLens> ResolveCodeLensAsync(LspCodeLens lens, CancellationToken ct = default)
+    {
+        if (lens.Title is not null)
+            return lens;
+        var result = await RequestAsync("codeLens/resolve", lens.Raw, ct);
+        return result.ValueKind == JsonValueKind.Object && result.TryGetProperty("range", out _) ? ParseCodeLens(result) : lens;
+    }
+
+    private static LspCodeLens ParseCodeLens(JsonElement lens)
+        => new(
+            ParseRange(lens.GetProperty("range")),
+            lens.TryGetProperty("command", out var command) && command.ValueKind == JsonValueKind.Object ? Str(command, "title") : null,
+            lens.Clone());
 
     public async Task<IReadOnlyList<LspLocation>> WorkspaceSymbolsAsync(
         string query, CancellationToken ct = default)

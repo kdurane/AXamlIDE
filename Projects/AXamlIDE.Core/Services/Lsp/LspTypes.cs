@@ -24,6 +24,11 @@ public sealed record LspDocumentSymbol(
     LspRange Range,
     LspRange SelectionRange,
     string? ContainerName = null);
+/// <summary>
+/// A code lens: a line of text shown above <paramref name="Range"/> ("3 references"). <paramref name="Title"/> is null
+/// until resolved; <paramref name="Raw"/> is the server's object, sent back as-is to resolve it.
+/// </summary>
+public sealed record LspCodeLens(LspRange Range, string? Title, System.Text.Json.JsonElement Raw);
 public sealed record LspHover(string Text, LspRange? Range, bool IsMarkdown);
 public sealed record LspTextEdit(LspRange Range, string NewText);
 public sealed record LspCompletionItem(string Label, int Kind, string? Detail, string? Documentation, string? SortText, string? FilterText, string? InsertText, LspTextEdit? Edit);

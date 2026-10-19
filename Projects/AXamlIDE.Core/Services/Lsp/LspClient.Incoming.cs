@@ -61,6 +61,10 @@ public sealed partial class LspClient
                 DiagnosticRefreshRequested?.Invoke();
                 break;
 
+            case "workspace/codeLens/refresh":
+                CodeLensRefreshRequested?.Invoke();
+                break;
+
             case "workspace/applyEdit":
                 var applied = false;
                 if (WorkspaceEditHandler is { } handler
@@ -97,7 +101,7 @@ public sealed partial class LspClient
             var method = Str(registration, "method");
             if (method is "textDocument/definition" or "textDocument/references"
                 or "textDocument/rename" or "workspace/symbol" or "textDocument/codeAction"
-                or "textDocument/formatting" or "textDocument/documentSymbol")
+                or "textDocument/formatting" or "textDocument/documentSymbol" or "textDocument/codeLens")
             {
                 _dynamicCapabilities.Add(method);
                 SupportsDefinition |= method == "textDocument/definition";
@@ -107,6 +111,7 @@ public sealed partial class LspClient
                 SupportsDocumentSymbols |= method == "textDocument/documentSymbol";
                 SupportsCodeActions |= method == "textDocument/codeAction";
                 SupportsDocumentFormatting |= method == "textDocument/formatting";
+                SupportsCodeLens |= method == "textDocument/codeLens";
                 if (method == "textDocument/codeAction"
                     && registration.TryGetProperty("registerOptions", out var actionOptions)
                     && actionOptions.ValueKind == JsonValueKind.Object)
@@ -157,6 +162,7 @@ public sealed partial class LspClient
         SupportsCodeActionResolve = _staticCodeActionResolve || _dynamicCodeActionResolve;
         SupportsDocumentFormatting = _staticDocumentFormatting
                                      || _dynamicCapabilities.Contains("textDocument/formatting");
+        SupportsCodeLens = _staticCodeLens || _dynamicCapabilities.Contains("textDocument/codeLens");
     }
 
     private void AddDiagnosticIdentifier(string? identifier)
