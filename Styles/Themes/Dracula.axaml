@@ -84,6 +84,8 @@
     <Color x:Key="editorOverviewRuler.border">#4D7F7F7F</Color>   <!-- default -->
     <Color x:Key="editorCursor.foreground">#F8F8F0</Color>
     <Color x:Key="scrollbarSlider.background">#66797979</Color>   <!-- default -->
+    <Color x:Key="scrollbarSlider.hoverBackground">#B3646464</Color>   <!-- default -->
+    <Color x:Key="scrollbarSlider.activeBackground">#66BFBFBF</Color>   <!-- default -->
 
     <!--  Links in the editor text (URLs). Default: a soft blue on dark themes, so it isn't too saturated.  -->
     <Color x:Key="editorLink.activeForeground">#8AB4F8</Color>   <!-- default -->

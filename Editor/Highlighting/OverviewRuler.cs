@@ -13,25 +13,29 @@ using AXamlIDE.Views;
 namespace AXamlIDE.Editor.Highlighting;
 
 /// <summary>
-/// The strip beside the editor's vertical scrollbar that maps the whole file (VS Code's overview ruler):
+/// The editor's vertical scrollbar, with the whole file mapped on it (VS Code's overview ruler):
 ///
-///   ▒   the part of the file on screen
+///   ▒   the thumb: the part of the file on screen (drag it; click elsewhere to jump there)
 ///   ─   the caret line (full width)
 ///   ▌   other occurrences of the selected text (left half)
 ///    ▐  errors, warnings and info (right half; errors drawn last, so on top)
 ///
-/// Click or drag to scroll there; hover a diagnostic mark for its message. Positions follow the editor's own
-/// layout (folded and wrapped lines included). Declared in EditorPaneView.axaml, given the editor by
-/// <see cref="Attach"/>. Colours are the OverviewRuler* brushes (editorOverviewRuler.* theme keys).
+/// The editor's own vertical scrollbar is hidden (Hidden, not Disabled, so the wheel and keyboard still
+/// scroll it). The wheel over this strip scrolls the editor too; hover a diagnostic mark for its message.
+/// Positions follow the editor's own layout (folded and wrapped lines included). Declared in
+/// EditorPaneView.axaml, given the editor by <see cref="Attach"/>. Colours: the OverviewRuler* brushes
+/// (editorOverviewRuler.* and scrollbarSlider.* theme keys).
 /// </summary>
 public sealed class OverviewRuler : Control
 {
     private const double MinMarkHeight = 3;
     private const double MarkHitSlop = 2;
+    private const int WheelLines = 3;
 
     private EditorContext? _ctx;
     private OccurrenceController? _occurrences;
-    private bool _dragging;
+    private double? _grabOffset;   // while dragging the thumb: the pointer's distance below its top
+    private bool _overThumb;
 
     public void Attach(EditorContext ctx, OccurrenceController occurrences)
     {
@@ -68,10 +72,12 @@ public sealed class OverviewRuler : Control
         var textView = ctx.Editor.TextArea.TextView;
         var scale = size.Height / height;
 
-        // The part on screen.
-        if (ThemeBrushes.Get("OverviewRulerViewportBrush") is { } viewport && textView.Bounds.Height < height)
-            context.FillRectangle(viewport, new Rect(1, textView.VerticalOffset * scale, size.Width - 1,
-                Math.Max(MinMarkHeight, textView.Bounds.Height * scale)));
+        // The thumb: the part on screen.
+        var thumbBrush = _grabOffset is not null ? "OverviewRulerViewportActiveBrush"
+            : _overThumb ? "OverviewRulerViewportHoverBrush"
+            : "OverviewRulerViewportBrush";
+        if (ThumbRect(ctx) is { } thumb && ThemeBrushes.Get(thumbBrush) is { } viewport)
+            context.FillRectangle(viewport, thumb);
 
         var half = (size.Width - 1) / 2;
 
@@ -98,12 +104,14 @@ public sealed class OverviewRuler : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
-        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || _ctx is null)
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || _ctx is null || ThumbRect(_ctx) is not { } thumb)
             return;
 
-        _dragging = true;
+        // Grab the thumb where it was pressed; pressed elsewhere, it jumps so its middle is under the pointer.
+        var y = e.GetPosition(this).Y;
+        _grabOffset = y >= thumb.Top && y <= thumb.Bottom ? y - thumb.Top : thumb.Height / 2;
         e.Pointer.Capture(this);
-        ScrollTo(e.GetPosition(this).Y);
+        MoveThumbTo(y - _grabOffset.Value);
         e.Handled = true;
     }
 
@@ -111,37 +119,90 @@ public sealed class OverviewRuler : Control
     {
         base.OnPointerMoved(e);
         var y = e.GetPosition(this).Y;
-        if (_dragging)
-            ScrollTo(y);
-        else
-            ToolTip.SetTip(this, DiagnosticsTextAt(y));
+        if (_grabOffset is { } grab)
+        {
+            MoveThumbTo(y - grab);
+            return;
+        }
+
+        var overThumb = _ctx is not null && ThumbRect(_ctx) is { } thumb && y >= thumb.Top && y <= thumb.Bottom;
+        if (overThumb != _overThumb)
+        {
+            _overThumb = overThumb;
+            InvalidateVisual();
+        }
+        ToolTip.SetTip(this, DiagnosticsTextAt(y));
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (!_overThumb)
+            return;
+        _overThumb = false;
+        InvalidateVisual();
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
-        _dragging = false;
+        EndDrag();
         e.Pointer.Capture(null);
     }
 
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
-        _dragging = false;
+        EndDrag();
     }
 
-    /// <summary>Scroll so the point of the file under <paramref name="y"/> is in the middle of the editor.</summary>
-    private void ScrollTo(double y)
+    /// <summary>The wheel over the scrollbar scrolls the editor, as over any scrollbar.</summary>
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        if (_ctx is not { } ctx)
+            return;
+
+        var editor = ctx.Editor;
+        var step = editor.TextArea.TextView.DefaultLineHeight * WheelLines;
+        ScrollEditorTo(ctx, editor.VerticalOffset - e.Delta.Y * step);
+        e.Handled = true;
+    }
+
+    private void EndDrag()
+    {
+        if (_grabOffset is null)
+            return;
+        _grabOffset = null;
+        InvalidateVisual();
+    }
+
+    /// <summary>Scroll so the thumb's top is at <paramref name="thumbTop"/>.</summary>
+    private void MoveThumbTo(double thumbTop)
     {
         if (_ctx is not { } ctx)
             return;
         var height = DocumentHeight(ctx);
-        if (height <= 0)
-            return;
+        if (height > 0)
+            ScrollEditorTo(ctx, thumbTop / Bounds.Height * height);
+    }
 
+    private static void ScrollEditorTo(EditorContext ctx, double offset)
+    {
+        var maximum = Math.Max(0, DocumentHeight(ctx) - ctx.Editor.TextArea.TextView.Bounds.Height);
+        ctx.Editor.ScrollToOffset(ctx.Editor.HorizontalOffset, Math.Clamp(offset, 0, maximum));
+    }
+
+    /// <summary>Where the thumb is, or null when the whole file fits on screen (nothing to scroll).</summary>
+    private Rect? ThumbRect(EditorContext ctx)
+    {
+        var height = DocumentHeight(ctx);
         var textView = ctx.Editor.TextArea.TextView;
-        var target = y / Bounds.Height * height - textView.Bounds.Height / 2;
-        ctx.Editor.ScrollToOffset(ctx.Editor.HorizontalOffset, Math.Clamp(target, 0, Math.Max(0, height - textView.Bounds.Height)));
+        if (height <= 0 || textView.Bounds.Height >= height)
+            return null;
+
+        var scale = Bounds.Height / height;
+        return new Rect(1, textView.VerticalOffset * scale, Bounds.Width - 1, Math.Max(MinMarkHeight * 4, textView.Bounds.Height * scale));
     }
 
     /// <summary>The messages of the diagnostics marked under <paramref name="y"/>, or null.</summary>

@@ -16,7 +16,7 @@
             Margin="0"
             Name="Editor"
             ShowLineNumbers="True"
-            VerticalScrollBarVisibility="Visible">
+            VerticalScrollBarVisibility="Hidden">
             <edit:TextEditor.ContextFlyout>
                 <MenuFlyout Opening="OnContextMenuOpening">
                     <MenuItem
@@ -57,11 +57,14 @@
             </edit:TextEditor.Styles>
         </edit:TextEditor>
 
-        <!--  The whole file at a glance beside the scrollbar: diagnostics, occurrences, caret (Editor/Highlighting/OverviewRuler).  -->
+        <!--
+            The vertical scrollbar, with the whole file mapped on it: diagnostics, occurrences, caret
+            (Editor/Highlighting/OverviewRuler). The editor's own one is Hidden (not Disabled: that stops scrolling).
+        -->
         <highlighting:OverviewRuler
             Grid.Column="1"
             Name="OverviewRuler"
-            Width="12" />
+            Width="14" />
 
         <!--
             The hover card (Editor/Hover/HoverController fills and places it). A popup has to be in the tree to open.

@@ -164,6 +164,8 @@
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.border}" x:Key="OverviewRulerBorderBrush" />
     <SolidColorBrush Color="{DynamicResource editorCursor.foreground}" x:Key="OverviewRulerCaretBrush" />
     <SolidColorBrush Color="{DynamicResource scrollbarSlider.background}" x:Key="OverviewRulerViewportBrush" />
+    <SolidColorBrush Color="{DynamicResource scrollbarSlider.hoverBackground}" x:Key="OverviewRulerViewportHoverBrush" />
+    <SolidColorBrush Color="{DynamicResource scrollbarSlider.activeBackground}" x:Key="OverviewRulerViewportActiveBrush" />
 
     <!--  Run and debug buttons (the toolbar's play/stop, the debug toolbar)  -->
     <SolidColorBrush Color="{DynamicResource debugIcon.startForeground}" x:Key="DebugStartBrush" />
