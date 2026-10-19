@@ -57,6 +57,8 @@ public static class SolutionLoader
             if (!relativePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
                 return;
 
+            // .sln files (written on Windows) separate folders with '\', which isn't a separator on Linux/macOS.
+            relativePath = relativePath.Replace('\\', Path.DirectorySeparatorChar);
             var fullPath = Path.GetFullPath(Path.Combine(solutionDir, relativePath));
             if (File.Exists(fullPath) && projectPaths.Add(fullPath))
                 projects.Add((name, fullPath));

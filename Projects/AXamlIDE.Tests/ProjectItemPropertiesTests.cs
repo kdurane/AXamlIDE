@@ -87,7 +87,7 @@ public sealed class ProjectItemPropertiesTests : IDisposable
     }
 
     /// <summary>The host built next to this project: Projects/AXamlIDE.msbuildhost/bin/&lt;config&gt;/&lt;tfm&gt;/.</summary>
-    private static string HostPath()
+    internal static string HostPath()
     {
         var testOutput = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar));
         var (framework, configuration) = (testOutput.Name, testOutput.Parent!.Name);
