@@ -54,6 +54,7 @@ public partial class EditorPaneView : UserControl,
     private BreakpointMargin? _breakpointMargin;
     private TextMateController _textMateController = null!;
     private FoldingController _folding = null!;
+    private WhitespaceSelectionController _whitespaceSelection = null!;
     private OccurrenceController _occurrences = null!;
     private TypingController _typing = null!;
     private HoverController _hover = null!;
@@ -136,6 +137,7 @@ public partial class EditorPaneView : UserControl,
         _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots);
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
+        _whitespaceSelection = new WhitespaceSelectionController(_ctx);
 
         _textMate = Editor.InstallTextMate(registryOptions);
         _textMateController = new TextMateController(_ctx, _textMate, registryOptions, _breakpointMargin);
@@ -212,8 +214,7 @@ public partial class EditorPaneView : UserControl,
                 return;
             }
 
-            Editor.ScrollToVerticalOffset(doc.VerticalOffset);
-            Editor.ScrollToHorizontalOffset(doc.HorizontalOffset);
+            Editor.ScrollToOffset(doc.HorizontalOffset, doc.VerticalOffset);
         }, DispatcherPriority.Loaded);
 
         if (ReferenceEquals(doc, _services.Documents.Active))
@@ -241,8 +242,7 @@ public partial class EditorPaneView : UserControl,
             return;
         }
 
-        Editor.ScrollToVerticalOffset(document.VerticalOffset);
-        Editor.ScrollToHorizontalOffset(document.HorizontalOffset);
+        Editor.ScrollToOffset(document.HorizontalOffset, document.VerticalOffset);
     }
 
     // ------------------------------------------------------ reveal (navigation)
