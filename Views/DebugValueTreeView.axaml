@@ -128,35 +128,38 @@
                 <DataTemplate x:DataType="vm:DebugValueNode">
                     <Grid ColumnDefinitions="Auto,*,Auto" Height="22">
                         <!--  Name, indented; the expander or a gap where it would be.  -->
-                        <!--  The indent is inside the column, so the Value column lines up at every depth.  -->
-                        <Border Width="{Binding $parent[local:DebugValueTreeView].NameColumnWidth}">
-                        <StackPanel
-                            Margin="{Binding Level, Converter={x:Static local:DebugConverters.Indent}}"
-                            Orientation="Horizontal">
-                            <Button
-                                Background="Transparent"
-                                BorderThickness="0"
-                                Command="{Binding ToggleCommand}"
-                                Focusable="False"
-                                Height="18"
-                                IsVisible="{Binding HasChildren}"
-                                Padding="0"
-                                VerticalAlignment="Center"
-                                Width="16">
-                                <PathIcon
-                                    Data="{Binding IsExpanded, Converter={x:Static local:DebugConverters.Chevron}}"
-                                    Height="12"
-                                    Width="12" />
-                            </Button>
-                            <Panel IsVisible="{Binding !HasChildren}" Width="16" />
-                            <TextBlock
-                                Classes="name"
-                                Classes.group="{Binding IsGroup}"
-                                Classes.more="{Binding IsMore}"
-                                Text="{Binding Name}"
-                                TextTrimming="CharacterEllipsis"
-                                VerticalAlignment="Center" />
-                        </StackPanel>
+                        <!--
+                            The indent is inside the column, so the Value column lines up at every depth. A DockPanel (not a
+                            StackPanel, which never trims) so a long name is cut with "..." instead of running into the value.
+                        -->
+                        <Border ClipToBounds="True" Width="{Binding $parent[local:DebugValueTreeView].NameColumnWidth}">
+                            <DockPanel Margin="{Binding Level, Converter={x:Static local:DebugConverters.Indent}}">
+                                <Panel DockPanel.Dock="Left" Width="16">
+                                    <Button
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Command="{Binding ToggleCommand}"
+                                        Focusable="False"
+                                        Height="18"
+                                        IsVisible="{Binding HasChildren}"
+                                        Padding="0"
+                                        VerticalAlignment="Center"
+                                        Width="16">
+                                        <PathIcon
+                                            Data="{Binding IsExpanded, Converter={x:Static local:DebugConverters.Chevron}}"
+                                            Height="12"
+                                            Width="12" />
+                                    </Button>
+                                </Panel>
+                                <TextBlock
+                                    Classes="name"
+                                    Classes.group="{Binding IsGroup}"
+                                    Classes.more="{Binding IsMore}"
+                                    Text="{Binding Name}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTip.Tip="{Binding Name}"
+                                    VerticalAlignment="Center" />
+                            </DockPanel>
                         </Border>
 
                         <!--  Value: text, or the editor while editing; the magnifier opens a visualizer.  -->

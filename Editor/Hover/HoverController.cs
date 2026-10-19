@@ -174,14 +174,14 @@ public sealed class HoverController
         var cts = _hoverCts = new CancellationTokenSource();
 
         // Paused in the debugger: the value of the expression under the pointer (Visual Studio's DataTip).
-        if (await _dataTips.CreateAsync(document, offset) is { } dataTip)
+        if (await _dataTips.CreateAsync(document, offset, _ctx.Editor.FontSize, () => Hide(resetOffset: true)) is { } dataTip)
         {
             if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
                 return;
             ShowCard(dataTip.View, dataTip.Range, dataTip.AnchorOffset);
             _hideTimer.Interval = DataTipHideDelay;
             // Expanding is using it; and the popup has to grow with it.
-            dataTip.Tree.Rows.CollectionChanged += (_, _) =>
+            dataTip.Tree?.Rows.CollectionChanged += (_, _) =>
             {
                 if (!ReferenceEquals(_card, dataTip.View))
                     return;

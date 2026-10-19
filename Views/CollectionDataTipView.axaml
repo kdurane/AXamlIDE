@@ -1,0 +1,49 @@
+<!--
+    The DataTip for a collection (CollectionDataTip): its count, what it holds, and a button for the table visualizer
+    instead of a list of rows.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.CollectionDataTipView"
+    x:DataType="vm:CollectionDataTip"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Classes="dataTip">
+        <StackPanel
+            Margin="6,3"
+            Orientation="Horizontal"
+            Spacing="12">
+            <TextBlock
+                Foreground="{DynamicResource DebugNameBrush}"
+                Text="{Binding Name}"
+                VerticalAlignment="Center" />
+            <TextBlock
+                Foreground="{DynamicResource DebugValueBrush}"
+                Text="{Binding CountText}"
+                VerticalAlignment="Center" />
+            <TextBlock
+                Opacity="0.75"
+                Text="{Binding Description}"
+                ToolTip.Tip="{Binding TypeText}"
+                VerticalAlignment="Center" />
+            <Button
+                Command="{Binding VisualizeCommand}"
+                Padding="8,2"
+                ToolTip.Tip="Open the items as a table">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon
+                        Data="{StaticResource Icon.Table}"
+                        Height="14"
+                        Width="14" />
+                    <TextBlock Text="Visualize in table" />
+                </StackPanel>
+            </Button>
+            <Button
+                Command="{Binding AddWatchCommand}"
+                Padding="8,2"
+                ToolTip.Tip="Add to the Watch window">
+                Watch
+            </Button>
+        </StackPanel>
+    </Border>
+</UserControl>

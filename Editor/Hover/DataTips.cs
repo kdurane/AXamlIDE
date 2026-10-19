@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -15,7 +16,8 @@ namespace AXamlIDE.Editor.Hover;
 
 /// <summary>A DataTip ready to show: its view, the text it's about, where to place it, and its rows.</summary>
 /// <param name="AnchorOffset">The start of the word under the pointer (the tip opens under it).</param>
-public sealed record DataTip(Control View, (int Start, int End) Range, int AnchorOffset, DebugValueTree Tree);
+/// <param name="Tree">The tip's rows (null for a collection's tip, which has none).</param>
+public sealed record DataTip(Control View, (int Start, int End) Range, int AnchorOffset, DebugValueTree? Tree);
 
 /// <summary>
 /// Visual Studio's DataTips: while the debugger is paused, hovering an expression in C# (a variable, person.Home,
@@ -27,11 +29,14 @@ public sealed class DataTips(DebugSnapshotTracker debug, IMessenger messenger, I
 {
     private const double RowHeight = 22;     // DebugValueTreeView's rows
     private const double MaxHeight = 420;
+    private const double MaxWidth = 1200;
 
     private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_' || c == '@';
 
     /// <summary>The DataTip for the expression at <paramref name="offset"/>, or null (not paused, nothing to evaluate).</summary>
-    public async Task<DataTip?> CreateAsync(OpenDocument document, int offset)
+    /// <param name="fontSize">The editor's; the tip uses a point less.</param>
+    /// <param name="close">Closes the tip (after "Visualize in table").</param>
+    public async Task<DataTip?> CreateAsync(OpenDocument document, int offset, double fontSize, Action close)
     {
         if (debug.Values is not { } values || document.LanguageId != LanguageIds.CSharp)
             return null;
@@ -52,6 +57,23 @@ public sealed class DataTips(DebugSnapshotTracker debug, IMessenger messenger, I
         if (value.Kind == DebugValueKind.Error || !ReferenceEquals(values, debug.Values))
             return null;
 
+        var start = line.Offset + found.Start;
+        var word = offset;
+        while (word > start && IsIdentifierChar(document.Document.GetCharAt(word - 1)))
+            word--;
+        var range = (start, start + found.Length);
+
+        // A collection: its count and what it holds, and the table visualizer; no rows (slow, and unreadable here).
+        if (value.Kind == DebugValueKind.Collection)
+        {
+            var card = new CollectionDataTipView
+            {
+                DataContext = new CollectionDataTip(value, values, messenger, close),
+                FontSize = Math.Max(fontSize - 1, 10)
+            };
+            return new DataTip(card, range, word, null);
+        }
+
         var tree = new DebugValueTree(messenger, clipboard);
         await tree.SetRootsAsync([value], values, markChanges: false);
         var treeView = new DebugValueTreeView
@@ -60,22 +82,24 @@ public sealed class DataTips(DebugSnapshotTracker debug, IMessenger messenger, I
             ShowHeader = false,
             ShowTypeColumn = false,
             IsEditable = false,
-            NameColumnWidth = Math.Clamp(found.Expression.Length * 8 + 40, 100, 260),
+            FontSize = Math.Max(fontSize - 1, 10),
             MinWidth = 320,
-            MaxWidth = 760,
+            MaxWidth = MaxWidth,
             HorizontalAlignment = HorizontalAlignment.Left
         };
         // A virtualizing list measured in a popup doesn't ask for more room as rows are added, so size it from
-        // the rows: the tip grows (up to a limit, then scrolls) as it's expanded.
-        void Fit() => treeView.Height = Math.Min(tree.Rows.Count * RowHeight + 6, MaxHeight);
+        // the rows: the tip grows (up to a limit, then scrolls) as it's expanded, and the names get the room they need.
+        var charWidth = treeView.FontSize * 0.6;
+        void Fit()
+        {
+            treeView.Height = Math.Min(tree.Rows.Count * RowHeight + 6, MaxHeight);
+            var widest = tree.Rows.Count == 0 ? 0 : tree.Rows.Max(row => row.Level * 14 + 20 + row.Name.Length * charWidth);
+            treeView.NameColumnWidth = Math.Clamp(widest + 8, 100, 420);
+        }
         tree.Rows.CollectionChanged += (_, _) => Fit();
         Fit();
 
         var view = new Border { Classes = { "dataTip" }, Child = treeView };
-        var start = line.Offset + found.Start;
-        var word = offset;
-        while (word > start && IsIdentifierChar(document.Document.GetCharAt(word - 1)))
-            word--;
-        return new DataTip(view, (start, start + found.Length), word, tree);
+        return new DataTip(view, range, word, tree);
     }
 }
