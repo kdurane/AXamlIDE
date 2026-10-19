@@ -193,6 +193,54 @@ public sealed class DockFactory : Factory
         AddDockable(home.Dock, tool);
     }
 
+    // ------------------------------------------------------------- the explorer column
+
+    /// <summary>The explorer column (Explorer, Git, Properties and whatever else is docked there) is showing.</summary>
+    public bool IsExplorerColumnShown => IsInLayout(ExplorerColumn);
+
+    /// <summary>The explorer column has at least one tool in it.</summary>
+    public bool ExplorerColumnHasTools => Descendants(ExplorerColumn).Any(dockable => dockable is ITool);
+
+    /// <summary>
+    /// Take the whole explorer column out of the main row (VS Code's "toggle side bar"). The column keeps its
+    /// tabs, selection and sizes, so <see cref="ShowExplorerColumn"/> brings it back as it was.
+    /// </summary>
+    public void HideExplorerColumn()
+    {
+        if (MainRow.VisibleDockables is not { } row)
+            return;
+        var index = row.IndexOf(ExplorerColumn);
+        if (index < 0)
+            return;
+
+        row.RemoveAt(index);
+        // The splitter that was between it and the centre.
+        var splitterIndex = _explorerOnRight ? index - 1 : index;
+        if (splitterIndex >= 0 && splitterIndex < row.Count && row[splitterIndex] is IProportionalDockSplitter)
+            row.RemoveAt(splitterIndex);
+    }
+
+    /// <summary>Put the explorer column back on its side of the main row.</summary>
+    public void ShowExplorerColumn()
+    {
+        if (IsExplorerColumnShown || MainRow.VisibleDockables is not { } row)
+            return;
+
+        if (_explorerOnRight)
+        {
+            InsertDockable(MainRow, new ProportionalDockSplitter(), row.Count);
+            InsertDockable(MainRow, ExplorerColumn, row.Count);
+        }
+        else
+        {
+            InsertDockable(MainRow, ExplorerColumn, 0);
+            InsertDockable(MainRow, new ProportionalDockSplitter(), 1);
+        }
+    }
+
+    private static IEnumerable<IDockable> Descendants(IDock dock)
+        => (dock.VisibleDockables ?? []).SelectMany(child => child is IDock inner ? [child, .. Descendants(inner)] : new[] { child });
+
     /// <summary>
     /// Mirror the top-level row, so the explorer (and anything else docked beside it) swaps sides.
     /// Only done while the explorer's dock is still in that row.

@@ -121,13 +121,20 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
     /// <summary>Whether a tool panel is showing (in a window that's open).</summary>
     public bool IsToolShown(string id) => _factory.Tools.TryGetValue(id, out var tool) && _factory.IsInLayout(tool);
 
-    /// <summary>Show the explorer (where it was), or take it out of the layout.</summary>
+    /// <summary>
+    /// The activity bar's explorer button: hide or show the whole explorer column (Explorer, Git, Properties...),
+    /// as it was. If nothing is left in the column, showing it brings the Explorer back.
+    /// </summary>
     public void ToggleExplorer()
     {
-        var explorer = _factory.Tools[ToolTab.Explorer];
-        if (_factory.IsInLayout(explorer))
-            _factory.RemoveDockable(explorer, collapse: true);
-        else
+        if (_factory.IsExplorerColumnShown && _factory.ExplorerColumnHasTools)
+        {
+            _factory.HideExplorerColumn();
+            return;
+        }
+
+        _factory.ShowExplorerColumn();
+        if (!_factory.ExplorerColumnHasTools)
             ShowTool(ToolTab.Explorer);
     }
 
