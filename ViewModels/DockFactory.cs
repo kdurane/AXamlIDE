@@ -98,8 +98,7 @@ public sealed class DockFactory : Factory
     public override IDockWindow? CreateWindowFrom(IDockable dockable)
     {
         var window = base.CreateWindowFrom(dockable);
-        if (window is not null)
-            window.Title = dockable is ToolDockable tool ? tool.Title ?? "AXamlIDE" : "AXamlIDE";
+        window?.Title = dockable is ToolDockable tool ? tool.Title ?? "AXamlIDE" : "AXamlIDE";
         return window;
     }
 
