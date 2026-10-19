@@ -4,8 +4,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using AvaloniaEdit.Document;
@@ -231,41 +229,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         IsMessageVisible = true;
     }
 
-    private string GetPreviewXaml(string xaml)
-    {
-        var theme = SelectedTheme;
-        if (theme is not ("Light" or "Dark"))
-            return xaml;
-
-        XDocument document;
-        try
-        {
-            document = XDocument.Parse(xaml, LoadOptions.PreserveWhitespace);
-        }
-        catch (XmlException)
-        {
-            return xaml;
-        }
-
-        if (document.Root is not { } root)
-            return xaml;
-
-        if (root.Name.LocalName is "Window" or "Application" or "ThemeVariantScope")
-        {
-            root.SetAttributeValue("RequestedThemeVariant", theme);
-        }
-        else
-        {
-            XNamespace avaloniaNamespace = "https://github.com/avaloniaui";
-            var themeScope = new XElement(
-                avaloniaNamespace + "ThemeVariantScope",
-                new XAttribute("RequestedThemeVariant", theme),
-                root);
-            root.ReplaceWith(themeScope);
-        }
-
-        return document.ToString(SaveOptions.DisableFormatting);
-    }
+    private string GetPreviewXaml(string xaml) => PreviewThemeVariant.Apply(xaml, SelectedTheme);
 
     /// <summary>
     /// Send the document to the designer host (starting it first if needed). One at a time: a request
