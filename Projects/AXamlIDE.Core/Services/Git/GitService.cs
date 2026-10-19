@@ -58,9 +58,71 @@ public sealed class GitService
             await RunAsync(repositoryRoot, ["rm", "--cached", "-r", "-q", "--", .. paths]);   // nothing to restore from yet
     }
 
-    /// <summary>Commit what is staged.</summary>
-    public Task CommitAsync(string repositoryRoot, string message)
-        => RunAsync(repositoryRoot, ["commit", "-q", "-m", message]);
+    /// <summary>Commit what is staged. With <paramref name="amend"/>, replace the last commit instead (an empty message keeps its message).</summary>
+    public Task CommitAsync(string repositoryRoot, string message, bool amend = false)
+        => RunAsync(repositoryRoot, amend
+            ? message.Length == 0 ? ["commit", "-q", "--amend", "--no-edit"] : ["commit", "-q", "--amend", "-m", message]
+            : ["commit", "-q", "-m", message]);
+
+    /// <summary>Throw away the changes to tracked files (staged and not). New files are left alone.</summary>
+    public async Task DiscardTrackedChangesAsync(string repositoryRoot, IEnumerable<string>? fullPaths = null)
+    {
+        var paths = fullPaths?.ToList() is { Count: > 0 } list ? list : ["."];
+        if (await HasCommitsAsync(repositoryRoot))
+            await RunAsync(repositoryRoot, ["restore", "--staged", "--worktree", "--", .. paths]);
+    }
+
+    // ------------------------------------------------------------- remotes: pull, push, fetch
+
+    /// <summary>Pull the current branch (merging or rebasing as the user's git config says).</summary>
+    public Task PullAsync(string repositoryRoot) => RunAsync(repositoryRoot, ["pull", "--no-edit"]);
+
+    /// <summary>
+    /// Push the current branch. A branch with no upstream is published to <paramref name="remoteForNewBranch"/>
+    /// (and tracks it from then on), as VS Code's "Publish Branch" does.
+    /// </summary>
+    public Task PushAsync(string repositoryRoot, bool hasUpstream, string? remoteForNewBranch)
+        => hasUpstream || remoteForNewBranch is null
+            ? RunAsync(repositoryRoot, ["push"])
+            : RunAsync(repositoryRoot, ["push", "--set-upstream", remoteForNewBranch, "HEAD"]);
+
+    public Task FetchAsync(string repositoryRoot) => RunAsync(repositoryRoot, ["fetch", "--all", "--prune"]);
+
+    public async Task<IReadOnlyList<string>> GetRemotesAsync(string repositoryRoot)
+        => (await RunAsync(repositoryRoot, ["remote"])).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    public Task AddRemoteAsync(string repositoryRoot, string name, string url)
+        => RunAsync(repositoryRoot, ["remote", "add", name, url]);
+
+    // ------------------------------------------------------------- branches and stashes
+
+    /// <summary>Local branches, then remote ones ("origin/feature"); HEAD aliases are left out.</summary>
+    public async Task<IReadOnlyList<string>> GetBranchesAsync(string repositoryRoot)
+    {
+        var output = await RunAsync(repositoryRoot,
+            ["for-each-ref", "--format=%(refname:short)%09%(symref)", "refs/heads", "refs/remotes"]);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Split('\t'))
+            .Where(fields => fields.Length < 2 || fields[1].Length == 0)   // skip origin/HEAD -> origin/main
+            .Select(fields => fields[0])
+            .ToList();
+    }
+
+    /// <summary>Switch to a branch; a remote one ("origin/feature") gets a local branch that tracks it.</summary>
+    public async Task SwitchBranchAsync(string repositoryRoot, string branch)
+    {
+        var remotes = await GetRemotesAsync(repositoryRoot);
+        var isRemote = remotes.Any(remote => branch.StartsWith(remote + "/", StringComparison.Ordinal));
+        await RunAsync(repositoryRoot, isRemote ? ["switch", "--track", branch] : ["switch", branch]);
+    }
+
+    public Task CreateBranchAsync(string repositoryRoot, string name) => RunAsync(repositoryRoot, ["switch", "-c", name]);
+
+    /// <summary>Put all changes (new files too) aside.</summary>
+    public Task StashAsync(string repositoryRoot) => RunAsync(repositoryRoot, ["stash", "push", "--include-untracked"]);
+
+    /// <summary>Bring back the latest stash.</summary>
+    public Task PopStashAsync(string repositoryRoot) => RunAsync(repositoryRoot, ["stash", "pop"]);
 
     // ------------------------------------------------------------- .gitignore
 

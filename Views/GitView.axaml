@@ -102,9 +102,9 @@
 
     <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,Auto,*">
 
-        <!--  Branch + refresh  -->
+        <!--  Branch, refresh, and "..." for everything else (kept in a menu so nothing is clicked by mistake)  -->
         <Grid
-            ColumnDefinitions="Auto,*,Auto"
+            ColumnDefinitions="Auto,*,Auto,Auto"
             IsVisible="{Binding IsRepository}"
             Margin="8,4,4,4">
             <PathIcon
@@ -123,6 +123,40 @@
                 Grid.Column="2"
                 ToolTip.Tip="Refresh">
                 <PathIcon Data="{DynamicResource Icon.Sync}" />
+            </Button>
+            <Button
+                Classes="icon"
+                Grid.Column="3"
+                ToolTip.Tip="More actions">
+                <PathIcon Data="{DynamicResource Icon.DotsHorizontal}" />
+                <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem Command="{Binding PullCommand}" Header="Pull" />
+                        <MenuItem Command="{Binding PushCommand}" Header="{Binding PushHeader}" />
+                        <MenuItem Command="{Binding FetchCommand}" Header="Fetch" />
+                        <MenuItem Command="{Binding SyncCommand}" Header="Sync (Pull, then Push)" />
+                        <Separator />
+                        <MenuItem Command="{Binding CommitCommand}" Header="Commit Staged" InputGesture="Ctrl+Enter" />
+                        <MenuItem Command="{Binding CommitAllCommand}" Header="Commit All" />
+                        <MenuItem Command="{Binding AmendCommand}" Header="Amend Last Commit..." />
+                        <Separator />
+                        <MenuItem Command="{Binding StageAllCommand}" Header="Stage All Changes" />
+                        <MenuItem Command="{Binding UnstageAllCommand}" Header="Unstage All" />
+                        <MenuItem Command="{Binding DiscardAllCommand}" Header="Discard All Changes..." />
+                        <Separator />
+                        <MenuItem Header="Branch">
+                            <MenuItem Command="{Binding NewBranchCommand}" Header="New Branch..." />
+                            <MenuItem Command="{Binding SwitchBranchCommand}" Header="Switch Branch..." />
+                        </MenuItem>
+                        <MenuItem Header="Stash">
+                            <MenuItem Command="{Binding StashCommand}" Header="Stash Changes" />
+                            <MenuItem Command="{Binding PopStashCommand}" Header="Pop Latest Stash" />
+                        </MenuItem>
+                        <MenuItem Header="Remote">
+                            <MenuItem Command="{Binding AddRemoteCommand}" Header="Add Remote..." />
+                        </MenuItem>
+                    </MenuFlyout>
+                </Button.Flyout>
             </Button>
         </Grid>
 

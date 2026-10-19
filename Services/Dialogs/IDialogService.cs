@@ -15,13 +15,19 @@ public interface IDialogService
 {
     // Prompts
     Task<SaveChoice> AskSaveAsync(OpenDocument doc);
-    Task<string?> PromptForTextAsync(string title, string placeholder);
+    /// <summary>A one-line text box; null if cancelled.</summary>
+    Task<string?> PromptForTextAsync(string title, string placeholder, string acceptText = "OK", string initialText = "");
+
+    /// <summary>A yes/no question; true if the user chose <paramref name="confirmText"/>.</summary>
+    Task<bool> ConfirmAsync(string title, string message, string confirmText);
     Task<bool> ConfirmRenameAsync(IReadOnlyDictionary<string, List<(LspRange Range, string NewText)>> changes);
     Task<bool> ConfirmWorkspaceReplaceAsync(WorkspaceReplacePlan plan);
 
     // Pickers
     Task<string?> ShowQuickOpenDialogAsync(IReadOnlyList<string> files);
     Task<LspLocation?> PickLocationAsync(string title, IReadOnlyList<LspLocation> locations, Func<LspLocation, string> display);
+    /// <summary>Pick one of <paramref name="items"/>; null if cancelled.</summary>
+    Task<string?> PickAsync(string title, string prompt, IReadOnlyList<string> items);
     Task<string?> PickFolderAsync();
     Task<string?> PickSolutionAsync();
 

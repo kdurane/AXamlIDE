@@ -57,7 +57,7 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
             return;
         }
 
-        var query = await dialogs.PromptForTextAsync("Go to Symbol", "Search types and members...");
+        var query = await dialogs.PromptForTextAsync("Go to Symbol", "Search types and members...", "Search");
         if (string.IsNullOrWhiteSpace(query))
             return;
 
@@ -191,7 +191,7 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
             return;
         }
 
-        var newName = await dialogs.PromptForTextAsync("Rename Symbol", "Enter the new symbol name...");
+        var newName = await dialogs.PromptForTextAsync("Rename Symbol", "Enter the new symbol name...", "Rename");
         if (string.IsNullOrWhiteSpace(newName))
             return;
 

@@ -130,19 +130,103 @@ public sealed class GitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Publish_push_and_pull_through_a_remote()
+    {
+        using var remote = new TempWorkspace();
+        GitIn(remote.Root, "init", "-q", "--bare", "-b", "main");
+        Git("remote", "add", "origin", remote.Root);
+        var file = _workspace.Write("A.cs", "one");
+        await _git.StageAsync(_workspace.Root, [file]);
+        await _git.CommitAsync(_workspace.Root, "First");
+
+        Assert.Equal(["origin"], await _git.GetRemotesAsync(_workspace.Root));
+        await _git.PushAsync(_workspace.Root, hasUpstream: false, remoteForNewBranch: "origin");   // publish
+        var status = await _git.GetStatusAsync(_workspace.Root);
+        Assert.Equal("origin/main", status.Upstream);
+        Assert.Equal(0, status.Ahead);
+
+        // Someone else pushes; we fetch (behind 1) and pull.
+        using var other = new TempWorkspace();
+        GitIn(other.Root, "clone", "-q", remote.Root, ".");
+        GitIn(other.Root, "-c", "user.name=O", "-c", "user.email=o@example.com", "commit", "-q", "--allow-empty", "-m", "Theirs");
+        GitIn(other.Root, "push", "-q");
+
+        await _git.FetchAsync(_workspace.Root);
+        Assert.Equal(1, (await _git.GetStatusAsync(_workspace.Root)).Behind);
+        await _git.PullAsync(_workspace.Root);
+        Assert.Equal(0, (await _git.GetStatusAsync(_workspace.Root)).Behind);
+    }
+
+    [Fact]
+    public async Task Branches_switch_and_create()
+    {
+        await CommitFileAsync("A.cs", "one");
+
+        await _git.CreateBranchAsync(_workspace.Root, "feature");
+        Assert.Equal("feature", (await _git.GetStatusAsync(_workspace.Root)).Branch);
+        Assert.Equal(["feature", "main"], await _git.GetBranchesAsync(_workspace.Root));
+
+        await _git.SwitchBranchAsync(_workspace.Root, "main");
+        Assert.Equal("main", (await _git.GetStatusAsync(_workspace.Root)).Branch);
+    }
+
+    [Fact]
+    public async Task Stash_and_pop_keep_new_files()
+    {
+        await CommitFileAsync("A.cs", "one");
+        var added = _workspace.Write("New.cs", "new");
+
+        await _git.StashAsync(_workspace.Root);
+        Assert.False(File.Exists(added));
+        await _git.PopStashAsync(_workspace.Root);
+        Assert.True(File.Exists(added));
+    }
+
+    [Fact]
+    public async Task Discard_resets_tracked_files_only_and_amend_keeps_one_commit()
+    {
+        var file = await CommitFileAsync("A.cs", "one");
+        File.WriteAllText(file, "changed");
+        var added = _workspace.Write("New.cs", "new");
+
+        await _git.DiscardTrackedChangesAsync(_workspace.Root);
+        Assert.Equal("one", File.ReadAllText(file));
+        Assert.True(File.Exists(added));
+
+        await _git.StageAsync(_workspace.Root, [added]);
+        await _git.CommitAsync(_workspace.Root, "", amend: true);
+        Assert.Empty((await _git.GetStatusAsync(_workspace.Root)).Changes);
+        Assert.Equal("1", GitOutput("rev-list", "--count", "HEAD").Trim());
+    }
+
+    private async Task<string> CommitFileAsync(string name, string text)
+    {
+        var file = _workspace.Write(name, text);
+        await _git.StageAsync(_workspace.Root, [file]);
+        await _git.CommitAsync(_workspace.Root, "Add " + name);
+        return file;
+    }
+
+    [Fact]
     public async Task Failures_carry_gits_message()
     {
         var error = await Assert.ThrowsAsync<GitException>(() => _git.CommitAsync(_workspace.Root, "Nothing staged"));
         Assert.False(string.IsNullOrWhiteSpace(error.Message));
     }
 
-    private void Git(params string[] arguments)
+    private void Git(params string[] arguments) => GitIn(_workspace.Root, arguments);
+
+    private string GitOutput(params string[] arguments) => GitIn(_workspace.Root, arguments);
+
+    private static string GitIn(string directory, params string[] arguments)
     {
-        var info = new ProcessStartInfo("git") { WorkingDirectory = _workspace.Root, RedirectStandardOutput = true, RedirectStandardError = true };
+        var info = new ProcessStartInfo("git") { WorkingDirectory = directory, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var argument in arguments)
             info.ArgumentList.Add(argument);
         using var process = Process.Start(info)!;
+        var output = process.StandardOutput.ReadToEnd();
         process.WaitForExit();
         Assert.True(process.ExitCode == 0, process.StandardError.ReadToEnd());
+        return output;
     }
 }

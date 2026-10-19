@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Git;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -42,6 +43,7 @@ public sealed partial class GitViewModel : ObservableObject
     private readonly GitService _git;
     private readonly IDocumentHost _documents;
     private readonly DockLayoutViewModel _docking;
+    private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
 
     public GitViewModel(
@@ -49,12 +51,14 @@ public sealed partial class GitViewModel : ObservableObject
         GitService git,
         IDocumentHost documents,
         DockLayoutViewModel docking,
+        IDialogService dialogs,
         IMessenger messenger)
     {
         _tracker = tracker;
         _git = git;
         _documents = documents;
         _docking = docking;
+        _dialogs = dialogs;
         _messenger = messenger;
         tracker.Changed += OnStatusChanged;
     }
@@ -71,6 +75,9 @@ public sealed partial class GitViewModel : ObservableObject
           + (status.Behind > 0 ? $"  ↓{status.Behind}" : "");
 
     public string StagedHeader => $"Staged Changes ({Staged.Count})";
+
+    /// <summary>"Push", or "Publish Branch" when the branch isn't on a remote yet.</summary>
+    public string PushHeader => _tracker.Current is { Upstream: null, Branch: not null } ? "Publish Branch" : "Push";
     public string ChangesHeader => $"Changes ({Changes.Count})";
 
     [ObservableProperty]
@@ -92,6 +99,7 @@ public sealed partial class GitViewModel : ObservableObject
         OnPropertyChanged(nameof(BranchText));
         OnPropertyChanged(nameof(StagedHeader));
         OnPropertyChanged(nameof(ChangesHeader));
+        OnPropertyChanged(nameof(PushHeader));
         CommitCommand.NotifyCanExecuteChanged();
     }
 
@@ -163,6 +171,139 @@ public sealed partial class GitViewModel : ObservableObject
         }
     }
 
+    // ------------------------------------------------------------- the "..." menu
+
+    [RelayCommand]
+    private Task Pull() => RunAsync(root => _git.PullAsync(root), "Pulling...", "Pulled.");
+
+    /// <summary>Push; a new branch is published (to the only remote, or one the user picks).</summary>
+    [RelayCommand]
+    private async Task Push()
+    {
+        if (_tracker.RepositoryRoot is not { } root || _tracker.Current is not { } status)
+            return;
+        string? remote = null;
+        if (status.Upstream is null)
+        {
+            if (await PickRemoteAsync(root) is not { } picked)
+                return;
+            remote = picked;
+        }
+        await RunAsync(r => _git.PushAsync(r, hasUpstream: remote is null, remote), "Pushing...", "Pushed.");
+    }
+
+    [RelayCommand]
+    private Task Fetch() => RunAsync(root => _git.FetchAsync(root), "Fetching...", "Fetched.");
+
+    /// <summary>Pull, then push (VS Code's Sync).</summary>
+    [RelayCommand]
+    private async Task Sync()
+    {
+        if (await RunAsync(root => _git.PullAsync(root), "Pulling...", null))
+            await Push();
+    }
+
+    /// <summary>Stage everything, then commit (when nothing was staged on purpose).</summary>
+    [RelayCommand]
+    private async Task CommitAll()
+    {
+        var message = CommitMessage.Trim();
+        if (message.Length == 0)
+        {
+            _messenger.Send(new StatusMessage("Git: write a commit message first."));
+            return;
+        }
+        if (await RunAsync(root => _git.StageAsync(root, ["."])) && await RunAsync(root => _git.CommitAsync(root, message)))
+            CommitMessage = "";
+    }
+
+    /// <summary>Replace the last commit with the staged changes (and the message, if one is written).</summary>
+    [RelayCommand]
+    private async Task Amend()
+    {
+        if (!await _dialogs.ConfirmAsync("Amend Last Commit",
+                "Replace the last commit with it plus the staged changes" +
+                (CommitMessage.Trim().Length > 0 ? ", using the new message" : "") +
+                "? Don't amend a commit that's already pushed.", "Amend"))
+            return;
+        var message = CommitMessage.Trim();
+        if (await RunAsync(root => _git.CommitAsync(root, message, amend: true), null, "Amended the last commit."))
+            CommitMessage = "";
+    }
+
+    [RelayCommand]
+    private async Task DiscardAll()
+    {
+        if (await _dialogs.ConfirmAsync("Discard All Changes",
+                "Throw away every change to tracked files, staged or not? New (untracked) files are kept. This can't be undone.",
+                "Discard"))
+            await RunAsync(root => _git.DiscardTrackedChangesAsync(root), null, "Discarded the changes.");
+    }
+
+    [RelayCommand]
+    private async Task NewBranch()
+    {
+        if (await _dialogs.PromptForTextAsync("New Branch", "Branch name", "Create") is { } name && name.Trim().Length > 0)
+            await RunAsync(root => _git.CreateBranchAsync(root, name.Trim()), null, $"Switched to the new branch {name.Trim()}.");
+    }
+
+    [RelayCommand]
+    private async Task SwitchBranch()
+    {
+        if (_tracker.RepositoryRoot is not { } root)
+            return;
+        IReadOnlyList<string> branches;
+        try
+        {
+            branches = await _git.GetBranchesAsync(root);
+        }
+        catch (GitException ex)
+        {
+            Report(ex.Message);
+            return;
+        }
+        if (await _dialogs.PickAsync("Switch Branch", "Choose a branch (a remote one gets a local branch that tracks it).", branches) is { } branch)
+            await RunAsync(r => _git.SwitchBranchAsync(r, branch), null, $"Switched to {branch}.");
+    }
+
+    [RelayCommand]
+    private Task Stash() => RunAsync(root => _git.StashAsync(root), null, "Stashed the changes.");
+
+    [RelayCommand]
+    private Task PopStash() => RunAsync(root => _git.PopStashAsync(root), null, "Restored the latest stash.");
+
+    /// <summary>Link the repository to a remote (e.g. a new GitHub repository's URL).</summary>
+    [RelayCommand]
+    private async Task AddRemote()
+    {
+        if (_tracker.RepositoryRoot is not { } root
+            || await _dialogs.PromptForTextAsync("Add Remote", "Repository URL (https://... or git@...)", "Next") is not { } url
+            || url.Trim().Length == 0)
+            return;
+        var remotes = await _git.GetRemotesAsync(root);
+        var name = remotes.Contains("origin")
+            ? await _dialogs.PromptForTextAsync("Add Remote", "Name for the remote", "Add")
+            : "origin";
+        if (name is { Length: > 0 })
+            await RunAsync(r => _git.AddRemoteAsync(r, name.Trim(), url.Trim()), null, $"Added the remote {name.Trim()}.");
+    }
+
+    /// <summary>The remote to publish a new branch to: the only one, one the user picks, or null (none, or cancelled).</summary>
+    private async Task<string?> PickRemoteAsync(string root)
+    {
+        var remotes = await _git.GetRemotesAsync(root);
+        switch (remotes.Count)
+        {
+            case 0:
+                Report("this repository has no remote yet: use ... > Add Remote first.");
+                return null;
+            case 1:
+                return remotes[0];
+            default:
+                return await _dialogs.PickAsync("Publish Branch", "Push the branch to which remote?", remotes);
+        }
+    }
+
     // ------------------------------------------------------------- by path (the explorer's Git menu)
 
     /// <summary>Whether a file or folder is inside the open repository (and isn't its root).</summary>
@@ -216,21 +357,44 @@ public sealed partial class GitViewModel : ObservableObject
             OpenDiff(new GitChangeItem(change, IsStagedSide: !change.HasUnstagedChanges));
     }
 
-    /// <summary>Run a git command on the repository, then refresh. Failures go to the status bar.</summary>
-    private async Task<bool> RunAsync(Func<string, Task> action)
+    private void Report(string gitMessage) => _messenger.Send(new StatusMessage("Git: " + Explain(gitMessage)));
+
+    /// <summary>Git's error, or what to do about it when it's a sign-in problem (git can't prompt from here).</summary>
+    private static string Explain(string message)
+    {
+        if (message.Contains("terminal prompts disabled", StringComparison.Ordinal)
+            || message.Contains("could not read Username", StringComparison.Ordinal)
+            || message.Contains("Authentication failed", StringComparison.Ordinal))
+            return "the remote needs you to sign in, and git has no saved credentials. Set up a credential helper once in a terminal " +
+                   "(e.g. git config --global credential.helper libsecret, from the git-credential-libsecret package), " +
+                   "or use an SSH remote URL.";
+        if (message.Contains("Permission denied (publickey)", StringComparison.Ordinal))
+            return "the remote refused your SSH key. Check that your key is added to the remote (and to ssh-agent).";
+        return message.Split('\n')[0];
+    }
+
+    /// <summary>
+    /// Run a git command on the repository, then refresh. <paramref name="starting"/> and <paramref name="done"/>
+    /// go to the status bar (for slow ones such as push); failures go there too, explained where possible.
+    /// </summary>
+    private async Task<bool> RunAsync(Func<string, Task> action, string? starting = null, string? done = null)
     {
         if (IsBusy || _tracker.RepositoryRoot is not { } root)
             return false;
 
         IsBusy = true;
+        if (starting is not null)
+            _messenger.Send(new StatusMessage("Git: " + starting));
         try
         {
             await action(root);
+            if (done is not null)
+                _messenger.Send(new StatusMessage("Git: " + done));
             return true;
         }
         catch (GitException ex)
         {
-            _messenger.Send(new StatusMessage("Git: " + ex.Message.Split('\n')[0]));
+            Report(ex.Message);
             return false;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)   // writing .gitignore

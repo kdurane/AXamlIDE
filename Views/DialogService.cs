@@ -159,12 +159,25 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         IReadOnlyList<LspLocation> locations,
         Func<LspLocation, string> display)
     {
-        LspLocation? selected = null;
+        var index = await PickIndexAsync(title, "Select a result to navigate.", locations.Select(display).ToArray());
+        return index is { } i ? locations[i] : null;
+    }
+
+    public async Task<string?> PickAsync(string title, string prompt, IReadOnlyList<string> items)
+    {
+        var index = await PickIndexAsync(title, prompt, items);
+        return index is { } i ? items[i] : null;
+    }
+
+    /// <summary>A list to pick from (double-click or Enter); the chosen index, or null if closed.</summary>
+    private static async Task<int?> PickIndexAsync(string title, string prompt, IReadOnlyList<string> items)
+    {
+        int? selected = null;
         var list = new ListBox
         {
             MinWidth = 560,
             MaxHeight = 420,
-            ItemsSource = locations.Select(display).ToArray()
+            ItemsSource = items
         };
         var window = new Window
         {
@@ -179,7 +192,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
                 Spacing = 8,
                 Children =
                 {
-                    new TextBlock { Text = "Select a result to navigate." },
+                    new TextBlock { Text = prompt },
                     list
                 }
             }
@@ -198,9 +211,9 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
         void Accept()
         {
-            if (list.SelectedIndex < 0 || list.SelectedIndex >= locations.Count)
+            if (list.SelectedIndex < 0 || list.SelectedIndex >= items.Count)
                 return;
-            selected = locations[list.SelectedIndex];
+            selected = list.SelectedIndex;
             window.Close();
         }
     }
@@ -317,12 +330,58 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         }
     }
 
+    // ---------------------------------------------------------------- confirm
+
+    public async Task<bool> ConfirmAsync(string title, string message, string confirmText)
+    {
+        var confirmed = false;
+        Window? dialog = null;
+        dialog = new Window
+        {
+            Title = title,
+            Width = 440,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new StackPanel
+            {
+                Margin = new Thickness(16),
+                Spacing = 16,
+                Children =
+                {
+                    new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Spacing = 8,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children = { MakeButton(confirmText, accept: true), MakeButton("Cancel", accept: false) }
+                    }
+                }
+            }
+        };
+
+        await dialog.ShowDialog(Owner);
+        return confirmed;
+
+        Button MakeButton(string text, bool accept)
+        {
+            var button = new Button { Content = text, MinWidth = 90 };
+            button.Click += (_, _) =>
+            {
+                confirmed = accept;
+                dialog?.Close();
+            };
+            return button;
+        }
+    }
+
     // ----------------------------------------------------------- text prompt
 
-    public async Task<string?> PromptForTextAsync(string title, string placeholder)
+    public async Task<string?> PromptForTextAsync(string title, string placeholder, string acceptText = "OK", string initialText = "")
     {
         string? value = null;
-        var textBox = new TextBox { PlaceholderText = placeholder, MinWidth = 360 };
+        var textBox = new TextBox { PlaceholderText = placeholder, MinWidth = 360, Text = initialText };
         var dialog = new Window
         {
             Title = title,
@@ -337,7 +396,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             args.Handled = true;
             Accept();
         };
-        var search = new Button { Content = "Search", MinWidth = 80 };
+        var search = new Button { Content = acceptText, MinWidth = 80 };
         search.Click += (_, _) => Accept();
         var cancel = new Button { Content = "Cancel", MinWidth = 80 };
         cancel.Click += (_, _) => dialog.Close();
@@ -357,7 +416,11 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
                 }
             }
         };
-        dialog.Opened += (_, _) => textBox.Focus();
+        dialog.Opened += (_, _) =>
+        {
+            textBox.Focus();
+            textBox.SelectAll();
+        };
         await dialog.ShowDialog(Owner);
         return value;
 
