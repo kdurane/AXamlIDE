@@ -1,4 +1,5 @@
 using AXamlIDE.Commands;
+using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
@@ -43,6 +44,7 @@ public static class AppServices
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<IEditorSettings>(sp => sp.GetRequiredService<SettingsViewModel>());
         services.AddSingleton(_ => new RegistryOptions(ThemeName.DarkPlus));
+        services.AddSingleton<EditorGrammars>();   // the built-in grammars plus our AXAML grammar and colours
 
         // ---- workspace, documents, languages
         services.AddSingleton<WorkspaceModel>();

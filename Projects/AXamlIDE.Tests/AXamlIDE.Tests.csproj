@@ -19,4 +19,9 @@
         <!-- Built first, so ProjectItemPropertiesTests can run the real MSBuild host. -->
         <ProjectReference Include="../AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
     </ItemGroup>
+
+    <ItemGroup>
+        <!-- The app's AXAML grammar, for AxamlGrammarTests. -->
+        <None Include="../../Assets/Grammars/axaml.tmLanguage.json" Link="Grammars/axaml.tmLanguage.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

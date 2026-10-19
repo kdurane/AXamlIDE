@@ -50,7 +50,7 @@ public partial class EditorPaneView : UserControl,
     private EditorContext _ctx = null!;
     private IEditorSettings _settings = null!;
     private EditorServices _services = null!;
-    private RegistryOptions _registryOptions = null!;
+    private EditorGrammars _grammars = null!;
     private readonly DiagnosticRenderer _diagnosticRenderer = new();
     private BreakpointMargin? _breakpointMargin;
     private TextMateController _textMateController = null!;
@@ -86,10 +86,9 @@ public partial class EditorPaneView : UserControl,
     /// </summary>
     public void Initialize(EditorServices services)
     {
-        var registryOptions = services.RegistryOptions;
         _settings = services.Settings;
         _services = services;
-        _registryOptions = registryOptions;
+        _grammars = services.Grammars;
         _ctx = new EditorContext(Editor, services.Settings, services.Xaml, services.Documents, services.Languages, services.Messenger);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
@@ -141,8 +140,8 @@ public partial class EditorPaneView : UserControl,
         _folding = new FoldingController(_ctx);
         _whitespaceSelection = new WhitespaceSelectionController(_ctx);
 
-        _textMate = Editor.InstallTextMate(registryOptions);
-        _textMateController = new TextMateController(_ctx, _textMate, registryOptions, _breakpointMargin);
+        _textMate = Editor.InstallTextMate(_grammars);
+        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin);
 
         // Settings are observed here, so nobody has to call ApplyEditorSettings from outside.
         _settings.PropertyChanged += OnSettingsChanged;
@@ -280,7 +279,7 @@ public partial class EditorPaneView : UserControl,
     }
 
     private void ApplyTheme()
-        => _textMate.SetTheme(_settings.SelectedTheme.Load(_registryOptions));
+        => _textMate.SetTheme(_grammars.LoadTheme(_settings.SelectedTheme));
 
     private void ApplyEditorSettings()
     {

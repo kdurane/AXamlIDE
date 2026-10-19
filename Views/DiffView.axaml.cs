@@ -28,7 +28,7 @@ public partial class DiffView : UserControl
 {
     private readonly DiffDockable _diff = null!;
     private readonly IEditorSettings _settings = null!;
-    private readonly RegistryOptions _registryOptions = null!;
+    private readonly EditorGrammars _grammars = null!;
     private readonly Side _left = null!;
     private readonly Side _right = null!;
     private bool _syncingScroll;
@@ -43,11 +43,11 @@ public partial class DiffView : UserControl
     {
         _diff = diff;
         _settings = services.Settings;
-        _registryOptions = services.RegistryOptions;
+        _grammars = services.Grammars;
         DataContext = diff;
 
-        _left = new Side(LeftEditor, isLeft: true, _registryOptions, diff.FilePath);
-        _right = new Side(RightEditor, isLeft: false, _registryOptions, diff.FilePath);
+        _left = new Side(LeftEditor, isLeft: true, _grammars, diff.FilePath);
+        _right = new Side(RightEditor, isLeft: false, _grammars, diff.FilePath);
         ApplySettings();
 
         LeftEditor.TextArea.TextView.ScrollOffsetChanged += (_, _) => FollowScroll(LeftEditor, RightEditor);
@@ -75,7 +75,7 @@ public partial class DiffView : UserControl
 
     private void ApplySettings()
     {
-        var theme = _settings.SelectedTheme.Load(_registryOptions);
+        var theme = _grammars.LoadTheme(_settings.SelectedTheme);
         foreach (var side in new[] { _left, _right })
         {
             side.Editor.FontFamily = new FontFamily(_settings.EditorFontFamily);
@@ -129,14 +129,14 @@ public partial class DiffView : UserControl
         private readonly DiffLineRenderer _renderer;
         private readonly DiffLineNumberMargin _numbers = new();
 
-        public Side(TextEditor editor, bool isLeft, RegistryOptions registryOptions, string filePath)
+        public Side(TextEditor editor, bool isLeft, EditorGrammars grammars, string filePath)
         {
             Editor = editor;
             _renderer = new DiffLineRenderer(isLeft);
             editor.TextArea.TextView.BackgroundRenderers.Add(_renderer);
             editor.TextArea.LeftMargins.Insert(0, _numbers);
 
-            TextMate = editor.InstallTextMate(registryOptions);
+            TextMate = editor.InstallTextMate(grammars);
             TextMate.AppliedTheme += (_, installation) =>
             {
                 TextMateController.ApplyBrushAction(installation, "editor.background", brush => editor.Background = brush);
@@ -144,7 +144,7 @@ public partial class DiffView : UserControl
                 if (!TextMateController.ApplyBrushAction(installation, "editorLineNumber.foreground", brush => _numbers.Foreground = brush))
                     _numbers.Foreground = editor.Foreground;
             };
-            if (GrammarFor(registryOptions, filePath) is { } scope)
+            if (grammars.ScopeForFile(filePath) is { } scope)
                 TextMate.SetGrammar(scope);
         }
 
@@ -160,14 +160,5 @@ public partial class DiffView : UserControl
         }
 
         public void Dispose() => TextMate.Dispose();
-
-        // AXAML has no grammar of its own; it's XML.
-        private static string? GrammarFor(RegistryOptions registryOptions, string filePath)
-        {
-            var extension = Path.GetExtension(filePath);
-            var language = registryOptions.GetLanguageByExtension(extension)
-                           ?? (extension.Equals(".axaml", StringComparison.OrdinalIgnoreCase) ? registryOptions.GetLanguageByExtension(".xml") : null);
-            return language is null ? null : registryOptions.GetScopeByLanguageId(language.Id);
-        }
     }
 }

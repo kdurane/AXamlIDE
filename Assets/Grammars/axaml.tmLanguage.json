@@ -1,0 +1,192 @@
+{
+  "name": "AXAML",
+  "scopeName": "text.xml.axaml",
+  "comment": "AXAML (Avalonia XAML) for AXamlIDE. Every part has its own scope ending in .axaml, so a theme or Assets/Grammars/axaml-colors.json can colour it; the first part of each scope is the usual TextMate name (comment, string, entity.name.tag...), so every theme already gives it a sensible colour. axaml-colors.json lists the scopes and sets the AXAML-only ones.",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#cdata" },
+    { "include": "#declaration" },
+    { "include": "#tag" },
+    { "include": "#entity" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.block.axaml",
+      "begin": "<!--",
+      "end": "-->",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.begin.axaml" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.comment.end.axaml" } }
+    },
+    "cdata": {
+      "name": "string.unquoted.cdata.axaml",
+      "begin": "<!\\[CDATA\\[",
+      "end": "\\]\\]>",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.axaml" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.axaml" } }
+    },
+    "declaration": {
+      "name": "meta.tag.preprocessor.axaml",
+      "begin": "(<\\?)\\s*([-\\w]+)",
+      "end": "(\\?>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.axaml" },
+        "2": { "name": "entity.name.tag.preprocessor.axaml" }
+      },
+      "endCaptures": { "1": { "name": "punctuation.definition.tag.end.axaml" } },
+      "patterns": [ { "include": "#attribute" } ]
+    },
+    "tag": {
+      "comment": "<Button>, </Button>, <vm:Item>, <Grid.ColumnDefinitions> (owner . property element).",
+      "name": "meta.tag.axaml",
+      "begin": "(</?)(?:([-\\w]+)(:))?([-\\w]+)(?:(\\.)([-\\w]+))?",
+      "end": "(/?>)",
+      "beginCaptures": {
+        "1": { "name": "punctuation.definition.tag.begin.axaml" },
+        "2": { "name": "entity.name.tag.namespace.axaml" },
+        "3": { "name": "punctuation.separator.namespace.axaml" },
+        "4": { "name": "entity.name.tag.axaml" },
+        "5": { "name": "punctuation.accessor.property-element.axaml" },
+        "6": { "name": "entity.name.tag.property-element.axaml" }
+      },
+      "endCaptures": { "1": { "name": "punctuation.definition.tag.end.axaml" } },
+      "patterns": [ { "include": "#attribute" } ]
+    },
+    "attribute": {
+      "patterns": [
+        { "include": "#xmlns-attribute" },
+        { "include": "#directive-attribute" },
+        { "include": "#property-attribute" }
+      ]
+    },
+    "xmlns-attribute": {
+      "comment": "xmlns=\"...\" and xmlns:vm=\"using:...\"",
+      "begin": "(xmlns)(?:(:)([-\\w.]+))?\\s*(=)\\s*",
+      "end": "(?<=[\"'])|(?=\\s|/?>)",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.xmlns.axaml" },
+        "2": { "name": "punctuation.separator.namespace.axaml" },
+        "3": { "name": "entity.name.namespace.prefix.axaml" },
+        "4": { "name": "punctuation.separator.key-value.axaml" }
+      },
+      "patterns": [
+        { "include": "#namespace-value-double" },
+        { "include": "#namespace-value-single" }
+      ]
+    },
+    "namespace-value-double": {
+      "name": "string.quoted.double.namespace.axaml",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.axaml" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.axaml" } }
+    },
+    "namespace-value-single": {
+      "name": "string.quoted.single.namespace.axaml",
+      "begin": "'",
+      "end": "'",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.axaml" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.axaml" } }
+    },
+    "directive-attribute": {
+      "comment": "x:Name, x:Key, x:Class, x:DataType... (the XAML language namespace).",
+      "begin": "(x)(:)([-\\w]+)\\s*(=)\\s*",
+      "end": "(?<=[\"'])|(?=\\s|/?>)",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.namespace.axaml" },
+        "2": { "name": "punctuation.separator.namespace.axaml" },
+        "3": { "name": "entity.other.attribute-name.directive.axaml" },
+        "4": { "name": "punctuation.separator.key-value.axaml" }
+      },
+      "patterns": [ { "include": "#value" } ]
+    },
+    "property-attribute": {
+      "comment": "Width=\"..\", Grid.Column=\"..\" (attached: owner . property), d:DesignWidth=\"..\", Classes.selected=\"..\".",
+      "begin": "(?:([-\\w]+)(:))?([-\\w]+)(?:(\\.)([-\\w]+))?\\s*(=)\\s*",
+      "end": "(?<=[\"'])|(?=\\s|/?>)",
+      "beginCaptures": {
+        "1": { "name": "entity.other.attribute-name.namespace.axaml" },
+        "2": { "name": "punctuation.separator.namespace.axaml" },
+        "3": { "name": "entity.other.attribute-name.axaml" },
+        "4": { "name": "punctuation.accessor.attached.axaml" },
+        "5": { "name": "entity.other.attribute-name.attached.axaml" },
+        "6": { "name": "punctuation.separator.key-value.axaml" }
+      },
+      "patterns": [ { "include": "#value" } ]
+    },
+    "value": {
+      "patterns": [
+        { "include": "#markup-extension-value-double" },
+        { "include": "#markup-extension-value-single" },
+        { "include": "#string-double" },
+        { "include": "#string-single" }
+      ]
+    },
+    "markup-extension-value-double": {
+      "comment": "\"{Binding Name}\": not coloured as a string, so the extension's parts stand out.",
+      "name": "meta.attribute-value.markup-extension.axaml",
+      "begin": "(\")(?=\\{(?!\\}))",
+      "end": "(\")",
+      "beginCaptures": { "1": { "name": "punctuation.definition.string.begin.markup-extension.axaml" } },
+      "endCaptures": { "1": { "name": "punctuation.definition.string.end.markup-extension.axaml" } },
+      "patterns": [ { "include": "#markup-extension" } ]
+    },
+    "markup-extension-value-single": {
+      "name": "meta.attribute-value.markup-extension.axaml",
+      "begin": "(')(?=\\{(?!\\}))",
+      "end": "(')",
+      "beginCaptures": { "1": { "name": "punctuation.definition.string.begin.markup-extension.axaml" } },
+      "endCaptures": { "1": { "name": "punctuation.definition.string.end.markup-extension.axaml" } },
+      "patterns": [ { "include": "#markup-extension" } ]
+    },
+    "markup-extension": {
+      "comment": "{Binding Path, Mode=TwoWay}, {DynamicResource Key}, {x:Static views:Thing.Field}; nests.",
+      "name": "meta.markup-extension.axaml",
+      "begin": "(\\{)\\s*(?:([-\\w]+)(:))?([-\\w.]+)",
+      "end": "(\\})",
+      "beginCaptures": {
+        "1": { "name": "punctuation.section.braces.begin.markup-extension.axaml" },
+        "2": { "name": "entity.name.namespace.prefix.markup-extension.axaml" },
+        "3": { "name": "punctuation.separator.namespace.axaml" },
+        "4": { "name": "support.class.markup-extension.axaml" }
+      },
+      "endCaptures": { "1": { "name": "punctuation.section.braces.end.markup-extension.axaml" } },
+      "patterns": [
+        { "include": "#markup-extension" },
+        {
+          "match": "([-\\w.]+)\\s*(=)",
+          "captures": {
+            "1": { "name": "variable.parameter.markup-extension.axaml" },
+            "2": { "name": "keyword.operator.assignment.markup-extension.axaml" }
+          }
+        },
+        { "match": ",", "name": "punctuation.separator.comma.markup-extension.axaml" },
+        {
+          "name": "string.quoted.single.markup-extension.axaml",
+          "begin": "'",
+          "end": "'"
+        },
+        { "match": "[^\\s{},=']+", "name": "variable.other.markup-extension.axaml" }
+      ]
+    },
+    "string-double": {
+      "name": "string.quoted.double.axaml",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.axaml" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.axaml" } },
+      "patterns": [ { "include": "#entity" } ]
+    },
+    "string-single": {
+      "name": "string.quoted.single.axaml",
+      "begin": "'",
+      "end": "'",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.axaml" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.string.end.axaml" } },
+      "patterns": [ { "include": "#entity" } ]
+    },
+    "entity": {
+      "name": "constant.character.entity.axaml",
+      "match": "&(?:[a-zA-Z][a-zA-Z0-9]*|#[0-9]+|#x[0-9a-fA-F]+);"
+    }
+  }
+}

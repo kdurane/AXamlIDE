@@ -1,0 +1,32 @@
+{
+  "about": [
+    "AXAML colours laid over every editor theme (Editor/Highlighting/EditorThemes): 'dark' for themes based on Dark, 'light' for Light.",
+    "Rules are TextMate tokenColors. A rule here wins over the theme for its scope; leave a scope out to keep the theme's colour.",
+    "The scopes of Assets/Grammars/axaml.tmLanguage.json (all end in .axaml, so they don't touch other languages):",
+    "  comment.block / punctuation.definition.comment.begin|end      <!-- ... -->",
+    "  entity.name.tag / entity.name.tag.namespace                   <vm:Item>  (type, prefix)",
+    "  entity.name.tag.property-element                               <Grid.ColumnDefinitions>  (the property)",
+    "  entity.other.attribute-name / .attached                        Width=, Grid.Column=  (owner, attached property)",
+    "  entity.other.attribute-name.namespace                          d:DesignWidth=, x:Name=  (the prefix)",
+    "  entity.other.attribute-name.directive                          x:Name, x:Key, x:Class, x:DataType",
+    "  entity.other.attribute-name.xmlns / entity.name.namespace.prefix   xmlns:vm=",
+    "  string.quoted.double / .single, string.quoted.double.namespace  attribute values, xmlns values",
+    "  meta.markup-extension, support.class.markup-extension          {Binding ...}, {DynamicResource ...}",
+    "  variable.parameter.markup-extension / variable.other.markup-extension   Mode=  / the path or key",
+    "  punctuation.section.braces.begin|end.markup-extension          { }",
+    "  constant.character.entity                                      &amp;",
+    "Links in the text (xmlns URLs) are drawn by the editor, not the grammar: their colour is the editorLink.activeForeground theme key (Styles/Themes)."
+  ],
+  "dark": [
+    { "name": "Markup extension name", "scope": "support.class.markup-extension.axaml", "settings": { "foreground": "#4EC9B0" } },
+    { "name": "Markup extension parameter", "scope": "variable.parameter.markup-extension.axaml", "settings": { "foreground": "#9CDCFE" } },
+    { "name": "Markup extension value", "scope": "variable.other.markup-extension.axaml", "settings": { "foreground": "#DCDCAA" } },
+    { "name": "x: directives", "scope": "entity.other.attribute-name.directive.axaml", "settings": { "foreground": "#C586C0" } }
+  ],
+  "light": [
+    { "name": "Markup extension name", "scope": "support.class.markup-extension.axaml", "settings": { "foreground": "#267F99" } },
+    { "name": "Markup extension parameter", "scope": "variable.parameter.markup-extension.axaml", "settings": { "foreground": "#001080" } },
+    { "name": "Markup extension value", "scope": "variable.other.markup-extension.axaml", "settings": { "foreground": "#795E26" } },
+    { "name": "x: directives", "scope": "entity.other.attribute-name.directive.axaml", "settings": { "foreground": "#AF00DB" } }
+  ]
+}

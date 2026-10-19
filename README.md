@@ -70,6 +70,11 @@ How the pieces are put together and talk:
   `{DynamicResource ...}`; code that draws for itself (editor margins, renderers, the hover card) looks brushes up with
   `Views/ThemeBrushes.Get` when it draws. AvaloniaEdit's completion list is styled in `Styles/EditorStyles.axaml`.
   No colour is hard-coded. The editor's syntax colours come from the same theme through TextMate.
+- **AXAML highlighting** has its own grammar, `Assets/Grammars/axaml.tmLanguage.json` (scope `text.xml.axaml`), with a
+  scope for every part: comments, tags and property elements, attributes and attached properties, `x:` directives,
+  `xmlns`, and markup extensions split into name / parameters / values. `Assets/Grammars/axaml-colors.json` holds AXAML
+  colours laid over every theme (a "dark" and a "light" set; it lists all the scopes): change or add a rule there, or
+  leave a scope out to keep the theme's colour. `Editor/Highlighting/EditorGrammars` registers both with TextMate.
 - **Git** goes through the `git` command line (`Services/Git/GitService`, Core; status is parsed from
   `git status --porcelain=v2 -z`). `Services/Git/GitStatusTracker` keeps the workspace repository's status current
   (on open, on save, and from a debounced file watcher that includes `.git/index`, HEAD and refs) and raises `Changed`.

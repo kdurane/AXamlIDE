@@ -153,6 +153,7 @@
     <SolidColorBrush Color="{DynamicResource editor.inlineValuesForeground}" x:Key="InlineValueForegroundBrush" />
     <SolidColorBrush Color="{DynamicResource editor.wordHighlightBackground}" x:Key="WordHighlightBrush" />
     <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="EditorSplitterBrush" />
+    <SolidColorBrush Color="{DynamicResource editorLink.activeForeground}" x:Key="EditorLinkBrush" />
     <SolidColorBrush Color="{DynamicResource widget.shadow}" x:Key="WidgetShadowBrush" />
 
     <!--  Overview ruler beside the editor's scrollbar (Editor/Highlighting/OverviewRuler)  -->

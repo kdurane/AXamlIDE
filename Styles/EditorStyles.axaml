@@ -1,12 +1,17 @@
 <!--
-    AvaloniaEdit's completion list, coloured like VS Code's suggest widget (editorSuggestWidget.* theme keys,
+    AvaloniaEdit's links (URLs in the text; its default is a hard-coded Blue) use the editorLink.activeForeground theme key.
+    Its completion list is coloured like VS Code's suggest widget (editorSuggestWidget.* theme keys,
     brushes in Styles/ThemeResources.axaml). Its description tip, the overload viewer and the find panel read
     their own resource keys (CompletionToolTip*, OverloadViewer*, SearchPanel*), set in ThemeResources.axaml.
 -->
 <Styles
     xmlns="https://github.com/avaloniaui"
     xmlns:cc="using:AvaloniaEdit.CodeCompletion"
+    xmlns:rendering="using:AvaloniaEdit.Rendering"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style Selector="rendering|TextView">
+        <Setter Property="LinkTextForegroundBrush" Value="{DynamicResource EditorLinkBrush}" />
+    </Style>
     <Style Selector="cc|CompletionListBox">
         <Setter Property="Background" Value="{DynamicResource CompletionListBackgroundBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource CompletionListForegroundBrush}" />

@@ -5,7 +5,6 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using AvaloniaEdit.TextMate;
 using AXamlIDE.Editor.Debugging;
-using TextMateSharp.Grammars;
 
 namespace AXamlIDE.Editor.Highlighting;
 
@@ -19,38 +18,25 @@ public sealed class TextMateController
 {
     private readonly EditorContext _ctx;
     private readonly TextMate.Installation _textMate;
-    private readonly RegistryOptions? _registryOptions;
+    private readonly EditorGrammars _grammars;
     private readonly BreakpointMargin? _breakpointMargin;
 
     public TextMateController(
         EditorContext ctx,
         TextMate.Installation textMate,
-        RegistryOptions? registryOptions,
+        EditorGrammars grammars,
         BreakpointMargin? breakpointMargin)
     {
         _ctx = ctx;
         _textMate = textMate;
-        _registryOptions = registryOptions;
+        _grammars = grammars;
         _breakpointMargin = breakpointMargin;
 
         _textMate.AppliedTheme += OnAppliedTheme;
     }
 
-    public void SetGrammarForFile(string path)
-    {
-        var language = string.IsNullOrEmpty(path)
-            ? null
-            : _registryOptions?.GetLanguageByExtension(Path.GetExtension(path));
-
-        if (language is null)
-        {
-            // Don't leave the previous file's grammar applied.
-            _textMate.SetGrammar(null);
-            return;
-        }
-
-        _textMate.SetGrammar(_registryOptions?.GetScopeByLanguageId(language.Id));
-    }
+    /// <summary>The file's grammar (AXAML has its own, see EditorGrammars); none clears the previous file's.</summary>
+    public void SetGrammarForFile(string path) => _textMate.SetGrammar(_grammars.ScopeForFile(path));
 
     private void OnAppliedTheme(object? sender, TextMate.Installation e)
     {

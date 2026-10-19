@@ -85,6 +85,9 @@
     <Color x:Key="editorCursor.foreground">#DDBB88</Color>
     <Color x:Key="scrollbarSlider.background">#AA1F2230</Color>
 
+    <!--  Links in the editor text (URLs). Default: a soft blue on dark themes, so it isn't too saturated.  -->
+    <Color x:Key="editorLink.activeForeground">#0063A5</Color>
+
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#1E2933</Color>
     <Color x:Key="app.panelHeader.activeBackground">#141F2A</Color>

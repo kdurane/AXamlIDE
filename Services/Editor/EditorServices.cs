@@ -4,7 +4,7 @@ using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
-using TextMateSharp.Grammars;
+using AXamlIDE.Editor.Highlighting;
 
 namespace AXamlIDE.Services.Editor;
 
@@ -18,5 +18,5 @@ public sealed record EditorServices(
     NavigationService Navigation,
     WorkspaceEditService WorkspaceEdits,
     DebugSnapshotTracker DebugSnapshots,
-    RegistryOptions RegistryOptions,
+    EditorGrammars Grammars,
     IMessenger Messenger);
