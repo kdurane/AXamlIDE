@@ -7,11 +7,13 @@ using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using AvaloniaEdit.Document;
+using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.ViewModels;
 
@@ -40,6 +42,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     private readonly SemaphoreSlim _updateGate = new(1, 1);
+    private readonly IMessenger _messenger;
     private readonly Dictionary<OpenDocument, WriteableBitmap> _lastFrames = [];
     private readonly Dictionary<OpenDocument, string> _zooms = [];
 
@@ -55,9 +58,10 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     private bool _isMessageVisible = true;
     private string _selectedTheme = "No theme";
 
-    public PreviewPaneViewModel(XamlLanguageService xaml, DocumentManager documents)
+    public PreviewPaneViewModel(XamlLanguageService xaml, DocumentManager documents, IMessenger messenger)
     {
         _xaml = xaml;
+        _messenger = messenger;
         documents.ActiveChanged += SetDocument;   // follows the front tab
         documents.Closing += Forget;
 
@@ -322,14 +326,23 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         });
     }
 
-    private void OnPreviewErrorChanged(string? message)
+    /// <summary>
+    /// The details go to the Problems tab (they can be long, and need the line); the preview only says there's
+    /// an error. A successful update clears the problem.
+    /// </summary>
+    private void OnPreviewErrorChanged(PreviewError? error)
     {
-        if (string.IsNullOrWhiteSpace(message))
-            return;
-
         Dispatcher.UIThread.Post(() =>
         {
-            Message = message;
+            if (_document is not { } document)
+                return;
+            _messenger.Send(new PreviewProblemMessage(document, error));
+            if (error is null)
+                return;
+
+            Message = error.Line is { } line
+                ? $"The XAML has an error on line {line}: see the Problems tab."
+                : "The XAML has an error: see the Problems tab.";
             IsMessageVisible = true;
         });
     }

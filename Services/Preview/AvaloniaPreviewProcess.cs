@@ -31,7 +31,8 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     public bool IsReady => IsRunning && _connection is not null;
     public double Scaling => _scaling;
     public event Action<WriteableBitmap?>? FrameReceived;
-    public event Action<string?>? ErrorChanged;
+    /// <summary>The last update's error, or null when it rendered.</summary>
+    public event Action<PreviewError?>? ErrorChanged;
 
     public async Task StartAsync(XamlPreviewTarget target, CancellationToken cancellationToken = default)
     {
@@ -222,14 +223,16 @@ public sealed class AvaloniaPreviewProcess : IDisposable
                     await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
                     break;
                 case UpdateXamlResultMessage update:
-                    ErrorChanged?.Invoke(update.Exception?.Message ?? update.Error);
+                    ErrorChanged?.Invoke(update.Exception is { } details
+                        ? PreviewError.From(details.Message ?? update.Error ?? "The XAML couldn't be loaded.", details.LineNumber, details.LinePosition)
+                        : string.IsNullOrWhiteSpace(update.Error) ? null : PreviewError.From(update.Error, null, null));
                     break;
             }
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[preview] Failed to process {message.GetType().Name}: {ex}");
-            ErrorChanged?.Invoke(ex.Message);
+            ErrorChanged?.Invoke(PreviewError.From(ex.Message, null, null));
         }
     }
 
@@ -268,7 +271,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     private void OnConnectionException(IAvaloniaRemoteTransportConnection connection, Exception exception)
     {
         Debug.WriteLine($"[preview] Remote connection failed: {exception}");
-        ErrorChanged?.Invoke(exception.Message);
+        ErrorChanged?.Invoke(new PreviewError("The preview lost its connection: " + exception.Message, null, null));
     }
 
     private void OnProcessOutput(object sender, DataReceivedEventArgs e)
@@ -288,7 +291,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         var details = string.IsNullOrWhiteSpace(output)
             ? string.Empty
             : $"{Environment.NewLine}{output}";
-        ErrorChanged?.Invoke($"Preview host exited with code {process.ExitCode}.{details}");
+        ErrorChanged?.Invoke(new PreviewError($"The preview host exited with code {process.ExitCode}.{details}", null, null));
     }
 
     private static void EnsureFile(string path)
