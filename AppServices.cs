@@ -60,6 +60,7 @@ public static class AppServices
 
         // ---- git: the service runs git; the tracker keeps the workspace's status current
         services.AddSingleton<GitService>();
+        services.AddSingleton<GitCredentialSetup>();
         services.AddSingleton<GitStatusTracker>();
         services.AddSingleton<LanguageSessionService>();
 

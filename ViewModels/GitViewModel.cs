@@ -41,6 +41,7 @@ public sealed partial class GitViewModel : ObservableObject
 {
     private readonly GitStatusTracker _tracker;
     private readonly GitService _git;
+    private readonly GitCredentialSetup _credentials;
     private readonly IDocumentHost _documents;
     private readonly DockLayoutViewModel _docking;
     private readonly IDialogService _dialogs;
@@ -49,6 +50,7 @@ public sealed partial class GitViewModel : ObservableObject
     public GitViewModel(
         GitStatusTracker tracker,
         GitService git,
+        GitCredentialSetup credentials,
         IDocumentHost documents,
         DockLayoutViewModel docking,
         IDialogService dialogs,
@@ -56,6 +58,7 @@ public sealed partial class GitViewModel : ObservableObject
     {
         _tracker = tracker;
         _git = git;
+        _credentials = credentials;
         _documents = documents;
         _docking = docking;
         _dialogs = dialogs;
@@ -174,7 +177,7 @@ public sealed partial class GitViewModel : ObservableObject
     // ------------------------------------------------------------- the "..." menu
 
     [RelayCommand]
-    private Task Pull() => RunAsync(root => _git.PullAsync(root), "Pulling...", "Pulled.");
+    private Task Pull() => RunRemoteAsync(root => _git.PullAsync(root), "Pulling...", "Pulled.");
 
     /// <summary>Push; a new branch is published (to the only remote, or one the user picks).</summary>
     [RelayCommand]
@@ -189,17 +192,17 @@ public sealed partial class GitViewModel : ObservableObject
                 return;
             remote = picked;
         }
-        await RunAsync(r => _git.PushAsync(r, hasUpstream: remote is null, remote), "Pushing...", "Pushed.");
+        await RunRemoteAsync(r => _git.PushAsync(r, hasUpstream: remote is null, remote), "Pushing...", "Pushed.");
     }
 
     [RelayCommand]
-    private Task Fetch() => RunAsync(root => _git.FetchAsync(root), "Fetching...", "Fetched.");
+    private Task Fetch() => RunRemoteAsync(root => _git.FetchAsync(root), "Fetching...", "Fetched.");
 
     /// <summary>Pull, then push (VS Code's Sync).</summary>
     [RelayCommand]
     private async Task Sync()
     {
-        if (await RunAsync(root => _git.PullAsync(root), "Pulling...", null))
+        if (await RunRemoteAsync(root => _git.PullAsync(root), "Pulling...", null))
             await Push();
     }
 
@@ -357,30 +360,100 @@ public sealed partial class GitViewModel : ObservableObject
             OpenDiff(new GitChangeItem(change, IsStagedSide: !change.HasUnstagedChanges));
     }
 
+    // ------------------------------------------------------------- signing in (Git Credential Manager)
+
+    /// <summary>... > Remote > Set Up Sign-in: install and configure Git Credential Manager, after asking.</summary>
+    [RelayCommand]
+    private async Task SetUpSignIn()
+    {
+        if (await ConfirmSignInSetupAsync("Set Up Sign-in"))
+            await SetUpCredentialManagerAsync();
+    }
+
+    /// <summary>
+    /// A pull/push/fetch was refused for want of a sign-in. If git has no credential helper, offer to set up
+    /// Git Credential Manager; true when it was set up (so the command can be tried again).
+    /// </summary>
+    private async Task<bool> OfferSignInSetupAsync()
+    {
+        if (_tracker.RepositoryRoot is not { } root || await _credentials.GetHelperAsync(root) is not null)
+            return false;   // a helper is set up already: the problem is something else (account, token, rights)
+        return await ConfirmSignInSetupAsync("Sign In to the Remote") && await SetUpCredentialManagerAsync();
+    }
+
+    private Task<bool> ConfirmSignInSetupAsync(string title) => _dialogs.ConfirmAsync(title,
+        "Git needs to sign in to the remote (e.g. GitHub), and has nowhere to keep a sign-in yet. Set up Git Credential " +
+        "Manager, as Visual Studio does? Then the first push or pull opens a sign-in window and your browser, and the " +
+        "token is kept in your system keyring.\n\n" +
+        "This will:\n" +
+        "  - install it, if needed: dotnet tool install -g git-credential-manager\n" +
+        "  - make it git's credential helper: git-credential-manager configure (your global git config)" +
+        (OperatingSystem.IsLinux() ? "\n  - keep tokens in the desktop keyring: credential.credentialStore secretservice" : ""),
+        "Set Up");
+
+    private async Task<bool> SetUpCredentialManagerAsync()
+    {
+        var progress = new Progress<string>(text => _messenger.Send(new StatusMessage("Git: " + text)));
+        if (await _credentials.SetUpAsync(progress) is { } problem)
+        {
+            _messenger.Send(new StatusMessage("Git: " + problem));
+            return false;
+        }
+        _messenger.Send(new StatusMessage("Git: sign-in is set up (Git Credential Manager)."));
+        return true;
+    }
+
+    // ------------------------------------------------------------- running git
+
     private void Report(string gitMessage) => _messenger.Send(new StatusMessage("Git: " + Explain(gitMessage)));
 
-    /// <summary>Git's error, or what to do about it when it's a sign-in problem (git can't prompt from here).</summary>
+    private static bool IsSignInProblem(string message)
+        => message.Contains("terminal prompts disabled", StringComparison.Ordinal)
+           || message.Contains("could not read Username", StringComparison.Ordinal)
+           || message.Contains("Authentication failed", StringComparison.Ordinal);
+
+    /// <summary>Git's error, or what to do about it.</summary>
     private static string Explain(string message)
     {
-        if (message.Contains("terminal prompts disabled", StringComparison.Ordinal)
-            || message.Contains("could not read Username", StringComparison.Ordinal)
-            || message.Contains("Authentication failed", StringComparison.Ordinal))
-            return "the remote needs you to sign in, and git has no saved credentials. Set up a credential helper once in a terminal " +
-                   "(e.g. git config --global credential.helper libsecret, from the git-credential-libsecret package), " +
-                   "or use an SSH remote URL.";
+        if (IsSignInProblem(message))
+            return "the remote needs you to sign in. Use ... > Remote > Set Up Sign-in (Git Credential Manager), or an SSH remote URL.";
         if (message.Contains("Permission denied (publickey)", StringComparison.Ordinal))
             return "the remote refused your SSH key. Check that your key is added to the remote (and to ssh-agent).";
         return message.Split('\n')[0];
     }
 
-    /// <summary>
-    /// Run a git command on the repository, then refresh. <paramref name="starting"/> and <paramref name="done"/>
-    /// go to the status bar (for slow ones such as push); failures go there too, explained where possible.
-    /// </summary>
+    /// <summary>Run a git command on the repository, then refresh; true if it worked. Failures go to the status bar.</summary>
     private async Task<bool> RunAsync(Func<string, Task> action, string? starting = null, string? done = null)
     {
+        var error = await TryRunAsync(action, starting, done);
+        if (error is { Length: > 0 })
+            Report(error);
+        return error is null;
+    }
+
+    /// <summary>
+    /// <see cref="RunAsync"/> for commands that talk to the remote: when it wants a sign-in that git can't ask
+    /// for, offer to set up Git Credential Manager, then try once more.
+    /// </summary>
+    private async Task<bool> RunRemoteAsync(Func<string, Task> action, string starting, string? done)
+    {
+        var error = await TryRunAsync(action, starting, done);
+        if (error is { Length: > 0 } && IsSignInProblem(error) && await OfferSignInSetupAsync())
+            error = await TryRunAsync(action, starting + " Sign in if a window or your browser opens.", done);
+        if (error is { Length: > 0 })
+            Report(error);
+        return error is null;
+    }
+
+    /// <summary>
+    /// Run a git command on the repository, then refresh. <paramref name="starting"/> and <paramref name="done"/>
+    /// go to the status bar (for slow ones such as push). Returns null when it worked, "" when it didn't run
+    /// (busy, or no repository), else the error.
+    /// </summary>
+    private async Task<string?> TryRunAsync(Func<string, Task> action, string? starting, string? done)
+    {
         if (IsBusy || _tracker.RepositoryRoot is not { } root)
-            return false;
+            return "";
 
         IsBusy = true;
         if (starting is not null)
@@ -390,17 +463,15 @@ public sealed partial class GitViewModel : ObservableObject
             await action(root);
             if (done is not null)
                 _messenger.Send(new StatusMessage("Git: " + done));
-            return true;
+            return null;
         }
         catch (GitException ex)
         {
-            Report(ex.Message);
-            return false;
+            return ex.Message;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)   // writing .gitignore
         {
-            _messenger.Send(new StatusMessage("Git: " + ex.Message));
-            return false;
+            return ex.Message;
         }
         finally
         {

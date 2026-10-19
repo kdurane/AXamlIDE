@@ -154,6 +154,7 @@
                         </MenuItem>
                         <MenuItem Header="Remote">
                             <MenuItem Command="{Binding AddRemoteCommand}" Header="Add Remote..." />
+                            <MenuItem Command="{Binding SetUpSignInCommand}" Header="Set Up Sign-in (Git Credential Manager)..." />
                         </MenuItem>
                     </MenuFlyout>
                 </Button.Flyout>
