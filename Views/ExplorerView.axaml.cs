@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -65,8 +65,7 @@ public partial class ExplorerView : UserControl
 
         var control = (e.Source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
         _menuNode = control?.DataContext as ProjectTreeNode;
-        if (control is not null)
-            control.IsSelected = true;
+        control?.IsSelected = true;
     }
 
     private void OnMenuOpening(object? sender, CancelEventArgs e)
@@ -82,7 +81,7 @@ public partial class ExplorerView : UserControl
 
     private async void OnCopyPathClick(object? sender, RoutedEventArgs e)
     {
-        if ((sender as MenuItem)?.DataContext is ExplorerNodeMenu { Node: var node })
+        if (sender is MenuItem { DataContext: ExplorerNodeMenu { Node: var node } })
             await CopyPathAsync(node);
     }
 

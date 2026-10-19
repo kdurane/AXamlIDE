@@ -1,4 +1,4 @@
-<Window
+﻿<Window
     Background="{DynamicResource AppWindowBackgroundBrush}"
     Foreground="{DynamicResource AppForegroundBrush}"
     Title="AXamlIDE"
@@ -113,12 +113,13 @@
                 </MenuItem>
             </Menu>
             <!--
-                Startup project, configuration and play (Visual Studio's): play starts debugging the startup
-                project and turns into stop while it runs. Run Without Debugging is Ctrl+F5 / the Build menu.
+            Startup project, configuration and play (Visual Studio's): play starts debugging the startup
+            project and turns into stop while it runs. Run Without Debugging is Ctrl+F5 / the Build menu.
             -->
             <StackPanel
                 Grid.Column="1"
                 Margin="12,0,0,0"
+                HorizontalAlignment="Right"
                 Orientation="Horizontal"
                 Spacing="4">
                 <ComboBox
@@ -131,6 +132,7 @@
                     MinHeight="0"
                     MinWidth="140"
                     Padding="8,2"
+                    VerticalAlignment="Stretch"
                     PlaceholderText="Startup project"
                     SelectedItem="{Binding Run.StartupProject}"
                     ToolTip.Tip="Startup project: what Run and Debug start"
@@ -148,7 +150,8 @@
                     ItemsSource="{Binding Run.Configurations}"
                     Margin="0,3"
                     MinHeight="0"
-                    Padding="8,2"
+                    Padding="8,5"
+                    VerticalAlignment="Center"
                     SelectedItem="{Binding Run.Configuration}"
                     ToolTip.Tip="Build configuration"
                     VerticalContentAlignment="Center" />

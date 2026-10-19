@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="AXamlIDE.Views.EditorPaneView"
     xmlns="https://github.com/avaloniaui"
     xmlns:edit="using:AvaloniaEdit"
@@ -67,8 +67,8 @@
             Width="14" />
 
         <!--
-            The hover card (Editor/Hover/HoverController fills and places it). A popup has to be in the tree to open.
-            Light dismiss: a click outside closes it and still reaches the editor. It never takes focus.
+        The hover card (Editor/Hover/HoverController fills and places it). A popup has to be in the tree to open.
+        Light dismiss: a click outside closes it and still reaches the editor. It never takes focus.
         -->
         <Popup
             Focusable="False"

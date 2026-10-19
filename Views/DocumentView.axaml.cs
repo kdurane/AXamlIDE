@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using Avalonia.Controls;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
@@ -73,10 +73,8 @@ public partial class DocumentView : UserControl
     public void Disconnect()
     {
         OutlineHost.IsVisible = false;   // a disconnected drop-down would show empty
-        if (_outline is not null)
-            _outline.DataContext = null;
-        if (_preview is not null)
-            _preview.DataContext = null;
+        _outline?.DataContext = null;
+        _preview?.DataContext = null;
         PreviewHost.Content = PreviewPlaceholder;
         UpdateBarVisibility();
     }
