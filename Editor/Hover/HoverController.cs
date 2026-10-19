@@ -34,6 +34,10 @@ public sealed class HoverController
 {
     private static readonly TimeSpan ShowDelay = TimeSpan.FromMilliseconds(400);
     private static readonly TimeSpan HideDelay = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan DataTipHideDelay = TimeSpan.FromMilliseconds(700);
+
+    /// <summary>How far (DIPs) the pointer can stray outside a tip that's been used before it closes.</summary>
+    private const double StickyMargin = 48;
 
     private readonly EditorContext _ctx;
     private readonly CodeActionController _codeActions;
@@ -45,6 +49,10 @@ public sealed class HoverController
     private int? _hoverOffset;               // the character the pointer rests on
     private (int Start, int End)? _tipRange; // what the open card is about
     private bool _pointerOverCard;
+    private Control? _card;
+    private bool _sticky;        // the card was clicked / expanded: it stays until the pointer moves well away
+    private bool _refitting;     // re-opening the popup at a new size, not closing it
+    private TopLevel? _watchedWindow; // while a card is open: pointer moves anywhere in the window (see OnWindowPointerMoved)
 
     /// <param name="popup">The popup to show the card in (EditorPaneView.axaml: placed under the text, light dismiss).</param>
     /// <param name="dataTips">While the debugger is paused, hovering an expression shows its value instead (DataTips).</param>
@@ -57,7 +65,11 @@ public sealed class HoverController
         var editor = ctx.Editor;
         var textView = editor.TextArea.TextView;
         _popup.PlacementTarget = textView;
-        _popup.Closed += (_, _) => _tipRange = null;
+        _popup.Closed += (_, _) =>
+        {
+            if (!_refitting)
+                _tipRange = null;
+        };
 
         // handledEventsToo: the text area marks pointer events handled while selecting.
         editor.AddHandler(InputElement.PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -85,6 +97,17 @@ public sealed class HoverController
         {
             Hide(resetOffset: true);
             return;
+        }
+
+        // A tip that's been used stays while the pointer is on it or near it (VS's DataTips do).
+        if (_popup.IsOpen && _sticky)
+        {
+            if (IsNearCard(e.GetPosition(_ctx.Editor)))
+            {
+                _hideTimer.Stop();
+                return;
+            }
+            Hide(resetOffset: true);
         }
 
         var offset = CharacterUnderPointer(e.GetPosition(_ctx.Editor.TextArea.TextView));
@@ -155,7 +178,16 @@ public sealed class HoverController
         {
             if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
                 return;
-            ShowCard(dataTip.View, dataTip.Range);
+            ShowCard(dataTip.View, dataTip.Range, dataTip.AnchorOffset);
+            _hideTimer.Interval = DataTipHideDelay;
+            // Expanding is using it; and the popup has to grow with it.
+            dataTip.Tree.Rows.CollectionChanged += (_, _) =>
+            {
+                if (!ReferenceEquals(_card, dataTip.View))
+                    return;
+                _sticky = true;
+                Dispatcher.UIThread.Post(Refit, DispatcherPriority.Background);
+            };
             return;
         }
         if (cts.IsCancellationRequested || offset != _hoverOffset)
@@ -249,22 +281,95 @@ public sealed class HoverController
         ShowCard(HoverCard.Create(content, editor.FontFamily, Math.Max(editor.FontSize - 1, 10), quickFix), range);
     }
 
-    /// <summary>Open the popup with a card (the hover card, or a DataTip) under the start of <paramref name="range"/>.</summary>
-    private void ShowCard(Control card, (int Start, int End) range)
+    /// <summary>
+    /// Open the popup with a card (the hover card, or a DataTip) under <paramref name="anchorOffset"/> (default: the
+    /// start of <paramref name="range"/>).
+    /// </summary>
+    private void ShowCard(Control card, (int Start, int End) range, int? anchorOffset = null)
     {
         var view = _ctx.Editor.TextArea.TextView;
-        var start = _ctx.Active!.Document.GetLocation(range.Start);
+        var start = _ctx.Active!.Document.GetLocation(anchorOffset ?? range.Start);
         var position = view.GetVisualPosition(new TextViewPosition(start), VisualYPosition.LineBottom) - view.ScrollOffset;
 
         // On the card itself: the popup's own pointer events don't see its content (it lives in another window).
         card.PointerEntered += (_, _) => { _pointerOverCard = true; _hideTimer.Stop(); };
-        card.PointerExited += (_, _) => { _pointerOverCard = false; _hideTimer.Start(); };
+        card.PointerExited += (_, _) =>
+        {
+            _pointerOverCard = false;
+            if (!_sticky)
+                _hideTimer.Start();   // a used card closes by distance instead (OnPointerMoved)
+        };
+        // Clicking in it (an expander, a link, selecting text, its menu) means it's being used.
+        card.AddHandler(InputElement.PointerPressedEvent, (_, _) => _sticky = true, RoutingStrategies.Tunnel, handledEventsToo: true);
+
+        _hideTimer.Interval = HideDelay;
+        _sticky = false;
+        _card = card;
+        WatchWindow(TopLevel.GetTopLevel(_ctx.Editor));
         _popup.Child = card;
         _popup.PlacementRect = new Rect(position.X, position.Y - 1, 1, 1);
         _popup.IsOpen = true;
         _tipRange = range;
         _pointerOverCard = false;
         _hideTimer.Stop();
+    }
+
+    /// <summary>
+    /// The card asks for more (or less) room than its popup has: some platforms don't resize an open popup when its
+    /// content grows, so open it again at the new size.
+    /// </summary>
+    private void Refit()
+    {
+        if (!_popup.IsOpen || _card is not { } card)
+            return;
+        card.Measure(Size.Infinity);
+        var wanted = card.DesiredSize;
+        if (Math.Abs(card.Bounds.Height - wanted.Height) < 1 && Math.Abs(card.Bounds.Width - wanted.Width) < 1)
+            return;
+        _refitting = true;
+        try
+        {
+            _popup.IsOpen = false;
+            _popup.IsOpen = true;
+        }
+        finally
+        {
+            _refitting = false;
+        }
+    }
+
+    /// <summary>
+    /// A used card closes when the pointer moves well away from it, anywhere in the window (the editor stops getting
+    /// moves once the pointer is over the explorer, a panel...).
+    /// </summary>
+    private void WatchWindow(TopLevel? window)
+    {
+        if (ReferenceEquals(window, _watchedWindow))
+            return;
+        _watchedWindow?.RemoveHandler(InputElement.PointerMovedEvent, OnWindowPointerMoved);
+        _watchedWindow = window;
+        _watchedWindow?.AddHandler(InputElement.PointerMovedEvent, OnWindowPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    private void OnWindowPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_popup.IsOpen && _sticky && !_pointerOverCard && !IsNearCard(e.GetPosition(_ctx.Editor)))
+            Hide(resetOffset: true);
+    }
+
+    /// <summary>The pointer (in editor coordinates) is on the card or within <see cref="StickyMargin"/> of it.</summary>
+    private bool IsNearCard(Point pointInEditor)
+    {
+        if (_card is not { } card || TopLevel.GetTopLevel(card) is not { } cardTop || TopLevel.GetTopLevel(_ctx.Editor) is not { } editorTop)
+            return false;
+        // Screen pixels: the card is usually in its own popup window.
+        var pointer = _ctx.Editor.PointToScreen(pointInEditor);
+        var origin = card.PointToScreen(default);
+        var scale = cardTop.RenderScaling;
+        var margin = StickyMargin * editorTop.RenderScaling;
+        var rect = new Rect(origin.X - margin, origin.Y - margin,
+            card.Bounds.Width * scale + 2 * margin, card.Bounds.Height * scale + 2 * margin);
+        return rect.Contains(new Point(pointer.X, pointer.Y));
     }
 
     public void Hide(bool resetOffset = false)
@@ -278,5 +383,8 @@ public sealed class HoverController
             _popup.IsOpen = false;
         _tipRange = null;
         _pointerOverCard = false;
+        _sticky = false;
+        _card = null;
+        WatchWindow(null);
     }
 }

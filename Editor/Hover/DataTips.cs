@@ -13,8 +13,9 @@ using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.Editor.Hover;
 
-/// <summary>A DataTip ready to show: its view and the text it's about.</summary>
-public sealed record DataTip(Control View, (int Start, int End) Range);
+/// <summary>A DataTip ready to show: its view, the text it's about, where to place it, and its rows.</summary>
+/// <param name="AnchorOffset">The start of the word under the pointer (the tip opens under it).</param>
+public sealed record DataTip(Control View, (int Start, int End) Range, int AnchorOffset, DebugValueTree Tree);
 
 /// <summary>
 /// Visual Studio's DataTips: while the debugger is paused, hovering an expression in C# (a variable, person.Home,
@@ -24,6 +25,11 @@ public sealed record DataTip(Control View, (int Start, int End) Range);
 /// </summary>
 public sealed class DataTips(DebugSnapshotTracker debug, IMessenger messenger, IClipboardService clipboard)
 {
+    private const double RowHeight = 22;     // DebugValueTreeView's rows
+    private const double MaxHeight = 420;
+
+    private static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c == '_' || c == '@';
+
     /// <summary>The DataTip for the expression at <paramref name="offset"/>, or null (not paused, nothing to evaluate).</summary>
     public async Task<DataTip?> CreateAsync(OpenDocument document, int offset)
     {
@@ -48,22 +54,28 @@ public sealed class DataTips(DebugSnapshotTracker debug, IMessenger messenger, I
 
         var tree = new DebugValueTree(messenger, clipboard);
         await tree.SetRootsAsync([value], values, markChanges: false);
-        var view = new Border
+        var treeView = new DebugValueTreeView
         {
-            Classes = { "dataTip" },
-            Child = new DebugValueTreeView
-            {
-                DataContext = tree,
-                ShowHeader = false,
-                ShowTypeColumn = false,
-                IsEditable = false,
-                NameColumnWidth = Math.Clamp(found.Expression.Length * 8 + 40, 100, 260),
-                MinWidth = 320,
-                MaxWidth = 760,
-                MaxHeight = 380,
-                HorizontalAlignment = HorizontalAlignment.Left
-            }
+            DataContext = tree,
+            ShowHeader = false,
+            ShowTypeColumn = false,
+            IsEditable = false,
+            NameColumnWidth = Math.Clamp(found.Expression.Length * 8 + 40, 100, 260),
+            MinWidth = 320,
+            MaxWidth = 760,
+            HorizontalAlignment = HorizontalAlignment.Left
         };
-        return new DataTip(view, (line.Offset + found.Start, line.Offset + found.Start + found.Length));
+        // A virtualizing list measured in a popup doesn't ask for more room as rows are added, so size it from
+        // the rows: the tip grows (up to a limit, then scrolls) as it's expanded.
+        void Fit() => treeView.Height = Math.Min(tree.Rows.Count * RowHeight + 6, MaxHeight);
+        tree.Rows.CollectionChanged += (_, _) => Fit();
+        Fit();
+
+        var view = new Border { Classes = { "dataTip" }, Child = treeView };
+        var start = line.Offset + found.Start;
+        var word = offset;
+        while (word > start && IsIdentifierChar(document.Document.GetCharAt(word - 1)))
+            word--;
+        return new DataTip(view, (start, start + found.Length), word, tree);
     }
 }
