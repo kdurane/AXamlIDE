@@ -16,7 +16,7 @@
         ShowLineNumbers="True"
         VerticalScrollBarVisibility="Visible">
         <edit:TextEditor.ContextFlyout>
-            <MenuFlyout>
+            <MenuFlyout Opening="OnContextMenuOpening">
                 <MenuItem
                     Click="OnCopyClick"
                     Header="Copy"
@@ -30,6 +30,12 @@
                     Header="Paste"
                     InputGesture="ctrl+V" />
                 <MenuItem Header="-" />
+                <!--  C# only (shown by OnContextMenuOpening): renames the symbol and every reference to it  -->
+                <MenuItem
+                    Click="OnRenameClick"
+                    Header="Rename..."
+                    InputGesture="Ctrl+R"
+                    Name="RenameMenuItem" />
                 <MenuItem
                     Click="OnCodeActionsClick"
                     Header="Quick Actions..."

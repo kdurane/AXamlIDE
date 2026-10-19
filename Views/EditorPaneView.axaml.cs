@@ -23,6 +23,7 @@ using AXamlIDE.Editor.SignatureHelp;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
+using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Settings;
 using CommunityToolkit.Mvvm.Messaging;
 using TextMateSharp.Grammars;
@@ -336,6 +337,11 @@ public partial class EditorPaneView : UserControl,
     }
 
     // Context-menu "Quick Actions..." (the View menu uses EditorCommands.QuickActions).
+    private void OnContextMenuOpening(object? sender, EventArgs e)
+        => RenameMenuItem.IsVisible = _ctx?.Active?.LanguageId == LanguageIds.CSharp;
+
+    private void OnRenameClick(object? sender, RoutedEventArgs e) => _ = _navigation.RenameSymbolAsync();
+
     private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
         => await _codeActions.ShowCodeActionsAsync(anchor: Editor);
 

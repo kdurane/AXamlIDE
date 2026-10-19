@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
@@ -181,8 +182,18 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
 
     // ---------------------------------------------------------------- rename
 
+    /// <summary>
+    /// Rename the C# symbol at the caret and every reference to it (through Roslyn), after showing the changes.
+    /// C# only, as in other IDEs: XAML isn't touched (renaming there causes more trouble than it saves); the
+    /// next build reports any XAML that still uses the old name.
+    /// </summary>
     public async Task RenameSymbolAsync()
     {
+        if (ctx.Active is { } active && active.LanguageId != LanguageIds.CSharp)
+        {
+            ctx.Status("Rename works in C# files; XAML that uses the name is reported by the next build.");
+            return;
+        }
         if (!TryGetActiveLanguageClient(out var document, out var client))
             return;
         if (!client.SupportsRename)
@@ -191,8 +202,10 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
             return;
         }
 
-        var newName = await dialogs.PromptForTextAsync("Rename Symbol", "Enter the new symbol name...", "Rename");
-        if (string.IsNullOrWhiteSpace(newName))
+        var current = IdentifierAtCaret(document);
+        var newName = await dialogs.PromptForTextAsync(
+            current.Length > 0 ? $"Rename '{current}'" : "Rename Symbol", "Enter the new symbol name...", "Rename", current);
+        if (string.IsNullOrWhiteSpace(newName) || newName == current)
             return;
 
         try
@@ -200,6 +213,8 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
             var (line, character) = CurrentLspPosition();
             var edit = await client.RenameAsync(document.Uri, line, character, newName);
             var replacements = ParseWorkspaceEdit(edit);
+            foreach (var uri in replacements.Keys.Where(uri => !uri.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)).ToList())
+                replacements.Remove(uri);   // C# files only
             if (replacements.Count == 0)
             {
                 ctx.Status("The language server returned no rename changes.");
@@ -219,6 +234,22 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
     }
 
     // --------------------------------------------------------------- helpers
+
+    /// <summary>The C# identifier the caret is in (or just after), or "".</summary>
+    private string IdentifierAtCaret(OpenDocument document)
+    {
+        var text = document.Document;
+        var caret = Math.Clamp(ctx.Editor.CaretOffset, 0, text.TextLength);
+        var start = caret;
+        while (start > 0 && IsIdentifierChar(text.GetCharAt(start - 1)))
+            start--;
+        var end = caret;
+        while (end < text.TextLength && IsIdentifierChar(text.GetCharAt(end)))
+            end++;
+        return text.GetText(start, end - start).TrimStart('@');
+
+        static bool IsIdentifierChar(char c) => char.IsLetterOrDigit(c) || c is '_' or '@';
+    }
 
     private bool TryGetActiveLanguageClient(out OpenDocument document, out LspClient client)
     {
