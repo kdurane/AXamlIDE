@@ -22,6 +22,9 @@ public sealed partial class NuGetPackageRow : ObservableObject
     [ObservableProperty] public partial string? IconUrl { get; set; }
     [ObservableProperty] public partial byte[]? IconData { get; set; }
 
+    /// <summary>Ticked for "Update Selected" (the Updates tab's check boxes).</summary>
+    [ObservableProperty] public partial bool IsChecked { get; set; }
+
     /// <summary>The version the project has (resolved by restore), or null when it isn't installed.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsInstalled), nameof(HasUpdate), nameof(VersionText))]

@@ -33,7 +33,7 @@ public sealed partial class NuGetDockable
 
     /// <summary>An install / update / uninstall is running.</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(InstallSelectedCommand), nameof(UninstallSelectedCommand), nameof(UpdateAllCommand))]
+    [NotifyCanExecuteChangedFor(nameof(InstallSelectedCommand), nameof(UninstallSelectedCommand), nameof(UpdateAllCommand), nameof(UpdateCheckedCommand))]
     public partial bool IsBusy { get; set; }
 
     /// <summary>What the last change printed when it failed (shown under the buttons).</summary>
@@ -194,25 +194,6 @@ public sealed partial class NuGetDockable
     }
 
     private bool CanUninstallSelected() => !IsBusy && SelectedPackage is { IsInstalled: true };
-
-    /// <summary>The Updates tab's "Update All": every package with a newer version, one after another.</summary>
-    [RelayCommand(CanExecute = nameof(CanUpdateAll))]
-    private async Task UpdateAllAsync()
-    {
-        var updates = _installed.Keys.Where(HasUpdate).Select(id => (Id: id, Version: _latest[id])).ToList();
-        await ChangeAsync($"Update {updates.Count} package{(updates.Count == 1 ? "" : "s")}", async ct =>
-        {
-            foreach (var (id, version) in updates)
-            {
-                var result = await _nuget.InstallAsync(ProjectPath, id, version, ct);
-                if (!result.Succeeded)
-                    return result with { Output = $"{id} {version}:{Environment.NewLine}{result.Output}" };
-            }
-            return new NuGetChangeResult(true, "");
-        }, $"Updated {updates.Count} package{(updates.Count == 1 ? "" : "s")}.");
-    }
-
-    private bool CanUpdateAll() => !IsBusy && UpdatesCount > 0;
 
     /// <summary>Run a dotnet change, report it, then re-read the installed packages and the list.</summary>
     private async Task ChangeAsync(string what, Func<CancellationToken, Task<NuGetChangeResult>> change, string done)

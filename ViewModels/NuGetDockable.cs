@@ -109,6 +109,7 @@ public sealed partial class NuGetDockable : PageDockable
     {
         OnPropertyChanged(nameof(TabIndex));
         OnPropertyChanged(nameof(IsUpdatesTab));
+        OnChecksChanged();
         _ = ReloadListAsync(delay: false);
     }
 
@@ -224,7 +225,12 @@ public sealed partial class NuGetDockable : PageDockable
 
             Packages.Clear();
             foreach (var row in rows)
+            {
+                row.IsChecked = _checkedIds.Contains(row.Id);
+                row.PropertyChanged += OnRowPropertyChanged;
                 Packages.Add(row);
+            }
+            OnChecksChanged();
             ListMessage = Packages.Count > 0 ? null : Tab switch
             {
                 NuGetTab.Browse => SearchText.Length > 0 ? $"No packages found for \"{SearchText}\"." : "No packages found.",
