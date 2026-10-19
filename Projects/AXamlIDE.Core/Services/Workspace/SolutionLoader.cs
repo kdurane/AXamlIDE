@@ -129,10 +129,10 @@ public static class SolutionLoader
             current[parts[^1]] = file;
         }
 
-        return ToNodes(root);
+        return ToNodes(root, projectDir);
     }
 
-    private static IEnumerable<ProjectTreeNode> ToNodes(Dictionary<string, object> level)
+    private static IEnumerable<ProjectTreeNode> ToNodes(Dictionary<string, object> level, string directory)
     {
         var ordered = level.OrderBy(kv => kv.Value is Dictionary<string, object> ? 0 : 1).ThenBy(kv => kv.Key);
 
@@ -141,7 +141,8 @@ public static class SolutionLoader
             var (name, value) = kv;
             return value switch
             {
-                Dictionary<string, object> children => ProjectTreeNode.CreateFolder(name, ToNodes(children)),
+                Dictionary<string, object> children => ProjectTreeNode.CreateFolder(name, Path.Combine(directory, name),
+                    ToNodes(children, Path.Combine(directory, name))),
                 string path => new ProjectTreeNode(name, path, NodeKind.File, null),
                 _ => throw new InvalidOperationException("Unexpected node value.")
             };

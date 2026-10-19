@@ -27,7 +27,20 @@ public class ProjectTreeNode : INotifyPropertyChanged
     public string FullPath { get; }
     public NodeKind Kind { get; }
     public ObservableCollection<ProjectTreeNode> Children { get; } = new();
-    public bool IsExpanded { get; set; }
+    /// <summary>Bound two-way to the tree; raises PropertyChanged so a reload can re-expand folders.</summary>
+    public bool IsExpanded
+    {
+        get => _isExpanded;
+        set
+        {
+            if (_isExpanded == value)
+                return;
+            _isExpanded = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+        }
+    }
+
+    private bool _isExpanded;
 
     /// <summary>The node's Git state, for its colour in the explorer (set by ViewModels/GitTreeDecorator).</summary>
     public GitFileState GitState
@@ -182,11 +195,12 @@ public class ProjectTreeNode : INotifyPropertyChanged
         => new(name, csprojPath, NodeKind.Project, () => SolutionLoader.LoadProjectItems(host, csprojPath));
 
     /// <summary>Folders under a project are fully known once the project has been evaluated
-    /// (no further disk I/O), so this populates itself immediately.</summary>
-    public static ProjectTreeNode CreateFolder(string name, IEnumerable<ProjectTreeNode> children)
+    /// (no further disk I/O), so this populates itself immediately. <paramref name="fullPath"/> is the
+    /// folder on disk (for paste, rename, Copy Path).</summary>
+    public static ProjectTreeNode CreateFolder(string name, string fullPath, IEnumerable<ProjectTreeNode> children)
     {
         var childList = children.ToList();
-        var node = new ProjectTreeNode(name, string.Empty, NodeKind.Folder, () => childList);
+        var node = new ProjectTreeNode(name, fullPath, NodeKind.Folder, () => childList);
         node.Populate();
         return node;
     }

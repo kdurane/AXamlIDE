@@ -131,7 +131,8 @@ public sealed partial class PropertiesViewModel : ObservableObject
                 return ($"{node.Name}  Folder Properties",
                     [Misc(ReadOnly("Folder Name", node.Name, "The folder's name."), FullPath(node.FullPath))]);
             case NodeKind.Folder:
-                return ($"{node.Name}  Folder Properties", [Misc(ReadOnly("Folder Name", node.Name, "The folder's name."))]);
+                return ($"{node.Name}  Folder Properties",
+                    [Misc(ReadOnly("Folder Name", node.Name, "The folder's name."), FullPath(node.FullPath))]);
             case NodeKind.Project:
                 return ($"{node.Name}  Project Properties", DescribeProject(node.FullPath));
             case NodeKind.Solution:

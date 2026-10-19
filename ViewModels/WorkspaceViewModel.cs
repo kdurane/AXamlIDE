@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -126,6 +127,72 @@ public sealed partial class WorkspaceViewModel : ObservableObject
 
         node.Reset();
         await node.PopulateAsync();
+    }
+
+    /// <summary>
+    /// Reload the children of the folder or project that holds <paramref name="node"/> (after a file was renamed,
+    /// pasted or deleted there), keeping the folders that were expanded expanded. Returns the node reloaded.
+    /// </summary>
+    public async Task<ProjectTreeNode?> ReloadAroundAsync(ProjectTreeNode node)
+    {
+        // A solution folder's children are fixed when its project is read, so reload the project (or real folder).
+        var target = node;
+        while (target is not { Kind: NodeKind.Directory or NodeKind.Project } && ParentOf(target) is { } parent)
+            target = parent;
+        if (target.Kind is not (NodeKind.Directory or NodeKind.Project))
+            return null;
+
+        var expanded = new HashSet<string>(GitStatus.PathComparer);
+        CollectExpanded(target, expanded);
+
+        target.Reset();
+        await target.PopulateAsync();
+        await ReExpandAsync(target, expanded);
+        return target;
+    }
+
+    /// <summary>The node that lists <paramref name="node"/> as a child, or null (a root, or not in the tree).</summary>
+    public ProjectTreeNode? ParentOf(ProjectTreeNode node)
+        => Roots.Select(root => FindParent(root, node)).FirstOrDefault(parent => parent is not null);
+
+    /// <summary>The loaded node for a path under <paramref name="under"/>, or null.</summary>
+    public static ProjectTreeNode? FindByPath(ProjectTreeNode under, string path)
+        => GitStatus.PathComparer.Equals(under.FullPath, path)
+            ? under
+            : under.Children.Select(child => FindByPath(child, path)).FirstOrDefault(found => found is not null);
+
+    private static ProjectTreeNode? FindParent(ProjectTreeNode current, ProjectTreeNode target)
+    {
+        foreach (var child in current.Children)
+        {
+            if (ReferenceEquals(child, target))
+                return current;
+            if (FindParent(child, target) is { } found)
+                return found;
+        }
+        return null;
+    }
+
+    private static void CollectExpanded(ProjectTreeNode node, HashSet<string> expanded)
+    {
+        foreach (var child in node.Children)
+        {
+            if (child.IsExpanded && child.FullPath.Length > 0)
+                expanded.Add(child.FullPath);
+            CollectExpanded(child, expanded);
+        }
+    }
+
+    private static async Task ReExpandAsync(ProjectTreeNode node, HashSet<string> expanded)
+    {
+        foreach (var child in node.Children.ToList())
+        {
+            if (!expanded.Contains(child.FullPath))
+                continue;
+            await child.PopulateAsync();
+            child.IsExpanded = true;
+            await ReExpandAsync(child, expanded);
+        }
     }
 
     private void Reopen()

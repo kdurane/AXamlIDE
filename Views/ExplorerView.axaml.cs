@@ -25,6 +25,7 @@ public partial class ExplorerView : UserControl
         FileTree.AddHandler(TreeViewItem.ExpandedEvent, OnNodeExpanded, RoutingStrategies.Bubble);
         FileTree.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         FileTree.AddHandler(DoubleTappedEvent, OnDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
+        FileTree.AddHandler(KeyDownEvent, OnTreeKeyDown, RoutingStrategies.Bubble);
     }
 
     private ExplorerViewModel? ViewModel => DataContext as ExplorerViewModel;
@@ -67,6 +68,24 @@ public partial class ExplorerView : UserControl
         var menu = new ContextMenu();
         if (node.Kind == NodeKind.File)
             menu.Items.Add(Item("Open", vm.OpenFileCommand, node));
+
+        // Visual Studio's order: cut/copy/paste, then delete/rename.
+        if (menu.Items.Count > 0)
+            menu.Items.Add(new Separator());
+        var canChange = vm.CanChange(node);
+        if (canChange)
+        {
+            menu.Items.Add(Item("Cut", vm.CutCommand, node, new KeyGesture(Key.X, KeyModifiers.Control)));
+            menu.Items.Add(Item("Copy", vm.CopyCommand, node, new KeyGesture(Key.C, KeyModifiers.Control)));
+        }
+        menu.Items.Add(Item("Paste", vm.PasteCommand, node, new KeyGesture(Key.V, KeyModifiers.Control)));
+        if (canChange)
+        {
+            menu.Items.Add(Item("Delete", vm.DeleteCommand, node, new KeyGesture(Key.Delete)));
+            menu.Items.Add(Item("Rename", vm.RenameCommand, node, new KeyGesture(Key.F2)));
+        }
+        menu.Items.Add(new Separator());
+
         if (!string.IsNullOrEmpty(node.FullPath))
         {
             var copy = new MenuItem { Header = "Copy Path" };
@@ -93,14 +112,34 @@ public partial class ExplorerView : UserControl
         menu.Items.Add(new Separator());
         menu.Items.Add(new MenuItem { Header = "Properties", Command = vm.Properties.ShowCommand, InputGesture = new KeyGesture(Key.F4) });
 
-
         control.ContextMenu = menu;
         menu.Open(control);
         e.Handled = true;
     }
 
-    private static MenuItem Item(string header, ICommand command, object parameter)
-        => new() { Header = header, Command = command, CommandParameter = parameter };
+    private static MenuItem Item(string header, ICommand command, object parameter, KeyGesture? gesture = null)
+        => new() { Header = header, Command = command, CommandParameter = parameter, InputGesture = gesture };
+
+    // F2, Delete and Ctrl+X/C/V act on the selected node while the tree has focus.
+    private void OnTreeKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (ViewModel is not { } vm || FileTree.SelectedItem is not ProjectTreeNode node)
+            return;
+
+        ICommand? command = (e.Key, e.KeyModifiers) switch
+        {
+            (Key.F2, KeyModifiers.None) => vm.RenameCommand,
+            (Key.Delete, KeyModifiers.None) => vm.DeleteCommand,
+            (Key.X, KeyModifiers.Control) => vm.CutCommand,
+            (Key.C, KeyModifiers.Control) => vm.CopyCommand,
+            (Key.V, KeyModifiers.Control) => vm.PasteCommand,
+            _ => null
+        };
+        if (command?.CanExecute(node) != true)
+            return;
+        command.Execute(node);
+        e.Handled = true;
+    }
 
     /// <summary>
     /// The Git submenu (as in Rider) for a file, folder or project inside the repository: diff, stage/unstage,
@@ -110,7 +149,7 @@ public partial class ExplorerView : UserControl
     {
         var path = node.Kind switch
         {
-            NodeKind.File or NodeKind.Directory => node.FullPath,
+            NodeKind.File or NodeKind.Directory or NodeKind.Folder => node.FullPath,
             NodeKind.Project => Path.GetDirectoryName(node.FullPath),
             _ => null
         };
@@ -125,7 +164,7 @@ public partial class ExplorerView : UserControl
         if (git.HasStagedChanges(path))
             menu.Items.Add(Item("Unstage", git.UnstagePathCommand, path));
 
-        if (node.Kind is NodeKind.File or NodeKind.Directory)
+        if (node.Kind is NodeKind.File or NodeKind.Directory or NodeKind.Folder)
         {
             if (menu.Items.Count > 0)
                 menu.Items.Add(new Separator());

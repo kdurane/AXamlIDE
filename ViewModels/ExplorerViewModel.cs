@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -11,7 +12,8 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The Explorer panel: the workspace tree plus what you can do to a node (open, refresh, build,
-/// run, debug). The workspace itself (open/close, selection) is <see cref="WorkspaceViewModel"/>.
+/// run, debug; cut/copy/paste, rename and delete are in ExplorerViewModel.Files.cs).
+/// The workspace itself (open/close, selection) is <see cref="WorkspaceViewModel"/>.
 /// </summary>
 public sealed partial class ExplorerViewModel(
     WorkspaceViewModel workspace,
@@ -19,6 +21,8 @@ public sealed partial class ExplorerViewModel(
     GitViewModel git,
     PropertiesViewModel properties,
     IDocumentHost documents,
+    DocumentManager openDocuments,
+    IDialogService dialogs,
     IMessenger messenger)
 {
     public WorkspaceViewModel Workspace { get; } = workspace;
