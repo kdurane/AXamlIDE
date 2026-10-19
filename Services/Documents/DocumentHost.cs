@@ -21,7 +21,7 @@ public sealed class DocumentHost(DocumentManager documents, WorkspaceModel works
     public OpenDocument OpenReadOnly(string path, string text, string languageId)
         => documents.OpenReadOnly(path, text, languageId);
 
-    public void Activate(OpenDocument document) => documents.Active = document;
+    public void Activate(OpenDocument document) => documents.BringToFront(document);
 
     public async Task<IReadOnlyList<string>> GetWorkspaceFilesAsync()
         => workspace.RootDirectory is { } root ? await _search.ListWorkspaceFilesAsync(root) : [];

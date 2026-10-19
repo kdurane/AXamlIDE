@@ -63,6 +63,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
 
         _documents.Documents.CollectionChanged += OnDocumentsChanged;
         _documents.ActiveChanged += OnActiveDocumentChanged;
+        _documents.FrontRequested += OnActiveDocumentChanged;
         _factory.GlobalDockTrackingChanged += (_, e) => OnDockFocused(e.Current.Dockable);
         _factory.FocusedDockableChanged += (_, e) => OnDockFocused(e.Dockable);
         _factory.ActiveDockableChanged += OnDockActiveDockableChanged;

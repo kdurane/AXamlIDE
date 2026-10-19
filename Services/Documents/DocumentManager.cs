@@ -28,6 +28,21 @@ public sealed class DocumentManager
     public event Action<OpenDocument?>? ActiveChanged;
 
     /// <summary>
+    /// <see cref="BringToFront"/> on the document that's already <see cref="Active"/>: its tab should come to the
+    /// front anyway (a page tab, like a diff or a debugger visualizer, may be in front of it).
+    /// </summary>
+    public event Action<OpenDocument>? FrontRequested;
+
+    /// <summary>Make the document the active one and show its tab, even if it already was (navigation does this).</summary>
+    public void BringToFront(OpenDocument document)
+    {
+        if (ReferenceEquals(Active, document))
+            FrontRequested?.Invoke(document);
+        else
+            Active = document;
+    }
+
+    /// <summary>
     /// The document in the front tab, or null. Set by the shell on tab change. Its CaretOffset is
     /// kept current by the editor, so other areas can ask "where is the user?" without the editor.
     /// </summary>
