@@ -78,8 +78,9 @@ public sealed class MsBuildHostClient : IDisposable
     public string? GetProjectOutputType(string projectPath)
         => GetProjectData(projectPath).OutputType;
 
-    public string? GetProjectOutputPath(string projectPath)
-      => GetProjectData(projectPath).OutputPath?.Replace('\\', Path.DirectorySeparatorChar);
+    /// <param name="configuration">"Debug", "Release"...; null for the project's default (Debug).</param>
+    public string? GetProjectOutputPath(string projectPath, string? configuration = null)
+      => GetProjectData(projectPath, configuration).OutputPath?.Replace('\\', Path.DirectorySeparatorChar);
 
     public string? GetProjectAssetsFile(string projectPath)
         => GetProjectData(projectPath).ProjectAssetsFile;
@@ -102,7 +103,8 @@ public sealed class MsBuildHostClient : IDisposable
             ? new ProjectItemProperties(item.ItemType, item.AvailableItemTypes, item.Metadata)
             : throw new InvalidOperationException("MSBuild host returned no item.");
 
-    private HostResponse GetProjectData(string projectPath) => Send(new HostRequest(projectPath));
+    private HostResponse GetProjectData(string projectPath, string? configuration = null)
+        => Send(new HostRequest(projectPath, Configuration: configuration));
 
     private HostResponse Send(HostRequest request)
     {

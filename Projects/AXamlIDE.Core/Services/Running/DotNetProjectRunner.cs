@@ -11,11 +11,13 @@ public sealed class DotNetProjectRunner : IDisposable
 
     public event Action<string, bool>? OutputReceived;
 
-    public Task<int> BuildAsync(string projectPath)
-        => ExecuteAsync("build", projectPath, isRun: false);
+    /// <param name="configuration">"Debug" or "Release" (dotnet's <c>--configuration</c>).</param>
+    public Task<int> BuildAsync(string projectPath, string configuration)
+        => ExecuteAsync("build", projectPath, configuration, isRun: false);
 
-    public Task<int> RunAsync(string projectPath)
-        => ExecuteAsync("run", projectPath, isRun: true);
+    /// <summary>Runs the already built project (<c>--no-build</c>); build it first with the same configuration.</summary>
+    public Task<int> RunAsync(string projectPath, string configuration)
+        => ExecuteAsync("run", projectPath, configuration, isRun: true);
 
     public void Stop()
     {
@@ -37,7 +39,7 @@ public sealed class DotNetProjectRunner : IDisposable
         }
     }
 
-    private async Task<int> ExecuteAsync(string verb, string projectPath, bool isRun)
+    private async Task<int> ExecuteAsync(string verb, string projectPath, string configuration, bool isRun)
     {
         var process = new Process
         {
@@ -53,7 +55,7 @@ public sealed class DotNetProjectRunner : IDisposable
         process.StartInfo.ArgumentList.Add(verb);
         process.StartInfo.ArgumentList.Add(projectPath);
         process.StartInfo.ArgumentList.Add("--configuration");
-        process.StartInfo.ArgumentList.Add("Debug");
+        process.StartInfo.ArgumentList.Add(configuration);
         if (isRun)
             process.StartInfo.ArgumentList.Add("--no-build");
 

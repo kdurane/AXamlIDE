@@ -18,7 +18,7 @@ Views -> ViewModels / Commands -> Services / Models / Messages.
 App.axaml(.cs), Program.cs   Startup; AppServices.cs registers every service (dependency injection)
 Views/                       Every window and panel (.axaml + code-behind), DialogService, view helpers
 ViewModels/                  One view model per window/panel (MainWindow, Explorer, Problems, Outline,
-                             Run (+ .Debug), Search, Preview, Settings, Workspace), plus the dock layout:
+                             Run (+ .Debug, .Startup), Search, Preview, Settings, Workspace), plus the dock layout:
                              DockLayoutViewModel, DockFactory, DocumentDockable / ToolDockable
 Commands/                    Command sets shared by menus, KeyMap and panels: DocumentCommands, EditorCommands
 Shell/                       KeyMap (all shortcuts, attached to every window), ToolPanels (the view for each tool tab)
@@ -89,6 +89,10 @@ How the pieces are put together and talk:
   the one showing `Active`. Navigation asks the document, not an editor: `NavigationService` opens/activates it and
   calls `OpenDocument.Reveal(...)`, and the editor showing it selects, scrolls and focuses (even one created later).
 - Anything that opens a window goes through `IDialogService`.
+- **Run and Debug** start the startup project chosen in the top bar (Visual Studio style: startup project box,
+  Debug/Release box, play button that becomes stop), built with that configuration (`ViewModels/RunViewModel.Startup`).
+  The box lists the workspace's executable projects; with several and none chosen, Run/Debug ask. The choice is
+  remembered in `.axamlide/` and the startup project is bold in the explorer ("Set as Startup Project" there too).
 
 ## Additional Requirements
 - **Roslyn LSP Server**: Install globally via `dotnet tool install --global roslyn-language-server --prerelease`

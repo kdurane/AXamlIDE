@@ -20,6 +20,12 @@ public sealed record WorkspaceState
     /// bounds ("SearchWindow.X"...). Unknown names are ignored, so the layout can grow without a new schema.
     /// </summary>
     public Dictionary<string, double> Layout { get; init; } = [];
+
+    /// <summary>The project Run and Debug start (the toolbar's startup project), or null if none was chosen.</summary>
+    public string? StartupProject { get; init; }
+
+    /// <summary>The build configuration chosen in the toolbar ("Debug", "Release"), or null for the default.</summary>
+    public string? Configuration { get; init; }
 }
 
 /// <summary>One open file: where the caret and scroll were, and (for AXAML) how the preview was laid out.</summary>

@@ -62,7 +62,7 @@
                 Classes.play="{Binding IsDebugStopped}"
                 Command="{Binding ContinueOrPauseDebuggingCommand}"
                 ToolTip.Tip="Continue (F5) / Pause">
-                <PathIcon Foreground="LightBlue" />
+                <PathIcon Foreground="{DynamicResource DebugContinueBrush}" />
             </Button>
             <Button
                 Classes="dbg"
@@ -91,7 +91,7 @@
                 Command="{Binding RestartDebuggingCommand}"
                 IsEnabled="{Binding IsDebugging}"
                 ToolTip.Tip="Restart (Ctrl+Shift+F5)">
-                <PathIcon Data="{StaticResource Icon.Restart}" Foreground="SeaGreen" />
+                <PathIcon Data="{StaticResource Icon.Restart}" Foreground="{DynamicResource DebugRestartBrush}" />
             </Button>
 
             <Button
@@ -101,7 +101,7 @@
                 ToolTip.Tip="Stop (Shift+F5)">
                 <PathIcon
                     Data="{StaticResource Icon.SquareOutline}"
-                    Foreground="IndianRed"
+                    Foreground="{DynamicResource DebugStopBrush}"
                     Width="14" />
             </Button>
         </StackPanel>

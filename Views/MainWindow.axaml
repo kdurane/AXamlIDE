@@ -8,13 +8,14 @@
     x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:models="using:AXamlIDE.Models"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid RowDefinitions="auto,*,Auto">
 
-        <Grid ColumnDefinitions="*,Auto,Auto" Grid.Row="0">
-            <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="3" />
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Grid.Row="0">
+            <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="4" />
             <Menu MinHeight="0" Padding="0">
                 <MenuItem Header="_File">
                     <MenuItem Command="{Binding Workspace.OpenFolderCommand}" Header="_Open Folder..." />
@@ -111,10 +112,74 @@
                         InputGesture="Shift+F8" />
                 </MenuItem>
             </Menu>
+            <!--
+                Startup project, configuration and play (Visual Studio's): play starts debugging the startup
+                project and turns into stop while it runs. Run Without Debugging is Ctrl+F5 / the Build menu.
+            -->
+            <StackPanel
+                Grid.Column="1"
+                Margin="12,0,0,0"
+                Orientation="Horizontal"
+                Spacing="4">
+                <ComboBox
+                    AutomationProperties.Name="Startup project"
+                    FontSize="11"
+                    IsEnabled="{Binding !Run.IsRunning}"
+                    ItemsSource="{Binding Run.StartupProjects}"
+                    Margin="0,3"
+                    MaxWidth="220"
+                    MinHeight="0"
+                    MinWidth="140"
+                    Padding="8,2"
+                    PlaceholderText="Startup project"
+                    SelectedItem="{Binding Run.StartupProject}"
+                    ToolTip.Tip="Startup project: what Run and Debug start"
+                    VerticalContentAlignment="Center">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:StartupProjectItem">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <ComboBox
+                    AutomationProperties.Name="Configuration"
+                    FontSize="11"
+                    IsEnabled="{Binding !Run.IsRunning}"
+                    ItemsSource="{Binding Run.Configurations}"
+                    Margin="0,3"
+                    MinHeight="0"
+                    Padding="8,2"
+                    SelectedItem="{Binding Run.Configuration}"
+                    ToolTip.Tip="Build configuration"
+                    VerticalContentAlignment="Center" />
+                <Button
+                    AutomationProperties.Name="{Binding Run.StartOrStopToolTip}"
+                    Background="Transparent"
+                    Command="{Binding Run.StartOrStopCommand}"
+                    Padding="6,0"
+                    ToolTip.Tip="{Binding Run.StartOrStopToolTip}"
+                    VerticalAlignment="Stretch">
+                    <Panel>
+                        <PathIcon
+                            Data="{StaticResource Icon.Play}"
+                            Foreground="{DynamicResource DebugStartBrush}"
+                            Height="16"
+                            IsVisible="{Binding !Run.IsRunning}"
+                            Width="16" />
+                        <PathIcon
+                            Data="{StaticResource Icon.Stop}"
+                            Foreground="{DynamicResource DebugStopBrush}"
+                            Height="16"
+                            IsVisible="{Binding Run.IsRunning}"
+                            Width="16" />
+                    </Panel>
+                </Button>
+            </StackPanel>
+
             <!--  Search the workspace; results open in the Search window.  -->
             <TextBox
                 FontSize="11"
-                Grid.Column="1"
+                Grid.Column="2"
                 Margin="4,3"
                 MinHeight="0"
                 Padding="8,2"
@@ -130,7 +195,7 @@
                 AutomationProperties.Name="Settings"
                 Background="{DynamicResource AppTitleBarBackgroundBrush}"
                 Command="{Binding OpenSettingsCommand}"
-                Grid.Column="2"
+                Grid.Column="3"
                 HorizontalAlignment="Stretch"
                 Margin="0"
                 Padding="4"

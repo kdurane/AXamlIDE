@@ -21,6 +21,10 @@
                     <Setter Property="MinHeight" Value="20" />
                     <Setter Property="Padding" Value="0" />
                 </Style>
+                <!--  The startup project is bold, as in Visual Studio.  -->
+                <Style Selector="TextBlock.startup">
+                    <Setter Property="FontWeight" Value="Bold" />
+                </Style>
             </TreeView.Styles>
             <TreeView.ItemTemplate>
                 <TreeDataTemplate DataType="{x:Type models:ProjectTreeNode}" ItemsSource="{Binding Children}">
@@ -32,7 +36,14 @@
                         <TextBlock
                             FontSize="12"
                             Foreground="{Binding GitState, Converter={x:Static views:GitStateConverters.Brush}}"
-                            Text="{Binding Name}" />
+                            Text="{Binding Name}">
+                            <Classes.startup>
+                                <MultiBinding Converter="{x:Static views:PathConverters.Same}">
+                                    <Binding Path="FullPath" />
+                                    <Binding Path="$parent[TreeView].((vm:ExplorerViewModel)DataContext).Run.StartupProjectPath" />
+                                </MultiBinding>
+                            </Classes.startup>
+                        </TextBlock>
                         <!--  Git state letter (M, U, A...); empty for unchanged files, folders show only the colour  -->
                         <TextBlock
                             FontSize="11"
@@ -99,6 +110,11 @@
                         IsVisible="{Binding CanRefresh}" />
 
                     <Separator IsVisible="{Binding CanBuild}" />
+                    <MenuItem
+                        Command="{Binding Explorer.Run.SetStartupProjectCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Set as Startup Project"
+                        IsVisible="{Binding IsProject}" />
                     <MenuItem
                         Command="{Binding Explorer.Run.BuildProjectCommand}"
                         CommandParameter="{Binding Node}"

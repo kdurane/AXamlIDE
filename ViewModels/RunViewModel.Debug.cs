@@ -43,23 +43,8 @@ public partial class RunViewModel
     [RelayCommand]
     private async Task StartDebuggingAsync(ProjectTreeNode? selection)
     {
-        var selected = selection ?? _explorer.SelectedNode;
-        string? projectPath;
-        try
-        {
-            projectPath = ResolveStartupProject(selected);
-        }
-        catch (Exception ex)
-        {
-            ShowBuildMessage($"Could not determine the selected project: {ex}");
+        if (IsBusy || IsRunning || await ChooseStartupProjectAsync(selection) is not { } projectPath)
             return;
-        }
-
-        if (projectPath is null)
-        {
-            ShowBuildMessage("Select a project or one of its files in the workspace tree first.");
-            return;
-        }
 
         await DebugProjectAsync(projectPath);
     }
@@ -93,17 +78,18 @@ public partial class RunViewModel
             return;
 
         IsBusy = true;
-        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} (Debug) before debugging");
+        var configuration = Configuration;
+        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration}) before debugging");
         try
         {
-            var buildExitCode = await _projectRunner.BuildAsync(projectPath);
+            var buildExitCode = await _projectRunner.BuildAsync(projectPath, configuration);
             if (buildExitCode != 0)
             {
                 AppendBuildOutput($"Debugging cancelled because the build failed with exit code {buildExitCode}.");
                 return;
             }
 
-            var (programPath, workingDirectory) = await Task.Run(() => ResolveDebugProgram(projectPath));
+            var (programPath, workingDirectory) = await Task.Run(() => ResolveDebugProgram(projectPath, configuration));
             var session = new NetCoreDbgSession(NetCoreDbgSession.ResolveExecutablePath());
             _debugSession = session;
             _debugProjectPath = projectPath;
@@ -157,10 +143,10 @@ public partial class RunViewModel
         }
     }
 
-    private (string ProgramPath, string WorkingDirectory) ResolveDebugProgram(string projectPath)
+    private (string ProgramPath, string WorkingDirectory) ResolveDebugProgram(string projectPath, string configuration)
     {
         var assemblyName = _workspace.Host.GetProjectAssemblyName(projectPath);
-        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath);
+        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath, configuration);
         var projectDirectory = Path.GetDirectoryName(projectPath)
             ?? throw new InvalidOperationException($"Project '{projectPath}' has no parent directory.");
         if (string.IsNullOrWhiteSpace(outputPath))

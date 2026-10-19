@@ -11,7 +11,8 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// Remembers each workspace's session in its <c>.axamlide/</c> folder (WorkspaceStateStore): the files
-/// that were open (caret, scroll, preview layout), which was selected, and the dock sizes.
+/// that were open (caret, scroll, preview layout), which was selected, the dock sizes, and the toolbar's startup
+/// project and configuration.
 ///
 /// Restores it when a workspace opens. Saves it when the workspace is closed (MainWindowViewModel.CloseSolution
 /// calls <see cref="Close"/> before closing the documents), when another workspace is opened over it, and
@@ -22,6 +23,7 @@ public sealed class WorkspaceSession
     private readonly WorkspaceModel _workspace;
     private readonly DocumentManager _documents;
     private readonly DockLayoutViewModel _docking;
+    private readonly RunViewModel _run;
     private readonly WorkspaceStateStore _store;
     private readonly IMessenger _messenger;
     private string? _folder;   // the workspace whose session is live
@@ -31,12 +33,14 @@ public sealed class WorkspaceSession
         WorkspaceModel workspace,
         DocumentManager documents,
         DockLayoutViewModel docking,
+        RunViewModel run,
         WorkspaceStateStore store,
         IMessenger messenger)
     {
         _workspace = workspace;
         _documents = documents;
         _docking = docking;
+        _run = run;
         _store = store;
         _messenger = messenger;
         workspaceViewModel.Opened += OnWorkspaceOpened;
@@ -76,7 +80,9 @@ public sealed class WorkspaceSession
         {
             OpenFiles = files,
             ActiveFile = _documents.Active is { IsReadOnly: false } active ? active.Path : null,
-            Layout = _docking.CaptureLayout()
+            Layout = _docking.CaptureLayout(),
+            StartupProject = _run.StartupProjectPath,
+            Configuration = _run.Configuration
         };
 
         if (_store.Save(folder, state) is { } error)
@@ -94,6 +100,7 @@ public sealed class WorkspaceSession
     {
         var state = _store.Load(folder);
         _docking.ApplyLayout(state.Layout);
+        _run.RestoreStartup(state.StartupProject, state.Configuration);
 
         OpenDocument? active = null;
         foreach (var file in state.OpenFiles)

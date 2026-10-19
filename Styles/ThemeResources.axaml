@@ -155,6 +155,12 @@
     <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="EditorSplitterBrush" />
     <SolidColorBrush Color="{DynamicResource widget.shadow}" x:Key="WidgetShadowBrush" />
 
+    <!--  Run and debug buttons (the toolbar's play/stop, the debug toolbar)  -->
+    <SolidColorBrush Color="{DynamicResource debugIcon.startForeground}" x:Key="DebugStartBrush" />
+    <SolidColorBrush Color="{DynamicResource debugIcon.stopForeground}" x:Key="DebugStopBrush" />
+    <SolidColorBrush Color="{DynamicResource debugIcon.restartForeground}" x:Key="DebugRestartBrush" />
+    <SolidColorBrush Color="{DynamicResource debugIcon.continueForeground}" x:Key="DebugContinueBrush" />
+
     <!--  AvaloniaEdit's pop-ups: completion list, its description tip, the overload viewer, the find panel  -->
     <SolidColorBrush Color="{DynamicResource editorSuggestWidget.background}" x:Key="CompletionListBackgroundBrush" />
     <SolidColorBrush Color="{DynamicResource editorSuggestWidget.foreground}" x:Key="CompletionListForegroundBrush" />

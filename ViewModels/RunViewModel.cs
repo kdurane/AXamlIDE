@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Running;
 using AXamlIDE.Services.Workspace;
@@ -17,8 +18,9 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// Build, run and (in RunViewModel.Debug.cs) debug a project, plus the Output and Console
-/// text they produce. Builds/runs the project selected in the solution explorer unless a
-/// project node is passed as the command parameter.
+/// text they produce. Run and Debug start the startup project (RunViewModel.Startup.cs) unless a
+/// project node is passed as the command parameter (the explorer's menu); Build builds the project
+/// selected in the explorer, else the startup project. All use the toolbar's configuration.
 ///
 /// Talks out through messages: StatusMessage, ShowToolTabMessage, and (while debugging)
 /// NavigateToDebugLocationMessage / DebugSnapshotChangedMessage for the editor.
@@ -30,6 +32,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
     private readonly WorkspaceViewModel _explorer;
     private readonly DocumentManager _documents;
     private readonly DocumentSaveService _saver;
+    private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
     private bool _runStopRequested;
 
@@ -38,12 +41,14 @@ public partial class RunViewModel : ObservableObject, IDisposable
         WorkspaceViewModel explorer,
         DocumentManager documents,
         DocumentSaveService saver,
+        IDialogService dialogs,
         IMessenger messenger)
     {
         _workspace = workspace;
         _explorer = explorer;
         _documents = documents;
         _saver = saver;
+        _dialogs = dialogs;
         _messenger = messenger;
 
         _projectRunner.OutputReceived += AppendProcessOutput;
@@ -51,51 +56,37 @@ public partial class RunViewModel : ObservableObject, IDisposable
         // Breakpoints of open documents are synced to the debugger.
         _documents.Opened += TrackDocument;
         _documents.Closing += UntrackDocument;
+
+        explorer.Opened += OnWorkspaceOpened;
+        explorer.Closed += OnWorkspaceClosed;
     }
 
     public ObservableCollection<string> BuildOutput { get; } = [];
     public ObservableCollection<string> ConsoleOutput { get; } = [];
 
+    /// <summary>A Run or Debug session is going (the toolbar's play button is a stop button then).</summary>
     [ObservableProperty] public partial bool IsRunning { get; set; }
     [ObservableProperty] private partial bool IsBusy { get; set; }
-
-    /// <summary>
-    /// Explicit startup project; wins over the tree selection when set.
-    /// Nothing sets it yet (intended for a "Set as Startup Project" menu item).
-    /// </summary>
-    public string? StartupProjectPath { get; set; }
 
     // ---------------------------------------------------------------- build
 
     [RelayCommand]
     private async Task BuildProject(ProjectTreeNode? selection)
     {
-        var selected = selection ?? _explorer.SelectedNode;
-        string? projectPath;
-        try
-        {
-            projectPath = _workspace.ResolveProjectPath(selected);
-        }
-        catch (Exception ex)
-        {
-            ShowBuildMessage($"Could not determine the selected project: {ex}");
-            return;
-        }
-
+        var node = selection ?? _explorer.SelectedNode;
+        var projectPath = node is null && StartupProjectPath is { } startup ? startup : ResolveProject(node);
         if (projectPath is null)
-        {
-            ShowBuildMessage("Select a project or one of its files in the workspace tree first.");
             return;
-        }
 
         if (IsBusy || !await _saver.SaveAllAsync())   // like other IDEs: save everything before building
             return;
 
-        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} (Debug)");
+        var configuration = Configuration;
+        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration})");
         IsBusy = true;
         try
         {
-            var exitCode = await _projectRunner.BuildAsync(projectPath);
+            var exitCode = await _projectRunner.BuildAsync(projectPath, configuration);
             AppendBuildOutput(exitCode == 0
                 ? "Build succeeded."
                 : $"Build failed with exit code {exitCode}.");
@@ -115,41 +106,27 @@ public partial class RunViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task RunProjectAsync(ProjectTreeNode? selection)
     {
-        var selected = selection ?? _explorer.SelectedNode;
-        string? projectPath;
-        try
-        {
-            projectPath = _workspace.ResolveProjectPath(selected);
-        }
-        catch (Exception ex)
-        {
-            ShowBuildMessage($"Could not determine the selected project: {ex}");
-            return;
-        }
-
-        if (projectPath is null)
-        {
-            ShowBuildMessage("Select a project or one of its files in the workspace tree first.");
-            return;
-        }
-
-        if (IsBusy || !await _saver.SaveAllAsync())   // like other IDEs: save everything before building
+        if (IsBusy || IsRunning || await ChooseStartupProjectAsync(selection) is not { } projectPath)
             return;
 
-        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} (Debug) before running");
+        if (!await _saver.SaveAllAsync())   // like other IDEs: save everything before building
+            return;
+
+        var configuration = Configuration;
+        BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration}) before running");
         IsBusy = true;
         try
         {
-            var buildExitCode = await _projectRunner.BuildAsync(projectPath);
+            var buildExitCode = await _projectRunner.BuildAsync(projectPath, configuration);
             if (buildExitCode != 0)
             {
                 AppendBuildOutput($"Run cancelled because the build failed with exit code {buildExitCode}.");
                 return;
             }
 
-            BeginRunOutput($"Running {Path.GetFileName(projectPath)} (Debug)");
+            BeginRunOutput($"Running {Path.GetFileName(projectPath)} ({configuration})");
             IsRunning = true;
-            var runExitCode = await _projectRunner.RunAsync(projectPath);
+            var runExitCode = await _projectRunner.RunAsync(projectPath, configuration);
             AppendConsoleOutput(_runStopRequested
                 ? "Application stopped."
                 : runExitCode == 0
@@ -185,29 +162,6 @@ public partial class RunViewModel : ObservableObject, IDisposable
         AppendConsoleOutput("Stopping application...");
         _projectRunner.Stop();
     }
-
-    // ------------------------------------------------------ startup project
-
-    private string? ResolveStartupProject(ProjectTreeNode? selection)
-    {
-        // 1. Explicit startup project wins.
-        if (StartupProjectPath is not null && File.Exists(StartupProjectPath))
-            return StartupProjectPath;
-
-        // 2. The selected project, if it can actually run.
-        var selected = _workspace.ResolveProjectPath(selection);   // fine with a null selection
-        if (selected is not null && IsRunnable(selected))
-            return selected;
-
-        // 3. Otherwise, the only executable project in the workspace.
-        var exes = _workspace.SolutionProjects.Where(IsRunnable).Distinct().ToList();
-        return exes.Count == 1 ? exes[0] : null;
-    }
-
-    private bool IsRunnable(string projectPath)
-        => _workspace.Host.GetProjectOutputType(projectPath) is { } t
-           && (t.Equals("Exe", StringComparison.OrdinalIgnoreCase)
-               || t.Equals("WinExe", StringComparison.OrdinalIgnoreCase));
 
     // --------------------------------------------------------------- output
 

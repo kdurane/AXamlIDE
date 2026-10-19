@@ -19,7 +19,10 @@ public sealed class ExplorerNodeMenu
         CanChange = explorer.CanChange(node);
         HasPath = !string.IsNullOrEmpty(node.FullPath);
         CanRefresh = node.Kind is NodeKind.Directory or NodeKind.Solution or NodeKind.Project or NodeKind.Folder;
-        CanBuild = node.Kind == NodeKind.Project
+        // A project node in a solution; in an opened folder, projects are plain .csproj files.
+        IsProject = node.Kind == NodeKind.Project
+                    || IsFile && node.FullPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase);
+        CanBuild = IsProject
                    || IsFile && node.FullPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
 
         // Git acts on the file or folder; a project acts on its folder.
@@ -47,6 +50,7 @@ public sealed class ExplorerNodeMenu
     public bool CanChange { get; }
     public bool HasPath { get; }
     public bool CanRefresh { get; }
+    public bool IsProject { get; }
     public bool CanBuild { get; }
 
     /// <summary>The path the Git items act on (the parameter of their commands).</summary>

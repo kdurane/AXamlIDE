@@ -55,6 +55,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     /// <summary>A folder or solution was opened (or re-opened by a refresh). See WorkspaceSession.</summary>
     public event Action? Opened;
 
+    /// <summary>The folder or solution was closed (Close Solution).</summary>
+    public event Action? Closed;
+
     // ------------------------------------------------------------- open
 
     [RelayCommand]
@@ -220,5 +223,6 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         _xaml.ClearPreviewTargets();
         _languages.ClearWorkspace();
         OnPropertyChanged(nameof(IsOpen));
+        Closed?.Invoke();
     }
 }

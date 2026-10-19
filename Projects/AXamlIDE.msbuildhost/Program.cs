@@ -29,7 +29,7 @@ while (Console.ReadLine() is { } line)
                 HostCommands.GetItem => ItemResponse(() => ItemProperties.Get(request.ProjectPath, request.FilePath!)),
                 HostCommands.SetItem => ItemResponse(() => ItemProperties.Set(request.ProjectPath, request.FilePath!,
                     request.ItemType, request.MetadataName, request.MetadataValue)),
-                _ => HandleRequest(request.ProjectPath)
+                _ => HandleRequest(request.ProjectPath, request.Configuration)
             };
     }
     catch (Exception ex)
@@ -42,11 +42,14 @@ while (Console.ReadLine() is { } line)
 
 return;
 
-static string HandleRequest(string projectPath)
+static string HandleRequest(string projectPath, string? configuration)
 {
     try
     {
-        using var collection = new ProjectCollection();
+        var globalProperties = new Dictionary<string, string>();
+        if (!string.IsNullOrEmpty(configuration))
+            globalProperties["Configuration"] = configuration;
+        using var collection = new ProjectCollection(globalProperties);
         var project = Project.FromFile(projectPath,
             new ProjectOptions { ProjectCollection = collection });
  

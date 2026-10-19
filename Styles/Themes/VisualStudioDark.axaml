@@ -70,6 +70,12 @@
     <Color x:Key="editorSuggestWidget.selectedForeground">#FFFFFF</Color>   <!-- default -->
     <Color x:Key="widget.shadow">#5C000000</Color>   <!-- default -->
 
+    <!--  Run and debug buttons (toolbar, debug toolbar).  -->
+    <Color x:Key="debugIcon.startForeground">#89D185</Color>   <!-- default -->
+    <Color x:Key="debugIcon.stopForeground">#F48771</Color>   <!-- default -->
+    <Color x:Key="debugIcon.restartForeground">#89D185</Color>   <!-- default -->
+    <Color x:Key="debugIcon.continueForeground">#75BEFF</Color>   <!-- default -->
+
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#333333</Color>
     <Color x:Key="app.panelHeader.activeBackground">#2C2C2C</Color>

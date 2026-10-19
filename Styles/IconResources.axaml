@@ -415,6 +415,9 @@
     <!--  https://pictogrammers.com/library/mdi/icon/play/  -->
     <StreamGeometry x:Key="Icon.Play">M8 5.14v14l11-7z</StreamGeometry>
 
+    <!--  https://pictogrammers.com/library/mdi/icon/stop/  -->
+    <StreamGeometry x:Key="Icon.Stop">M18 18H6V6h12z</StreamGeometry>
+
     <!--  https://pictogrammers.com/library/mdi/icon/pause/  -->
     <StreamGeometry x:Key="Icon.Pause">M14 19h4V5h-4M6 19h4V5H6z</StreamGeometry>
 

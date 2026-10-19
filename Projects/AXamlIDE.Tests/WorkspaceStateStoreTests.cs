@@ -35,7 +35,9 @@ public sealed class WorkspaceStateStoreTests
                 new OpenFileState { Path = outside, CaretOffset = 3 }
             ],
             ActiveFile = inside,
-            Layout = { ["ExplorerTools"] = 0.25 }
+            Layout = { ["ExplorerTools"] = 0.25 },
+            StartupProject = Path.Combine(workspace.Root, "App", "App.csproj"),
+            Configuration = "Release"
         };
 
         Assert.Null(_store.Save(workspace.Root, state));
@@ -50,6 +52,9 @@ public sealed class WorkspaceStateStoreTests
         Assert.Equal(outside, loaded.OpenFiles[1].Path);     // outside the workspace: kept absolute
         Assert.Equal(inside, loaded.ActiveFile);
         Assert.Equal(0.25, loaded.Layout["ExplorerTools"]);
+        Assert.Contains("\"App", json);                     // startup project stored relative too
+        Assert.Equal(Path.Combine(workspace.Root, "App", "App.csproj"), loaded.StartupProject);
+        Assert.Equal("Release", loaded.Configuration);
     }
 
     [Fact]

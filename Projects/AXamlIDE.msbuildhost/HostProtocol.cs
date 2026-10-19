@@ -19,13 +19,16 @@ internal static class HostCommands
 /// <param name="Command">One of <see cref="HostCommands"/>; null means Evaluate.</param>
 /// <param name="ItemType">SetItem: the new build action, or null to keep it.</param>
 /// <param name="MetadataName">SetItem: the metadata to change, or null; an empty <paramref name="MetadataValue"/> clears it.</param>
+/// <param name="Configuration">Evaluate: the build configuration ("Debug", "Release"), so OutputPath matches what
+/// <c>dotnet build -c</c> writes; null means the project's default.</param>
 internal sealed record HostRequest(
     string ProjectPath,
     string? Command = null,
     string? FilePath = null,
     string? ItemType = null,
     string? MetadataName = null,
-    string? MetadataValue = null);
+    string? MetadataValue = null,
+    string? Configuration = null);
 
 internal sealed record HostResponse(
     bool Success,
