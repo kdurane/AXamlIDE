@@ -1,4 +1,7 @@
+using System;
+using System.Collections;
 using System.ComponentModel;
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Data;
 using AXamlIDE.ViewModels;
@@ -44,8 +47,28 @@ public partial class VisualizerView : UserControl
             Table.Columns.Add(new DataGridTextColumn
             {
                 Header = page.Columns[i],
-                Binding = new Binding($"[{i}]"),   // a row is a list of cell texts
-                CanUserSort = true
+                // One-way: the default (two-way) would write the shown text back into the row, turning every cell into a string.
+                Binding = new Binding($"[{i}]") { Mode = BindingMode.OneWay },
+                CanUserSort = true,
+                CustomSortComparer = new CellComparer(i)
             });
+    }
+
+    /// <summary>
+    /// Sorts rows by one cell: numbers as numbers, dates as dates (cells are typed per column), empty cells first;
+    /// cells of different types (never in one column, but just in case) by their text.
+    /// </summary>
+    private sealed class CellComparer(int column) : IComparer
+    {
+        public int Compare(object? x, object? y)
+        {
+            var a = (x as object?[]) is { } left && column < left.Length ? left[column] : null;
+            var b = (y as object?[]) is { } right && column < right.Length ? right[column] : null;
+            if (a is null || b is null)
+                return a is null ? b is null ? 0 : -1 : 1;
+            if (a.GetType() == b.GetType() && a is IComparable comparable)
+                return comparable.CompareTo(b);
+            return string.Compare(Convert.ToString(a, CultureInfo.InvariantCulture), Convert.ToString(b, CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

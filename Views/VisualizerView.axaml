@@ -26,29 +26,35 @@
             </StackPanel>
             <StackPanel
                 Grid.Column="2"
-                IsVisible="{Binding IsTable}"
                 Orientation="Horizontal"
                 Spacing="6">
+                <ComboBox
+                    IsVisible="{Binding IsString}"
+                    ItemsSource="{Binding Formats}"
+                    MinHeight="0"
+                    Padding="8,3"
+                    SelectedItem="{Binding Format}"
+                    ToolTip.Tip="Show the string as it is, formatted, or (a JSON array) as a table" />
                 <TextBox
+                    IsVisible="{Binding IsTable}"
                     MinHeight="0"
                     Padding="6,3"
                     PlaceholderText="Filter"
                     Text="{Binding Filter}"
                     Width="200" />
-                <Button Command="{Binding CopyAsCsvCommand}" Padding="8,3" ToolTip.Tip="Copy the rows shown, as CSV">Copy as CSV</Button>
-            </StackPanel>
-            <StackPanel
-                Grid.Column="2"
-                IsVisible="{Binding IsText}"
-                Orientation="Horizontal"
-                Spacing="6">
-                <ComboBox
-                    ItemsSource="{Binding Formats}"
-                    MinHeight="0"
+                <Button
+                    Command="{Binding CopyAsCsvCommand}"
+                    IsVisible="{Binding IsTable}"
                     Padding="8,3"
-                    SelectedItem="{Binding Format}"
-                    ToolTip.Tip="Show the text as it is, or formatted" />
-                <Button Command="{Binding CopyTextCommand}" Padding="8,3">Copy</Button>
+                    ToolTip.Tip="Copy the rows shown, as CSV">
+                    Copy as CSV
+                </Button>
+                <Button
+                    Command="{Binding CopyTextCommand}"
+                    IsVisible="{Binding IsText}"
+                    Padding="8,3">
+                    Copy
+                </Button>
             </StackPanel>
         </Grid>
 

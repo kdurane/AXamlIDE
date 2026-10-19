@@ -55,9 +55,15 @@ public sealed class DebuggerAttributeIndex
         return key.ToString().Trim();
     }
 
+    private int _modulesSeen;
+
     private void ReadNewModules()
     {
-        foreach (var module in _modules())
+        var modules = _modules();
+        if (modules.Count == _modulesSeen)
+            return;   // nothing new loaded (this runs for every member of every row in a table)
+        _modulesSeen = modules.Count;
+        foreach (var module in modules)
             if (_read.TryAdd(module, 0))
                 ReadModule(module);
     }
