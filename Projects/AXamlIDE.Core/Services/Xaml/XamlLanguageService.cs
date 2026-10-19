@@ -80,6 +80,25 @@ public sealed class XamlLanguageService
             projectPath, assemblyName, text, offset, outputPath, assetsPath);
     }
 
+    /// <summary>The view-model property the binding path at the offset names (hover and F12 in {Binding ...}).</summary>
+    public async Task<XamlCompletionService.BindingTarget?> GetBindingTargetAsync(string documentPath, string text, int offset)
+    {
+        var projectPath = _workspace.FindProjectForDocument(documentPath)
+            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
+        var projectKey = Path.GetFullPath(projectPath);
+        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath);
+        var assetsPath = _workspace.Host.GetProjectAssetsFile(projectPath);
+        var assemblyName = await _projectAssemblyNames.GetOrAdd(
+            projectKey,
+            path => new Lazy<Task<string>>(() => Task.Run(() => _workspace.Host.GetProjectAssemblyName(path)))).Value;
+        return await _xamlCompletion.GetBindingTargetAsync(
+            projectPath, assemblyName, text, offset, outputPath, assetsPath);
+    }
+
+    /// <summary>Decompiled source of a compiled type (for a binding whose view model isn't in the workspace).</summary>
+    public async Task<DecompiledSource?> DecompileAsync(XamlCompletionService.NavigationTarget target)
+        => await _xamlDecompilation.DecompileTypeAsync(target.AssemblyPath, target.TypeFullName);
+
     public async Task<DecompiledSource?> DecompileTypeAsync(string documentPath, string text, int offset)
     {
         var target = await GetNavigationTargetAsync(documentPath, text, offset);

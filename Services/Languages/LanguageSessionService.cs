@@ -58,6 +58,9 @@ public sealed class LanguageSessionService
     /// <summary>Shorthand for <c>ConnectionFor(document)?.Client</c>.</summary>
     public LspClient? ClientFor(OpenDocument? document) => ConnectionFor(document)?.Client;
 
+    /// <summary>The server for a language (starting it if needed), without needing a document of it open.</summary>
+    public Task<LspClient?> ClientForLanguageAsync(string languageId) => _servers.GetClientAsync(languageId);
+
     /// <summary>
     /// Applies an edit the server pushed (workspace/applyEdit). Set by the editor, which owns
     /// text editing. A delegate rather than a message because the server needs the result.

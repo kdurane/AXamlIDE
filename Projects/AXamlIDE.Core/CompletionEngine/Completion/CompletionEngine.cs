@@ -788,8 +788,50 @@ namespace AXamlIDE.CompletionEngine.Completion;
                 return forProperties(state.FindParentAttributeValue("(x\\:)?DataType"), entered);
             }
 
-            var type = values[0];
+            var mdType = WalkBindingPath(values, state, values.Length - 1, out var i);
 
+            return ForPropertiesFromType(mdType, values[i], p => $"{string.Join(".", [.. values.Take(i)])}.{p}");
+
+            IEnumerable<Completion> ForPropertiesFromType(MetadataType? filterType, string? filter, Func<string, string>? fmtInsertText = null)
+            {
+                if (filterType != null)
+                {
+                    foreach (var propertyName in MetadataHelper.FilterPropertyNames(filterType, filter, false, false))
+                    {
+                        yield return new Completion(propertyName, fmtInsertText?.Invoke(propertyName) ?? propertyName, propertyName, CompletionKind.DataProperty, Priority: 254);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The property one segment of a binding path names, e.g. in {Binding Run.StartupProjects} segment 1 is
+        /// RunViewModel.StartupProjects. The path starts at the element's (or a parent's) x:DataType, or at
+        /// $self / $parent / $parent[Type]. Null when a type on the way isn't known (not built yet, or untyped).
+        /// Call <see cref="GetCompletions"/> for the same text first, so <see cref="Helper"/> knows the namespaces.
+        /// </summary>
+        public (MetadataType Owner, MetadataProperty Property)? ResolveBindingPathSegment(XmlParser state, string path, int segmentIndex)
+        {
+            var values = path.Split('.');
+            if (segmentIndex < 0 || segmentIndex >= values.Length)
+                return null;
+
+            var owner = WalkBindingPath(values, state, segmentIndex, out var reached);
+            if (owner is null || reached != segmentIndex)
+                return null;
+
+            return owner.Properties.FirstOrDefault(p => p.Name == values[segmentIndex]) is { } property
+                ? (owner, property)
+                : null;
+        }
+
+        /// <summary>
+        /// Follow a binding path's property types up to (not including) segment <paramref name="upTo"/>; returns the type
+        /// that segment is a property of, and in <paramref name="index"/> the segment reached.
+        /// </summary>
+        private MetadataType? WalkBindingPath(string[] values, XmlParser state, int upTo, out int index)
+        {
+            string? type;
             int i;
 
             if (values[0].StartsWith('$'))
@@ -828,7 +870,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
             var mdType = Helper.LookupType(type ?? "");
 
-            while (mdType != null && i < values.Length - 1 && !string.IsNullOrEmpty(values[i]))
+            while (mdType != null && i < upTo && !string.IsNullOrEmpty(values[i]))
             {
                 if (i <= 1 && values[i] == "DataContext")
                 {
@@ -839,23 +881,12 @@ namespace AXamlIDE.CompletionEngine.Completion;
                 else
                 {
                     mdType = mdType.Properties.FirstOrDefault(p => p.Name == values[i])?.Type;
-                    type = mdType?.FullName;
                 }
                 i++;
             }
 
-            return ForPropertiesFromType(mdType, values[i], p => $"{string.Join(".", [.. values.Take(i)])}.{p}");
-
-            IEnumerable<Completion> ForPropertiesFromType(MetadataType? filterType, string? filter, Func<string, string>? fmtInsertText = null)
-            {
-                if (filterType != null)
-                {
-                    foreach (var propertyName in MetadataHelper.FilterPropertyNames(filterType, filter, false, false))
-                    {
-                        yield return new Completion(propertyName, fmtInsertText?.Invoke(propertyName) ?? propertyName, propertyName, CompletionKind.DataProperty, Priority: 254);
-                    }
-                }
-            }
+            index = i;
+            return mdType;
         }
 
         private List<Completion> GetHintCompletions(MetadataType type, string? entered, string? currentAssemblyName = null, string? fullText = null, XmlParser? state = null)

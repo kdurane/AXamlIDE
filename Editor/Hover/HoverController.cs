@@ -13,6 +13,7 @@ using AvaloniaEdit;
 using AvaloniaEdit.Rendering;
 using AXamlIDE.Editor.CodeActions;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
 
 namespace AXamlIDE.Editor.Hover;
@@ -178,7 +179,17 @@ public sealed class HoverController
         {
             if (document.LanguageId == LanguageIds.Axaml)
             {
-                var text = await _ctx.Xaml.GetHoverAsync(document.Path, document.Document.Text, offset);
+                // On a binding path: the bound view-model property's C# hover (as in a .cs file), when the C#
+                // server knows it; otherwise the XAML engine's (which also covers elements and attributes).
+                var source = document.Document.Text;
+                if (await _ctx.Xaml.GetBindingTargetAsync(document.Path, source, offset) is { } binding
+                    && await BindingSymbols.HoverAsync(_ctx.Languages, binding, cancellationToken) is { } bound)
+                {
+                    var (boundSignature, boundDocs) = bound.IsMarkdown ? HoverContent.FromMarkdown(bound.Text) : HoverContent.FromPlainText(bound.Text);
+                    return (boundSignature, boundDocs, null);
+                }
+
+                var text = await _ctx.Xaml.GetHoverAsync(document.Path, source, offset);
                 if (text is null)
                     return (null, null, null);
                 var (signature, documentation) = HoverContent.FromPlainText(text);

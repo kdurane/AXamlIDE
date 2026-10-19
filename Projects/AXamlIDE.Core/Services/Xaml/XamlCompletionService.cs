@@ -20,6 +20,16 @@ public sealed class XamlCompletionService
     private sealed record MetadataEntry(string AssemblyPath, DateTime AssemblyLastWriteUtc, string? AssetsPath, DateTime AssetsLastWriteUtc, Task<MetadataBundle> Metadata);
     private sealed record MetadataBundle(Metadata Metadata, IReadOnlyDictionary<string, string> Documentation, IReadOnlyList<string> AssemblyPaths);
     public sealed record NavigationTarget(string AssemblyPath, string TypeFullName);
+
+    /// <summary>
+    /// The view-model property a binding path segment names (the caret on "StartupProjects" in
+    /// {Binding Run.StartupProjects} gives RunViewModel.StartupProjects).
+    /// </summary>
+    /// <param name="Owner">Short name of the type the property is on ("RunViewModel").</param>
+    /// <param name="OwnerFullName">Its full name, for matching symbols and documentation.</param>
+    /// <param name="PropertyType">The property's type, for display ("ObservableCollection&lt;StartupProjectItem&gt;").</param>
+    /// <param name="Compiled">Where the type is compiled, for showing decompiled source when it isn't in the workspace.</param>
+    public sealed record BindingTarget(string Owner, string OwnerFullName, string Property, string? PropertyType, NavigationTarget? Compiled);
     private readonly ConcurrentDictionary<string, MetadataEntry> _metadata = new(StringComparer.OrdinalIgnoreCase);
     private readonly MetadataReader _reader = new(new DnlibMetadataProvider());
     private readonly CompletionEngine.Completion.CompletionEngine _engine = new();
@@ -37,6 +47,19 @@ public sealed class XamlCompletionService
     {
         var (targetAssembly, bundle) = await GetMetadataAsync(projectPath, assemblyName, outputPath, assetsPath);
         offset = Math.Clamp(offset, 0, text.Length);
+
+        // On a binding path: the bound property, not the element's.
+        if (BindingPathLocator.Find(text, offset) is { } binding)
+        {
+            if (ResolveBinding(targetAssembly, bundle, text, binding) is not { } target)
+                return null;
+            bundle.Documentation.TryGetValue($"P:{target.OwnerFullName}.{target.Property}", out var bindingSummary);
+            var bindingSignature = target.PropertyType is null
+                ? $"{target.Owner}.{target.Property}"
+                : $"{target.Owner}.{target.Property} : {target.PropertyType}";
+            return FormatHover(bindingSignature, bindingSummary);
+        }
+
         var tokenStart = offset;
         var tokenEnd = offset;
         while (tokenStart > 0 && IsXamlNameCharacter(text[tokenStart - 1]))
@@ -93,6 +116,87 @@ public sealed class XamlCompletionService
                 return FormatHover(type.FullName, summary);
             }
         }
+    }
+
+    /// <summary>The property the binding path at the offset names, or null (not on a binding path, or not resolvable).</summary>
+    public async Task<BindingTarget?> GetBindingTargetAsync(string projectPath, string assemblyName, string text, int offset, string? outputPath = null, string? assetsPath = null)
+    {
+        if (BindingPathLocator.Find(text, Math.Clamp(offset, 0, text.Length)) is not { } binding)
+            return null;
+        var (targetAssembly, bundle) = await GetMetadataAsync(projectPath, assemblyName, outputPath, assetsPath);
+        return ResolveBinding(targetAssembly, bundle, text, binding);
+    }
+
+    private BindingTarget? ResolveBinding(string targetAssembly, MetadataBundle bundle, string text, BindingPathAtCaret binding)
+    {
+        lock (_engineGate)
+        {
+            _engine.GetCompletions(bundle.Metadata, text, binding.SegmentStart, Path.GetFileNameWithoutExtension(targetAssembly));
+
+            // Parse to the end of the element's start tag, so an x:DataType written after the binding is seen too.
+            var parser = XmlParser.Parse(text.AsMemory(0, StartTagEnd(text, binding.SegmentStart)));
+            if (_engine.ResolveBindingPathSegment(parser, binding.Path, binding.SegmentIndex) is not var (owner, property))
+                return null;
+
+            var ownerFullName = owner.FullName.Length > 0 ? owner.FullName : owner.Name;
+            return new BindingTarget(
+                DisplayName(owner), ownerFullName, property.Name,
+                property.Type is null ? null : DisplayName(property.Type),
+                CompiledLocation(bundle, owner));
+        }
+    }
+
+    /// <summary>
+    /// Where the start tag ends (its '&gt;'), from an <paramref name="offset"/> inside one of its attribute values:
+    /// past the end of that value, then skipping the other quoted values.
+    /// </summary>
+    private static int StartTagEnd(string text, int offset)
+    {
+        var valueEnd = text.IndexOfAny(['"', '\''], offset);
+        if (valueEnd < 0)
+            return text.Length;
+
+        char? quote = null;
+        for (var i = valueEnd + 1; i < text.Length; i++)
+        {
+            var c = text[i];
+            if (quote is not null)
+            {
+                if (c == quote)
+                    quote = null;
+            }
+            else if (c is '"' or '\'')
+                quote = c;
+            else if (c == '>')
+                return text[i - 1] == '/' ? i - 1 : i;
+            else if (c == '<')
+                return i;
+        }
+        return text.Length;
+    }
+
+    /// <summary>"ObservableCollection&lt;StartupProjectItem&gt;" rather than a metadata name with `1 and namespaces.</summary>
+    private static string DisplayName(MetadataType type)
+    {
+        var name = type.Name;
+        var tick = name.IndexOf('`');
+        if (tick < 0)
+            return name;
+
+        // Generic: take the arguments from the full name's [[...]] if they're there.
+        var arguments = Regex.Matches(type.FullName, @"\[\[?([^\[\],]+)")
+            .Select(match => match.Groups[1].Value.Split('.')[^1].Split('`')[0])
+            .ToList();
+        return name[..tick] + (arguments.Count > 0 ? $"<{string.Join(", ", arguments)}>" : "<...>");
+    }
+
+    private static NavigationTarget? CompiledLocation(MetadataBundle bundle, MetadataType type)
+    {
+        if (type.AssemblyQualifiedName is not { } qualified || GetDefiningAssemblyName(qualified) is not { } assembly)
+            return null;
+        var assemblyPath = bundle.AssemblyPaths.FirstOrDefault(path =>
+            string.Equals(Path.GetFileNameWithoutExtension(path), assembly, StringComparison.OrdinalIgnoreCase));
+        return assemblyPath is null ? null : new NavigationTarget(assemblyPath, type.FullName);
     }
 
     public async Task<NavigationTarget?> GetNavigationTargetAsync(string projectPath, string assemblyName, string text, int caretOffset, string? outputPath = null, string? assetsPath = null)

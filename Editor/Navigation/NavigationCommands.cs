@@ -8,6 +8,7 @@ using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Xaml;
 using ICSharpCode.Decompiler;
 using static AXamlIDE.Services.Lsp.LspHelpers;
 
@@ -117,12 +118,32 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
         }
     }
 
+    /// <summary>
+    /// F12 in AXAML. On a binding path ({Binding Run.StartupProjects}): the bound view-model property, in its C#
+    /// source (asked of the C# language server), or decompiled when it isn't in the workspace. Elsewhere: the
+    /// element's type, decompiled.
+    /// </summary>
     private async Task GoToXamlDefinitionAsync(OpenDocument document)
     {
         try
         {
-            var source = await ctx.Xaml.DecompileTypeAsync(
-                document.Path, document.Document.Text, ctx.Editor.CaretOffset);
+            var text = document.Document.Text;
+            var offset = ctx.Editor.CaretOffset;
+            if (await ctx.Xaml.GetBindingTargetAsync(document.Path, text, offset) is { } binding)
+            {
+                if (await GoToSourcePropertyAsync(binding))
+                    return;
+                if (binding.Compiled is { } compiled && await ctx.Xaml.DecompileAsync(compiled) is { } decompiled)
+                {
+                    ctx.Documents.Activate(ctx.Documents.OpenReadOnly(decompiled.Path, decompiled.Text, LanguageIds.CSharp));
+                    ctx.Status($"{binding.Owner}.{binding.Property} isn't in the workspace: opened {decompiled.TypeFullName} decompiled (read-only).");
+                    return;
+                }
+                ctx.Status($"Couldn't find {binding.Owner}.{binding.Property}.");
+                return;
+            }
+
+            var source = await ctx.Xaml.DecompileTypeAsync(document.Path, text, offset);
             if (source is null)
             {
                 ctx.Status("No resolvable AXAML type at the caret.");
@@ -139,6 +160,15 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
         {
             ctx.Status($"AXAML type navigation failed: {ex.Message}");
         }
+    }
+
+    /// <summary>The bound property's declaration in the workspace's C#; false when it isn't there.</summary>
+    private async Task<bool> GoToSourcePropertyAsync(XamlCompletionService.BindingTarget binding)
+    {
+        if (await BindingSymbols.FindAsync(ctx.Languages, binding) is not (_, var declarations))
+            return false;
+        await NavigateToLocationsAsync("Go to Definition", declarations);
+        return true;
     }
 
     // ------------------------------------------------------- find references
