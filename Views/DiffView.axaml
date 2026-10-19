@@ -1,0 +1,79 @@
+<UserControl
+    x:Class="AXamlIDE.Views.DiffView"
+    x:DataType="vm:DiffDockable"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:edit="using:AvaloniaEdit"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4" />
+        </Style>
+        <Style Selector="Button.icon PathIcon">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+        </Style>
+        <Style Selector="edit|TextEditor">
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="ShowLineNumbers" Value="False" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Visible" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!--  Summary, previous/next change, open the file  -->
+        <StackPanel
+            Background="{DynamicResource AppDocumentBarBackgroundBrush}"
+            Orientation="Horizontal"
+            Spacing="2">
+            <TextBlock
+                Margin="8,0"
+                Text="{Binding Summary}"
+                VerticalAlignment="Center" />
+            <Button
+                Classes="icon"
+                Click="OnPreviousChangeClick"
+                ToolTip.Tip="Previous change">
+                <PathIcon Data="{DynamicResource Icon.ChevronDown}" RenderTransform="rotate(180deg)" />
+            </Button>
+            <Button
+                Classes="icon"
+                Click="OnNextChangeClick"
+                ToolTip.Tip="Next change">
+                <PathIcon Data="{DynamicResource Icon.ChevronDown}" />
+            </Button>
+            <Button
+                Classes="icon"
+                Command="{Binding OpenFileCommand}"
+                ToolTip.Tip="Open the file">
+                <PathIcon Data="{DynamicResource Icon.OpenInApp}" />
+            </Button>
+        </StackPanel>
+
+        <!--  Which version each side is  -->
+        <Grid
+            Background="{DynamicResource AppDocumentBarBackgroundBrush}"
+            ColumnDefinitions="*,4,*"
+            Grid.Row="1">
+            <TextBlock
+                Margin="8,2"
+                Opacity="0.7"
+                Text="{Binding LeftTitle}" />
+            <TextBlock
+                Grid.Column="2"
+                Margin="8,2"
+                Opacity="0.7"
+                Text="{Binding RightTitle}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="*,4,*" Grid.Row="2">
+            <edit:TextEditor Name="LeftEditor" />
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+            <edit:TextEditor Grid.Column="2" Name="RightEditor" />
+        </Grid>
+    </Grid>
+</UserControl>

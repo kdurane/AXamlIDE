@@ -7,6 +7,8 @@ namespace AXamlIDE.Messages;
 public static class ToolTab
 {
     public const string Explorer = "explorer";
+    public const string Git = "git";
+    public const string Properties = "properties";
     public const string Problems = "problems";
     public const string Output = "output";
     public const string Console = "console";

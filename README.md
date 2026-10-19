@@ -68,6 +68,13 @@ How the pieces are put together and talk:
   Choosing a theme only sets `Application.RequestedThemeVariant` (`Views/ThemeSwitcher`); Fluent and Dock fall back to
   their Dark or Light look for anything not set. To colour another part, add a brush there and use it as
   `{DynamicResource ...}`. The editor's syntax colours come from the same theme through TextMate.
+- **Git** goes through the `git` command line (`Services/Git/GitService`, Core; status is parsed from
+  `git status --porcelain=v2 -z`). `Services/Git/GitStatusTracker` keeps the workspace repository's status current
+  (on open, on save, and from a debounced file watcher that includes `.git/index`, HEAD and refs) and raises `Changed`.
+  `ViewModels/GitTreeDecorator` sets each explorer node's `GitState` (coloured by `Views/GitStateConverters`);
+  `ViewModels/GitViewModel` is the Git tab (stage, unstage, commit); `ViewModels/DiffDockable` + `Views/DiffView` are
+  the side-by-side diff tabs (DiffPlex, via `Services/Git/SideBySideDiff`). Colours are the `gitDecoration.*` and
+  `diffEditor.*` theme keys.
 - **Panels are self-contained views** with their own view model (listed in `Shell/ToolPanels.cs`). They don't depend
   on the window they're in.
 - **The selected tab** is `DocumentManager.Active`, in whichever window it is; the menus, outline, preview and status

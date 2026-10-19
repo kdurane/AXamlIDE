@@ -84,16 +84,58 @@ public partial class ExplorerView : UserControl
             menu.Items.Add(Item("Start Debugging", vm.Run.StartDebuggingCommand, node));
         }
 
+        if (GitMenu(vm.Git, node) is { } git)
+        {
+            menu.Items.Add(new Separator());
+            menu.Items.Add(git);
+        }
+
         if (menu.Items.Count == 0)
             return;
+
 
         control.ContextMenu = menu;
         menu.Open(control);
         e.Handled = true;
     }
 
-    private static MenuItem Item(string header, ICommand command, ProjectTreeNode node)
-        => new() { Header = header, Command = command, CommandParameter = node };
+    private static MenuItem Item(string header, ICommand command, object parameter)
+        => new() { Header = header, Command = command, CommandParameter = parameter };
+
+    /// <summary>
+    /// The Git submenu (as in Rider) for a file, folder or project inside the repository: diff, stage/unstage,
+    /// and add to / remove from .gitignore. A project acts on its folder. Null when nothing applies.
+    /// </summary>
+    private static MenuItem? GitMenu(GitViewModel git, ProjectTreeNode node)
+    {
+        var path = node.Kind switch
+        {
+            NodeKind.File or NodeKind.Directory => node.FullPath,
+            NodeKind.Project => Path.GetDirectoryName(node.FullPath),
+            _ => null
+        };
+        if (string.IsNullOrEmpty(path) || !git.Contains(path))
+            return null;
+
+        var menu = new MenuItem { Header = "Git" };
+        if (node.Kind == NodeKind.File && git.ChangeFor(path) is not null)
+            menu.Items.Add(Item("Show Diff", git.ShowDiffCommand, path));
+        if (git.HasUnstagedChanges(path))
+            menu.Items.Add(Item("Add", git.StagePathCommand, path));
+        if (git.HasStagedChanges(path))
+            menu.Items.Add(Item("Unstage", git.UnstagePathCommand, path));
+
+        if (node.Kind is NodeKind.File or NodeKind.Directory)
+        {
+            if (menu.Items.Count > 0)
+                menu.Items.Add(new Separator());
+            menu.Items.Add(node.GitState == GitFileState.Ignored
+                ? Item("Remove from .gitignore", git.UnignoreCommand, path)
+                : Item("Add to .gitignore", git.IgnoreCommand, path));
+        }
+
+        return menu.Items.Count > 0 ? menu : null;
+    }
 
     // Uses the clipboard of whichever window this panel is in.
     private async System.Threading.Tasks.Task CopyPathAsync(ProjectTreeNode node)

@@ -3,15 +3,11 @@
     x:DataType="vm:ExplorerViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">
         <Grid ColumnDefinitions="*,Auto" Margin="6,4">
-            <TextBlock
-                FontSize="11"
-                FontWeight="DemiBold"
-                Text="Explorer"
-                VerticalAlignment="Center" />
         </Grid>
         <TreeView
             Foreground="{DynamicResource ThemeForegroundBrush}"
@@ -33,7 +29,18 @@
                             Data="{Binding Icon}"
                             Height="12"
                             Width="12" />
-                        <TextBlock FontSize="12" Text="{Binding Name}" />
+                        <TextBlock
+                            FontSize="12"
+                            Foreground="{Binding GitState, Converter={x:Static views:GitStateConverters.Brush}}"
+                            Text="{Binding Name}" />
+                        <!--  Git state letter (M, U, A...); empty for unchanged files, folders show only the colour  -->
+                        <TextBlock
+                            FontSize="11"
+                            Foreground="{Binding GitState, Converter={x:Static views:GitStateConverters.Brush}}"
+                            IsVisible="{Binding Kind, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:NodeKind.File}}"
+                            Margin="4,0,0,0"
+                            Text="{Binding GitState, Converter={x:Static views:GitStateConverters.Letter}}"
+                            VerticalAlignment="Center" />
                     </StackPanel>
                 </TreeDataTemplate>
             </TreeView.ItemTemplate>

@@ -37,6 +37,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
     private readonly DocumentCommands _commands;
     private readonly SettingsViewModel _settings;
     private readonly Dictionary<OpenDocument, DocumentDockable> _tabs = [];
+    private readonly Dictionary<string, DiffDockable> _diffs = [];
     private IDock? _lastActiveDock;
     private PreviewMode _previewMode = PreviewMode.Split;      // new AXAML tabs start like the last one changed
     private PreviewSplit _previewSplit = PreviewSplit.SideBySide;
@@ -66,6 +67,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         _factory.FocusedDockableChanged += (_, e) => OnDockFocused(e.Dockable);
         _factory.ActiveDockableChanged += OnDockActiveDockableChanged;
         _factory.DockableClosing += OnDockableClosing;
+        _factory.DockableClosed += OnDockableClosed;
         _factory.WindowClosing += OnWindowClosing;
         settings.PropertyChanged += OnSettingsChanged;
         messenger.RegisterAll(this);
@@ -86,8 +88,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
     /// <summary>The tab of an open document, or null.</summary>
     public DocumentDockable? TabFor(OpenDocument document) => _tabs.GetValueOrDefault(document);
 
-    /// <summary>Raised after a document's tab has left the layout for good (its view can be released).</summary>
-    public event Action<DocumentDockable>? DocumentTabRemoved;
+    /// <summary>Raised after a document or diff tab has left the layout for good (its view can be released).</summary>
+    public event Action<IDockable>? TabRemoved;
 
     // ------------------------------------------------------------- tools
 
@@ -115,6 +117,9 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         if (_factory.FindRoot(tool, _ => true)?.Window is { } window)
             window.SetActive();   // bring its floating window to the front
     }
+
+    /// <summary>Whether a tool panel is showing (in a window that's open).</summary>
+    public bool IsToolShown(string id) => _factory.Tools.TryGetValue(id, out var tool) && _factory.IsInLayout(tool);
 
     /// <summary>Show the explorer (where it was), or take it out of the layout.</summary>
     public void ToggleExplorer()
@@ -156,7 +161,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
                 _factory.RemoveDockable(tab, collapse: true);
             else
                 _factory.Detach(tab);
-            DocumentTabRemoved?.Invoke(tab);
+            TabRemoved?.Invoke(tab);
         }
     }
 
@@ -241,6 +246,42 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         {
             _syncing = false;
         }
+    }
+
+    // ------------------------------------------------------------- diff tabs
+
+    /// <summary>Show a diff tab beside the selected tab, or bring back the same file's diff if it's open.</summary>
+    public void OpenDiff(DiffDockable diff)
+    {
+        if (_diffs.TryGetValue(diff.Id, out var open) && _factory.IsInLayout(open))
+        {
+            diff.Dispose();
+            diff = open;
+        }
+        else
+        {
+            if (open is not null)
+                ForgetDiff(open);
+            _diffs[diff.Id] = diff;
+            _factory.AddDockable(TargetDocumentDock(), diff);
+        }
+
+        _factory.SetActiveDockable(diff);
+        if (diff.Owner is IDock owner)
+            _factory.SetFocusedDockable(owner, diff);
+    }
+
+    private void OnDockableClosed(object? sender, DockableClosedEventArgs e)
+    {
+        if (e.Dockable is DiffDockable diff)
+            ForgetDiff(diff);
+    }
+
+    private void ForgetDiff(DiffDockable diff)
+    {
+        _diffs.Remove(diff.Id);
+        diff.Dispose();
+        TabRemoved?.Invoke(diff);
     }
 
     // ------------------------------------------------------------- closing

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ public enum NodeKind { Directory, File, Solution, Project, Folder, Placeholder }
 /// throwaway "Loading..." child so the expander arrow shows before anything has been
 /// fetched; Populate/PopulateAsync swaps it for the real content, once.
 /// </summary>
-public class ProjectTreeNode
+public class ProjectTreeNode : INotifyPropertyChanged
 {
     private static readonly ProjectTreeNode LoadingPlaceholder =
         new("Loading...", string.Empty, NodeKind.Placeholder, null);
@@ -27,6 +28,24 @@ public class ProjectTreeNode
     public NodeKind Kind { get; }
     public ObservableCollection<ProjectTreeNode> Children { get; } = new();
     public bool IsExpanded { get; set; }
+
+    /// <summary>The node's Git state, for its colour in the explorer (set by ViewModels/GitTreeDecorator).</summary>
+    public GitFileState GitState
+    {
+        get => _gitState;
+        set
+        {
+            if (_gitState == value)
+                return;
+            _gitState = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GitState)));
+        }
+    }
+
+    private GitFileState _gitState;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     public string Icon => Kind switch
     {
         NodeKind.Directory => "M20 18H4V8h16m0-2h-8l-2-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2",

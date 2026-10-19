@@ -16,10 +16,14 @@ namespace AXamlIDE.ViewModels;
 public sealed partial class ExplorerViewModel(
     WorkspaceViewModel workspace,
     RunViewModel run,
+    GitViewModel git,
     IDocumentHost documents,
     IMessenger messenger)
 {
     public WorkspaceViewModel Workspace { get; } = workspace;
+
+    /// <summary>The Git commands for a node's file or folder (the explorer's Git submenu).</summary>
+    public GitViewModel Git { get; } = git;
 
     /// <summary>Build / Run / Start Debugging for a node (the node is the command parameter).</summary>
     public RunViewModel Run { get; } = run;

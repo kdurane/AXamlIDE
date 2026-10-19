@@ -20,6 +20,7 @@ public sealed class ToolPanels
 
     public ToolPanels(
         ExplorerViewModel explorer,
+        GitViewModel git,
         ProblemsViewModel problems,
         RunViewModel run,
         SearchViewModel search)
@@ -27,6 +28,7 @@ public sealed class ToolPanels
         _create = new()
         {
             [ToolTab.Explorer] = () => new ExplorerView { DataContext = explorer },
+            [ToolTab.Git] = () => new GitView { DataContext = git },
             [ToolTab.Problems] = () => new ProblemsView { DataContext = problems },
             [ToolTab.Output] = () => new OutputView { DataContext = run },
             [ToolTab.Console] = () => new ConsoleView { DataContext = run },

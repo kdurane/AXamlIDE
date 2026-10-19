@@ -1,0 +1,200 @@
+<UserControl
+    x:Class="AXamlIDE.Views.GitView"
+    x:DataType="vm:GitViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <!--  A changed file: name, folder (dimmed), state letter, and a stage/unstage button  -->
+        <DataTemplate x:DataType="vm:GitChangeItem" x:Key="GitChangeTemplate">
+            <Grid
+                Background="Transparent"
+                ColumnDefinitions="Auto,*,Auto,Auto"
+                ToolTip.Tip="{Binding ToolTip}">
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).OpenDiffCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Open Diff" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).OpenFileCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Open File" />
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).StageCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Stage"
+                            IsVisible="{Binding !IsStagedSide}" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).UnstageCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Unstage"
+                            IsVisible="{Binding IsStagedSide}" />
+                    </ContextMenu>
+                </Grid.ContextMenu>
+                <TextBlock
+                    Foreground="{Binding State, Converter={x:Static views:GitStateConverters.Brush}}"
+                    Text="{Binding FileName}"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    Grid.Column="1"
+                    Margin="6,0,0,0"
+                    Opacity="0.6"
+                    Text="{Binding Folder}"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    FontSize="11"
+                    Foreground="{Binding State, Converter={x:Static views:GitStateConverters.Brush}}"
+                    Grid.Column="2"
+                    Margin="6,0"
+                    Text="{Binding State, Converter={x:Static views:GitStateConverters.Letter}}"
+                    VerticalAlignment="Center" />
+                <Button
+                    Classes="icon"
+                    Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).StageCommand}"
+                    CommandParameter="{Binding}"
+                    Grid.Column="3"
+                    IsVisible="{Binding !IsStagedSide}"
+                    ToolTip.Tip="Stage">
+                    <PathIcon Data="{DynamicResource Icon.Plus}" />
+                </Button>
+                <Button
+                    Classes="icon"
+                    Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).UnstageCommand}"
+                    CommandParameter="{Binding}"
+                    Grid.Column="3"
+                    IsVisible="{Binding IsStagedSide}"
+                    ToolTip.Tip="Unstage">
+                    <PathIcon Data="{DynamicResource Icon.Minus}" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!--  Small flat icon buttons (refresh, stage, unstage)  -->
+        <Style Selector="Button.icon">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="3" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.icon PathIcon">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+        </Style>
+        <Style Selector="TextBlock.section">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="ListBox.changes">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.changes ListBoxItem">
+            <Setter Property="Padding" Value="8,1" />
+            <Setter Property="MinHeight" Value="20" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,Auto,*">
+
+        <!--  Branch + refresh  -->
+        <Grid
+            ColumnDefinitions="Auto,*,Auto"
+            IsVisible="{Binding IsRepository}"
+            Margin="8,4,4,4">
+            <PathIcon
+                Data="{DynamicResource Icon.SourceBranch}"
+                Height="12"
+                Margin="0,0,6,0"
+                Width="12" />
+            <TextBlock
+                Grid.Column="1"
+                Text="{Binding BranchText}"
+                TextTrimming="CharacterEllipsis"
+                VerticalAlignment="Center" />
+            <Button
+                Classes="icon"
+                Command="{Binding RefreshCommand}"
+                Grid.Column="2"
+                ToolTip.Tip="Refresh">
+                <PathIcon Data="{DynamicResource Icon.Sync}" />
+            </Button>
+        </Grid>
+
+        <!--  Commit message + Commit  -->
+        <StackPanel
+            Grid.Row="1"
+            IsVisible="{Binding IsRepository}"
+            Margin="8,0,8,6"
+            Spacing="6">
+            <TextBox
+                AcceptsReturn="True"
+                MaxHeight="120"
+                MinHeight="48"
+                PlaceholderText="Commit message"
+                Text="{Binding CommitMessage}"
+                TextWrapping="Wrap">
+                <TextBox.KeyBindings>
+                    <KeyBinding Command="{Binding CommitCommand}" Gesture="Ctrl+Enter" />
+                </TextBox.KeyBindings>
+            </TextBox>
+            <Button
+                Command="{Binding CommitCommand}"
+                Content="Commit Staged"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                ToolTip.Tip="Commit the staged changes (Ctrl+Enter)" />
+        </StackPanel>
+
+        <!--  Staged and unstaged changes  -->
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding IsRepository}">
+            <StackPanel>
+                <Grid ColumnDefinitions="*,Auto" Margin="8,4,4,2">
+                    <TextBlock Classes="section" Text="{Binding StagedHeader}" />
+                    <Button
+                        Classes="icon"
+                        Command="{Binding UnstageAllCommand}"
+                        Grid.Column="1"
+                        ToolTip.Tip="Unstage all">
+                        <PathIcon Data="{DynamicResource Icon.Minus}" />
+                    </Button>
+                </Grid>
+                <ListBox
+                    Classes="changes"
+                    DoubleTapped="OnChangeDoubleTapped"
+                    ItemTemplate="{StaticResource GitChangeTemplate}"
+                    ItemsSource="{Binding Staged}" />
+
+                <Grid ColumnDefinitions="*,Auto" Margin="8,8,4,2">
+                    <TextBlock Classes="section" Text="{Binding ChangesHeader}" />
+                    <Button
+                        Classes="icon"
+                        Command="{Binding StageAllCommand}"
+                        Grid.Column="1"
+                        ToolTip.Tip="Stage all">
+                        <PathIcon Data="{DynamicResource Icon.Plus}" />
+                    </Button>
+                </Grid>
+                <ListBox
+                    Classes="changes"
+                    DoubleTapped="OnChangeDoubleTapped"
+                    ItemTemplate="{StaticResource GitChangeTemplate}"
+                    ItemsSource="{Binding Changes}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock
+            Grid.Row="0"
+            Grid.RowSpan="3"
+            IsVisible="{Binding !IsRepository}"
+            Margin="12"
+            Opacity="0.7"
+            Text="The open folder or solution isn't in a Git repository."
+            TextWrapping="Wrap" />
+    </Grid>
+</UserControl>

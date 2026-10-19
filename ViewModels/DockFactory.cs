@@ -11,10 +11,10 @@ namespace AXamlIDE.ViewModels;
 /// <summary>
 /// Builds the starting dock layout and knows where each tool panel lives when it isn't moved:
 ///
-///   [Explorer] | [ Documents (each AXAML tab has its own preview)  ]
-///              | [ Problems, Output, Console ]
+///   [Explorer, Git]  | [ Documents (each AXAML tab has its own preview)  ]
+///   [Properties]     | [ Problems, Output, Console ]
 ///
-/// (the explorer is mirrored to the right by the "explorer on right" setting). Search has no dock: it
+/// (Properties only while it's open; the explorer column is mirrored to the right by the "explorer on right" setting). Search has no dock: it
 /// opens in its own floating window (it can still be dragged into a dock).
 /// The user can then drag any tab anywhere, including out into its own window.
 /// To add a tool panel: add a <see cref="ToolTab"/> id, add it to a dock here, and give it a view
@@ -35,8 +35,13 @@ public sealed class DockFactory : Factory
     /// <summary>The main window's document tabs. Never removed, so new documents always have a home.</summary>
     public IDocumentDock MainDocuments { get; private set; } = null!;
 
-    /// <summary>The top-level row: explorer, splitter, everything else.</summary>
+    /// <summary>The top-level row: explorer column, splitter, everything else.</summary>
     public IProportionalDock MainRow { get; private set; } = null!;
+
+    /// <summary>The explorer's side: the Explorer/Git tabs, and the Properties panel below them when it's open.</summary>
+    public IProportionalDock ExplorerColumn { get; private set; } = null!;
+
+    private bool _explorerOnRight;
 
     public IReadOnlyDictionary<string, ToolDockable> Tools { get; private set; } = new Dictionary<string, ToolDockable>();
 
@@ -47,11 +52,14 @@ public sealed class DockFactory : Factory
         // The explorer side bar stays put (moved with the swap-sides button), so it can't be dragged,
         // floated or have other tabs dropped into it. Tools added to its dock later (e.g. Git) become tabs there.
         var explorer = new ToolDockable(ToolTab.Explorer, "Explorer") { CanDrag = false, CanFloat = false };
+        var git = new ToolDockable(ToolTab.Git, "Git") { CanDrag = false, CanFloat = false };
+        // Opened from the explorer's right-click menu, under the explorer; closed with its X (as in Visual Studio).
+        var properties = new ToolDockable(ToolTab.Properties, "Properties") { CanDrag = false, CanFloat = false, CanClose = true };
         var problems = new ToolDockable(ToolTab.Problems, "Problems");
         var output = new ToolDockable(ToolTab.Output, "Output");
         var console = new ToolDockable(ToolTab.Console, "Console");
         var search = new ToolDockable(ToolTab.Search, "Search");
-        Tools = new[] { explorer, problems, output, console, search }.ToDictionary(tool => tool.Id);
+        Tools = new[] { explorer, git, properties, problems, output, console, search }.ToDictionary(tool => tool.Id);
 
         MainDocuments = new DocumentDock
         {
@@ -64,20 +72,23 @@ public sealed class DockFactory : Factory
             VisibleDockables = CreateList<IDockable>()
         };
 
-        var explorerDock = ToolDock("ExplorerTools", explorerOnRight ? Alignment.Right : Alignment.Left, 0.2, explorer);
-        explorerDock.CanDrop = false;
-        explorerDock.CanDrag = false;
-        explorerDock.CanFloat = false;
+        var explorerDock = Locked(ToolDock("ExplorerTools", explorerOnRight ? Alignment.Right : Alignment.Left, double.NaN, explorer, git));
+        var propertiesDock = Locked(ToolDock("PropertiesTools", Alignment.Bottom, 0.25, properties));   // shown on demand
+        ExplorerColumn = Row("ExplorerColumn", Orientation.Vertical, explorerDock);
+        ExplorerColumn.Proportion = 0.2;
         var bottomDock = ToolDock("BottomTools", Alignment.Bottom, 0.25, problems, output, console);
         bottomDock.ActiveDockable = output;
 
         var centre = Row("Centre", Orientation.Vertical, MainDocuments, new ProportionalDockSplitter(), bottomDock);
         MainRow = explorerOnRight
-            ? Row("MainRow", Orientation.Horizontal, centre, new ProportionalDockSplitter(), explorerDock)
-            : Row("MainRow", Orientation.Horizontal, explorerDock, new ProportionalDockSplitter(), centre);
+            ? Row("MainRow", Orientation.Horizontal, centre, new ProportionalDockSplitter(), ExplorerColumn)
+            : Row("MainRow", Orientation.Horizontal, ExplorerColumn, new ProportionalDockSplitter(), centre);
+        _explorerOnRight = explorerOnRight;
 
         _homes.Clear();
-        _homes[explorer.Id] = new ToolHome(explorerDock, MainRow, AtStart: !explorerOnRight);
+        _homes[explorer.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
+        _homes[git.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
+        _homes[properties.Id] = new ToolHome(propertiesDock, ExplorerColumn, AtStart: false);
         foreach (var tool in new[] { problems, output, console })
             _homes[tool.Id] = new ToolHome(bottomDock, centre, AtStart: false);
 
@@ -188,14 +199,13 @@ public sealed class DockFactory : Factory
     /// </summary>
     public void SetExplorerSide(bool onRight)
     {
-        var home = _homes[ToolTab.Explorer];
-        if (home.AtStart == !onRight)
+        if (_explorerOnRight == onRight)
             return;
-        _homes[ToolTab.Explorer] = home with { AtStart = !onRight };
-        home.Dock.Alignment = onRight ? Alignment.Right : Alignment.Left;
+        _explorerOnRight = onRight;
+        _homes[ToolTab.Explorer].Dock.Alignment = onRight ? Alignment.Right : Alignment.Left;
 
         if (MainRow.VisibleDockables is not System.Collections.ObjectModel.ObservableCollection<IDockable> row
-            || !row.Contains(home.Dock))
+            || !row.Contains(ExplorerColumn))
             return;
         for (var index = 0; index < row.Count - 1; index++)
             row.Move(row.Count - 1, index);
@@ -224,9 +234,10 @@ public sealed class DockFactory : Factory
     private IEnumerable<IDock> SizedDocks()
     {
         yield return MainDocuments;
-        foreach (var dock in Find(dockable => dockable is IDock { Id: "Centre" or "MainRow" }).OfType<IDock>())
+        foreach (var dock in Find(dockable => dockable is IDock { Id: "Centre" or "MainRow" or "ExplorerColumn" }).OfType<IDock>())
             yield return dock;
-        foreach (var home in _homes.Values.Select(home => home.Dock).Distinct())
+        // The explorer's own dock fills what the Properties panel leaves (its width is the column's).
+        foreach (var home in _homes.Values.Select(home => home.Dock).Distinct().Where(dock => dock.Id != "ExplorerTools"))
             yield return home;
     }
 
@@ -248,6 +259,15 @@ public sealed class DockFactory : Factory
         ActiveDockable = tools[0],
         VisibleDockables = CreateList<IDockable>(tools)
     };
+
+    /// <summary>The explorer column's docks stay put: no dragging, floating, or dropping other tabs in.</summary>
+    private static ToolDock Locked(ToolDock dock)
+    {
+        dock.CanDrop = false;
+        dock.CanDrag = false;
+        dock.CanFloat = false;
+        return dock;
+    }
 
     private ProportionalDock Row(string id, Orientation orientation, params IDockable[] items) => new()
     {

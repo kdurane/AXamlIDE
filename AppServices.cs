@@ -2,6 +2,7 @@ using AXamlIDE.Commands;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
+using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Settings;
@@ -56,12 +57,18 @@ public static class AppServices
         services.AddSingleton<EditorServices>();
         services.AddSingleton(_ => new LspManager(LspServers.Defaults));
         services.AddSingleton<XamlLanguageService>();
+
+        // ---- git: the service runs git; the tracker keeps the workspace's status current
+        services.AddSingleton<GitService>();
+        services.AddSingleton<GitStatusTracker>();
         services.AddSingleton<LanguageSessionService>();
 
         // ---- view models
         services.AddSingleton<PreviewPaneViewModel>();
         services.AddSingleton<WorkspaceViewModel>();
         services.AddSingleton<ExplorerViewModel>();
+        services.AddSingleton<GitTreeDecorator>();
+        services.AddSingleton<GitViewModel>();
         services.AddSingleton<ProblemsViewModel>();
         services.AddSingleton<OutlineViewModel>();
         services.AddSingleton<SearchViewModel>();

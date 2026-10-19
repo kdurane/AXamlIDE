@@ -8,6 +8,7 @@ using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Shell;
 using AXamlIDE.ViewModels;
+using Dock.Model.Core;
 
 namespace AXamlIDE.Views;
 
@@ -31,6 +32,7 @@ public sealed class DockViewCache : IControlRecycling
     private readonly OutlineViewModel _outlineViewModel;
     private readonly ControlRecycling _dockControls = new();
     private readonly Dictionary<DocumentDockable, DocumentView> _documentViews = [];
+    private readonly Dictionary<DiffDockable, DiffView> _diffViews = [];
     private DocumentView? _connected;   // the selected tab's view, connected to the outline and preview
 
     public DockViewCache(
@@ -46,7 +48,7 @@ public sealed class DockViewCache : IControlRecycling
         _documents = documents;
         _previewViewModel = preview;
         _outlineViewModel = outline;
-        docking.DocumentTabRemoved += OnDocumentTabRemoved;
+        docking.TabRemoved += OnTabRemoved;
         documents.ActiveChanged += _ => PlaceSharedViews();
     }
 
@@ -63,6 +65,7 @@ public sealed class DockViewCache : IControlRecycling
         Control? view = data switch
         {
             DocumentDockable tab => DocumentViewFor(tab),
+            DiffDockable diff => DiffViewFor(diff),
             ToolDockable tool => _toolPanels.ViewFor(tool.Id),
             _ => null
         };
@@ -82,12 +85,18 @@ public sealed class DockViewCache : IControlRecycling
             return true;
         }
 
+        if (data is DiffDockable diff && _diffViews.TryGetValue(diff, out var diffView))
+        {
+            control = diffView;
+            return true;
+        }
+
         return _dockControls.TryGetValue(data, out control);
     }
 
     public void Add(object data, object control)
     {
-        if (data is not (DocumentDockable or ToolDockable))
+        if (data is not (DocumentDockable or DiffDockable or ToolDockable))
             _dockControls.Add(data, control);
     }
 
@@ -106,9 +115,23 @@ public sealed class DockViewCache : IControlRecycling
         return view;
     }
 
-    private void OnDocumentTabRemoved(DocumentDockable tab)
+    private DiffView DiffViewFor(DiffDockable diff)
     {
-        if (!_documentViews.Remove(tab, out var view))
+        if (!_diffViews.TryGetValue(diff, out var view))
+            _diffViews[diff] = view = new DiffView(diff, _editorServices);
+        return view;
+    }
+
+    private void OnTabRemoved(IDockable tab)
+    {
+        if (tab is DiffDockable diff && _diffViews.Remove(diff, out var diffView))
+        {
+            Detach(diffView);
+            diffView.Shutdown();
+            return;
+        }
+
+        if (tab is not DocumentDockable document || !_documentViews.Remove(document, out var view))
             return;
         if (ReferenceEquals(view, _connected))
         {

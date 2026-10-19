@@ -24,6 +24,7 @@ public partial class App : Application
         {
             var services = AppServices.Build();
             services.GetRequiredService<ThemeSwitcher>().Apply();
+            services.GetRequiredService<GitTreeDecorator>();   // colours the explorer tree from then on (nothing else needs it)
             UseDockViews(services);
             desktop.MainWindow = services.GetRequiredService<MainWindow>();
             desktop.Exit += (_, _) => services.Dispose();
