@@ -6,6 +6,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Hover;
 
@@ -58,7 +59,7 @@ public static class HoverCard
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),
             Padding = new Thickness(10, 8),
-            BoxShadow = new BoxShadows(new BoxShadow { OffsetY = 2, Blur = 8, Color = Color.FromArgb(70, 0, 0, 0) }),
+            BoxShadow = new BoxShadows(new BoxShadow { OffsetY = 2, Blur = 8, Color = (Brush("WidgetShadowBrush") as ISolidColorBrush)?.Color ?? Colors.Transparent }),
             Child = new ScrollViewer
             {
                 MaxHeight = 400,
@@ -111,8 +112,7 @@ public static class HoverCard
         return link;
     }
 
-    private static IBrush? Brush(string key)
-        => Application.Current?.TryGetResource(key, Application.Current.ActualThemeVariant, out var brush) == true ? brush as IBrush : null;
+    private static IBrush? Brush(string key) => ThemeBrushes.Get(key);
 
     /// <summary>The severity colour of the worst diagnostic (for squiggles and markers).</summary>
     public static IBrush? DiagnosticBrush(int severity) => Brush(severity switch

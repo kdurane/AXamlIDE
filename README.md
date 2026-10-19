@@ -67,7 +67,9 @@ How the pieces are put together and talk:
   the views use (our `App*`/`Theme*` ones and the Dock/Fluent ones we restyle), each coloured from a theme key.
   Choosing a theme only sets `Application.RequestedThemeVariant` (`Views/ThemeSwitcher`); Fluent and Dock fall back to
   their Dark or Light look for anything not set. To colour another part, add a brush there and use it as
-  `{DynamicResource ...}`. The editor's syntax colours come from the same theme through TextMate.
+  `{DynamicResource ...}`; code that draws for itself (editor margins, renderers, the hover card) looks brushes up with
+  `Views/ThemeBrushes.Get` when it draws. AvaloniaEdit's completion list is styled in `Styles/EditorStyles.axaml`.
+  No colour is hard-coded. The editor's syntax colours come from the same theme through TextMate.
 - **Git** goes through the `git` command line (`Services/Git/GitService`, Core; status is parsed from
   `git status --porcelain=v2 -z`). `Services/Git/GitStatusTracker` keeps the workspace repository's status current
   (on open, on save, and from a debounced file watcher that includes `.git/index`, HEAD and refs) and raises `Changed`.

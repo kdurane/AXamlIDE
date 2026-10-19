@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Rendering;
 using AXamlIDE.Services.Git;
+using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Diff;
 
@@ -35,13 +36,10 @@ public sealed class DiffLineRenderer(bool isLeftSide) : IBackgroundRenderer
 
     private IBrush? BrushFor(DiffLineKind kind) => kind switch
     {
-        DiffLineKind.Removed => Resource("DiffRemovedLineBrush"),
-        DiffLineKind.Added => Resource("DiffInsertedLineBrush"),
-        DiffLineKind.Modified => Resource(isLeftSide ? "DiffRemovedLineBrush" : "DiffInsertedLineBrush"),
-        DiffLineKind.Filler => Resource("DiffFillerLineBrush"),
+        DiffLineKind.Removed => ThemeBrushes.Get("DiffRemovedLineBrush"),
+        DiffLineKind.Added => ThemeBrushes.Get("DiffInsertedLineBrush"),
+        DiffLineKind.Modified => ThemeBrushes.Get(isLeftSide ? "DiffRemovedLineBrush" : "DiffInsertedLineBrush"),
+        DiffLineKind.Filler => ThemeBrushes.Get("DiffFillerLineBrush"),
         _ => null
     };
-
-    private static IBrush? Resource(string key)
-        => Application.Current?.TryGetResource(key, Application.Current.ActualThemeVariant, out var brush) == true ? brush as IBrush : null;
 }

@@ -13,9 +13,7 @@ public static class GitStateConverters
     // Unchanged files get the tree's normal text brush explicitly: a binding can't fall back to the inherited
     // foreground (UnsetValue gives TextBlock's default, black).
     public static readonly IValueConverter Brush = new FuncValueConverter<GitFileState, object?>(state =>
-        Application.Current?.TryGetResource(BrushKey(state), Application.Current.ActualThemeVariant, out var brush) == true
-            ? brush
-            : AvaloniaProperty.UnsetValue);
+        ThemeBrushes.Get(BrushKey(state)) ?? AvaloniaProperty.UnsetValue);
 
     public static readonly IValueConverter Letter = new FuncValueConverter<GitFileState, string>(state => state switch
     {

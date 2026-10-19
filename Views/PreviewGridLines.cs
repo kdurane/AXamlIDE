@@ -6,22 +6,18 @@ namespace AXamlIDE.Views;
 
 public sealed class PreviewGridLines : Control
 {
-    private static readonly Pen GridPen = new(
-        new SolidColorBrush(Color.FromArgb(25, 14, 94, 253)),
-        1);
-    private static readonly Pen MajorGridPen = new(
-        new SolidColorBrush(Color.FromArgb(77, 14, 94, 253)),
-        1);
-
     public override void Render(DrawingContext context)
     {
         base.Render(context);
+
+        var gridPen = new Pen(ThemeBrushes.Get("PreviewGridLineBrush"));
+        var majorGridPen = new Pen(ThemeBrushes.Get("PreviewGridLineMajorBrush"));
 
         var horizontalLineCount = (int)(Bounds.Height / 10);
         for (var index = 1; index <= horizontalLineCount; index++)
         {
             var y = index * 10;
-            context.DrawLine(index % 10 == 0 ? MajorGridPen : GridPen,
+            context.DrawLine(index % 10 == 0 ? majorGridPen : gridPen,
                 new Point(0, y), new Point(Bounds.Width, y));
         }
 
@@ -29,7 +25,7 @@ public sealed class PreviewGridLines : Control
         for (var index = 1; index <= verticalLineCount; index++)
         {
             var x = index * 10;
-            context.DrawLine(index % 10 == 0 ? MajorGridPen : GridPen,
+            context.DrawLine(index % 10 == 0 ? majorGridPen : gridPen,
                 new Point(x, 0), new Point(x, Bounds.Height));
         }
     }

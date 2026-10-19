@@ -8,6 +8,7 @@ using Avalonia.Media;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
 using AXamlIDE.Models;
+using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.CodeActions;
 
@@ -17,7 +18,6 @@ internal sealed class CodeActionMargin : AbstractMargin
 
     private readonly Func<int, Control, Task> _showActions;
     private readonly Func<bool> _isEnabled;
-    private static readonly IBrush MarkerBrush = new SolidColorBrush(Color.Parse("#FFD166"));
     private static readonly Geometry MarkerGeometry = Geometry.Parse(
         "M5 13a1 1 0 0 1-1-1c0-1.201-.023-1.338-.768-2.357a6 6 0 1 1 9.536 0C12.023 10.663 12 10.799 12 12a1 1 0 0 1-1 1v2a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zm6.18-4.573-.014.018-.017.024c-.342.468-.738 1.01-.95 1.68a4 4 0 0 0-.168.851H5.97a4 4 0 0 0-.167-.851c-.213-.67-.609-1.212-.95-1.68l-.018-.024-.014-.018a4 4 0 1 1 6.36 0M9 13H7v1h2z");
     private OpenDocument? _document;
@@ -68,6 +68,7 @@ internal sealed class CodeActionMargin : AbstractMargin
         if (_document is null || !_isEnabled() || TextView?.VisualLinesValid != true)
             return;
 
+        var markerBrush = ThemeBrushes.Get("LightBulbBrush");
         foreach (var visualLine in TextView.VisualLines)
         {
             var line = visualLine.FirstDocumentLine.LineNumber;
@@ -76,7 +77,7 @@ internal sealed class CodeActionMargin : AbstractMargin
 
             var centerY = visualLine.VisualTop - TextView.VerticalOffset + visualLine.Height / 2;
             using (context.PushTransform(Matrix.CreateTranslation(Bounds.Width / 2 - 8, centerY - 8)))
-                context.DrawGeometry(MarkerBrush, null, MarkerGeometry);
+                context.DrawGeometry(markerBrush, null, MarkerGeometry);
         }
     }
 

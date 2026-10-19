@@ -53,7 +53,28 @@
     <Color x:Key="editorInfo.foreground">#3794FF</Color>   <!-- default -->
     <Color x:Key="textLink.foreground">#3794FF</Color>   <!-- default -->
 
+    <!--  Editor margins, highlights and pop-ups (completion, find, quick fixes).  -->
+    <Color x:Key="editorLineNumber.foreground">#A33F3F</Color>
+    <Color x:Key="editorGutter.foldingControlForeground">#C5C5C5</Color>   <!-- default -->
+    <Color x:Key="editorLightBulb.foreground">#FFCC00</Color>   <!-- default -->
+    <Color x:Key="editor.inlineValuesForeground">#9C8080</Color>   <!-- default -->
+    <Color x:Key="editor.wordHighlightBackground">#B8575757</Color>   <!-- default -->
+    <Color x:Key="editorGroup.border">#611414</Color>
+    <Color x:Key="editorWidget.background">#300000</Color>
+    <Color x:Key="editorWidget.foreground">#F8F8F8</Color>   <!-- default -->
+    <Color x:Key="editorWidget.border">#454545</Color>   <!-- default -->
+    <Color x:Key="editorSuggestWidget.background">#300000</Color>
+    <Color x:Key="editorSuggestWidget.foreground">#F8F8F8</Color>   <!-- default -->
+    <Color x:Key="editorSuggestWidget.border">#220000</Color>
+    <Color x:Key="editorSuggestWidget.selectedBackground">#880000</Color>   <!-- default -->
+    <Color x:Key="editorSuggestWidget.selectedForeground">#FFFFFF</Color>   <!-- default -->
+    <Color x:Key="widget.shadow">#5C000000</Color>   <!-- default -->
+
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#5E1E1E</Color>
     <Color x:Key="app.panelHeader.activeBackground">#571414</Color>
+
+    <!--  Ours: the preview's design grid, a blue that shows on light and dark previews.  -->
+    <Color x:Key="app.preview.gridLine">#190E5EFD</Color>
+    <Color x:Key="app.preview.gridLineMajor">#4D0E5EFD</Color>
 </ResourceDictionary>

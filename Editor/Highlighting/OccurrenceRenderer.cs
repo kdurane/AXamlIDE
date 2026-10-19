@@ -3,14 +3,12 @@ using System.Linq;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Highlighting;
 
 public sealed class OccurrenceRenderer : IBackgroundRenderer
 {
-    private static readonly IBrush HighlightBrush =
-        new SolidColorBrush(Color.FromArgb(80, 255, 196, 0));
-
     private readonly List<TextSegment> _segments = [];
 
     public KnownLayer Layer => KnownLayer.Selection;
@@ -45,13 +43,16 @@ public sealed class OccurrenceRenderer : IBackgroundRenderer
         var lastLine = textView.VisualLines.Last().LastDocumentLine;
         var viewLength = lastLine.EndOffset - firstOffset;
 
+        if (ThemeBrushes.Get("WordHighlightBrush") is not { } brush)
+            return;
+
         foreach (var segment in _segments)
         {
             if (segment.EndOffset <= firstOffset || segment.StartOffset >= firstOffset + viewLength)
                 continue;
 
             foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment))
-                drawingContext.FillRectangle(HighlightBrush, rect);
+                drawingContext.FillRectangle(brush, rect);
         }
     }
 

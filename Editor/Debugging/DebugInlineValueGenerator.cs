@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Debugging;
 
@@ -21,7 +22,6 @@ public sealed partial class DebugInlineValueGenerator : VisualLineElementGenerat
     private IReadOnlyDictionary<string, string>? _values;
     private int _currentLine;
 
-    public IBrush Brush { get; set; } = new SolidColorBrush(Color.FromRgb(0x80, 0x80, 0x90));
     public int Window { get; set; } = 5;
     public int MaxHintsPerLine { get; set; } = 4;
 
@@ -52,7 +52,7 @@ public sealed partial class DebugInlineValueGenerator : VisualLineElementGenerat
         if (offset != line.EndOffset || HintFor(doc, line.LineNumber) is not { } hint)
             return null;
 
-        return new HintElement("    " + hint, Brush);
+        return new HintElement("    " + hint, ThemeBrushes.Get("InlineValueForegroundBrush") ?? Brushes.Gray);
     }
 
     private string? HintFor(TextDocument doc, int lineNumber)

@@ -20,8 +20,6 @@ internal sealed class FoldingCaretMargin(FoldingManager foldingManager) : Abstra
     private const double IconSize = 16;
     private const double IconScale = IconSize / 24; // path is authored on a 24x24 grid
 
-    private static readonly IBrush MarkerBrush = new SolidColorBrush(Color.Parse("#8A929E"));
-    private static readonly IBrush HoverBrush = new SolidColorBrush(Color.Parse("#E0E5EB"));
     private static readonly Cursor HandCursor = new(StandardCursorType.Hand);
 
     private bool _isMarginHovered;
@@ -109,6 +107,8 @@ internal sealed class FoldingCaretMargin(FoldingManager foldingManager) : Abstra
         if (_chevron is null || TextView?.VisualLinesValid != true)
             return;
 
+        var markerBrush = ThemeBrushes.Get("FoldingMarkerForegroundBrush");
+        var hoverBrush = ThemeBrushes.Get("FoldingMarkerHoverForegroundBrush");
         var renderedLines = new HashSet<int>();
         foreach (var visualLine in TextView.VisualLines)
         {
@@ -126,7 +126,7 @@ internal sealed class FoldingCaretMargin(FoldingManager foldingManager) : Abstra
 
             var x = Bounds.Width / 2;
             var y = visualLine.VisualTop - TextView.VerticalOffset + visualLine.Height / 2;
-            var brush = lineNumber == _hoveredLine ? HoverBrush : MarkerBrush;
+            var brush = lineNumber == _hoveredLine ? hoverBrush : markerBrush;
 
             // Down = 0°, folded = -90° (counter-clockwise, so it points right).
             var angle = folding.IsFolded ? -Math.PI / 2 : 0;

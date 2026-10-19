@@ -67,7 +67,7 @@
         <Grid Name="Surface">
             <ContentControl Name="EditorHost" />
             <GridSplitter
-                Background="#FF555555"
+                Background="{DynamicResource EditorSplitterBrush}"
                 Name="Splitter"
                 ResizeBehavior="PreviousAndNext"
                 ShowsPreview="False" />

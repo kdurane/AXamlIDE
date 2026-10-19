@@ -35,7 +35,7 @@
         </Grid>
 
         <ListBox
-            Background="#02ffffff"
+            Background="Transparent"
             DoubleTapped="OnProblemDoubleTapped"
             Grid.Row="1"
             ItemsSource="{Binding Problems}"

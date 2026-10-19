@@ -146,4 +146,31 @@
     <SolidColorBrush Color="{DynamicResource editorWarning.foreground}" x:Key="DiagnosticWarningBrush" />
     <SolidColorBrush Color="{DynamicResource editorInfo.foreground}" x:Key="DiagnosticInfoBrush" />
     <SolidColorBrush Color="{DynamicResource textLink.foreground}" x:Key="LinkBrush" />
+    <!--  Editor margins and highlights (Editor/Folding, Editor/CodeActions, Editor/Highlighting, Editor/Debugging)  -->
+    <SolidColorBrush Color="{DynamicResource editorLineNumber.foreground}" x:Key="FoldingMarkerForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorGutter.foldingControlForeground}" x:Key="FoldingMarkerHoverForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorLightBulb.foreground}" x:Key="LightBulbBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.inlineValuesForeground}" x:Key="InlineValueForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.wordHighlightBackground}" x:Key="WordHighlightBrush" />
+    <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="EditorSplitterBrush" />
+    <SolidColorBrush Color="{DynamicResource widget.shadow}" x:Key="WidgetShadowBrush" />
+
+    <!--  AvaloniaEdit's pop-ups: completion list, its description tip, the overload viewer, the find panel  -->
+    <SolidColorBrush Color="{DynamicResource editorSuggestWidget.background}" x:Key="CompletionListBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorSuggestWidget.foreground}" x:Key="CompletionListForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorSuggestWidget.border}" x:Key="CompletionListBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorSuggestWidget.selectedBackground}" x:Key="CompletionListSelectedBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorSuggestWidget.selectedForeground}" x:Key="CompletionListSelectedForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.background}" x:Key="CompletionToolTipBackground" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.foreground}" x:Key="CompletionToolTipForeground" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.border}" x:Key="CompletionToolTipBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.background}" x:Key="OverloadViewerBackground" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.foreground}" x:Key="OverloadViewerForeground" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.border}" x:Key="OverloadViewerBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWidget.background}" x:Key="SearchPanelBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWidget.border}" x:Key="SearchPanelBorderBrush" />
+
+    <!--  Preview design grid (Views/PreviewGridLines)  -->
+    <SolidColorBrush Color="{DynamicResource app.preview.gridLine}" x:Key="PreviewGridLineBrush" />
+    <SolidColorBrush Color="{DynamicResource app.preview.gridLineMajor}" x:Key="PreviewGridLineMajorBrush" />
 </ResourceDictionary>
