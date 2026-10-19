@@ -6,14 +6,15 @@ using AXamlIDE.CompletionEngine.Parsing;
 using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Hover;
 using AXamlIDE.Editor.SignatureHelp;
+using AXamlIDE.Services.CSharp;
 using AXamlIDE.Services.Lsp;
 using static AXamlIDE.Editor.NameChars;
 
 namespace AXamlIDE.Editor;
 
 /// <summary>
-/// Reacts to typed characters: auto-closes XAML tags and C# braces, and decides when to
-/// open completion or signature help.
+/// Reacts to typed characters: auto-closes XAML tags and C# braces, makes a namespace file-scoped when ';'
+/// is typed after it, and decides when to open completion or signature help.
 ///
 /// It owns no popups itself; it just calls the other controllers.
 /// </summary>
@@ -55,6 +56,9 @@ public sealed class TypingController
                 break;
             case LanguageIds.CSharp when e.Text == "{":
                 TryInsertClosingBrace(doc.Document);
+                break;
+            case LanguageIds.CSharp when e.Text == ";":
+                TryMakeNamespaceFileScoped(doc.Document);
                 break;
         }
 
@@ -137,6 +141,23 @@ public sealed class TypingController
 
         document.Insert(caret, closingTag);
         editor.CaretOffset = caret;
+    }
+
+    /// <summary>
+    /// ';' typed after "namespace X" (with its block below): make it file-scoped, removing the block's braces and
+    /// one level of indentation, as one undoable change.
+    /// </summary>
+    private void TryMakeNamespaceFileScoped(TextDocument document)
+    {
+        var semicolon = _ctx.Editor.CaretOffset - 1;
+        if (FileScopedNamespace.ConvertAfterSemicolon(document.Text, semicolon) is not { } edits)
+            return;
+
+        using (document.RunUpdate())   // one undo step
+            foreach (var edit in edits)   // listed from the end of the text, so earlier offsets stay valid
+                document.Replace(edit.Offset, edit.Length, edit.Replacement);
+        _ctx.Editor.CaretOffset = semicolon + 1;
+        _ctx.Status("Made the namespace file-scoped (Ctrl+Z to undo).");
     }
 
     private void TryInsertClosingBrace(TextDocument document)
