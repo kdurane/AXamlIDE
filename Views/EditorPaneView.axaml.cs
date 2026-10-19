@@ -22,6 +22,7 @@ using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Editor.Hover;
 using AXamlIDE.Editor.Navigation;
 using AXamlIDE.Editor.SignatureHelp;
+using AXamlIDE.Editor.Snippets;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
@@ -82,6 +83,7 @@ public partial class EditorPaneView : UserControl,
     private CodeActionController _codeActions = null!;
     private SignatureHelpController _signatureHelp = null!;
     private CompletionController _completion = null!;
+    private SnippetController _snippets = null!;
 
     // ------------------------------------------------------------- initialise
 
@@ -139,7 +141,9 @@ public partial class EditorPaneView : UserControl,
         _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesList, ReferencesTitle);
         _colorSwatches = new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
         _signatureHelp = new SignatureHelpController(_ctx);
-        _completion = new CompletionController(_ctx, _hover);
+        _snippets = new SnippetController(_ctx, services.Snippets, services.Dialogs);
+        _completion = new CompletionController(_ctx, _hover, _snippets);
+        _snippets.IsCompletionOpen = () => _completion.IsOpen;
         _typing = new TypingController(_ctx, _hover, _completion, _signatureHelp);
         _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots, _breakpointMargin);
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
@@ -335,6 +339,7 @@ public partial class EditorPaneView : UserControl,
             case EditorAction.Paste: Editor.Paste(); break;
             case EditorAction.SelectAll: Editor.SelectAll(); break;
             case EditorAction.AddWatch: AddWatchAtCaret(); break;
+            case EditorAction.InsertSnippet: _ = _snippets.InsertFromListAsync(); break;
         }
     }
 
@@ -359,6 +364,8 @@ public partial class EditorPaneView : UserControl,
     }
 
     private void OnAddWatchClick(object? sender, RoutedEventArgs e) => AddWatchAtCaret();
+
+    private void OnInsertSnippetClick(object? sender, RoutedEventArgs e) => _ = _snippets.InsertFromListAsync();
 
     /// <summary>Watch the selected text, or the expression at the caret (as a DataTip would show it).</summary>
     private void AddWatchAtCaret()

@@ -30,6 +30,7 @@ public sealed class EditorCommands(IMessenger messenger)
 
     /// <summary>Debug > Add Watch (and the editor's menu while paused): the selection, or the expression at the caret.</summary>
     public IRelayCommand AddWatch { get; } = Make(messenger, EditorAction.AddWatch);
+    public IRelayCommand InsertSnippet { get; } = Make(messenger, EditorAction.InsertSnippet);
 
     private static IRelayCommand Make(IMessenger messenger, EditorAction action)
         => new RelayCommand(() => messenger.Send(new EditorActionMessage(action)));

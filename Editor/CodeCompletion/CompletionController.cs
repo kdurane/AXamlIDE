@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using AvaloniaEdit.CodeCompletion;
 using AvaloniaEdit.Document;
 using AXamlIDE.Editor.Hover;
+using AXamlIDE.Editor.Snippets;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
 using static AXamlIDE.Editor.NameChars;
@@ -21,14 +22,16 @@ public sealed class CompletionController
 {
     private readonly EditorContext _ctx;
     private readonly HoverController _hover;
+    private readonly SnippetController _snippets;
 
     private CompletionWindow? _completionWindow;
     private int _completionSeq;
 
-    public CompletionController(EditorContext ctx, HoverController hover)
+    public CompletionController(EditorContext ctx, HoverController hover, SnippetController snippets)
     {
         _ctx = ctx;
         _hover = hover;
+        _snippets = snippets;
 
         ctx.Detaching += _ => Close();
     }
@@ -78,6 +81,7 @@ public sealed class CompletionController
                             new XamlEngineCompletionData(completion, retrigger));
                     }
 
+                    AddSnippets(engineWindow, doc, engineStart);
                     ShowCompletionWindow(engineWindow, doc.Document, engineStart, caret);
                     return;
                 }
@@ -89,7 +93,11 @@ public sealed class CompletionController
             }
         }
 
-        if (_ctx.Languages.ConnectionFor(doc) is not { Client: var client, Sync: var sync }) return;
+        if (_ctx.Languages.ConnectionFor(doc) is not { Client: var client, Sync: var sync })
+        {
+            ShowSnippetsOnly(doc, seq, caret);   // AXAML text between elements: no engine items, but "grid" + Tab works here
+            return;
+        }
 
         sync.Flush(); // the server has to see what's on screen
         var loc = doc.Document.GetLocation(caret);
@@ -104,9 +112,13 @@ public sealed class CompletionController
         }
 
         // Nothing to show, a newer request superseded this one, the tab changed, or the caret went backwards.
-        if (items.Count == 0 || seq != _completionSeq
-                             || !ReferenceEquals(doc, _ctx.Active) || editor.CaretOffset < caret)
+        if (seq != _completionSeq || !ReferenceEquals(doc, _ctx.Active) || editor.CaretOffset < caret)
             return;
+        if (items.Count == 0)
+        {
+            ShowSnippetsOnly(doc, seq, caret);
+            return;
+        }
 
         // The server knows where the word being completed starts; otherwise walk back over name characters.
         var start = items[0].Edit is { } first
@@ -124,7 +136,44 @@ public sealed class CompletionController
                 : start;
             window.CompletionList.CompletionData.Add(new LspCompletionData(item, editStart, priority: -rank++));
         }
+        AddSnippets(window, doc, start);
 
+        ShowCompletionWindow(window, doc.Document, start, caret);
+    }
+
+    /// <summary>The language's snippets go in every list (below the server's items; see SnippetCompletionData).</summary>
+    private void AddSnippets(CompletionWindow window, OpenDocument doc, int start)
+    {
+        foreach (var snippet in _snippets.CompletionItems(doc, start))
+            window.CompletionList.CompletionData.Add(snippet);
+    }
+
+    /// <summary>No other items: a list of just the snippets whose prefix starts with the word being typed, if any.</summary>
+    private void ShowSnippetsOnly(OpenDocument doc, int seq, int caret)
+    {
+        var start = WordStart(doc.Document, caret);
+        if (seq != _completionSeq || start == caret)
+            return;
+        var typed = doc.Document.GetText(start, caret - start);
+        var matches = _snippets.CompletionItems(doc, start)
+            .Where(snippet => snippet.Text.StartsWith(typed, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (matches.Count == 0)
+            return;
+        var window = new CompletionWindow(_ctx.Editor.TextArea) { StartOffset = start };
+        foreach (var snippet in matches)
+            window.CompletionList.CompletionData.Add(snippet);
+
+        // Gone once the word stops matching ("s" offers svm, "string" nothing): an empty list would swallow Tab and Enter.
+        void OnTyped(object? sender, TextInputEventArgs e)
+        {
+            var end = _ctx.Editor.CaretOffset;
+            var word = end > start ? doc.Document.GetText(start, end - start) : "";
+            if (!matches.Any(snippet => snippet.Text.StartsWith(word, StringComparison.OrdinalIgnoreCase)))
+                window.Close();
+        }
+        _ctx.Editor.TextArea.TextEntered += OnTyped;
+        window.Closed += (_, _) => _ctx.Editor.TextArea.TextEntered -= OnTyped;
         ShowCompletionWindow(window, doc.Document, start, caret);
     }
 

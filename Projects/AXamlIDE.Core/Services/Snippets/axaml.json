@@ -1,0 +1,123 @@
+{
+    // Built-in AXAML snippets. Override one by adding a snippet with the same prefix to your own axaml.json
+    // (Tools > Edit Snippets...).
+    "Grid": {
+        "prefix": "grid",
+        "body": ["<Grid ColumnDefinitions=\"${1:Auto,*}\" RowDefinitions=\"${2:Auto,*}\">", "\t$TM_SELECTED_TEXT$0", "</Grid>"],
+        "description": "Grid with columns and rows"
+    },
+    "StackPanel": {
+        "prefix": "stack",
+        "body": ["<StackPanel Orientation=\"${1|Vertical,Horizontal|}\" Spacing=\"${2:8}\">", "\t$TM_SELECTED_TEXT$0", "</StackPanel>"],
+        "description": "StackPanel"
+    },
+    "DockPanel": {
+        "prefix": "dock",
+        "body": ["<DockPanel>", "\t<${1:Border} DockPanel.Dock=\"${2|Top,Bottom,Left,Right|}\" />", "\t$TM_SELECTED_TEXT$0", "</DockPanel>"],
+        "description": "DockPanel with a docked child"
+    },
+    "Border": {
+        "prefix": "border",
+        "body": ["<Border BorderBrush=\"${1:Gray}\" BorderThickness=\"${2:1}\" CornerRadius=\"${3:4}\" Padding=\"${4:8}\">", "\t$TM_SELECTED_TEXT$0", "</Border>"],
+        "description": "Border"
+    },
+    "ScrollViewer": {
+        "prefix": "scroll",
+        "body": ["<ScrollViewer>", "\t$TM_SELECTED_TEXT$0", "</ScrollViewer>"],
+        "description": "ScrollViewer"
+    },
+    "Button": {
+        "prefix": "button",
+        "body": "<Button Command=\"{Binding ${1:Save}Command}\" Content=\"${2:$1}\" />$0",
+        "description": "Button bound to a command"
+    },
+    "TextBlock": {
+        "prefix": "tb",
+        "body": "<TextBlock Text=\"{Binding ${1:Name}}\" />$0",
+        "description": "TextBlock bound to a property"
+    },
+    "TextBox": {
+        "prefix": "textbox",
+        "body": "<TextBox PlaceholderText=\"${2:$1}\" Text=\"{Binding ${1:Name}}\" />$0",
+        "description": "TextBox bound to a property"
+    },
+    "CheckBox": {
+        "prefix": "check",
+        "body": "<CheckBox Content=\"${2:$1}\" IsChecked=\"{Binding ${1:IsEnabled}}\" />$0",
+        "description": "CheckBox bound to a property"
+    },
+    "ComboBox": {
+        "prefix": "combo",
+        "body": "<ComboBox ItemsSource=\"{Binding ${1:Items}}\" SelectedItem=\"{Binding ${2:SelectedItem}}\" />$0",
+        "description": "ComboBox bound to a list and its selection"
+    },
+    "ItemsControl": {
+        "prefix": "items",
+        "body": [
+            "<ItemsControl ItemsSource=\"{Binding ${1:Items}}\">",
+            "\t<ItemsControl.ItemTemplate>",
+            "\t\t<DataTemplate x:DataType=\"${2:vm}:${3:ItemViewModel}\">",
+            "\t\t\t<TextBlock Text=\"{Binding ${4:Name}}\" />$0",
+            "\t\t</DataTemplate>",
+            "\t</ItemsControl.ItemTemplate>",
+            "</ItemsControl>"
+        ],
+        "description": "ItemsControl with an item template"
+    },
+    "ListBox": {
+        "prefix": "listbox",
+        "body": [
+            "<ListBox ItemsSource=\"{Binding ${1:Items}}\" SelectedItem=\"{Binding ${2:SelectedItem}}\">",
+            "\t<ListBox.ItemTemplate>",
+            "\t\t<DataTemplate x:DataType=\"${3:vm}:${4:ItemViewModel}\">",
+            "\t\t\t<TextBlock Text=\"{Binding ${5:Name}}\" />$0",
+            "\t\t</DataTemplate>",
+            "\t</ListBox.ItemTemplate>",
+            "</ListBox>"
+        ],
+        "description": "ListBox with an item template and selection"
+    },
+    "DataTemplate": {
+        "prefix": "datatemplate",
+        "body": ["<DataTemplate x:DataType=\"${1:vm}:${2:ItemViewModel}\">", "\t$0", "</DataTemplate>"],
+        "description": "DataTemplate for a type"
+    },
+    "Style": {
+        "prefix": "style",
+        "body": ["<Style Selector=\"${1:Button}\">", "\t<Setter Property=\"${2:Margin}\" Value=\"${3:4}\" />$0", "</Style>"],
+        "description": "Style with a setter"
+    },
+    "Setter": {
+        "prefix": "setter",
+        "body": "<Setter Property=\"${1:Margin}\" Value=\"${2:4}\" />$0",
+        "description": "Setter"
+    },
+    "ControlTheme": {
+        "prefix": "controltheme",
+        "body": [
+            "<ControlTheme x:Key=\"{x:Type ${1:controls}:${2:MyControl}}\" TargetType=\"$1:$2\">",
+            "\t<Setter Property=\"Template\">",
+            "\t\t<ControlTemplate>",
+            "\t\t\t$0",
+            "\t\t</ControlTemplate>",
+            "\t</Setter>",
+            "</ControlTheme>"
+        ],
+        "description": "ControlTheme with a template"
+    },
+    "Namespace": {
+        "prefix": "xmlns",
+        "body": "xmlns:${1:vm}=\"using:${2:MyApp.ViewModels}\"$0",
+        "description": "xmlns for a CLR namespace"
+    },
+    "DataType": {
+        "prefix": "datatype",
+        "body": "x:DataType=\"${1:vm}:${2:MainViewModel}\"$0",
+        "description": "x:DataType for compiled bindings"
+    },
+    "Design DataContext": {
+        "prefix": "designdc",
+        "body": ["<Design.DataContext>", "\t<${1:vm}:${2:MainViewModel} />", "</Design.DataContext>$0"],
+        "description": "A view model for the previewer"
+    }
+}

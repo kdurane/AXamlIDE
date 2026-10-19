@@ -44,6 +44,10 @@
                         Header="Quick Actions..."
                         InputGesture="Ctrl+." />
                     <MenuItem Click="OnFormatClick" Header="Format Document" />
+                    <MenuItem
+                        Click="OnInsertSnippetClick"
+                        Header="Insert Snippet..."
+                        InputGesture="Ctrl+J" />
                     <!--  While paused in C#: watch the selection or the expression at the caret  -->
                     <MenuItem
                         Click="OnAddWatchClick"

@@ -9,6 +9,8 @@ using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
+using AXamlIDE.Services.Snippets;
+using AXamlIDE.Services.Lsp;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -31,6 +33,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     private readonly LanguageSessionService _languages;
     private readonly SettingsViewModel _settings;
     private readonly IDialogService _dialogs;
+    private readonly SnippetLibrary _snippets;
     private readonly IMessenger _messenger;
 
     public MainWindowViewModel(
@@ -51,9 +54,11 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         EditorCommands editorCommands,
         SettingsViewModel settings,
         EditorSettingsLoadResult settingsLoad,
+        SnippetLibrary snippets,
         IDialogService dialogs,
         IMessenger messenger)
     {
+        _snippets = snippets;
         _documents = documents;
         _saver = saver;
         _languages = languages;
@@ -212,4 +217,25 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     [RelayCommand]
     private Task OpenSettings() => _dialogs.ShowSettingsAsync();
+
+    /// <summary>
+    /// Tools > Edit Snippets... (VS Code's Configure User Snippets): open the user's snippet file for a language,
+    /// made with an example first. Saved changes are picked up on the next completion.
+    /// </summary>
+    [RelayCommand]
+    private async Task EditSnippets()
+    {
+        var languages = new Dictionary<string, string> { ["C#"] = LanguageIds.CSharp, ["AXAML"] = LanguageIds.Axaml };
+        if (await _dialogs.PickAsync("Edit Snippets", "Language", [.. languages.Keys]) is not { } language)
+            return;
+        try
+        {
+            var path = _snippets.EnsureUserFile(languages[language]);
+            _documents.Active = _documents.Open(path);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            ShowStatusMessage($"Couldn't open the snippet file: {ex.Message}");
+        }
+    }
 }

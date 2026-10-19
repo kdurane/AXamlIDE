@@ -50,6 +50,7 @@ public sealed class KeyMap
             Bind(Key.Space, Ctrl | Shift, editor.SignatureHelp),
             Bind(Key.I, Ctrl | Shift, shell.DocumentCommands.FormatDocumentCommand),
             Bind(Key.F, Ctrl | Shift, shell.ShowFindInFilesCommand),
+            Bind(Key.J, Ctrl, editor.InsertSnippet),                         // Rider's Insert Live Template (VS's is the chord Ctrl+K, X)
 
             // ---- View (VS Code's keys for the panels)
             Bind(Key.B, Ctrl, shell.ToggleExplorerCommand),

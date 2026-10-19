@@ -2,6 +2,7 @@ using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
+using AXamlIDE.Services.Snippets;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
 using AXamlIDE.Editor.Highlighting;
@@ -20,4 +21,5 @@ public sealed record EditorServices(
     WorkspaceEditService WorkspaceEdits,
     DebugSnapshotTracker DebugSnapshots,
     EditorGrammars Grammars,
+    SnippetLibrary Snippets,
     IMessenger Messenger);

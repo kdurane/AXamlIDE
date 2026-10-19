@@ -2,6 +2,7 @@ using AXamlIDE.Commands;
 using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Snippets;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
@@ -38,6 +39,7 @@ public static class AppServices
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IClipboardService, ClipboardService>();
         services.AddSingleton<ExcelService>();
+        services.AddSingleton(_ => new SnippetLibrary(SnippetLibrary.DefaultUserFolder));   // code snippets (built-in + the user's)
         services.AddSingleton<EditorCommands>();
         services.AddSingleton<KeyMap>();
 

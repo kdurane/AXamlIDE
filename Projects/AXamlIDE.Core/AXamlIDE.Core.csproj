@@ -26,6 +26,11 @@
     </ItemGroup>
 
     <ItemGroup>
+        <!-- The built-in code snippets (SnippetLibrary), in VS Code's snippet file format. -->
+        <EmbeddedResource Include="Services/Snippets/*.json" LogicalName="AXamlIDE.Snippets.%(Filename).json" />
+    </ItemGroup>
+
+    <ItemGroup>
         <InternalsVisibleTo Include="AXamlIDE.Tests" />
     </ItemGroup>
 </Project>

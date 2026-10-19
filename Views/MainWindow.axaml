@@ -74,6 +74,7 @@
                     <MenuItem Command="{Binding DocumentCommands.FormatDocumentCommand}" Header="F_ormat Document" />
                     <MenuItem Command="{Binding EditorCommands.Completion}" Header="Co_mplete Word" />
                     <MenuItem Command="{Binding EditorCommands.SignatureHelp}" Header="Parameter _Info" />
+                    <MenuItem Command="{Binding EditorCommands.InsertSnippet}" Header="Insert Sn_ippet..." />
                 </MenuItem>
                 <MenuItem Header="_View">
                     <MenuItem
@@ -171,6 +172,7 @@
                 <MenuItem Header="_Tools">
                     <MenuItem Command="{Binding NuGet.ManagePackagesForCurrentProjectCommand}" Header="Manage _NuGet Packages..." />
                     <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
+                    <MenuItem Command="{Binding EditSnippetsCommand}" Header="Edit S_nippets..." />
                     <Separator />
                     <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Settings..." />
                 </MenuItem>

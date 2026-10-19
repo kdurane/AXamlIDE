@@ -1,0 +1,94 @@
+{
+    // Built-in C# snippets (Visual Studio's list, plus Avalonia and CommunityToolkit.Mvvm ones).
+    // Override one by adding a snippet with the same prefix to your own csharp.json (Tools > Edit Snippets...).
+    "Property": { "prefix": "prop", "body": "public ${1:int} ${2:MyProperty} { get; set; }$0", "description": "Auto-implemented property" },
+    "Get-only property": { "prefix": "propg", "body": "public ${1:int} ${2:MyProperty} { get; }$0", "description": "Read-only auto-implemented property" },
+    "Init property": { "prefix": "propi", "body": "public ${1:int} ${2:MyProperty} { get; init; }$0", "description": "Property set only when the object is made" },
+    "Full property": {
+        "prefix": "propfull",
+        "body": ["private ${1:int} ${2:myVar};", "", "public $1 ${3:MyProperty}", "{", "\tget => $2;", "\tset => $2 = value;", "}$0"],
+        "description": "Property with a backing field"
+    },
+    "Constructor": { "prefix": "ctor", "body": ["public ${TM_FILENAME_BASE}($1)", "{", "\t$0", "}"], "description": "Constructor for the file's class" },
+    "Class": { "prefix": "class", "body": ["public class ${1:${TM_FILENAME_BASE}}", "{", "\t$0", "}"], "description": "Class" },
+    "Interface": { "prefix": "interface", "body": ["public interface ${1:IMyInterface}", "{", "\t$0", "}"], "description": "Interface" },
+    "Record": { "prefix": "record", "body": "public sealed record ${1:MyRecord}($2);$0", "description": "Record with a primary constructor" },
+    "Enum": { "prefix": "enum", "body": ["public enum ${1:MyEnum}", "{", "\t$0", "}"], "description": "Enumeration" },
+    "Struct": { "prefix": "struct", "body": ["public struct ${1:MyStruct}", "{", "\t$0", "}"], "description": "Struct" },
+    "If": { "prefix": "if", "body": ["if (${1:true})", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "if statement" },
+    "Else": { "prefix": "else", "body": ["else", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "else block" },
+    "For": { "prefix": "for", "body": ["for (var ${1:i} = 0; $1 < ${2:length}; $1++)", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "for loop" },
+    "Reverse for": { "prefix": "forr", "body": ["for (var ${1:i} = ${2:length} - 1; $1 >= 0; $1--)", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "for loop counting down" },
+    "Foreach": { "prefix": "foreach", "body": ["foreach (var ${1:item} in ${2:collection})", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "foreach loop" },
+    "While": { "prefix": "while", "body": ["while (${1:true})", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "while loop" },
+    "Do while": { "prefix": "do", "body": ["do", "{", "\t$TM_SELECTED_TEXT$0", "} while (${1:true});"], "description": "do ... while loop" },
+    "Switch": { "prefix": "switch", "body": ["switch (${1:value})", "{", "\tcase ${2:0}:", "\t\t$0", "\t\tbreak;", "\tdefault:", "\t\tbreak;", "}"], "description": "switch statement" },
+    "Try catch": { "prefix": "try", "body": ["try", "{", "\t$TM_SELECTED_TEXT$0", "}", "catch (${1:Exception} ${2:ex})", "{", "\tthrow;", "}"], "description": "try ... catch" },
+    "Try finally": { "prefix": "tryf", "body": ["try", "{", "\t$TM_SELECTED_TEXT$0", "}", "finally", "{", "\t$1", "}"], "description": "try ... finally" },
+    "Using": { "prefix": "using", "body": ["using (${1:var resource = $2})", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "using block" },
+    "Lock": { "prefix": "lock", "body": ["lock (${1:_gate})", "{", "\t$TM_SELECTED_TEXT$0", "}"], "description": "lock block" },
+    "Console.WriteLine": { "prefix": "cw", "body": "Console.WriteLine($1);$0", "description": "Console.WriteLine" },
+    "Debug.WriteLine": { "prefix": "dw", "body": "System.Diagnostics.Debug.WriteLine($1);$0", "description": "Debug.WriteLine (the debugger's output)" },
+    "Main": { "prefix": "svm", "body": ["static void Main(string[] args)", "{", "\t$0", "}"], "description": "static void Main" },
+    "Region": { "prefix": "region", "body": ["#region ${1:Name}", "$TM_SELECTED_TEXT$0", "#endregion"], "description": "#region" },
+    "Exception class": {
+        "prefix": "exception",
+        "body": ["public class ${1:My}Exception : Exception", "{", "\tpublic $1Exception() { }", "\tpublic $1Exception(string message) : base(message) { }", "\tpublic $1Exception(string message, Exception inner) : base(message, inner) { }", "}$0"],
+        "description": "Exception class with the usual constructors"
+    },
+    "xUnit test": { "prefix": "fact", "body": ["[Fact]", "public void ${1:Does_something}()", "{", "\t$0", "}"], "description": "xUnit [Fact] test" },
+
+    "Observable property": { "prefix": "obsprop", "body": "[ObservableProperty] public partial ${1:string} ${2:Name} { get; set; }$0", "description": "CommunityToolkit.Mvvm: a property that raises PropertyChanged" },
+    "Relay command": {
+        "prefix": "relay",
+        "body": ["[RelayCommand]", "private ${1:void} ${2:DoSomething}()", "{", "\t$0", "}"],
+        "description": "CommunityToolkit.Mvvm: generates the method's ...Command property"
+    },
+    "Async relay command": {
+        "prefix": "relayasync",
+        "body": ["[RelayCommand]", "private async Task ${1:DoSomething}Async()", "{", "\t$0", "}"],
+        "description": "CommunityToolkit.Mvvm: generates the method's ...Command property (async)"
+    },
+    "Avalonia styled property": {
+        "prefix": "avprop",
+        "body": [
+            "public static readonly StyledProperty<${1:string}> ${2:Value}Property =",
+            "\tAvaloniaProperty.Register<${3:${TM_FILENAME_BASE}}, $1>(nameof($2));",
+            "",
+            "public $1 $2",
+            "{",
+            "\tget => GetValue($2Property);",
+            "\tset => SetValue($2Property, value);",
+            "}$0"
+        ],
+        "description": "Avalonia StyledProperty (stylable, bindable)"
+    },
+    "Avalonia direct property": {
+        "prefix": "avdirect",
+        "body": [
+            "public static readonly DirectProperty<${3:${TM_FILENAME_BASE}}, ${1:string}> ${2:Value}Property =",
+            "\tAvaloniaProperty.RegisterDirect<$3, $1>(nameof($2), o => o.$2, (o, v) => o.$2 = v);",
+            "",
+            "private $1 _${4:value};",
+            "",
+            "public $1 $2",
+            "{",
+            "\tget => _$4;",
+            "\tset => SetAndRaise($2Property, ref _$4, value);",
+            "}$0"
+        ],
+        "description": "Avalonia DirectProperty (a plain field, no styling)"
+    },
+    "Avalonia attached property": {
+        "prefix": "avattached",
+        "body": [
+            "public static readonly AttachedProperty<${1:bool}> ${2:Value}Property =",
+            "\tAvaloniaProperty.RegisterAttached<${3:${TM_FILENAME_BASE}}, ${4:Control}, $1>(\"$2\");",
+            "",
+            "public static $1 Get$2($4 element) => element.GetValue($2Property);",
+            "",
+            "public static void Set$2($4 element, $1 value) => element.SetValue($2Property, value);$0"
+        ],
+        "description": "Avalonia attached property with its Get/Set"
+    }
+}
