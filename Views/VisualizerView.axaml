@@ -1,6 +1,6 @@
 <!--
-    A debugger visualizer tab (VisualizerDockable): a collection as a sortable table with a filter box and Copy as
-    CSV, or a string as text (Text / JSON / XML). The table's columns are made in code (VisualizerView.axaml.cs):
+    A debugger visualizer tab (VisualizerDockable): a collection as a sortable table with a filter box and Open in
+    Excel / as CSV, or a string as text (Text / JSON / XML). The table's columns are made in code (VisualizerView.axaml.cs):
     they come from the data.
 -->
 <UserControl
@@ -23,6 +23,11 @@
                     Foreground="{DynamicResource DiagnosticWarningBrush}"
                     IsVisible="{Binding IsStale}"
                     Text="The debuggee has moved on: these values are from an earlier stop." />
+                <TextBlock
+                    IsVisible="{Binding ExportStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Opacity="0.75"
+                    Text="{Binding ExportStatus}"
+                    TextTrimming="CharacterEllipsis" />
             </StackPanel>
             <StackPanel
                 Grid.Column="2"
@@ -43,11 +48,18 @@
                     Text="{Binding Filter}"
                     Width="200" />
                 <Button
-                    Command="{Binding CopyAsCsvCommand}"
+                    Command="{Binding OpenInExcelCommand}"
                     IsVisible="{Binding IsTable}"
                     Padding="8,3"
-                    ToolTip.Tip="Copy the rows shown, as CSV">
-                    Copy as CSV
+                    ToolTip.Tip="Open the rows shown in a new workbook (.xlsx) in your spreadsheet app">
+                    Open in Excel
+                </Button>
+                <Button
+                    Command="{Binding OpenAsCsvCommand}"
+                    IsVisible="{Binding IsTable}"
+                    Padding="8,3"
+                    ToolTip.Tip="Open the rows shown as a .csv file in your spreadsheet app">
+                    Open as CSV
                 </Button>
                 <Button
                     Command="{Binding CopyTextCommand}"

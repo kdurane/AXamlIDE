@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using AXamlIDE.Services.Debugging;
 using AXamlIDE.Services.Dialogs;
+using AXamlIDE.Services.Documents;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -21,7 +22,7 @@ public enum TextVisualizerFormat { Text, Json, Xml, Table }
 /// <summary>
 /// A debugger visualizer as a document tab (Views/VisualizerView), like Visual Studio's magnifier:
 ///   - a collection (array, List, Dictionary, a LINQ Results View...) as a sortable table: one row per item, a
-///     column per member for objects, a grid for a 2D array; filter box; Copy as CSV. Objects are read one request
+///     column per member for objects, a grid for a 2D array; filter box; Open in Excel / as CSV. Objects are read one request
 ///     per row (~2 ms each in netcoredbg), so rows stream in while the rest load;
 ///   - a string as text, pretty-printed as JSON or XML, or (a JSON array, e.g. a DB / API response) as a typed table:
 ///     read in one evaluate, so thousands of rows show at once (Core's JsonTables).
@@ -31,15 +32,17 @@ public enum TextVisualizerFormat { Text, Json, Xml, Table }
 public sealed partial class VisualizerDockable : PageDockable
 {
     private readonly IClipboardService _clipboard;
+    private readonly ExcelService _excel;
     private CancellationTokenSource _load = new();
     private List<object?[]> _allRows = [];
     private Type[] _columnTypes = [];
     private TypedTable? _jsonTable;
     private string _rawText = "";
 
-    public VisualizerDockable(string expression, IClipboardService clipboard)
+    public VisualizerDockable(string expression, IClipboardService clipboard, ExcelService excel)
     {
         _clipboard = clipboard;
+        _excel = excel;
         Expression = expression;
         Id = IdFor(expression);
         Title = $"Visualizer: {expression}";
@@ -296,17 +299,28 @@ public sealed partial class VisualizerDockable : PageDockable
         _ => cell.ToString() ?? ""
     };
 
-    /// <summary>The visible rows as CSV (Excel and friends open it), like VS's Export to CSV.</summary>
+    /// <summary>The visible rows in a new workbook, opened in the spreadsheet app (VS's Export to Excel).</summary>
     [RelayCommand]
-    private Task CopyAsCsv()
+    private void OpenInExcel() => Export(() => _excel.OpenAsExcel(Expression, Columns, Rows));
+
+    /// <summary>The visible rows as a .csv file, opened in the app the system uses for CSV.</summary>
+    [RelayCommand]
+    private void OpenAsCsv() => Export(() => _excel.OpenAsCsv(Expression, Columns, Rows));
+
+    private void Export(Func<string> write)
     {
-        static string Quote(string value) => value.IndexOfAny([',', '"', '\n', '\r']) < 0 ? value : "\"" + value.Replace("\"", "\"\"") + "\"";
-        var csv = new StringBuilder();
-        csv.AppendLine(string.Join(",", Columns.Select(Quote)));
-        foreach (var row in Rows)
-            csv.AppendLine(string.Join(",", row.Select(cell => Quote(Cell(cell)))));
-        return _clipboard.SetTextAsync(csv.ToString());
+        try
+        {
+            ExportStatus = "Opened " + write();
+        }
+        catch (Exception ex)
+        {
+            ExportStatus = "Couldn't export: " + ex.Message;
+        }
     }
+
+    /// <summary>Where the last export went (or why it failed), shown in the toolbar.</summary>
+    [ObservableProperty] public partial string ExportStatus { get; set; } = "";
 
     [RelayCommand]
     private Task CopyText() => _clipboard.SetTextAsync(Text);

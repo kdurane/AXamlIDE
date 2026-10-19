@@ -37,6 +37,7 @@ public static class AppServices
         services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IClipboardService, ClipboardService>();
+        services.AddSingleton<ExcelService>();
         services.AddSingleton<EditorCommands>();
         services.AddSingleton<KeyMap>();
 

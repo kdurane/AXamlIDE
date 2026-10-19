@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using AXamlIDE.Messages;
 using AXamlIDE.Services.Dialogs;
+using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -14,12 +15,14 @@ public sealed class VisualizerManager : IRecipient<VisualizeDebugValueMessage>
 {
     private readonly DockLayoutViewModel _docking;
     private readonly IClipboardService _clipboard;
+    private readonly ExcelService _excel;
     private readonly Dictionary<string, VisualizerDockable> _open = [];
 
-    public VisualizerManager(DockLayoutViewModel docking, DebugSnapshotTracker debug, IClipboardService clipboard, IMessenger messenger)
+    public VisualizerManager(DockLayoutViewModel docking, DebugSnapshotTracker debug, IClipboardService clipboard, ExcelService excel, IMessenger messenger)
     {
         _docking = docking;
         _clipboard = clipboard;
+        _excel = excel;
         messenger.RegisterAll(this);
         debug.Changed += () =>
         {
@@ -34,7 +37,7 @@ public sealed class VisualizerManager : IRecipient<VisualizeDebugValueMessage>
         var id = VisualizerDockable.IdFor(expression);
         if (!_open.TryGetValue(id, out var page) || !_docking.ShowPage(id))
         {
-            page = new VisualizerDockable(expression, _clipboard);
+            page = new VisualizerDockable(expression, _clipboard, _excel);
             _open[id] = page;
             _docking.OpenPage(page);
         }
