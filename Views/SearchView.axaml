@@ -5,6 +5,33 @@
     xmlns:models="using:AXamlIDE.Models"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <!--  Result rows: flat, highlighted on hover like a list.  -->
+        <Style Selector="ToggleButton.resultFile, Button.resultLine">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="6,2" />
+        </Style>
+        <Style Selector="Button.resultLine">
+            <Setter Property="Padding" Value="26,2,6,2" />
+        </Style>
+        <Style Selector="ToggleButton.resultFile:pointerover /template/ ContentPresenter, ToggleButton.resultFile:checked:pointerover /template/ ContentPresenter, Button.resultLine:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}" />
+        </Style>
+        <Style Selector="ToggleButton.resultFile:checked /template/ ContentPresenter, ToggleButton.resultFile:pressed /template/ ContentPresenter, Button.resultLine:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ToggleButton.resultFile:checked /template/ ContentPresenter, ToggleButton.resultFile /template/ ContentPresenter, Button.resultLine /template/ ContentPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.resultFile PathIcon.chevron">
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+        <Style Selector="ToggleButton.resultFile:checked PathIcon.chevron">
+            <Setter Property="RenderTransform" Value="rotate(90deg)" />
+        </Style>
+    </UserControl.Styles>
     <Grid RowDefinitions="Auto,Auto,Auto,*">
         <Grid ColumnDefinitions="*,Auto" Margin="8">
             <TextBox
@@ -42,31 +69,58 @@
             Text="{Binding SearchStatus}" />
         <ScrollViewer
             Grid.Row="3"
-            HorizontalScrollBarVisibility="Auto"
+            HorizontalScrollBarVisibility="Disabled"
             VerticalScrollBarVisibility="Auto">
+            <!--  VS Code's layout: a header per file (name, folder, count), its matching lines under it.  -->
             <ItemsControl ItemsSource="{Binding SearchResults}">
                 <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:WorkspaceSearchResult">
-                        <Button
-                            Command="{Binding $parent[UserControl].((vm:SearchViewModel)DataContext).OpenResultCommand}"
-                            CommandParameter="{Binding}"
-                            HorizontalContentAlignment="Stretch"
-                            Padding="6,3">
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <TextBlock
-                                    Grid.Column="0"
-                                    Margin="0,0,8,0"
-                                    Text="{Binding FilePath}" />
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Text="{Binding LineText}"
-                                    TextTrimming="CharacterEllipsis" />
-                                <TextBlock
-                                    Grid.Column="2"
-                                    Margin="8,0,0,0"
-                                    Text="{Binding LineNumber}" />
-                            </Grid>
-                        </Button>
+                    <DataTemplate x:DataType="vm:SearchResultGroup">
+                        <StackPanel>
+                            <ToggleButton
+                                Classes="resultFile"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                IsChecked="{Binding IsExpanded}"
+                                ToolTip.Tip="{Binding FilePath}">
+                                <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                    <PathIcon Classes="chevron" Data="M 2,0 L 6,4 L 2,8 Z" Height="8" Margin="0,0,6,0" Width="8" />
+                                    <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding FileName}" />
+                                    <TextBlock
+                                        Grid.Column="2"
+                                        Margin="8,0,0,0"
+                                        Opacity="0.6"
+                                        Text="{Binding Folder}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        Grid.Column="3"
+                                        Margin="8,0,0,0"
+                                        Opacity="0.6"
+                                        Text="{Binding Count}" />
+                                </Grid>
+                            </ToggleButton>
+                            <ItemsControl IsVisible="{Binding IsExpanded}" ItemsSource="{Binding Matches}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SearchMatchItem">
+                                        <Button
+                                            Classes="resultLine"
+                                            Command="{Binding $parent[UserControl].((vm:SearchViewModel)DataContext).OpenResultCommand}"
+                                            CommandParameter="{Binding Result}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch">
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <!--  The runs are on one line: whitespace between them would show as spaces.  -->
+                                                <TextBlock TextTrimming="CharacterEllipsis"><Run Text="{Binding Before, Mode=OneWay}" /><Run Background="{DynamicResource WordHighlightBrush}" Text="{Binding Match, Mode=OneWay}" /><Run Text="{Binding After, Mode=OneWay}" /></TextBlock>
+                                                <TextBlock
+                                                    Grid.Column="1"
+                                                    Margin="8,0,0,0"
+                                                    Opacity="0.6"
+                                                    Text="{Binding LineNumber, Mode=OneWay}" />
+                                            </Grid>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

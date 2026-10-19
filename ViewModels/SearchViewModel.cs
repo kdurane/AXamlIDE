@@ -72,7 +72,8 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
 
     private readonly WorkspaceSearchService _search = new();
 
-    public ObservableCollection<WorkspaceSearchResult> SearchResults { get; } = [];
+    /// <summary>The results, one group per file.</summary>
+    public ObservableCollection<SearchResultGroup> SearchResults { get; } = [];
 
     [ObservableProperty] public partial string SearchQuery { get; set; } = string.Empty;
     [ObservableProperty] public partial string ReplaceText { get; set; } = string.Empty;
@@ -106,12 +107,13 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
         try
         {
             var summary = await _search.SearchAsync(rootPath, query, openDocuments);
-            foreach (var result in summary.Results)
-                SearchResults.Add(result);
+            var groups = SearchResultGroup.Build(rootPath, summary.Results, query);
+            foreach (var group in groups)
+                SearchResults.Add(group);
 
             var status = summary.ResultLimitReached
-                ? $"Showing the first {summary.Results.Count} results."
-                : $"{summary.Results.Count} result(s).";
+                ? $"Showing the first {summary.Results.Count} results in {groups.Count} file(s)."
+                : $"{summary.Results.Count} result(s) in {groups.Count} file(s).";
             if (summary.SkippedLargeFiles > 0)
                 status += $" Skipped {summary.SkippedLargeFiles} file(s) larger than 2 MB.";
             if (summary.UnreadableFiles > 0)
