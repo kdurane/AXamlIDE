@@ -21,10 +21,25 @@ public static class LspHelpers
 
     public static string FormatLocation(LspLocation location)
     {
+        if (IsSourceGenerated(location.Uri))
+            return $"{SourceGeneratedName(location.Uri)}  (line {location.Range.StartLine + 1})  —  source generated";
         var path = Uri.TryCreate(location.Uri, UriKind.Absolute, out var uri) && uri.IsFile
             ? uri.LocalPath
             : location.Uri;
         return $"{Path.GetFileName(path)}  (line {location.Range.StartLine + 1})  —  {path}";
+    }
+
+    /// <summary>
+    /// Roslyn's URI for a source generator's output (roslyn-source-generated://{project}/{hint}.g.cs?documentId=...):
+    /// not on disk; its text comes from <see cref="LspClient.SourceGeneratedTextAsync"/>.
+    /// </summary>
+    public static bool IsSourceGenerated(string uri) => uri.StartsWith("roslyn-source-generated://", StringComparison.Ordinal);
+
+    /// <summary>The generated file's name (its hint name, e.g. "MyApp.ViewModels.MainViewModel.g.cs").</summary>
+    public static string SourceGeneratedName(string uri)
+    {
+        var path = uri.Split('?')[0];
+        return Uri.UnescapeDataString(path[(path.LastIndexOf('/') + 1)..]);
     }
 
     public static Dictionary<string, List<(LspRange Range, string NewText)>> ParseWorkspaceEdit(JsonElement workspaceEdit)

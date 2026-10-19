@@ -79,7 +79,7 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
                     ? symbol.Name ?? "(unnamed symbol)"
                     : $"{symbol.Name}  —  {symbol.ContainerName}");
             if (selected is not null)
-                navigator.ToLocation(selected);
+                await GoToAsync(client, selected);
         }
         catch (Exception ex)
         {
@@ -110,7 +110,7 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
         {
             var (line, character) = CurrentLspPosition();
             var locations = await client.DefinitionAsync(document.Uri, line, character);
-            await NavigateToLocationsAsync("Go to Definition", locations);
+            await NavigateToLocationsAsync(client, "Go to Definition", locations);
         }
         catch (Exception ex)
         {
@@ -120,7 +120,8 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
 
     /// <summary>
     /// F12 in AXAML. On a binding path ({Binding Run.StartupProjects}): the bound view-model property, in its C#
-    /// source (asked of the C# language server), or decompiled when it isn't in the workspace. Elsewhere: the
+    /// source (asked of the C# language server), or decompiled when it isn't in the workspace. On a prefixed type
+    /// (x:DataType="vm:MainViewModel", &lt;local:MyControl&gt;, {x:Type vm:Item}): its C# source. Elsewhere: the
     /// element's type, decompiled.
     /// </summary>
     private async Task GoToXamlDefinitionAsync(OpenDocument document)
@@ -141,6 +142,21 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
                 }
                 ctx.Status($"Couldn't find {binding.Owner}.{binding.Property}.");
                 return;
+            }
+
+            if (XamlTypeReference.At(text, offset) is { } type)
+            {
+                var (client, declarations) = await XamlTypeSymbols.FindAsync(ctx.Languages, type, ctx.Documents.GetWorkspaceFilesAsync);
+                if (declarations.Count > 0)
+                {
+                    await NavigateToLocationsAsync(client, "Go to Definition", declarations);
+                    return;
+                }
+                if (!type.InTag)
+                {
+                    ctx.Status($"Couldn't find {type.FullName} in the workspace.");
+                    return;
+                }
             }
 
             var source = await ctx.Xaml.DecompileTypeAsync(document.Path, text, offset);
@@ -165,9 +181,9 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
     /// <summary>The bound property's declaration in the workspace's C#; false when it isn't there.</summary>
     private async Task<bool> GoToSourcePropertyAsync(XamlCompletionService.BindingTarget binding)
     {
-        if (await BindingSymbols.FindAsync(ctx.Languages, binding) is not (_, var declarations))
+        if (await BindingSymbols.FindAsync(ctx.Languages, binding) is not (var client, var declarations))
             return false;
-        await NavigateToLocationsAsync("Go to Definition", declarations);
+        await NavigateToLocationsAsync(client, "Go to Definition", declarations);
         return true;
     }
 
@@ -187,7 +203,7 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
         {
             var (line, character) = CurrentLspPosition();
             var locations = await client.ReferencesAsync(document.Uri, line, character);
-            await NavigateToLocationsAsync("Find All References", locations);
+            await NavigateToLocationsAsync(client, "Find All References", locations);
         }
         catch (Exception ex)
         {
@@ -195,7 +211,7 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
         }
     }
 
-    private async Task NavigateToLocationsAsync(string title, IReadOnlyList<LspLocation> locations)
+    private async Task NavigateToLocationsAsync(LspClient? client, string title, IReadOnlyList<LspLocation> locations)
     {
         if (locations.Count == 0)
         {
@@ -207,7 +223,21 @@ public sealed class NavigationCommands(EditorContext ctx, IDialogService dialogs
             ? locations[0]
             : await dialogs.PickLocationAsync(title, locations, FormatLocation);
         if (selected is not null)
-            navigator.ToLocation(selected);
+            await GoToAsync(client, selected);
+    }
+
+    /// <summary>A file location, or source-generated code (its text asked of the server that reported it).</summary>
+    private async Task GoToAsync(LspClient? client, LspLocation location)
+    {
+        if (!IsSourceGenerated(location.Uri))
+        {
+            navigator.ToLocation(location);
+            return;
+        }
+        if (client is not null && await client.SourceGeneratedTextAsync(location.Uri) is { } text)
+            navigator.ToGeneratedLocation(location, text);
+        else
+            ctx.Status($"Couldn't get the source-generated {SourceGeneratedName(location.Uri)}.");
     }
 
     // ---------------------------------------------------------------- rename

@@ -184,6 +184,25 @@ public sealed partial class LspClient
             lens.TryGetProperty("command", out var command) && command.ValueKind == JsonValueKind.Object ? Str(command, "title") : null,
             lens.Clone());
 
+    /// <summary>
+    /// The text of a source-generated document (a roslyn-source-generated:// URI, see
+    /// <see cref="LspHelpers.IsSourceGenerated"/>): LSP 3.18's workspace/textDocumentContent, which Roslyn answers
+    /// (older Roslyn builds had their own sourceGeneratedDocument/_roslyn_getText). Null if unknown.
+    /// </summary>
+    public async Task<string?> SourceGeneratedTextAsync(string uri, CancellationToken ct = default)
+    {
+        JsonElement result;
+        try
+        {
+            result = await RequestAsync("workspace/textDocumentContent", new { uri }, ct);
+        }
+        catch (LspException)
+        {
+            result = await RequestAsync("sourceGeneratedDocument/_roslyn_getText", new { textDocument = new { uri } }, ct);
+        }
+        return result.ValueKind == JsonValueKind.Object ? Str(result, "text") : null;
+    }
+
     public async Task<IReadOnlyList<LspLocation>> WorkspaceSymbolsAsync(
         string query, CancellationToken ct = default)
     {

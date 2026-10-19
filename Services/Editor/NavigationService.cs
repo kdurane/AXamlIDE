@@ -119,5 +119,22 @@ public sealed class NavigationService :
         }
     }
 
+    /// <summary>
+    /// A location in a source generator's output (not on disk), with its <paramref name="text"/> from Roslyn: opened
+    /// read-only as {temp}/AXamlIDE/Generated/{hint name}, as Visual Studio shows generated files.
+    /// </summary>
+    public void ToGeneratedLocation(LspLocation location, string text)
+    {
+        var path = Path.Combine(Path.GetTempPath(), "AXamlIDE", "Generated", LspHelpers.SourceGeneratedName(location.Uri));
+        var document = _documents.OpenReadOnly(path, text, LanguageIds.CSharp);
+        if (document.Document.Text != text)
+            document.Document.Text = text;   // open from an earlier visit: the generator has run since
+        _documents.Activate(document);
+        var offset = document.OffsetOf(location.Range.StartLine, location.Range.StartChar);
+        var endOffset = document.OffsetOf(location.Range.EndLine, location.Range.EndChar);
+        document.Reveal(offset, Math.Max(0, endOffset - offset));
+        Status($"{LspHelpers.SourceGeneratedName(location.Uri)} is source-generated (read-only).");
+    }
+
     private void Status(string text) => _messenger.Send(new StatusMessage(text));
 }
