@@ -40,7 +40,11 @@ public partial class App : Application
     /// </summary>
     private void UseDockViews(ServiceProvider services)
     {
-        DataTemplates.Add(new FuncDataTemplate<WelcomeViewModel>((welcome, _) => new WelcomeView { DataContext = welcome }));
+        // The explicit match matters: FuncDataTemplate<T> on its own also matches null, so every empty
+        // ContentPresenter in the app (an empty ComboBox's selection box...) would show the welcome screen.
+        DataTemplates.Add(new FuncDataTemplate<WelcomeViewModel>(
+            welcome => welcome is not null,
+            (welcome, _) => new WelcomeView { DataContext = welcome }));
         Styles.Add(new Style(selector => selector.OfType<DockControl>())
         {
             Setters =
