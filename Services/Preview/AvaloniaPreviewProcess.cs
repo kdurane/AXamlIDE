@@ -17,8 +17,27 @@ using AXamlIDE.Models;
 
 namespace AXamlIDE.Services.Preview;
 
+/// <summary>
+/// The Avalonia designer host for one project: starts it, sends it XAML and zoom, and receives its frames over
+/// Avalonia's BSON transport.
+///
+/// The preview is a still picture, drawn on demand. The host sends a frame whenever its content changes (a blinking
+/// caret, an animation: up to ~50 a second) but only after the last one was acknowledged (FrameReceivedMessage).
+/// So frames are acknowledged only for <see cref="SettleTime"/> after something that changes the picture (new
+/// XAML, a zoom, the preview coming back on screen, connecting); after that the frame that arrives is still shown
+/// but not acknowledged, and the host goes quiet until the next change. While <see cref="IsPaused"/> (no preview on
+/// screen) frames are neither shown nor acknowledged.
+/// </summary>
 public sealed class AvaloniaPreviewProcess : IDisposable
 {
+    /// <summary>How long after a change frames keep coming: long enough for layout, images and bindings to settle.</summary>
+    private static readonly TimeSpan SettleTime = TimeSpan.FromSeconds(1);
+
+    private readonly Lock _frameLock = new();
+    private long? _heldFrame;          // shown (or skipped while paused) but not acknowledged: the host waits for it
+    private long _liveUntil;           // Environment.TickCount64 until which frames are acknowledged
+    private bool _paused;
+
     private Process? _process;
     private IDisposable? _listener;
     private IAvaloniaRemoteTransportConnection? _connection;
@@ -26,6 +45,19 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     private readonly ConcurrentQueue<string> _processOutput = new();
     private bool _disposed;
     private double _scaling = 1;
+
+    /// <summary>True while no preview is on screen: frames are dropped and the host isn't asked for more.</summary>
+    public bool IsPaused
+    {
+        get => _paused;
+        set
+        {
+            lock (_frameLock)
+                _paused = value;
+            if (!value)
+                RequestFrames();   // what changed while it was hidden
+        }
+    }
 
     public bool IsRunning => _process is { HasExited: false };
     public bool IsReady => IsRunning && _connection is not null;
@@ -123,6 +155,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             XamlFileProjectPath = xamlPath,
             Xaml = xaml
         });
+        RequestFrames();
     }
 
     public async Task SetScalingAsync(double scaling)
@@ -142,6 +175,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         }
 
         _scaling = scaling;
+        RequestFrames();
     }
 
     public void Stop()
@@ -182,6 +216,9 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             }
         }
 
+        lock (_frameLock)
+            _heldFrame = null;
+
         _bitmap = null;
         FrameReceived?.Invoke(null);
     }
@@ -207,6 +244,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             DpiX = 96 * _scaling,
             DpiY = 96 * _scaling
         });
+        RequestFrames();
     }
 
     private void OnConnectionMessage(IAvaloniaRemoteTransportConnection connection, object message)
@@ -219,8 +257,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             switch (message)
             {
                 case FrameMessage frame:
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => UpdateBitmap(frame));
-                    await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
+                    await OnFrameAsync(connection, frame);
                     break;
                 case UpdateXamlResultMessage update:
                     ErrorChanged?.Invoke(update.Exception is { } details
@@ -233,6 +270,59 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         {
             Debug.WriteLine($"[preview] Failed to process {message.GetType().Name}: {ex}");
             ErrorChanged?.Invoke(PreviewError.From(ex.Message, null, null));
+        }
+    }
+
+    /// <summary>A frame from the host: show it (unless paused); acknowledge it only while the picture is settling.</summary>
+    private async Task OnFrameAsync(IAvaloniaRemoteTransportConnection connection, FrameMessage frame)
+    {
+        bool paused, acknowledge;
+        lock (_frameLock)
+        {
+            paused = _paused;
+            acknowledge = !paused && Environment.TickCount64 < _liveUntil;
+            if (!acknowledge)
+                _heldFrame = frame.SequenceId;
+        }
+
+        if (!paused)
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => UpdateBitmap(frame));
+        if (acknowledge)
+            await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
+    }
+
+    /// <summary>
+    /// Something changed the picture: take frames for <see cref="SettleTime"/>, starting by acknowledging a held one
+    /// so the host can send again.
+    /// </summary>
+    private void RequestFrames()
+    {
+        long sequenceId;
+        IAvaloniaRemoteTransportConnection? connection;
+        lock (_frameLock)
+        {
+            if (_paused)
+                return;
+            _liveUntil = Environment.TickCount64 + (long)SettleTime.TotalMilliseconds;
+            if (_heldFrame is not { } held || _connection is not { } open)
+                return;
+            sequenceId = held;
+            connection = open;
+            _heldFrame = null;
+        }
+
+        _ = SendAcknowledgementAsync(connection, sequenceId);
+    }
+
+    private static async Task SendAcknowledgementAsync(IAvaloniaRemoteTransportConnection connection, long sequenceId)
+    {
+        try
+        {
+            await connection.Send(new FrameReceivedMessage { SequenceId = sequenceId });
+        }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException or SocketException)
+        {
+            // the host went away; Stop and the exception handler deal with it
         }
     }
 
