@@ -26,7 +26,9 @@ namespace AXamlIDE.ViewModels;
 /// the zoom chosen for each file is remembered here (<see cref="ZoomFor"/>).
 ///
 /// The designer host is one process per project (it loads that project's build output). It is kept
-/// running while you switch tabs, including to non-AXAML files, and only restarted for another project.
+/// running while you switch tabs, including to non-AXAML files, and only restarted for another project;
+/// while no AXAML tab is in front it's paused, so it doesn't draw (AvaloniaPreviewProcess.IsPaused), and after
+/// two minutes of that it's stopped (the next AXAML tab shows its last frame while the host restarts).
 /// Updates run one at a time and only the newest one counts, so quick tab switches can't leave it
 /// half-started or showing the wrong file. Each file's last frame is kept, so returning to a tab shows
 /// it straight away while the fresh one renders.
@@ -40,6 +42,9 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 
     private readonly DispatcherTimer _previewUpdateTimer =
         new() { Interval = TimeSpan.FromMilliseconds(300) };
+
+    /// <summary>A host paused this long is stopped (it still costs a little CPU); the next AXAML tab restarts it.</summary>
+    private readonly DispatcherTimer _idleStopTimer = new() { Interval = TimeSpan.FromMinutes(2) };
 
     private readonly SemaphoreSlim _updateGate = new(1, 1);
     private readonly IMessenger _messenger;
@@ -66,6 +71,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         documents.Closing += Forget;
 
         _previewUpdateTimer.Tick += OnPreviewUpdateTimer;
+        _idleStopTimer.Tick += OnIdleStopTimer;
         _previewProcess.FrameReceived += OnPreviewFrameReceived;
         _previewProcess.ErrorChanged += OnPreviewErrorChanged;
     }
@@ -152,9 +158,13 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 
         if (!IsPreviewable(document))
         {
-            ShowIdle();   // the designer host keeps running for the next AXAML tab
+            ShowIdle();   // the designer host keeps running for the next AXAML tab,
+            _previewProcess.IsPaused = true;   // but stops drawing frames nobody sees,
+            _idleStopTimer.Start();            // and is stopped if it stays unused
             return;
         }
+        _idleStopTimer.Stop();
+        _previewProcess.IsPaused = false;
 
         if (_lastFrames.TryGetValue(document!, out var lastFrame))
         {
@@ -195,6 +205,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _previewUpdateTimer.Stop();
+        _idleStopTimer.Stop();
         if (_hookedDocument is not null)
         {
             _hookedDocument.Changed -= OnDocumentChanged;
@@ -211,6 +222,15 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     {
         _previewUpdateTimer.Stop();
         _previewUpdateTimer.Start();
+    }
+
+    private void OnIdleStopTimer(object? sender, EventArgs e)
+    {
+        _idleStopTimer.Stop();
+        if (IsPreviewable(_document))
+            return;
+        _previewProcess.Stop();
+        _previewTarget = null;
     }
 
     private void OnPreviewUpdateTimer(object? sender, EventArgs e)
