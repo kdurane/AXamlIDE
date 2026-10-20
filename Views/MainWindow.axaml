@@ -122,9 +122,20 @@
                 </MenuItem>
                 <MenuItem Header="_Build">
                     <MenuItem Command="{Binding Run.BuildCommand}" Header="_Build" />
+                    <MenuItem Command="{Binding Run.RebuildCommand}" Header="_Rebuild" />
+                    <MenuItem Command="{Binding Run.CleanCommand}" Header="_Clean" />
+                    <Separator />
                     <MenuItem
                         Command="{Binding Run.BuildProjectCommand}"
                         Header="Build _Selected Project"
+                        IsEnabled="{Binding Workspace.SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <MenuItem
+                        Command="{Binding Run.RebuildProjectCommand}"
+                        Header="R_ebuild Selected Project"
+                        IsEnabled="{Binding Workspace.SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <MenuItem
+                        Command="{Binding Run.CleanProjectCommand}"
+                        Header="C_lean Selected Project"
                         IsEnabled="{Binding Workspace.SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}" />
                     <Separator />
                     <MenuItem Command="{Binding Publish.PublishCurrentProjectCommand}" Header="_Publish Selected Project..." />

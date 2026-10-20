@@ -16,6 +16,9 @@ using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.ViewModels;
 
+/// <summary>What the Build menu's three commands do (Visual Studio's Build, Rebuild and Clean).</summary>
+public enum BuildKind { Build, Rebuild, Clean }
+
 /// <summary>
 /// Build, run and (in RunViewModel.Debug.cs) debug a project, plus the Output and Console
 /// text they produce. Run and Debug start the startup project (RunViewModel.Startup.cs) unless a
@@ -73,43 +76,75 @@ public partial class RunViewModel : ObservableObject, IDisposable
     /// <summary>
     /// Build (the Build menu, Ctrl+Shift+B and the top bar's button), like Visual Studio's Build Solution: the open
     /// solution, else the startup project, else the explorer selection's project (asking when that's ambiguous too).
+    /// Rebuild and Clean act on the same thing.
     /// </summary>
     [RelayCommand]
-    private async Task Build()
+    private Task Build() => BuildWorkspaceAsync(BuildKind.Build);
+
+    /// <summary>Rebuild Solution (Ctrl+Alt+F7, VS's key): everything again, ignoring what's up to date.</summary>
+    [RelayCommand]
+    private Task Rebuild() => BuildWorkspaceAsync(BuildKind.Rebuild);
+
+    /// <summary>Clean Solution: delete the build output of the toolbar's configuration.</summary>
+    [RelayCommand]
+    private Task Clean() => BuildWorkspaceAsync(BuildKind.Clean);
+
+    /// <summary>The explorer's "Build" on a project (or a file in it); null = the explorer's selection.</summary>
+    [RelayCommand]
+    private Task BuildProject(ProjectTreeNode? selection) => BuildProjectAsync(selection, BuildKind.Build);
+
+    [RelayCommand]
+    private Task RebuildProject(ProjectTreeNode? selection) => BuildProjectAsync(selection, BuildKind.Rebuild);
+
+    [RelayCommand]
+    private Task CleanProject(ProjectTreeNode? selection) => BuildProjectAsync(selection, BuildKind.Clean);
+
+    /// <summary>The solution, else the startup project, else the explorer selection's project (asking if needed).</summary>
+    private async Task BuildWorkspaceAsync(BuildKind kind)
     {
         var path = _explorer.SolutionPath
                    ?? StartupProjectPath
                    ?? (_explorer.SelectedNode is { } node ? ResolveProject(node) : await ChooseStartupProjectAsync(null));
         if (path is not null)
-            await BuildAsync(path);
+            await BuildAsync(path, kind);
     }
 
-    /// <summary>The explorer's "Build" on a project (or a file in it); null = the explorer's selection.</summary>
-    [RelayCommand]
-    private async Task BuildProject(ProjectTreeNode? selection)
+    private async Task BuildProjectAsync(ProjectTreeNode? selection, BuildKind kind)
     {
         if (ResolveProject(selection ?? _explorer.SelectedNode) is { } projectPath)
-            await BuildAsync(projectPath);
+            await BuildAsync(projectPath, kind);
     }
 
-    private async Task BuildAsync(string path)
+    private async Task BuildAsync(string path, BuildKind kind = BuildKind.Build)
     {
-        if (IsBusy || !await _saver.SaveAllAsync())   // like other IDEs: save everything before building
+        // Like other IDEs: save everything before building (a clean doesn't read the sources).
+        if (IsBusy || kind != BuildKind.Clean && !await _saver.SaveAllAsync())
             return;
 
         var configuration = Configuration;
-        BeginBuildOutput($"Building {Path.GetFileName(path)} ({configuration})");
+        var (doing, done) = kind switch
+        {
+            BuildKind.Rebuild => ("Rebuilding", "Rebuild"),
+            BuildKind.Clean => ("Cleaning", "Clean"),
+            _ => ("Building", "Build")
+        };
+        BeginBuildOutput($"{doing} {Path.GetFileName(path)} ({configuration})");
         IsBusy = true;
         try
         {
-            var exitCode = await _projectRunner.BuildAsync(path, configuration);
+            var exitCode = await (kind switch
+            {
+                BuildKind.Rebuild => _projectRunner.RebuildAsync(path, configuration),
+                BuildKind.Clean => _projectRunner.CleanAsync(path, configuration),
+                _ => _projectRunner.BuildAsync(path, configuration)
+            });
             AppendBuildOutput(exitCode == 0
-                ? "Build succeeded."
-                : $"Build failed with exit code {exitCode}.");
+                ? $"{done} succeeded."
+                : $"{done} failed with exit code {exitCode}.");
         }
         catch (Exception ex)
         {
-            AppendBuildOutput($"Build failed: {ex}");
+            AppendBuildOutput($"{done} failed: {ex}");
         }
         finally
         {

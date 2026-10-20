@@ -16,6 +16,14 @@ public sealed class DotNetProjectRunner : IDisposable
     public Task<int> BuildAsync(string projectPath, string configuration)
         => ExecuteAsync(projectPath, ["build", projectPath, "--configuration", configuration], isRun: false);
 
+    /// <summary>Rebuild: build everything again, ignoring what's up to date (<c>--no-incremental</c>).</summary>
+    public Task<int> RebuildAsync(string projectPath, string configuration)
+        => ExecuteAsync(projectPath, ["build", projectPath, "--configuration", configuration, "--no-incremental"], isRun: false);
+
+    /// <summary>Clean: delete the build output of this configuration (<c>dotnet clean</c>).</summary>
+    public Task<int> CleanAsync(string projectPath, string configuration)
+        => ExecuteAsync(projectPath, ["clean", projectPath, "--configuration", configuration], isRun: false);
+
     /// <summary>Runs the already built project (<c>--no-build</c>); build it first with the same configuration.</summary>
     public Task<int> RunAsync(string projectPath, string configuration)
         => ExecuteAsync(projectPath, ["run", projectPath, "--configuration", configuration, "--no-build"], isRun: true);

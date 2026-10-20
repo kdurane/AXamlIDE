@@ -176,6 +176,16 @@
                         InputGesture="Ctrl+Shift+B"
                         IsVisible="{Binding CanBuild}" />
                     <MenuItem
+                        Command="{Binding Explorer.Run.RebuildProjectCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Rebuild"
+                        IsVisible="{Binding CanBuild}" />
+                    <MenuItem
+                        Command="{Binding Explorer.Run.CleanProjectCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Clean"
+                        IsVisible="{Binding CanBuild}" />
+                    <MenuItem
                         Command="{Binding Explorer.Run.RunProjectCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Run"
