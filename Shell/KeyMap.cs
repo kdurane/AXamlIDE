@@ -72,6 +72,7 @@ public sealed class KeyMap
 
             // ---- Build and Debug (Visual Studio layout); they act on the startup project
             Bind(Key.B, Ctrl | Shift, run.BuildCommand),
+            Bind(Key.P, Shift | Alt, shell.Publish.PublishCurrentProjectCommand),   // VS has no default key for Publish
             Bind(Key.F5, Ctrl, run.RunProjectCommand),
             Bind(Key.F5, None, run.StartOrContinueDebuggingCommand),
             Bind(Key.F5, Shift, run.StopRunningProjectCommand),

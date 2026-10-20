@@ -13,6 +13,7 @@ using Avalonia.Platform.Storage;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Publishing;
 using AXamlIDE.Services.Workspace;
 using AXamlIDE.ViewModels;
 
@@ -467,5 +468,19 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         var viewModel = new AddNewItemViewModel(folder, workspaceRoot, templateName);
         var added = await new AddNewItemWindow { DataContext = viewModel }.ShowDialog<bool>(Owner);
         return added ? viewModel.Files : null;
+    }
+
+    public async Task<PublishWizardResult?> ShowPublishWizardAsync(string projectPath, string? targetFramework)
+    {
+        var viewModel = new PublishWizardViewModel(projectPath, targetFramework);
+        var finished = await new PublishWizardWindow { DataContext = viewModel }.ShowDialog<bool>(Owner);
+        return finished ? viewModel.Result : null;
+    }
+
+    public async Task<PublishProfile?> EditPublishProfileAsync(string projectPath, PublishProfile profile, IReadOnlyList<string> targetFrameworks)
+    {
+        var viewModel = new PublishSettingsViewModel(projectPath, profile, targetFrameworks);
+        var saved = await new PublishSettingsWindow { DataContext = viewModel }.ShowDialog<bool>(Owner);
+        return saved ? viewModel.Accept() : null;
     }
 }

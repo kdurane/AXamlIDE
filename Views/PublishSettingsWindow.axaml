@@ -1,0 +1,147 @@
+<!--
+Profile settings (DataContext: ViewModels/PublishSettingsViewModel): Visual Studio's "Show all settings" dialog,
+the Profile settings page with its File publish options underneath.
+-->
+<Window
+    Background="{DynamicResource ThemeBackgroundBrush}"
+    CanResize="False"
+    MinWidth="540"
+    SizeToContent="Height"
+    Title="Profile settings"
+    Width="580"
+    WindowStartupLocation="CenterOwner"
+    x:Class="AXamlIDE.Views.PublishSettingsWindow"
+    x:DataType="vm:PublishSettingsViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Window.Styles>
+        <Style Selector="Grid.form > TextBlock">
+            <Setter Property="Margin" Value="0,0,16,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Grid.form > ComboBox, Grid.form > Grid">
+            <Setter Property="Margin" Value="0,4" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+    </Window.Styles>
+
+    <Window.KeyBindings>
+        <KeyBinding Command="{Binding $parent[Window].Close}" Gesture="Escape" />
+    </Window.KeyBindings>
+
+    <StackPanel Margin="16" Spacing="10">
+        <StackPanel Spacing="2">
+            <TextBlock
+                FontSize="17"
+                FontWeight="SemiBold"
+                Text="Profile settings" />
+            <TextBlock Opacity="0.7">
+                <Run Text="{Binding ProfileName, Mode=OneWay}" />
+                <Run Text="·" />
+                <Run Text="{Binding TargetName, Mode=OneWay}" />
+            </TextBlock>
+        </StackPanel>
+
+        <Grid
+            Classes="form"
+            ColumnDefinitions="Auto,*"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+            <TextBlock Text="Configuration" />
+            <ComboBox
+                Grid.Column="1"
+                ItemsSource="{Binding Configurations}"
+                SelectedItem="{Binding Configuration}" />
+
+            <TextBlock
+                Grid.Row="1"
+                IsVisible="{Binding HasTargetFrameworks}"
+                Text="Target framework" />
+            <ComboBox
+                Grid.Column="1"
+                Grid.Row="1"
+                IsVisible="{Binding HasTargetFrameworks}"
+                ItemsSource="{Binding TargetFrameworks}"
+                SelectedItem="{Binding TargetFramework}" />
+
+            <TextBlock Grid.Row="2" Text="Deployment mode" />
+            <ComboBox
+                Grid.Column="1"
+                Grid.Row="2"
+                ItemsSource="{Binding DeploymentModes}"
+                SelectedItem="{Binding DeploymentMode}" />
+
+            <TextBlock Grid.Row="3" Text="Target runtime" />
+            <ComboBox
+                Grid.Column="1"
+                Grid.Row="3"
+                ItemsSource="{Binding Runtimes}"
+                SelectedItem="{Binding Runtime}" />
+
+            <TextBlock Grid.Row="4" Text="Target location" />
+            <Grid
+                ColumnDefinitions="*,Auto"
+                Grid.Column="1"
+                Grid.Row="4">
+                <TextBox Text="{Binding Location}" />
+                <Button
+                    Click="OnBrowseClick"
+                    Content="..."
+                    Grid.Column="1"
+                    Margin="6,0,0,0"
+                    ToolTip.Tip="Browse for the folder" />
+            </Grid>
+        </Grid>
+
+        <!--  VS's File publish options  -->
+        <Expander
+            Header="File publish options"
+            HorizontalAlignment="Stretch"
+            IsExpanded="True">
+            <StackPanel Spacing="4">
+                <CheckBox Content="Delete all existing files prior to publish" IsChecked="{Binding DeleteExistingFiles}" />
+                <CheckBox
+                    Content="Produce single file"
+                    IsChecked="{Binding PublishSingleFile}"
+                    IsEnabled="{Binding IsRuntimeSpecific}"
+                    ToolTip.Tip="Needs a target runtime (not Portable)" />
+                <CheckBox
+                    Content="Enable ReadyToRun compilation"
+                    IsChecked="{Binding PublishReadyToRun}"
+                    IsEnabled="{Binding IsRuntimeSpecific}"
+                    ToolTip.Tip="Needs a target runtime (not Portable)" />
+                <CheckBox
+                    Content="Trim unused code"
+                    IsChecked="{Binding PublishTrimmed}"
+                    IsEnabled="{Binding IsSelfContained}"
+                    ToolTip.Tip="Needs a self-contained deployment" />
+            </StackPanel>
+        </Expander>
+
+        <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+            <TextBlock
+                Foreground="{DynamicResource DiagnosticWarningBrush}"
+                Text="{Binding Error}"
+                TextWrapping="Wrap"
+                VerticalAlignment="Center" />
+            <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Classes="accent"
+                    Click="OnSaveClick"
+                    Content="Save"
+                    IsDefault="True"
+                    IsEnabled="{Binding CanSave}"
+                    MinWidth="80" />
+                <Button
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="80" />
+            </StackPanel>
+        </Grid>
+    </StackPanel>
+</Window>

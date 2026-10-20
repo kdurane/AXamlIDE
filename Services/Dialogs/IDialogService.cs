@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Publishing;
 using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Services.Dialogs;
@@ -40,4 +41,10 @@ public interface IDialogService
     /// (else Class): the files to write (checked: valid name, nothing there yet), or null if cancelled.
     /// </summary>
     Task<IReadOnlyList<NewItemFile>?> AddNewItemAsync(string folder, string? workspaceRoot, string? templateName = null);
+
+    /// <summary>Visual Studio's Publish wizard for a new profile: its target and location, or a file to import; null if cancelled.</summary>
+    Task<PublishWizardResult?> ShowPublishWizardAsync(string projectPath, string? targetFramework);
+
+    /// <summary>Visual Studio's Profile settings ("Show all settings"): the edited profile (not yet saved), or null if cancelled.</summary>
+    Task<PublishProfile?> EditPublishProfileAsync(string projectPath, PublishProfile profile, IReadOnlyList<string> targetFrameworks);
 }

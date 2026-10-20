@@ -50,6 +50,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         RunViewModel run,
         PropertiesViewModel properties,
         NuGetManager nuGet,
+        PublishManager publish,
         VisualizerManager visualizers,
         EditorCommands editorCommands,
         SettingsViewModel settings,
@@ -76,6 +77,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Run = run;
         Properties = properties;
         NuGet = nuGet;
+        Publish = publish;
         Visualizers = visualizers;
 
         _documents.ActiveChanged += _ => UpdateEditorStatus();
@@ -106,6 +108,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public RunViewModel Run { get; }
     public PropertiesViewModel Properties { get; }
     public NuGetManager NuGet { get; }
+    public PublishManager Publish { get; }
 
     /// <summary>Opens debugger visualizer tabs (created with the shell so it listens from the start).</summary>
     public VisualizerManager Visualizers { get; }

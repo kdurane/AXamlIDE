@@ -126,6 +126,8 @@
                         Command="{Binding Run.BuildProjectCommand}"
                         Header="Build _Selected Project"
                         IsEnabled="{Binding Workspace.SelectedNode, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <Separator />
+                    <MenuItem Command="{Binding Publish.PublishCurrentProjectCommand}" Header="_Publish Selected Project..." />
                 </MenuItem>
                 <MenuItem Header="_Debug">
                     <MenuItem

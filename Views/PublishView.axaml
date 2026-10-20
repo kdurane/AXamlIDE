@@ -1,0 +1,203 @@
+<!--
+    A project's Publish page (DataContext: ViewModels/PublishDockable), laid out like Visual Studio 2022's:
+    the profile box with Publish, New profile and More actions; the result line; then the Settings summary with
+    "Show all settings". With no profiles yet, a single "Add a publish profile" button.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.PublishView"
+    x:DataType="vm:PublishDockable"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:models="using:AXamlIDE.Models"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Styles>
+        <Style Selector="Grid.summary > TextBlock">
+            <Setter Property="Margin" Value="0,5" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Grid.summary > TextBlock.name">
+            <Setter Property="Opacity" Value="0.75" />
+            <Setter Property="Margin" Value="0,5,24,5" />
+        </Style>
+        <Style Selector="TextBlock.status.failed">
+            <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer Background="{DynamicResource AppWindowBackgroundBrush}">
+        <StackPanel
+            HorizontalAlignment="Left"
+            Margin="24,16"
+            MaxWidth="900"
+            Spacing="12">
+            <StackPanel Spacing="2">
+                <TextBlock
+                    FontSize="22"
+                    FontWeight="SemiBold"
+                    Text="Publish" />
+                <TextBlock Opacity="0.7" Text="{Binding ProjectName}" />
+            </StackPanel>
+
+            <!--  No profile yet (the wizard opened by itself; this brings it back if it was cancelled).  -->
+            <StackPanel IsVisible="{Binding HasNoProfiles}" Spacing="10">
+                <TextBlock
+                    MaxWidth="560"
+                    HorizontalAlignment="Left"
+                    Text="Publish your app to a folder. A publish profile remembers where it goes and how it's built, and is saved with the project (Properties/PublishProfiles), so Visual Studio and dotnet publish use it too."
+                    TextWrapping="Wrap" />
+                <Button
+                    Classes="accent"
+                    Command="{Binding NewProfileCommand}"
+                    Content="Add a publish profile" />
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding HasProfiles}" Spacing="10">
+                <!--  The profile and what you can do with it  -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ComboBox
+                        AutomationProperties.Name="Publish profile"
+                        IsEnabled="{Binding !IsPublishing}"
+                        ItemsSource="{Binding Profiles}"
+                        MinWidth="240"
+                        SelectedItem="{Binding SelectedProfile}"
+                        VerticalAlignment="Center">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:PublishProfile">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button
+                        Classes="accent"
+                        Command="{Binding PublishCommand}"
+                        Content="Publish"
+                        MinWidth="90"
+                        ToolTip.Tip="Publish with this profile (Shift+Alt+P opens this page)" />
+                    <Button
+                        Command="{Binding NewProfileCommand}"
+                        ToolTip.Tip="Add a publish profile">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <PathIcon
+                                Data="{StaticResource Icon.Plus}"
+                                Height="12"
+                                Width="12" />
+                            <TextBlock Text="New profile" />
+                        </StackPanel>
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="More actions"
+                        Classes="icon"
+                        ToolTip.Tip="More actions"
+                        VerticalAlignment="Center">
+                        <PathIcon Data="{DynamicResource Icon.DotsHorizontal}" />
+                        <Button.Flyout>
+                            <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                <MenuItem Command="{Binding ShowAllSettingsCommand}" Header="Edit..." />
+                                <MenuItem Command="{Binding RenameProfileCommand}" Header="Rename..." />
+                                <MenuItem Command="{Binding DeleteProfileCommand}" Header="Delete" />
+                                <Separator />
+                                <MenuItem Command="{Binding OpenProfileFileCommand}" Header="Open Profile File (.pubxml)" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+
+                <!--  Ready / publishing / the last result  -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ProgressBar
+                        IsIndeterminate="True"
+                        IsVisible="{Binding IsPublishing}"
+                        MinWidth="0"
+                        VerticalAlignment="Center"
+                        Width="120" />
+                    <TextBlock
+                        Classes="status"
+                        Classes.failed="{Binding LastFailed}"
+                        Text="{Binding StatusText}"
+                        VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock
+                    Foreground="{DynamicResource DiagnosticWarningBrush}"
+                    IsVisible="{Binding IsUnsupported}"
+                    MaxWidth="560"
+                    HorizontalAlignment="Left"
+                    Text="{Binding UnsupportedText}"
+                    TextWrapping="Wrap" />
+
+                <!--  Settings summary (VS's card)  -->
+                <Border
+                    BorderBrush="{DynamicResource DockBorderSubtleBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Margin="0,6,0,0"
+                    MinWidth="520"
+                    Padding="16,12">
+                    <Grid
+                        Classes="summary"
+                        ColumnDefinitions="Auto,*"
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock
+                            FontSize="15"
+                            FontWeight="SemiBold"
+                            Margin="0,0,0,6"
+                            Text="Settings" />
+                        <Button
+                            Classes="link"
+                            Command="{Binding ShowAllSettingsCommand}"
+                            Content="Show all settings"
+                            Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center" />
+
+                        <TextBlock Classes="name" Grid.Row="1" Text="Target" />
+                        <TextBlock Grid.Column="1" Grid.Row="1" Text="{Binding TargetName}" />
+
+                        <TextBlock Classes="name" Grid.Row="2" Text="Configuration" />
+                        <TextBlock Grid.Column="1" Grid.Row="2" Text="{Binding Configuration}" />
+
+                        <TextBlock Classes="name" Grid.Row="3" Text="Target framework" />
+                        <TextBlock Grid.Column="1" Grid.Row="3" Text="{Binding TargetFramework}" />
+
+                        <TextBlock Classes="name" Grid.Row="4" Text="Deployment mode" />
+                        <TextBlock Grid.Column="1" Grid.Row="4" Text="{Binding DeploymentMode}" />
+
+                        <TextBlock Classes="name" Grid.Row="5" Text="Target runtime" />
+                        <TextBlock Grid.Column="1" Grid.Row="5" Text="{Binding TargetRuntime}" />
+
+                        <TextBlock Classes="name" Grid.Row="6" Text="Target location" />
+                        <Grid
+                            ColumnDefinitions="*,Auto"
+                            Grid.Column="1"
+                            Grid.Row="6"
+                            Margin="0,5">
+                            <SelectableTextBlock
+                                Text="{Binding TargetLocation}"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Center" />
+                            <Button
+                                Classes="link"
+                                Click="OnOpenFolderClick"
+                                Content="Open folder"
+                                Grid.Column="1"
+                                IsVisible="{Binding TargetLocationExists}"
+                                Margin="12,0,0,0"
+                                VerticalAlignment="Center" />
+                        </Grid>
+
+                        <TextBlock
+                            Classes="name"
+                            Grid.Row="7"
+                            IsVisible="{Binding HasFileOptions}"
+                            Text="File publish options" />
+                        <TextBlock
+                            Grid.Column="1"
+                            Grid.Row="7"
+                            IsVisible="{Binding HasFileOptions}"
+                            Text="{Binding FileOptions}" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

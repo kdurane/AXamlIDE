@@ -1,0 +1,193 @@
+<!--
+Publish wizard (DataContext: ViewModels/PublishWizardViewModel), laid out like Visual Studio's: the steps on the
+left (the current one marked), the step's question on the right, Back / Next / Finish / Cancel along the bottom.
+-->
+<Window
+    Background="{DynamicResource ThemeBackgroundBrush}"
+    Height="460"
+    MinHeight="380"
+    MinWidth="620"
+    Title="Publish"
+    Width="760"
+    WindowStartupLocation="CenterOwner"
+    x:Class="AXamlIDE.Views.PublishWizardWindow"
+    x:DataType="vm:PublishWizardViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:stylefolder="using:AXamlIDE.Styles"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Window.Resources>
+        <stylefolder:IconKeyConverter x:Key="IconConverter" />
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Border.step">
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Padding" Value="10,6" />
+        </Style>
+        <Style Selector="Border.step.current">
+            <Setter Property="BorderBrush" Value="{DynamicResource DockTabActiveIndicatorBrush}" />
+        </Style>
+        <Style Selector="Border.step.current > TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="ListBox.targets ListBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+        </Style>
+    </Window.Styles>
+
+    <Window.KeyBindings>
+        <KeyBinding Command="{Binding $parent[Window].Close}" Gesture="Escape" />
+    </Window.KeyBindings>
+
+    <Grid
+        ColumnDefinitions="150,*"
+        Margin="16"
+        RowDefinitions="Auto,*,Auto">
+        <TextBlock
+            FontSize="20"
+            FontWeight="SemiBold"
+            Grid.ColumnSpan="2"
+            Margin="0,0,0,4"
+            Text="Publish" />
+
+        <!--  The steps  -->
+        <StackPanel
+            Grid.Row="1"
+            Margin="0,12,12,0"
+            Spacing="2">
+            <Border Classes="step" Classes.current="{Binding IsFirstStep}">
+                <TextBlock Text="Target" />
+            </Border>
+            <Border Classes="step" Classes.current="{Binding IsSecondStep}">
+                <TextBlock Text="{Binding SecondStepName}" />
+            </Border>
+        </StackPanel>
+
+        <Grid
+            Grid.Column="1"
+            Grid.Row="1"
+            Margin="8,12,0,0"
+            RowDefinitions="Auto,*">
+            <TextBlock
+                FontSize="15"
+                FontWeight="SemiBold"
+                Margin="0,0,0,10"
+                Text="{Binding Heading}" />
+
+            <!--  Step 1: where to  -->
+            <ListBox
+                Classes="targets"
+                DoubleTapped="OnTargetDoubleTapped"
+                Grid.Row="1"
+                IsVisible="{Binding IsFirstStep}"
+                ItemsSource="{Binding Targets}"
+                Name="TargetList"
+                SelectedItem="{Binding SelectedTarget}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PublishTargetChoice">
+                        <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                            <PathIcon
+                                Data="{Binding Icon, Converter={StaticResource IconConverter}}"
+                                Grid.RowSpan="2"
+                                Height="22"
+                                Margin="0,0,12,0"
+                                VerticalAlignment="Center"
+                                Width="22" />
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Grid.Column="1"
+                                Text="{Binding Name}" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Grid.Row="1"
+                                Opacity="0.75"
+                                Text="{Binding Description}"
+                                TextWrapping="Wrap" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!--  Step 2: the folder  -->
+            <StackPanel
+                Grid.Row="1"
+                IsVisible="{Binding ShowsLocation}"
+                Spacing="6">
+                <TextBlock Text="{Binding LocationPrompt}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Name="LocationBox" Text="{Binding Location}" />
+                    <Button
+                        Click="OnBrowseFolderClick"
+                        Content="Browse..."
+                        Grid.Column="1"
+                        Margin="8,0,0,0" />
+                </Grid>
+                <TextBlock
+                    Opacity="0.7"
+                    Text="A relative path is under the project folder."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!--  Step 2: a profile to import  -->
+            <StackPanel
+                Grid.Row="1"
+                IsVisible="{Binding ShowsImport}"
+                Spacing="6">
+                <TextBlock Text="Publish profile (.pubxml)" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Text="{Binding ImportPath}" />
+                    <Button
+                        Click="OnBrowseProfileClick"
+                        Content="Browse..."
+                        Grid.Column="1"
+                        Margin="8,0,0,0" />
+                </Grid>
+                <TextBlock
+                    Opacity="0.7"
+                    Text="The file is copied into the project's Properties/PublishProfiles folder."
+                    TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+
+        <Grid
+            ColumnDefinitions="*,Auto"
+            Grid.ColumnSpan="2"
+            Grid.Row="2"
+            Margin="0,12,0,0">
+            <TextBlock
+                Foreground="{DynamicResource DiagnosticWarningBrush}"
+                Text="{Binding Error}"
+                TextWrapping="Wrap"
+                VerticalAlignment="Center" />
+            <StackPanel
+                Grid.Column="1"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Command="{Binding BackCommand}"
+                    Content="Back"
+                    MinWidth="80" />
+                <Button
+                    Command="{Binding NextCommand}"
+                    Content="Next"
+                    IsDefault="{Binding IsFirstStep}"
+                    MinWidth="80" />
+                <Button
+                    Classes="accent"
+                    Click="OnFinishClick"
+                    Content="Finish"
+                    IsDefault="{Binding IsSecondStep}"
+                    IsEnabled="{Binding CanFinish}"
+                    MinWidth="80" />
+                <Button
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="80" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

@@ -164,6 +164,12 @@
                         Header="Manage NuGet Packages..."
                         IsVisible="{Binding IsProject}" />
                     <MenuItem
+                        Command="{Binding Explorer.Publish.PublishProjectCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Publish..."
+                        InputGesture="Shift+Alt+P"
+                        IsVisible="{Binding IsProject}" />
+                    <MenuItem
                         Command="{Binding Explorer.Run.BuildProjectCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Build"

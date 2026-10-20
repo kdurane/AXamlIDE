@@ -115,7 +115,7 @@ public sealed class DockViewCache : IControlRecycling
         return view;
     }
 
-    /// <summary>The view of a page tab, made once (DiffView, NuGetView).</summary>
+    /// <summary>The view of a page tab, made once (DiffView, NuGetView, PublishView...).</summary>
     private Control? PageViewFor(PageDockable page)
     {
         if (_pageViews.TryGetValue(page, out var view))
@@ -125,6 +125,7 @@ public sealed class DockViewCache : IControlRecycling
         {
             DiffDockable diff => new DiffView(diff, _editorServices),
             NuGetDockable nuget => new NuGetView { DataContext = nuget },
+            PublishDockable publish => new PublishView { DataContext = publish },
             VisualizerDockable visualizer => new VisualizerView { DataContext = visualizer },
             _ => null
         };
