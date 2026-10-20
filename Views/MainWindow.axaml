@@ -240,8 +240,8 @@
                     ItemsSource="{Binding Run.Configurations}"
                     Margin="0,3"
                     MinHeight="0"
-                    Padding="8,5"
-                    VerticalAlignment="Center"
+                    Padding="8,2"
+                    VerticalAlignment="Stretch"
                     SelectedItem="{Binding Run.Configuration}"
                     ToolTip.Tip="Build configuration"
                     VerticalContentAlignment="Center" />

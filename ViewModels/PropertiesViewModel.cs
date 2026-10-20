@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -18,30 +18,20 @@ namespace AXamlIDE.ViewModels;
 /// One property in the Properties panel: read-only text, a text box, or a drop-down. Editing it applies
 /// the change at once (as Visual Studio does).
 /// </summary>
-public sealed partial class PropertyRow : ObservableObject
+public sealed partial class PropertyRow(string name, string value, string description, IReadOnlyList<string>? choices = null, Func<string, Task>? apply = null) : ObservableObject
 {
-    private readonly Func<string, Task>? _apply;
-    private readonly bool _constructed;   // the first value is what's there already, not a change to apply
+    private readonly Func<string, Task>? _apply = apply;
+    private readonly bool _constructed = true;   // the first value is what's there already, not a change to apply
 
-    public PropertyRow(string name, string value, string description, IReadOnlyList<string>? choices = null, Func<string, Task>? apply = null)
-    {
-        Name = name;
-        Description = description;
-        Choices = choices;
-        _apply = apply;
-        Value = value;
-        _constructed = true;
-    }
-
-    public string Name { get; }
-    public string Description { get; }
-    public IReadOnlyList<string>? Choices { get; }
+    public string Name { get; } = name;
+    public string Description { get; } = description;
+    public IReadOnlyList<string>? Choices { get; } = choices;
 
     public bool IsReadOnly => _apply is null;
     public bool IsChoice => _apply is not null && Choices is not null;
     public bool IsText => _apply is not null && Choices is null;
 
-    [ObservableProperty] public partial string Value { get; set; }
+    [ObservableProperty] public partial string Value { get; set; } = value;
 
     partial void OnValueChanged(string value)
     {

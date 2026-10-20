@@ -140,7 +140,8 @@ public partial class DocumentView : UserControl
         CodeButton.IsChecked = mode == PreviewMode.Code;
         SplitButton.IsChecked = mode == PreviewMode.Split;
         DesignButton.IsChecked = mode == PreviewMode.Design;
-        SplitDirectionButton.Content = stacked ? "⇆" : "⇅";   // ⇆ / ⇅: what the click switches to
+        // SplitDirectionButton.Content = stacked ? "⇆" : "⇅";   // ⇆ / ⇅: what the click switches to
+        SplitDirectionButtonIcon.Data = stacked ? IconResources.Get(this, "Icon.ArrowLeftRight") : IconResources.Get(this, "Icon.ArrowUpDown");
         ToolTip.SetTip(SplitDirectionButton, stacked ? "Show code and preview side by side" : "Show code and preview stacked");
         SwapSidesButton.IsEnabled = mode == PreviewMode.Split;
         ToolTip.SetTip(SwapSidesButton, stacked

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -40,10 +40,8 @@ internal sealed class CodeActionMargin : AbstractMargin
 
     protected override void OnTextViewChanged(TextView? oldTextView, TextView? newTextView)
     {
-        if (oldTextView is not null)
-            oldTextView.VisualLinesChanged -= OnVisualLinesChanged;
-        if (newTextView is not null)
-            newTextView.VisualLinesChanged += OnVisualLinesChanged;
+        oldTextView?.VisualLinesChanged -= OnVisualLinesChanged;
+        newTextView?.VisualLinesChanged += OnVisualLinesChanged;
 
         base.OnTextViewChanged(oldTextView, newTextView);
     }

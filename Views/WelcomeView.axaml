@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="AXamlIDE.Views.WelcomeView"
     x:DataType="vm:WelcomeViewModel"
     xmlns="https://github.com/avaloniaui"
@@ -23,7 +23,6 @@
             CornerRadius="8"
             HorizontalAlignment="Center"
             IsVisible="{Binding !Workspace.IsOpen}"
-            MaxWidth="560"
             Padding="32"
             VerticalAlignment="Center">
             <StackPanel HorizontalAlignment="Center" Spacing="12">

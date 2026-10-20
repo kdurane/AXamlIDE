@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -158,7 +158,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         }
 
         var removed = e.Action == NotifyCollectionChangedAction.Reset
-            ? _tabs.Keys.Where(document => !_documents.Documents.Contains(document)).ToArray()
+            ? [.. _tabs.Keys.Where(document => !_documents.Documents.Contains(document))]
             : e.OldItems?.OfType<OpenDocument>().ToArray() ?? [];
         foreach (var document in removed)
         {

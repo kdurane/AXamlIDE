@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using AXamlIDE.CompletionEngine;
 using AXamlIDE.CompletionEngine.Completion;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Preview;
@@ -26,73 +25,46 @@ public sealed class XamlLanguageService
     private readonly ConcurrentDictionary<string, Lazy<Task<XamlPreviewTarget>>> _previewTargets =
         new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly ConcurrentDictionary<string, Lazy<Task<string>>> _projectAssemblyNames =
+    private readonly ConcurrentDictionary<string, Lazy<Task<ProjectXamlInfo>>> _projects =
         new(StringComparer.OrdinalIgnoreCase);
 
     public XamlLanguageService(WorkspaceModel workspace) => _workspace = workspace;
 
     /// <summary>Call when a folder/solution is opened or closed.</summary>
-    public void ClearPreviewTargets() => _previewTargets.Clear();
+    public void ClearProjectCaches()
+    {
+        _previewTargets.Clear();
+        _projects.Clear();
+    }
 
     public async Task<CompletionSet?> GetCompletionsAsync(string documentPath, string text, int caretOffset)
     {
-        var projectPath = _workspace.FindProjectForDocument(documentPath);
-        if (projectPath is null)
-            throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath);
-        var assetsPath = _workspace.Host.GetProjectAssetsFile(projectPath);
-        var assemblyNameTask = _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => _workspace.Host.GetProjectAssemblyName(path)))).Value;
-        var assemblyName = await assemblyNameTask;
+        var project = await GetProjectAsync(documentPath);
         return await _xamlCompletion.GetCompletionsAsync(
-            projectPath, assemblyName, text, caretOffset, outputPath, assetsPath);
+            project.ProjectPath, project.AssemblyName, text, caretOffset, project.OutputPath, project.AssetsPath);
     }
 
     public async Task<string?> GetHoverAsync(string documentPath, string text, int offset)
     {
-        var projectPath = _workspace.FindProjectForDocument(documentPath)
-            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath);
-        var assetsPath = _workspace.Host.GetProjectAssetsFile(projectPath);
-        var assemblyName = await _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => _workspace.Host.GetProjectAssemblyName(path)))).Value;
+        var project = await GetProjectAsync(documentPath);
         return await _xamlCompletion.GetHoverAsync(
-            projectPath, assemblyName, text, offset, outputPath, assetsPath);
+            project.ProjectPath, project.AssemblyName, text, offset, project.OutputPath, project.AssetsPath);
     }
 
     private async Task<XamlCompletionService.NavigationTarget?> GetNavigationTargetAsync(
         string documentPath, string text, int offset)
     {
-        var projectPath = _workspace.FindProjectForDocument(documentPath)
-            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath);
-        var assetsPath = _workspace.Host.GetProjectAssetsFile(projectPath);
-        var assemblyName = await _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => _workspace.Host.GetProjectAssemblyName(path)))).Value;
+        var project = await GetProjectAsync(documentPath);
         return await _xamlCompletion.GetNavigationTargetAsync(
-            projectPath, assemblyName, text, offset, outputPath, assetsPath);
+            project.ProjectPath, project.AssemblyName, text, offset, project.OutputPath, project.AssetsPath);
     }
 
     /// <summary>The view-model property the binding path at the offset names (hover and F12 in {Binding ...}).</summary>
     public async Task<XamlCompletionService.BindingTarget?> GetBindingTargetAsync(string documentPath, string text, int offset)
     {
-        var projectPath = _workspace.FindProjectForDocument(documentPath)
-            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
-        var projectKey = Path.GetFullPath(projectPath);
-        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath);
-        var assetsPath = _workspace.Host.GetProjectAssetsFile(projectPath);
-        var assemblyName = await _projectAssemblyNames.GetOrAdd(
-            projectKey,
-            path => new Lazy<Task<string>>(() => Task.Run(() => _workspace.Host.GetProjectAssemblyName(path)))).Value;
+        var project = await GetProjectAsync(documentPath);
         return await _xamlCompletion.GetBindingTargetAsync(
-            projectPath, assemblyName, text, offset, outputPath, assetsPath);
+            project.ProjectPath, project.AssemblyName, text, offset, project.OutputPath, project.AssetsPath);
     }
 
     /// <summary>Decompiled source of a compiled type (for a binding whose view model isn't in the workspace).</summary>
@@ -149,6 +121,58 @@ public sealed class XamlLanguageService
         ((ICollection<KeyValuePair<string, Lazy<Task<XamlPreviewTarget>>>>)_previewTargets)
             .Remove(new KeyValuePair<string, Lazy<Task<XamlPreviewTarget>>>(projectPath, entry));
     }
+
+    /// <summary>
+    /// What completion and hover need from the project system: its output path, assets file and assembly name.
+    /// Asked of the MSBuild host once per project, off the UI thread (completion runs on every keystroke, and
+    /// each question is an MSBuild evaluation). Asked again when the .csproj changes, when the project had no
+    /// assets file yet (not restored), and after a failure.
+    /// </summary>
+    private async Task<ProjectXamlInfo> GetProjectAsync(string documentPath)
+    {
+        var projectPath = _workspace.FindProjectForDocument(documentPath)
+            ?? throw new InvalidOperationException("Could not find a .csproj containing this AXAML file.");
+        var key = Path.GetFullPath(projectPath);
+        while (true)
+        {
+            var entry = _projects.GetOrAdd(key, _ => new Lazy<Task<ProjectXamlInfo>>(
+                () => Task.Run(() => QueryProject(projectPath))));
+            ProjectXamlInfo project;
+            try
+            {
+                project = await entry.Value;
+            }
+            catch
+            {
+                RemoveProject(key, entry);
+                throw;
+            }
+
+            if (File.GetLastWriteTimeUtc(project.ProjectPath) != project.ProjectWriteTime)
+            {
+                RemoveProject(key, entry);   // the .csproj changed: ask again now
+                continue;
+            }
+
+            if (project.AssetsPath is null)
+                RemoveProject(key, entry);   // not restored yet: ask again next time
+            return project;
+        }
+    }
+
+    private ProjectXamlInfo QueryProject(string projectPath)
+        => new(projectPath,
+            _workspace.Host.GetProjectOutputPath(projectPath),
+            _workspace.Host.GetProjectAssetsFile(projectPath),
+            _workspace.Host.GetProjectAssemblyName(projectPath),
+            File.GetLastWriteTimeUtc(projectPath));
+
+    private void RemoveProject(string key, Lazy<Task<ProjectXamlInfo>> entry)
+        => ((ICollection<KeyValuePair<string, Lazy<Task<ProjectXamlInfo>>>>)_projects)
+            .Remove(new KeyValuePair<string, Lazy<Task<ProjectXamlInfo>>>(key, entry));
+
+    private sealed record ProjectXamlInfo(
+        string ProjectPath, string? OutputPath, string? AssetsPath, string AssemblyName, DateTime ProjectWriteTime);
 
     private XamlPreviewTarget ResolvePreviewTarget(string xamlProjectPath, string[] solutionProjects, string? workspaceRoot)
         => (_previewTargetResolver ??= new XamlPreviewTargetResolver(_workspace.Host))

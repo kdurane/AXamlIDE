@@ -4,16 +4,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using Avalonia.Remote.Protocol;
 using Avalonia.Remote.Protocol.Designer;
 using Avalonia.Remote.Protocol.Viewport;
 using AXamlIDE.Models;
+using SkiaSharp;
 
 namespace AXamlIDE.Services.Preview;
 
@@ -22,7 +20,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     private Process? _process;
     private IDisposable? _listener;
     private IAvaloniaRemoteTransportConnection? _connection;
-    private WriteableBitmap? _bitmap;
+    private TaskCompletionSource? _connecting;   // StartAsync waiting for the host to connect
     private readonly ConcurrentQueue<string> _processOutput = new();
     private bool _disposed;
     private double _scaling = 1;
@@ -30,7 +28,8 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     public bool IsRunning => _process is { HasExited: false };
     public bool IsReady => IsRunning && _connection is not null;
     public double Scaling => _scaling;
-    public event Action<WriteableBitmap?>? FrameReceived;
+    /// <summary>A new frame (its own pixel array, kept as it is), or null when the host stops.</summary>
+    public event Action<RawImageData?>? FrameReceived;
     /// <summary>The last update's error, or null when it rendered.</summary>
     public event Action<PreviewError?>? ErrorChanged;
 
@@ -58,7 +57,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             var port = ((IPEndPoint)portListener.LocalEndpoint).Port;
             portListener.Stop();
 
-            var connected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var connected = _connecting = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             _listener = new BsonTcpTransport().Listen(IPAddress.Loopback, port, async connection =>
             {
                 try
@@ -146,6 +145,8 @@ public sealed class AvaloniaPreviewProcess : IDisposable
 
     public void Stop()
     {
+        _connecting?.TrySetCanceled();   // a start still waiting gives up now, not after its timeout
+        _connecting = null;
         _listener?.Dispose();
         _listener = null;
 
@@ -182,7 +183,6 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             }
         }
 
-        _bitmap = null;
         FrameReceived?.Invoke(null);
     }
 
@@ -219,8 +219,15 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             switch (message)
             {
                 case FrameMessage frame:
-                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => UpdateBitmap(frame));
-                    await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
+                    try
+                    {
+                        if (ToImage(frame) is { } image)
+                            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => FrameReceived?.Invoke(image));
+                    }
+                    finally
+                    {
+                        await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
+                    }
                     break;
                 case UpdateXamlResultMessage update:
                     ErrorChanged?.Invoke(update.Exception is { } details
@@ -236,36 +243,22 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         }
     }
 
-    private void UpdateBitmap(FrameMessage frame)
+    /// <summary>
+    /// The frame's pixels as they arrived: each message has its own array, so it is used as it is (no copy).
+    /// An empty frame (nothing drawn yet) gives null and the last picture stays.
+    /// </summary>
+    private static RawImageData? ToImage(FrameMessage frame)
     {
-        var pixelFormat = frame.Format switch
+        if (frame is not { Width: > 0, Height: > 0 })
+            return null;
+
+        var colorType = frame.Format switch
         {
-            Avalonia.Remote.Protocol.Viewport.PixelFormat.Bgra8888 => PixelFormats.Bgra8888,
-            Avalonia.Remote.Protocol.Viewport.PixelFormat.Rgba8888 => PixelFormats.Rgba8888,
+            Avalonia.Remote.Protocol.Viewport.PixelFormat.Bgra8888 => SKColorType.Bgra8888,
+            Avalonia.Remote.Protocol.Viewport.PixelFormat.Rgba8888 => SKColorType.Rgba8888,
             _ => throw new NotSupportedException($"Unsupported preview pixel format '{frame.Format}'.")
         };
-
-        if (_bitmap is null
-            || _bitmap.PixelSize.Width != frame.Width
-            || _bitmap.PixelSize.Height != frame.Height)
-        {
-            _bitmap = new WriteableBitmap(
-                new PixelSize(Math.Max(frame.Width, 1), Math.Max(frame.Height, 1)),
-                new Vector(96, 96),
-                pixelFormat,
-                AlphaFormat.Unpremul);
-        }
-
-        if (frame is { Width: > 0, Height: > 0 })
-        {
-            using var framebuffer = _bitmap.Lock();
-            var copyBytes = Math.Min(frame.Stride, framebuffer.RowBytes);
-            for (var row = 0; row < frame.Height; row++)
-                Marshal.Copy(frame.Data, row * frame.Stride,
-                    IntPtr.Add(framebuffer.Address, row * framebuffer.RowBytes), copyBytes);
-        }
-
-        FrameReceived?.Invoke(_bitmap);
+        return new RawImageData(frame.Data, frame.Width, frame.Height, colorType, SKAlphaType.Unpremul, frame.Stride);
     }
 
     private void OnConnectionException(IAvaloniaRemoteTransportConnection connection, Exception exception)
@@ -287,6 +280,7 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     {
         if (_process is not { } process) return;
         process.WaitForExit();
+        _connecting?.TrySetException(new InvalidOperationException($"The preview host exited with code {process.ExitCode} before connecting."));
         var output = string.Join(Environment.NewLine, _processOutput);
         var details = string.IsNullOrWhiteSpace(output)
             ? string.Empty

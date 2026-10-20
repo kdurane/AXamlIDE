@@ -7,7 +7,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Threading;
 using AvaloniaEdit;
 using AvaloniaEdit.Rendering;
@@ -119,7 +118,16 @@ public sealed class HoverController
     // another window, or the overlay layer); KeepsCardOpen sorts those out by where the pointer actually is.
     private void OnPointerExited(object? sender, PointerEventArgs e)
     {
+        if (TopLevel.GetTopLevel(_ctx.Editor) is null)
+        {
+            _showTimer.Stop();
+            _hoverOffset = null;
+            if (_popup.IsOpen)
+                Hide(resetOffset: true);
+            return;
+        }
         var point = ScreenPoint(e, _ctx.Editor);
+
         if (!new Rect(_ctx.Editor.Bounds.Size).Contains(e.GetPosition(_ctx.Editor)))
         {
             _showTimer.Stop();   // really left: don't pop up a card for where it was
@@ -316,6 +324,7 @@ public sealed class HoverController
         _popup.PlacementRect = new Rect(position.X, position.Y - 1, 1, 1);
         _popup.IsOpen = true;
         _tipRange = range;
+        Dispatcher.UIThread.Post(Refit, DispatcherPriority.Background);
     }
 
     /// <summary>

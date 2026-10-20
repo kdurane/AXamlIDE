@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Avalonia.Data.Converters;
@@ -9,7 +9,7 @@ namespace AXamlIDE.Views;
 public static class NuGetConverters
 {
     // One bitmap per icon (the service hands out the same byte array for the same icon).
-    private static readonly ConditionalWeakTable<byte[], Bitmap?> Bitmaps = new();
+    private static readonly ConditionalWeakTable<byte[], Bitmap?> Bitmaps = [];
 
     /// <summary>A package icon's bytes as an image; null for none, or for a format that can't be shown (SVG).</summary>
     public static readonly IValueConverter Icon = new FuncValueConverter<byte[]?, Bitmap?>(bytes =>

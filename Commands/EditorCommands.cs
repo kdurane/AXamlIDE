@@ -1,4 +1,4 @@
-using AXamlIDE.Messages;
+﻿using AXamlIDE.Messages;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -32,6 +32,6 @@ public sealed class EditorCommands(IMessenger messenger)
     public IRelayCommand AddWatch { get; } = Make(messenger, EditorAction.AddWatch);
     public IRelayCommand InsertSnippet { get; } = Make(messenger, EditorAction.InsertSnippet);
 
-    private static IRelayCommand Make(IMessenger messenger, EditorAction action)
-        => new RelayCommand(() => messenger.Send(new EditorActionMessage(action)));
+    private static RelayCommand Make(IMessenger messenger, EditorAction action)
+        => new(() => messenger.Send(new EditorActionMessage(action)));
 }

@@ -161,6 +161,9 @@
 
     <!--  https://pictogrammers.com/library/mdi/icon/swap-horizontal/  -->
     <StreamGeometry x:Key="Icon.ArrowLeftRight">m21 9-4-4v3h-7v2h7v3M7 11l-4 4 4 4v-3h7v-2H7z</StreamGeometry>
+    
+    <!--  https://pictogrammers.com/library/mdi/icon/swap-vertical/ -->
+    <StreamGeometry x:Key="Icon.ArrowUpDown">M9 3 5 7h3v7h2V7h3m3 10v-7h-2v7h-3l4 4 4-4z</StreamGeometry>
 
     <!--  https://pictogrammers.com/library/mdi/icon/open-in-app/  -->
     <StreamGeometry x:Key="Icon.OpenInApp">m12 10-4 4h3v6h2v-6h3m3-10H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4v-2H5V8h14v10h-4v2h4a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2</StreamGeometry>

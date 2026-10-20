@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -140,12 +140,12 @@ public sealed partial class GitViewModel : ObservableObject
     [RelayCommand]
     private Task StageAll()
         => Changes.Count == 0 ? Task.CompletedTask
-            : RunAsync(root => _git.StageAsync(root, Changes.Select(item => item.Change.FullPath).ToList()));
+            : RunAsync(root => _git.StageAsync(root, [.. Changes.Select(item => item.Change.FullPath)]));
 
     [RelayCommand]
     private Task UnstageAll()
         => Staged.Count == 0 ? Task.CompletedTask
-            : RunAsync(root => _git.UnstageAsync(root, Staged.Select(item => item.Change.FullPath).ToList()));
+            : RunAsync(root => _git.UnstageAsync(root, [.. Staged.Select(item => item.Change.FullPath)]));
 
     /// <summary>The commit button and Ctrl+Enter: commit the staged changes, or everything when nothing is staged.</summary>
     [RelayCommand(CanExecute = nameof(CanCommit))]

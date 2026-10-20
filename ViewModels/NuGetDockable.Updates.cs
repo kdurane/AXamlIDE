@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -68,13 +68,13 @@ public sealed partial class NuGetDockable
 
     /// <summary>"Update All": every package with a newer version.</summary>
     [RelayCommand(CanExecute = nameof(CanUpdateAll))]
-    private Task UpdateAllAsync() => UpdateAsync(_installed.Keys.Where(HasUpdate).ToList());
+    private Task UpdateAllAsync() => UpdateAsync([.. _installed.Keys.Where(HasUpdate)]);
 
     private bool CanUpdateAll() => !IsBusy && UpdatesCount > 0;
 
     /// <summary>"Update Selected": the ticked packages.</summary>
     [RelayCommand(CanExecute = nameof(CanUpdateChecked))]
-    private Task UpdateCheckedAsync() => UpdateAsync(CheckableRows.Where(row => row.IsChecked && HasUpdate(row.Id)).Select(row => row.Id).ToList());
+    private Task UpdateCheckedAsync() => UpdateAsync([.. CheckableRows.Where(row => row.IsChecked && HasUpdate(row.Id)).Select(row => row.Id)]);
 
     private bool CanUpdateChecked() => !IsBusy && CheckedCount > 0;
 

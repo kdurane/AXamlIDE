@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="AXamlIDE.Views.DocumentView"
     x:DataType="vm:DocumentDockable"
     xmlns="https://github.com/avaloniaui"
@@ -53,11 +53,14 @@
                     <Button
                         Command="{Binding TogglePreviewSplitCommand}"
                         Margin="6,0,0,0"
-                        Name="SplitDirectionButton" />
+                        Name="SplitDirectionButton">                        
+                        </Button>
+                        <PathIcon Data="{StaticResource Icon.ArrowUpDown}" Name="SplitDirectionButtonIcon"/>
                     <Button
                         Command="{Binding SwapPreviewSideCommand}"
-                        Content="&#x21C4;"
-                        Name="SwapSidesButton" />
+                        Name="SwapSidesButton">
+                        <PathIcon  Data="{StaticResource Icon.ArrowLeftRight}"/>
+                        </Button>
                 </StackPanel>
                 <ContentControl HorizontalAlignment="Left" Name="OutlineHost" />
             </DockPanel>

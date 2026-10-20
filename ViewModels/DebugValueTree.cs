@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -17,20 +17,14 @@ namespace AXamlIDE.ViewModels;
 /// beneath it, indented. Expansion is remembered by path across steps, and values that changed since the last stop
 /// are marked (red in the view).
 /// </summary>
-public sealed partial class DebugValueTree : ObservableObject
+public sealed partial class DebugValueTree(IMessenger messenger, IClipboardService? clipboard = null) : ObservableObject
 {
-    private readonly IClipboardService? _clipboard;
+    private readonly IClipboardService? _clipboard = clipboard;
     private readonly HashSet<string> _expandedPaths = new(StringComparer.Ordinal);
     private Dictionary<string, string> _previousDisplays = new(StringComparer.Ordinal);
     private int _generation;
 
-    public DebugValueTree(IMessenger messenger, IClipboardService? clipboard = null)
-    {
-        Messenger = messenger;
-        _clipboard = clipboard;
-    }
-
-    public IMessenger Messenger { get; }
+    public IMessenger Messenger { get; } = messenger;
 
     public ObservableCollection<DebugValueNode> Rows { get; } = [];
 

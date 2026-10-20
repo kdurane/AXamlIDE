@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -235,7 +235,7 @@ public sealed partial class ExplorerViewModel
     };
 
     private List<OpenDocument> DocumentsUnder(string path)
-        => openDocuments.Documents.Where(document => FileOperations.IsSameOrInside(document.Path, path)).ToList();
+        => [.. openDocuments.Documents.Where(document => FileOperations.IsSameOrInside(document.Path, path))];
 
     /// <summary>
     /// Close the open documents at or under <paramref name="path"/> before it moves; false (and a message) when one

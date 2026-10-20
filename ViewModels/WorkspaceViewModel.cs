@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -22,27 +22,18 @@ namespace AXamlIDE.ViewModels;
 /// The solution explorer: open a folder or a solution, refresh it, close it, and which node
 /// is selected. Opening points the language servers at the new root.
 /// </summary>
-public sealed partial class WorkspaceViewModel : ObservableObject
+public sealed partial class WorkspaceViewModel(
+    WorkspaceModel workspace,
+    XamlLanguageService xaml,
+    LanguageSessionService languages,
+    IDialogService dialogs,
+    IMessenger messenger) : ObservableObject
 {
-    private readonly WorkspaceModel _workspace;
-    private readonly XamlLanguageService _xaml;
-    private readonly LanguageSessionService _languages;
-    private readonly IDialogService _dialogs;
-    private readonly IMessenger _messenger;
-
-    public WorkspaceViewModel(
-        WorkspaceModel workspace,
-        XamlLanguageService xaml,
-        LanguageSessionService languages,
-        IDialogService dialogs,
-        IMessenger messenger)
-    {
-        _workspace = workspace;
-        _xaml = xaml;
-        _languages = languages;
-        _dialogs = dialogs;
-        _messenger = messenger;
-    }
+    private readonly WorkspaceModel _workspace = workspace;
+    private readonly XamlLanguageService _xaml = xaml;
+    private readonly LanguageSessionService _languages = languages;
+    private readonly IDialogService _dialogs = dialogs;
+    private readonly IMessenger _messenger = messenger;
 
     /// <summary>The tree roots (one: the folder or the solution).</summary>
     public ObservableCollection<ProjectTreeNode> Roots => _workspace.WorkspaceRoots;
@@ -88,7 +79,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     private void OpenFolder(string path)
     {
         _workspace.SolutionProjects = [];
-        _xaml.ClearPreviewTargets();
+        _xaml.ClearProjectCaches();
         SelectedNode = null;
         var root = ProjectTreeNode.CreateDirectory(path);
         root.Populate();
@@ -102,7 +93,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     private void OpenSolution(string path)
     {
         var root = SolutionLoader.LoadSolution(path, _workspace.Host);
-        _xaml.ClearPreviewTargets();
+        _xaml.ClearProjectCaches();
         SelectedNode = null;
         root.Populate();
         _workspace.SolutionProjects =
@@ -223,7 +214,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         Roots.Clear();
         SelectedNode = null;
         _workspace.SolutionProjects = [];
-        _xaml.ClearPreviewTargets();
+        _xaml.ClearProjectCaches();
         _languages.ClearWorkspace();
         OnPropertyChanged(nameof(IsOpen));
         Closed?.Invoke();

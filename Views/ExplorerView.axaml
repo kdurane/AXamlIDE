@@ -83,7 +83,7 @@
             Its DataContext is an ExplorerNodeMenu for the clicked node, set when it opens (ExplorerView.axaml.cs).
             -->
             <TreeView.ContextMenu>
-                <ContextMenu Opening="OnMenuOpening" x:DataType="vm:ExplorerNodeMenu">
+                <ContextMenu Opening="OnMenuOpening" x:DataType="vm:ExplorerNodeMenu" MinWidth="260">
                     <!--  Visual Studio's Add submenu.  -->
                     <MenuItem Header="Add" IsVisible="{Binding CanAdd}">
                         <MenuItem

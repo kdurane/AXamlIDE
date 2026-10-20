@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -20,7 +20,7 @@ public sealed partial class GitViewModel
     // ------------------------------------------------------------- the "..." menu
 
     [RelayCommand]
-    private Task Pull() => RunRemoteAsync(root => _git.PullAsync(root), "Pulling...", "Pulled.");
+    private Task Pull() => RunRemoteAsync(_git.PullAsync, "Pulling...", "Pulled.");
 
     /// <summary>Push; a new branch is published (to the only remote, or one the user picks).</summary>
     [RelayCommand]
@@ -39,7 +39,7 @@ public sealed partial class GitViewModel
     }
 
     [RelayCommand]
-    private Task Fetch() => RunRemoteAsync(root => _git.FetchAsync(root), "Fetching...", "Fetched.");
+    private Task Fetch() => RunRemoteAsync(_git.FetchAsync, "Fetching...", "Fetched.");
 
     /// <summary>Pull, then push (VS Code's Sync).</summary>
     [RelayCommand]
@@ -113,10 +113,10 @@ public sealed partial class GitViewModel
     }
 
     [RelayCommand]
-    private Task Stash() => RunAsync(root => _git.StashAsync(root), null, "Stashed the changes.");
+    private Task Stash() => RunAsync(_git.StashAsync, null, "Stashed the changes.");
 
     [RelayCommand]
-    private Task PopStash() => RunAsync(root => _git.PopStashAsync(root), null, "Restored the latest stash.");
+    private Task PopStash() => RunAsync(_git.PopStashAsync, null, "Restored the latest stash.");
 
     /// <summary>Link the repository to a remote (e.g. a new GitHub repository's URL).</summary>
     [RelayCommand]

@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using AXamlIDE.Models;
 using AXamlIDE.ViewModels;
 
 namespace AXamlIDE.Views;
@@ -84,12 +84,12 @@ public partial class PreviewPaneView : UserControl
     }
 
     // A new frame from the designer host, or null to clear. Already on the UI thread.
-    private void OnFrameChanged(WriteableBitmap? bitmap)
+    // Sized in device pixels / render scaling, so one frame pixel is one screen pixel (Stretch="Fill").
+    private void OnFrameChanged(RawImageData? frame)
     {
-        PreviewImage.Source = bitmap;
-        PreviewImage.InvalidateVisual();   // the host reuses one bitmap, so a new frame is often the same object
+        PreviewImage.Source = frame;
 
-        if (bitmap is null)
+        if (frame is null)
         {
             _previewFitTimer.Stop();
             PreviewImage.Width = double.NaN;
@@ -98,8 +98,8 @@ public partial class PreviewPaneView : UserControl
         }
 
         var renderScaling = GetPreviewRenderScaling();
-        PreviewImage.Width = bitmap.Size.Width / renderScaling;
-        PreviewImage.Height = bitmap.Size.Height / renderScaling;
+        PreviewImage.Width = frame.Width / renderScaling;
+        PreviewImage.Height = frame.Height / renderScaling;
 
         if (IsFitZoom(_zoom))
             QueuePreviewFit();
@@ -201,15 +201,13 @@ public partial class PreviewPaneView : UserControl
         double zoom;
         if (IsFitZoom(_zoom))
         {
-            if (PreviewImage.Source is not WriteableBitmap bitmap
-                || bitmap.Size.Width <= 0
-                || bitmap.Size.Height <= 0
+            if (PreviewImage.Source is not RawImageData frame
                 || PreviewViewport.Bounds.Width <= 0
                 || PreviewViewport.Bounds.Height <= 0)
                 return;
 
-            var baseWidth = bitmap.Size.Width / _viewModel.Scaling;
-            var baseHeight = bitmap.Size.Height / _viewModel.Scaling;
+            var baseWidth = frame.Width / _viewModel.Scaling;
+            var baseHeight = frame.Height / _viewModel.Scaling;
             var widthScale = PreviewViewport.Bounds.Width / baseWidth;
             zoom = _zoom == "Fit to Width"
                 ? widthScale

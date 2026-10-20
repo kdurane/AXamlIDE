@@ -170,6 +170,7 @@ public partial class EditorPaneView : UserControl,
         _breakpointMargin?.SetDocument(null);
         _folding.Dispose();
         _textMate.Dispose();
+        _codeLens.Dispose();
     }
 
     // ------------------------------------------------------------ the one direct input

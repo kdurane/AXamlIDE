@@ -1,5 +1,6 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using AXamlIDE.Models;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Mvvm.Controls;
 
@@ -10,7 +11,7 @@ namespace AXamlIDE.ViewModels;
 /// the editor, and the preview for AXAML) is made by Views/DockViewCache and moves with the tab between
 /// tab strips and windows. Each AXAML tab has its own preview mode and split.
 /// </summary>
-public sealed class DocumentDockable : Document
+public sealed partial class DocumentDockable : Document
 {
     public DocumentDockable(OpenDocument document, PreviewMode mode, PreviewSplit split, bool previewFirst)
     {
@@ -35,24 +36,15 @@ public sealed class DocumentDockable : Document
     public bool IsPreviewable => PreviewPaneViewModel.IsPreviewable(Document);
 
     /// <summary>Code only, split, or design only. Ignored (always code) when the file isn't previewable.</summary>
-    public PreviewMode PreviewMode
-    {
-        get;
-        set => SetProperty(ref field, value);
-    }
+    [ObservableProperty]
+    public partial PreviewMode PreviewMode { get; set; }
 
-    public PreviewSplit PreviewSplit
-    {
-        get;
-        set => SetProperty(ref field, value);
-    }
+    [ObservableProperty]
+    public partial PreviewSplit PreviewSplit { get; set; }
 
     /// <summary>Preview before the code: on the left (side by side) or on top (stacked).</summary>
-    public bool PreviewFirst
-    {
-        get;
-        set => SetProperty(ref field, value);
-    }
+    [ObservableProperty]
+    public partial bool PreviewFirst { get; set; }
 
     public RelayCommand<PreviewMode> SetPreviewModeCommand { get; }
     public RelayCommand SwapPreviewSideCommand { get; }

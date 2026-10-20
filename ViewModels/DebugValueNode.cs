@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using AXamlIDE.Messages;
 using AXamlIDE.Services.Debugging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,29 +11,21 @@ namespace AXamlIDE.ViewModels;
 /// One row of a debugger value view (DataTip, Locals, Watch): a <see cref="DebugValue"/> at a depth in the tree.
 /// Expanding and editing go through its <see cref="DebugValueTree"/>, which owns the rows.
 /// </summary>
-public sealed partial class DebugValueNode : ObservableObject
+public sealed partial class DebugValueNode(DebugValueTree owner, DebugValue value, int level, string path) : ObservableObject
 {
-    public DebugValueNode(DebugValueTree owner, DebugValue value, int level, string path)
-    {
-        Owner = owner;
-        Value = value;
-        Level = level;
-        Path = path;
-    }
-
-    public DebugValueTree Owner { get; }
+    public DebugValueTree Owner { get; } = owner;
 
     /// <summary>Depth in the tree (0 = a root), for the indentation.</summary>
-    public int Level { get; }
+    public int Level { get; } = level;
 
     /// <summary>"person/Home/City": remembers expansion and spots changed values across steps.</summary>
-    public string Path { get; }
+    public string Path { get; } = path;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Name), nameof(Display), nameof(Type), nameof(HasChildren), nameof(CanVisualize),
         nameof(CanEdit), nameof(IsError), nameof(IsGroup), nameof(IsMore), nameof(Expression), nameof(IsString), nameof(IsNumber),
         nameof(IsBoolean))]
-    public partial DebugValue Value { get; set; }
+    public partial DebugValue Value { get; set; } = value;
 
     public string Name => Value.Name;
     public string Display => Value.Display;

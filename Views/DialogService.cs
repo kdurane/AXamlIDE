@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -161,7 +161,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         IReadOnlyList<LspLocation> locations,
         Func<LspLocation, string> display)
     {
-        var index = await PickIndexAsync(title, "Select a result to navigate.", locations.Select(display).ToArray());
+        var index = await PickIndexAsync(title, "Select a result to navigate.", [.. locations.Select(display)]);
         return index is { } i ? locations[i] : null;
     }
 

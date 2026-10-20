@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using AXamlIDE.Services.NuGet;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,11 +9,9 @@ namespace AXamlIDE.ViewModels;
 /// One line of the NuGet manager's list: a search result (Browse) or an installed package (Installed / Updates).
 /// Installed and latest versions are filled in as they're known; the icon loads in the background.
 /// </summary>
-public sealed partial class NuGetPackageRow : ObservableObject
+public sealed partial class NuGetPackageRow(string id) : ObservableObject
 {
-    public NuGetPackageRow(string id) => Id = id;
-
-    public string Id { get; }
+    public string Id { get; } = id;
 
     [ObservableProperty] public partial string? Authors { get; set; }
     [ObservableProperty] public partial string? Description { get; set; }

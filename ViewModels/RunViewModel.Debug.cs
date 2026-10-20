@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -315,7 +315,7 @@ public partial class RunViewModel
     // Subscribed to DocumentManager.Opened / Closing in the constructor.
     private void TrackDocument(OpenDocument document)
     {
-        Action handler = () => OnDocumentBreakpointsChanged(document);
+        void handler() => OnDocumentBreakpointsChanged(document);
         _breakpointHandlers[document] = handler;
         document.BreakpointsChanged += handler;
     }

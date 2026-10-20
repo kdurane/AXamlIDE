@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using AXamlIDE.Messages;
 using Dock.Model.Controls;
@@ -20,12 +20,10 @@ namespace AXamlIDE.ViewModels;
 /// To add a tool panel: add a <see cref="ToolTab"/> id, add it to a dock here, and give it a view
 /// in Shell/ToolPanels.cs.
 /// </summary>
-public sealed class DockFactory : Factory
+public sealed class DockFactory(WelcomeViewModel welcome) : Factory
 {
-    private readonly WelcomeViewModel _welcome;
+    private readonly WelcomeViewModel _welcome = welcome;
     private readonly Dictionary<string, ToolHome> _homes = [];
-
-    public DockFactory(WelcomeViewModel welcome) => _welcome = welcome;
 
     /// <summary>Where a tool goes back to: its dock, and where that dock sits if it has to be re-created.</summary>
     private sealed record ToolHome(IToolDock Dock, IDock Container, bool AtStart);

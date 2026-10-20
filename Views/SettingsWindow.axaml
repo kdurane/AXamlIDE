@@ -1,5 +1,6 @@
-<Window
-    Background="{DynamicResource ThemeBorderHighBrush}"
+﻿<Window
+    Background="{DynamicResource AppWindowBackgroundBrush}"
+    Foreground="{DynamicResource AppForegroundBrush}"
     Height="440"
     MinHeight="380"
     MinWidth="500"

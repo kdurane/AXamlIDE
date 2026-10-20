@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Avalonia.Media;
@@ -18,7 +18,7 @@ public sealed partial class DebugInlineValueGenerator : VisualLineElementGenerat
 {
     private static readonly Regex Identifier = IdentifierRegex();
 
-    private readonly Dictionary<int, string?> _cache = new();
+    private readonly Dictionary<int, string?> _cache = [];
     private IReadOnlyDictionary<string, string>? _values;
     private int _currentLine;
 

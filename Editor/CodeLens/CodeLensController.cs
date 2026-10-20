@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,7 +24,7 @@ public sealed record ReferenceRow(string Place, string Preview, LspLocation Loca
 /// changed (workspace/codeLens/refresh). Clicking one lists the references (EditorPaneView.axaml's
 /// ReferencesPopup); clicking a reference, or Enter, goes there.
 /// </summary>
-public sealed class CodeLensController
+public sealed class CodeLensController : IDisposable
 {
     private static readonly TimeSpan FetchDelay = TimeSpan.FromMilliseconds(800);
     private const int MaxRetries = 5;
@@ -62,15 +62,17 @@ public sealed class CodeLensController
 
         ctx.Attached += _ => OnDocumentShown();
         ctx.TextChanged += _ => ScheduleFetch();
-        ctx.Languages.ClientAttached += document =>
-        {
-            if (ReferenceEquals(document, _ctx.Active))
-                _ = FetchAsync();
-        };
+        ctx.Languages.ClientAttached += OnClientAttached;
 
         popup.PlacementTarget = textView;
         list.AddHandler(InputElement.TappedEvent, (_, _) => GoToSelected());
         list.KeyDown += OnListKeyDown;
+    }
+
+    private void OnClientAttached(OpenDocument document)
+    {
+        if (ReferenceEquals(document, _ctx.Active))
+            _ = FetchAsync();
     }
 
     private void OnDocumentShown()
@@ -137,8 +139,7 @@ public sealed class CodeLensController
     {
         if (ReferenceEquals(_refreshSource, client))
             return;
-        if (_refreshSource is not null)
-            _refreshSource.CodeLensRefreshRequested -= OnRefreshRequested;
+        _refreshSource?.CodeLensRefreshRequested -= OnRefreshRequested;
         _refreshSource = client;
         client.CodeLensRefreshRequested += OnRefreshRequested;
     }
@@ -243,4 +244,12 @@ public sealed class CodeLensController
 
     private static string LocalPath(LspLocation location)
         => Uri.TryCreate(location.Uri, UriKind.Absolute, out var uri) && uri.IsFile ? uri.LocalPath : location.Uri;
+
+    public void Dispose()
+    {
+        _ctx.Languages.ClientAttached -= OnClientAttached;
+        _refreshSource?.CodeLensRefreshRequested -= OnRefreshRequested;
+        _refreshSource = null;
+        _fetchTimer.Stop();
+    }
 }

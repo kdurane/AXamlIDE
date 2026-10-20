@@ -197,7 +197,6 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
         _requestCts?.Cancel();
         _requestCts?.Dispose();
         _requestCts = null;
-        if (_document is not null)
-            _document.Document.Changed -= OnTextChanged;
+        _document?.Document.Changed -= OnTextChanged;
     }
 }

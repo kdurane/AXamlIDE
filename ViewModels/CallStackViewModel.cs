@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,21 +14,14 @@ using CommunityToolkit.Mvvm.Messaging;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>One row of the Call Stack: a frame, or "[External Code]" for a run of frames without source.</summary>
-public sealed partial class CallStackRow : ObservableObject
+public sealed partial class CallStackRow(DebugFrame? frame, string name, string location, bool isTop) : ObservableObject
 {
-    public CallStackRow(DebugFrame? frame, string name, string location, bool isTop)
-    {
-        Frame = frame;
-        Name = name;
-        Location = location;
-        IsTop = isTop;
-    }
 
     /// <summary>Null for [External Code].</summary>
-    public DebugFrame? Frame { get; }
-    public string Name { get; }
-    public string Location { get; }
-    public bool IsTop { get; }
+    public DebugFrame? Frame { get; } = frame;
+    public string Name { get; } = name;
+    public string Location { get; } = location;
+    public bool IsTop { get; } = isTop;
     public bool IsExternal => Frame?.Path is null;
 
     /// <summary>The frame Locals / Watch / DataTips are looking at (VS's arrow).</summary>

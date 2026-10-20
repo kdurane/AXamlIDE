@@ -1,9 +1,10 @@
-<UserControl
+﻿<UserControl
     x:Class="AXamlIDE.Views.PreviewPaneView"
     x:DataType="vm:PreviewPaneViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:stylefolder="using:AXamlIDE.Styles"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  Toolbar (zoom, theme) over the frame from the designer host; a message box while there is no frame.  -->
@@ -65,10 +66,10 @@
                 Name="PreviewScrollViewer"
                 VerticalContentAlignment="Center"
                 VerticalScrollBarVisibility="Auto">
-                <Image
+                <views:SkImageControl
                     HorizontalAlignment="Center"
                     Name="PreviewImage"
-                    Stretch="None"
+                    Stretch="Fill"
                     VerticalAlignment="Center" />
             </ScrollViewer>
             <Border
