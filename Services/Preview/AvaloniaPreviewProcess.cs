@@ -17,27 +17,8 @@ using AXamlIDE.Models;
 
 namespace AXamlIDE.Services.Preview;
 
-/// <summary>
-/// The Avalonia designer host for one project: starts it, sends it XAML and zoom, and receives its frames over
-/// Avalonia's BSON transport.
-///
-/// The host draws its next frame as soon as the last one is acknowledged (FrameReceivedMessage): about 50 a second,
-/// changed or not. So the acknowledgement is the throttle: while <see cref="IsPaused"/> (no preview on screen) it's
-/// held and the host stops drawing; a frame identical to the last one is acknowledged after a delay that grows
-/// to <see cref="MaxStaticAckDelay"/>; a changed frame, new XAML or a new zoom are acknowledged at once.
-/// </summary>
 public sealed class AvaloniaPreviewProcess : IDisposable
 {
-    private static readonly TimeSpan MinStaticAckDelay = TimeSpan.FromMilliseconds(50);
-    private static readonly TimeSpan MaxStaticAckDelay = TimeSpan.FromSeconds(1);
-
-    private readonly Lock _frameLock = new();
-    private readonly Timer _ackTimer;
-    private long? _heldFrame;           // received but not yet acknowledged: the host waits for it
-    private byte[]? _lastFrameData;     // the last frame's pixels, to spot an unchanged one
-    private TimeSpan _staticAckDelay = MinStaticAckDelay;
-    private bool _paused;
-
     private Process? _process;
     private IDisposable? _listener;
     private IAvaloniaRemoteTransportConnection? _connection;
@@ -45,24 +26,6 @@ public sealed class AvaloniaPreviewProcess : IDisposable
     private readonly ConcurrentQueue<string> _processOutput = new();
     private bool _disposed;
     private double _scaling = 1;
-
-    public AvaloniaPreviewProcess() => _ackTimer = new Timer(_ => ReleaseHeldFrame(resetDelay: false));
-
-    /// <summary>
-    /// True while no preview is on screen: frames aren't acknowledged, so the host stops drawing until it's
-    /// false again (it then draws a fresh frame).
-    /// </summary>
-    public bool IsPaused
-    {
-        get => _paused;
-        set
-        {
-            lock (_frameLock)
-                _paused = value;
-            if (!value)
-                ReleaseHeldFrame(resetDelay: true);
-        }
-    }
 
     public bool IsRunning => _process is { HasExited: false };
     public bool IsReady => IsRunning && _connection is not null;
@@ -160,7 +123,6 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             XamlFileProjectPath = xamlPath,
             Xaml = xaml
         });
-        ReleaseHeldFrame(resetDelay: true);   // draw the new XAML now, not after a static frame's delay
     }
 
     public async Task SetScalingAsync(double scaling)
@@ -180,7 +142,6 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         }
 
         _scaling = scaling;
-        ReleaseHeldFrame(resetDelay: true);
     }
 
     public void Stop()
@@ -221,14 +182,6 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             }
         }
 
-        _ackTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        lock (_frameLock)
-        {
-            _heldFrame = null;
-            _lastFrameData = null;
-            _staticAckDelay = MinStaticAckDelay;
-        }
-
         _bitmap = null;
         FrameReceived?.Invoke(null);
     }
@@ -266,7 +219,8 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             switch (message)
             {
                 case FrameMessage frame:
-                    await OnFrameAsync(connection, frame);
+                    await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => UpdateBitmap(frame));
+                    await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
                     break;
                 case UpdateXamlResultMessage update:
                     ErrorChanged?.Invoke(update.Exception is { } details
@@ -279,70 +233,6 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         {
             Debug.WriteLine($"[preview] Failed to process {message.GetType().Name}: {ex}");
             ErrorChanged?.Invoke(PreviewError.From(ex.Message, null, null));
-        }
-    }
-
-    /// <summary>A frame from the host: show it if it's new, and decide when to let the host draw the next.</summary>
-    private async Task OnFrameAsync(IAvaloniaRemoteTransportConnection connection, FrameMessage frame)
-    {
-        bool changed;
-        lock (_frameLock)
-        {
-            if (_paused)
-            {
-                _heldFrame = frame.SequenceId;   // not shown: the host waits until IsPaused is false
-                return;
-            }
-
-            changed = _lastFrameData is not { } last || !last.AsSpan().SequenceEqual(frame.Data);
-            _lastFrameData = frame.Data;
-            if (!changed)
-            {
-                // The same picture again: let the host draw the next one later, a little later each time.
-                _heldFrame = frame.SequenceId;
-                _ackTimer.Change(_staticAckDelay, Timeout.InfiniteTimeSpan);
-                _staticAckDelay = TimeSpan.FromTicks(Math.Min(_staticAckDelay.Ticks * 2, MaxStaticAckDelay.Ticks));
-                return;
-            }
-            _staticAckDelay = MinStaticAckDelay;
-        }
-
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => UpdateBitmap(frame));
-        await connection.Send(new FrameReceivedMessage { SequenceId = frame.SequenceId });
-    }
-
-    /// <summary>Acknowledge a held frame (unless paused), so the host draws again.</summary>
-    private void ReleaseHeldFrame(bool resetDelay)
-    {
-        long sequenceId;
-        IAvaloniaRemoteTransportConnection? connection;
-        lock (_frameLock)
-        {
-            if (resetDelay)
-            {
-                _lastFrameData = null;   // the next frame is always shown (it may answer new XAML or a tab switch)
-                _staticAckDelay = MinStaticAckDelay;
-                _ackTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            }
-            if (_paused || _heldFrame is not { } held || _connection is not { } open)
-                return;
-            sequenceId = held;
-            connection = open;
-            _heldFrame = null;
-        }
-
-        _ = SendAckAsync(connection, sequenceId);
-    }
-
-    private static async Task SendAckAsync(IAvaloniaRemoteTransportConnection connection, long sequenceId)
-    {
-        try
-        {
-            await connection.Send(new FrameReceivedMessage { SequenceId = sequenceId });
-        }
-        catch (Exception ex) when (ex is IOException or ObjectDisposedException or SocketException)
-        {
-            // the host went away; Stop / the exception handler deal with it
         }
     }
 
@@ -416,6 +306,5 @@ public sealed class AvaloniaPreviewProcess : IDisposable
             return;
         _disposed = true;
         Stop();
-        _ackTimer.Dispose();
     }
 }
