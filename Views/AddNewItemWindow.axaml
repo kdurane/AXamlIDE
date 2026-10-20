@@ -1,6 +1,6 @@
 <!--
-    Add New Item (DataContext: ViewModels/AddNewItemViewModel), laid out like Visual Studio's: categories on the left,
-    templates in the middle with a search box above, the chosen template's description on the right, the name below.
+Add New Item (DataContext: ViewModels/AddNewItemViewModel), laid out like Visual Studio's: categories on the left,
+templates in the middle with a search box above, the chosen template's description on the right, the name below.
 -->
 <Window
     Background="{DynamicResource ThemeBackgroundBrush}"
@@ -14,7 +14,13 @@
     x:DataType="vm:AddNewItemViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:stylefolder="using:AXamlIDE.Styles"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Window.Resources>
+        <stylefolder:IconKeyConverter x:Key="IconConverter"/>
+    </Window.Resources>
+
     <Window.KeyBindings>
         <KeyBinding Command="{Binding $parent[Window].Close}" Gesture="Escape" />
     </Window.KeyBindings>
@@ -50,7 +56,7 @@
                 <DataTemplate x:DataType="vm:ItemTemplateChoice">
                     <Grid ColumnDefinitions="Auto,*,Auto">
                         <PathIcon
-                            Data="{Binding Icon}"
+                            Data="{Binding Icon,Converter={StaticResource IconConverter}}"
                             Height="16"
                             Margin="0,0,10,0"
                             Width="16" />

@@ -53,16 +53,33 @@ static string HandleRequest(string projectPath, string? configuration)
         var project = Project.FromFile(projectPath,
             new ProjectOptions { ProjectCollection = collection });
  
+        var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+        // Every build action a file can have: the usual ones plus whatever the project (or its SDKs) offers
+        // as AvailableItemName - the same list VS's Properties window shows, so no file in the project is missed.
+        var fileItemTypes = new HashSet<string>(
+            ["Compile", "AvaloniaXaml", "AvaloniaResource", "Content", "None", "EmbeddedResource", "AdditionalFiles",
+             "Page", "Resource", "ApplicationDefinition"]);
+        fileItemTypes.UnionWith(project.GetItems("AvailableItemName")
+            .Select(item => item.EvaluatedInclude)
+            .Where(type => !type.StartsWith('_')));
+
         var files = project.Items
-            .Where(i => i.ItemType is "Compile" or "AvaloniaXaml" or "AvaloniaResource"
-                or "Content" or "None" or "EmbeddedResource" or "AdditionalFiles"
-                or "Page" or "Resource" or "ApplicationDefinition")
+            .Where(i => fileItemTypes.Contains(i.ItemType))
             .Select(i => i.GetMetadataValue("FullPath"))
             .Where(File.Exists)
-            .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+            .Distinct(pathComparer)
             .OrderBy(p => p)
             .ToArray();
- 
+
+        // <Folder Include="Assets/" /> keeps an empty folder in the project.
+        var folders = project.GetItems("Folder")
+            .Select(item => item.GetMetadataValue("FullPath").TrimEnd('/', '\\'))
+            .Where(Directory.Exists)
+            .Distinct(pathComparer)
+            .OrderBy(p => p)
+            .ToArray();
+
         var projectReferences = project.GetItems("ProjectReference")
             .Select(item => item.GetMetadataValue("FullPath"))
             .Where(path => !string.IsNullOrWhiteSpace(path))
@@ -75,11 +92,53 @@ static string HandleRequest(string projectPath, string? configuration)
         var outputPath = project.GetPropertyValue("OutputPath");
         var projectAssetsFile = project.GetPropertyValue("ProjectAssetsFile");
         return JsonSerializer.Serialize(new HostResponse(
-            true, files, projectReferences, null, assemblyName, outputType, outputPath, projectAssetsFile));
+            true, files, projectReferences, null, assemblyName, outputType, outputPath, projectAssetsFile,
+            Dependencies: Dependencies(project).ToArray(), Folders: folders));
     }
     catch (Exception ex)
     {
         return JsonSerializer.Serialize(new HostResponse(false, [], [], ex.Message, null, null, null, null));
+    }
+}
+
+/// <summary>What the project declares under VS's Dependencies node; NuGet's restore output adds the rest.</summary>
+static IEnumerable<HostDependency> Dependencies(Project project)
+{
+    static bool IsImplicit(ProjectItem item) => item.GetMetadataValue("IsImplicitlyDefined") == "true";
+    static string? NonEmpty(string value) => value.Length > 0 ? value : null;
+
+    foreach (var item in project.GetItems("FrameworkReference"))
+        yield return new HostDependency(HostDependencyKinds.Framework, item.EvaluatedInclude, null, null, IsImplicit(item));
+
+    foreach (var item in project.GetItems("PackageReference"))
+    {
+        // Central package management puts the version on a PackageVersion item instead.
+        var version = NonEmpty(item.GetMetadataValue("VersionOverride")) ?? NonEmpty(item.GetMetadataValue("Version"))
+            ?? project.GetItems("PackageVersion").FirstOrDefault(v => v.EvaluatedInclude.Equals(item.EvaluatedInclude, StringComparison.OrdinalIgnoreCase))
+                ?.GetMetadataValue("Version");
+        yield return new HostDependency(HostDependencyKinds.Package, item.EvaluatedInclude, version, null, IsImplicit(item));
+    }
+
+    foreach (var item in project.GetItems("ProjectReference"))
+    {
+        var path = item.GetMetadataValue("FullPath");
+        yield return new HostDependency(HostDependencyKinds.Project, Path.GetFileNameWithoutExtension(path), null, path, IsImplicit(item));
+    }
+
+    foreach (var item in project.GetItems("Analyzer"))
+    {
+        var path = item.GetMetadataValue("FullPath");
+        yield return new HostDependency(HostDependencyKinds.Analyzer, Path.GetFileNameWithoutExtension(path), null, path, IsImplicit(item));
+    }
+
+    foreach (var item in project.GetItems("Reference").Where(item => !IsImplicit(item)))
+    {
+        // "System.Drawing, Version=4.0.0.0, ..." -> System.Drawing
+        var name = item.EvaluatedInclude.Split(',')[0].Trim();
+        var hintPath = NonEmpty(item.GetMetadataValue("HintPath")) is { } hint
+            ? Path.GetFullPath(hint, project.DirectoryPath)
+            : null;
+        yield return new HostDependency(HostDependencyKinds.Assembly, name, null, hintPath, false);
     }
 }
 

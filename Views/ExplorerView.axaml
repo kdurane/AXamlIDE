@@ -4,8 +4,14 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:views="using:AXamlIDE.Views"
+    xmlns:stylefolder="using:AXamlIDE.Styles"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <stylefolder:IconKeyConverter x:Key="IconConverter"/>
+    </UserControl.Resources>
+
     <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">
         <!--  VS Code's explorer header buttons: new item / new folder in the selected folder.  -->
         <StackPanel
@@ -47,7 +53,7 @@
                 <TreeDataTemplate DataType="{x:Type models:ProjectTreeNode}" ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <PathIcon
-                            Data="{Binding Icon}"
+                            Data="{Binding Icon,Converter={StaticResource IconConverter}}"
                             Height="12"
                             Width="12" />
                         <TextBlock
@@ -73,8 +79,8 @@
                 </TreeDataTemplate>
             </TreeView.ItemTemplate>
             <!--
-                Right-click menu (the standard ContextMenu template lays it out and lines up the shortcuts).
-                Its DataContext is an ExplorerNodeMenu for the clicked node, set when it opens (ExplorerView.axaml.cs).
+            Right-click menu (the standard ContextMenu template lays it out and lines up the shortcuts).
+            Its DataContext is an ExplorerNodeMenu for the clicked node, set when it opens (ExplorerView.axaml.cs).
             -->
             <TreeView.ContextMenu>
                 <ContextMenu Opening="OnMenuOpening" x:DataType="vm:ExplorerNodeMenu">

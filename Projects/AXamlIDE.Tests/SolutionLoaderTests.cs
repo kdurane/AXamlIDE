@@ -38,4 +38,34 @@ public sealed class SolutionLoaderTests : IDisposable
         var projects = root.Children.Where(node => node.Kind == NodeKind.Project).Select(node => node.FullPath).ToList();
         Assert.Equal([app, lib], projects.Order().ToList());
     }
+
+    [Fact]
+    public void LoadProjectItems_ShowsDependenciesAndEmptyFolderItems()
+    {
+        _workspace.Write("Lib/Lib.csproj", """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>""");
+        var app = _workspace.Write("App/App.csproj", """
+            <Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <ItemGroup>
+                <ProjectReference Include="../Lib/Lib.csproj" />
+                <Folder Include="Assets/" />
+              </ItemGroup>
+            </Project>
+            """);
+        _workspace.Write("App/Program.cs", "class Program { }");
+        Directory.CreateDirectory(Path.Combine(Path.GetDirectoryName(app)!, "Assets"));
+
+        var items = SolutionLoader.LoadProjectItems(_host, app).ToList();
+
+        var dependencies = items[0];
+        Assert.Equal("Dependencies", dependencies.Name);
+        Assert.Equal(NodeKind.Dependency, dependencies.Kind);
+        var projects = Assert.Single(dependencies.Children, node => node.Name == "Projects");
+        Assert.Equal("Lib", Assert.Single(projects.Children).Name);
+        var frameworks = Assert.Single(dependencies.Children, node => node.Name == "Frameworks");
+        Assert.Contains(frameworks.Children, node => node.Name == "Microsoft.NETCore.App");
+
+        Assert.Contains(items, node => node is { Kind: NodeKind.Folder, Name: "Assets" });
+        Assert.Contains(items, node => node is { Kind: NodeKind.File, Name: "Program.cs" });
+    }
 }

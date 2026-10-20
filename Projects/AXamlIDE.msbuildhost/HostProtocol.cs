@@ -39,7 +39,26 @@ internal sealed record HostResponse(
     string? OutputType,
     string? OutputPath,
     string? ProjectAssetsFile,
-    HostItem? Item = null);
+    HostItem? Item = null,
+    HostDependency[]? Dependencies = null,
+    string[]? Folders = null);
+
+/// <summary>One entry under a project's Dependencies node, as the project file (evaluated) declares it.
+/// Transitive packages and package analyzers aren't here: they only exist after restore, in project.assets.json.</summary>
+/// <param name="Kind">One of <see cref="HostDependencyKinds"/>.</param>
+/// <param name="Version">Packages: the requested version (or range).</param>
+/// <param name="Path">Projects, analyzers and assemblies: the file on disk, when known.</param>
+/// <param name="IsImplicit">Added by the SDK rather than written in the project (VS shows these too).</param>
+internal sealed record HostDependency(string Kind, string Name, string? Version, string? Path, bool IsImplicit);
+
+internal static class HostDependencyKinds
+{
+    public const string Framework = "Framework";
+    public const string Package = "Package";
+    public const string Project = "Project";
+    public const string Analyzer = "Analyzer";
+    public const string Assembly = "Assembly";
+}
 
 /// <param name="ItemType">The file's build action, or null if the project doesn't include it.</param>
 /// <param name="AvailableItemTypes">The build actions to offer (the common ones and the project's AvailableItemName).</param>

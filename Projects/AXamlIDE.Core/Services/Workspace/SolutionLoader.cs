@@ -92,29 +92,43 @@ public static class SolutionLoader
         return ProjectTreeNode.CreateSolution(solutionPath, projects, host);
     }
 
+    /// <summary>A project's children, as VS's Solution Explorer shows them: Dependencies, then its folders and files.</summary>
     public static IEnumerable<ProjectTreeNode> LoadProjectItems(MsBuildHostClient host, string csprojPath)
     {
-        var files = host.GetProjectFiles(csprojPath);
+        var contents = host.GetProjectContents(csprojPath);
         var projectDir = Path.GetDirectoryName(csprojPath)!;
-        return BuildFolderTree(projectDir, files);
+        return [DependencyTree.Create(csprojPath, contents), .. BuildFolderTree(projectDir, contents.Files, contents.Folders)];
     }
 
     /// <summary>Groups a flat file list into nested folders based on each file's
     /// path relative to the project directory. This mirrors the physical
     /// layout on disk rather than any "logical" grouping VS might apply for
     /// linked files living outside the project folder — a deliberate
-    /// simplification for now.</summary>
-    private static IEnumerable<ProjectTreeNode> BuildFolderTree(string projectDir, IEnumerable<string> files)
+    /// simplification for now. <paramref name="folders"/> are the project's
+    /// Folder items, which show even when empty.</summary>
+    private static IEnumerable<ProjectTreeNode> BuildFolderTree(string projectDir, IEnumerable<string> files, IEnumerable<string> folders)
     {
         var root = new Dictionary<string, object>();
 
+        foreach (var folder in folders.Select(folder => Path.GetRelativePath(projectDir, folder)))
+        {
+            if (folder != "." && !folder.StartsWith(".."))
+                Descend(folder.Split(Path.DirectorySeparatorChar), folderOnly: true);
+        }
+
         foreach (var file in files)
         {
-            var relative = Path.GetRelativePath(projectDir, file);
-            var parts = relative.Split(Path.DirectorySeparatorChar);
+            var parts = Path.GetRelativePath(projectDir, file).Split(Path.DirectorySeparatorChar);
+            Descend(parts, folderOnly: false)[parts[^1]] = file;
+        }
 
+        return ToNodes(root, projectDir);
+
+        // Walks (creating as needed) the folders in parts - all of them, or all but the last (the file name).
+        Dictionary<string, object> Descend(string[] parts, bool folderOnly)
+        {
             var current = root;
-            for (var i = 0; i < parts.Length - 1; i++)
+            for (var i = 0; i < parts.Length - (folderOnly ? 0 : 1); i++)
             {
                 if (current.TryGetValue(parts[i], out var next) && next is Dictionary<string, object> nextDict)
                 {
@@ -128,10 +142,8 @@ public static class SolutionLoader
                 }
             }
 
-            current[parts[^1]] = file;
+            return current;
         }
-
-        return ToNodes(root, projectDir);
     }
 
     private static IEnumerable<ProjectTreeNode> ToNodes(Dictionary<string, object> level, string directory)

@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using AXamlIDE.Models;
@@ -67,6 +68,16 @@ public sealed class MsBuildHostClient : IDisposable
 
     public string[] GetProjectFiles(string projectPath)
         => GetProjectData(projectPath).Files;
+
+    /// <summary>Everything the Solution Explorer shows under the project, from one evaluation.</summary>
+    public ProjectContents GetProjectContents(string projectPath)
+    {
+        var data = GetProjectData(projectPath);
+        var dependencies = (data.Dependencies ?? [])
+            .Select(d => new ProjectDependency(Enum.Parse<DependencyKind>(d.Kind), d.Name, d.Version, d.Path, d.IsImplicit))
+            .ToArray();
+        return new ProjectContents(data.Files, data.Folders ?? [], dependencies, data.ProjectAssetsFile);
+    }
 
     public string[] GetProjectReferences(string projectPath)
         => GetProjectData(projectPath).ProjectReferences;

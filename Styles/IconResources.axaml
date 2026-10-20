@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <StreamGeometry x:Key="Icon.NideaLogo">M1.585 13.94V3.977c0-1.1.892-1.993 1.992-1.993h2.889c1.1 0 1.992.892 1.992 1.993v7.172c0 .55.446.996.996.996h1.295c.55 0 .996-.447.996-.996V1.985h1.793v9.961a1.99 1.99 0 0 1-1.992 1.993H8.657c-1.1 0-1.992-.892-1.992-1.993V4.774a.996.996 0 0 0-.996-.996H4.374a.996.996 0 0 0-.996.996v9.165ZM16.981 1.984V13.94h-1.789V1.985Zm10.815 1.793h-7.371v8.368h7.371c.55 0 .996-.447.996-.996V4.774a.996.996 0 0 0-.996-.996m.797-1.793c1.1 0 1.992.892 1.992 1.993v7.968a1.99 1.99 0 0 1-1.992 1.993h-9.961V1.985Zm5.638 0h9.961v1.793h-9.264c-1.128.065-1.128 1.728 0 1.793h7.271c1.101 0 1.993.892 1.993 1.993v.796c0 1.1-.892 1.993-1.993 1.993h-7.271c-1.236-.041-1.236 1.834 0 1.793h9.264v1.793h-9.961c-1.1 0-1.993-.892-1.993-1.993v-1.394c0-1.1.892-1.992 1.993-1.992h7.57c.797 0 .797-1.196 0-1.196h-7.57a1.99 1.99 0 0 1-1.993-1.992V3.978c0-1.1.892-1.993 1.993-1.993m21.774 2.79a.996.996 0 0 0-.996-.997h-6.375a.996.996 0 0 0-.996.996v2.89h8.367zm1.793-.797v9.961h-1.793V9.456h-8.367v4.483h-1.793V3.98c0-1.102.892-1.994 1.992-1.994h7.969c1.1 0 1.992.892 1.992 1.993M7.648 15.816H.095V.09h7.553v.68H.8v14.365h6.847Zm44.286-.023h7.553V.067h-7.553v.681h6.847v14.364h-6.847Zm-23.142-10h-8.367V5.2h8.367Zm-3.21 1.201-.815 2.6h-.65l.867-2.598zm-1.249.768-.586.611.543.52-.21.279-.825-.8.854-.83Zm1.111 0 .484.611-.535.52.195.279.793-.799-.725-.83Z</StreamGeometry>
@@ -450,5 +450,33 @@
 
     <!--  https://pictogrammers.com/library/mdi/icon/folder-plus-outline/  -->
     <StreamGeometry x:Key="Icon.FolderPlus">M12 12H14V10H16V12H18V14H16V16H14V14H12V12M22 8V18C22 19.11 21.11 20 20 20H4C2.89 20 2 19.11 2 18V6C2 4.89 2.89 4 4 4H10L12 6H20C21.11 6 22 6.89 22 8M20 8H4V18H20V8Z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/code-braces/  -->
+    <StreamGeometry x:Key="Icon.CodeBraces">M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3m6 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3z</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/code-tags/ -->
+    <StreamGeometry x:Key="Icon.CodeTags">m14.6 16.6 4.6-4.6-4.6-4.6L16 6l6 6-6 6zm-5.2 0L4.8 12l4.6-4.6L8 6l-6 6 6 6z</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/xml/ -->
+    <StreamGeometry x:Key="Icon.CodeXml">m12.89 3 1.96.4L11.11 21l-1.96-.4zm6.7 9L16 8.41V5.58L22.42 12 16 18.41v-2.83zM1.58 12 8 5.58v2.83L4.41 12 8 15.58v2.83z</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/folder-outline/ -->
+    <StreamGeometry x:Key="Icon.FolderOutline">M20 18H4V8h16m0-2h-8l-2-2H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2</StreamGeometry>
+
+    <!-- found on svg -->
+    <StreamGeometry x:Key="Icon.Solution">m17 18-5-2.18L7 18V5h10m0-2H7a2 2 0 0 0-2 2v16l7-3 7 3V5a2 2 0 0 0-2-2</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/file-code-outline/ -->
+    <StreamGeometry x:Key="Icon.FileCodeOutline">M14 2H6a2 2 0 0 0-2 2v16c0 1.11.89 2 2 2h12c1.11 0 2-.89 2-2V8zm4 18H6V4h7v5h5zm-8.46-4.35 2.09 2.09L10.35 19 7 15.65l3.35-3.35 1.28 1.26zm7.46 0L13.65 19l-1.27-1.26 2.09-2.09-2.09-2.09 1.27-1.26z</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/code-json/ -->
+    <StreamGeometry x:Key="Icon.CodeJson">M5 3h2v2H5v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2 2 0 0 0-2-2H0v-2h1a2 2 0 0 0 2-2V5a2 2 0 0 1 2-2m14 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3zm-7 12a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m-4 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m8 0a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/language-csharp/-->
+    <StreamGeometry x:Key="Icon.CSharp">m11.5 15.97.41 2.44c-.26.14-.68.27-1.24.39-.57.13-1.24.2-2.01.2-2.21-.04-3.87-.7-4.98-1.96Q2 15.135 2 12.21c.05-2.31.72-4.08 2-5.32C5.32 5.64 6.96 5 8.94 5c.75 0 1.4.07 1.94.19s.94.25 1.2.4l-.58 2.49-1.06-.34c-.4-.1-.86-.15-1.39-.15-1.16-.01-2.12.36-2.87 1.1-.76.73-1.15 1.85-1.18 3.34 0 1.36.37 2.42 1.08 3.2.71.77 1.71 1.17 2.99 1.18l1.33-.12c.43-.08.79-.19 1.1-.32M13.89 19l.61-4H13l.34-2h1.5l.32-2h-1.5L14 9h1.5l.61-4h2l-.61 4h1l.61-4h2l-.61 4H22l-.34 2h-1.5l-.32 2h1.5L21 15h-1.5l-.61 4h-2l.61-4h-1l-.61 4zm2.95-6h1l.32-2h-1z</StreamGeometry>
+
+    <!-- https://pictogrammers.com/library/mdi/icon/vector-link/ -->
+    <StreamGeometry x:Key="Icon.VectorLink">M3 1c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h11c1.11 0 2-.89 2-2v-3h-2v3H3V3h11v2h2V3c0-1.11-.89-2-2-2M9 7c-1.11 0-2 .89-2 2v3h2V9h11v11H9v-2H7v2c0 1.11.89 2 2 2h11c1.11 0 2-.89 2-2V9c0-1.11-.89-2-2-2z</StreamGeometry>
+
 
 </ResourceDictionary>

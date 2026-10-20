@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using AvaloniaEdit;
 using AvaloniaEdit.Document;
 using AXamlIDE.Messages;
@@ -61,12 +61,8 @@ public sealed class EditorContext(
     public void Detach()
     {
         Detaching?.Invoke(Active);
-
-        if (_hooked is not null)
-        {
-            _hooked.Changed -= OnDocumentChanged;
-            _hooked = null;
-        }
+        _hooked?.Changed -= OnDocumentChanged;
+        _hooked = null;
 
         Active = null;
     }
@@ -75,8 +71,7 @@ public sealed class EditorContext(
     {
         Active = doc;
         _hooked = doc?.Document;
-        if (_hooked is not null)
-            _hooked.Changed += OnDocumentChanged;
+        _hooked?.Changed += OnDocumentChanged;
 
         Attached?.Invoke(doc);
     }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -64,11 +64,9 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
 
     private void OnActiveDocumentChanged(OpenDocument? document)
     {
-        if (_document is not null)
-            _document.Document.Changed -= OnTextChanged;
+        _document?.Document.Changed -= OnTextChanged;
         _document = document;
-        if (_document is not null)
-            _document.Document.Changed += OnTextChanged;
+        _document?.Document.Changed += OnTextChanged;
 
         Clear();
         if (document is null)
