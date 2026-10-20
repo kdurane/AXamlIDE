@@ -36,7 +36,7 @@ public static class PublishCommandLine
         var projectFolder = Path.GetDirectoryName(projectPath)!;
         var folder = profile.PublishDir.Length > 0
             ? profile.PublishDir
-            : PublishProfileStore.DefaultLocation(profile.TargetFramework);
+            : PublishProfileStore.DefaultLocation(profile.Configuration, profile.TargetFramework, profile.RuntimeIdentifier);
         folder = folder
             .Replace("$(Configuration)", profile.Configuration, StringComparison.OrdinalIgnoreCase)
             .Replace("$(TargetFramework)", profile.TargetFramework ?? "", StringComparison.OrdinalIgnoreCase)

@@ -145,6 +145,22 @@ public sealed class PublishProfileTests : IDisposable
     }
 
     [Fact]
+    public void Default_location_has_the_runtime_and_follows_changes_like_Visual_Studio()
+    {
+        Assert.Equal("bin/Release/net10.0/publish/", PublishProfileStore.DefaultLocation("Release", "net10.0", null));
+        Assert.Equal("bin/Release/net10.0/linux-x64/publish/", PublishProfileStore.DefaultLocation("Release", "net10.0", "linux-x64"));
+
+        // Still the default (VS writes it with backslashes): it follows the new runtime.
+        Assert.Equal("bin/Release/net10.0/linux-x64/publish/", PublishProfileStore.FollowDefaultLocation(
+            @"bin\Release\net10.0\publish\", ("Release", "net10.0", null), ("Release", "net10.0", "linux-x64")));
+        Assert.Equal("bin/Debug/net10.0/publish/", PublishProfileStore.FollowDefaultLocation(
+            "bin/Release/net10.0/linux-x64/publish/", ("Release", "net10.0", "linux-x64"), ("Debug", "net10.0", null)));
+        // A folder the user chose stays.
+        Assert.Equal("/srv/app/", PublishProfileStore.FollowDefaultLocation(
+            "/srv/app/", ("Release", "net10.0", null), ("Release", "net10.0", "linux-x64")));
+    }
+
+    [Fact]
     public void Command_line_passes_the_profile_configuration_and_framework()
     {
         var profile = new PublishProfile("Linux", "x.pubxml", PublishTargets.FolderId, "out", "Debug", "net10.0");

@@ -23,6 +23,7 @@ public sealed partial class PublishSettingsViewModel : ObservableObject
 {
     private readonly PublishProfile _profile;
     private readonly string _projectPath;
+    private readonly bool _ready;   // set once the constructor has filled everything in
 
     public PublishSettingsViewModel(string projectPath, PublishProfile profile, IReadOnlyList<string> targetFrameworks)
     {
@@ -41,6 +42,7 @@ public sealed partial class PublishSettingsViewModel : ObservableObject
         PublishSingleFile = profile.PublishSingleFile;
         PublishReadyToRun = profile.PublishReadyToRun;
         PublishTrimmed = profile.PublishTrimmed;
+        _ready = true;
     }
 
     public string ProfileName => _profile.Name;
@@ -71,6 +73,24 @@ public sealed partial class PublishSettingsViewModel : ObservableObject
 
     public string Error => Location.Trim().Length == 0 ? "Enter the folder to publish to." : "";
     public bool CanSave => Error.Length == 0;
+
+    // The default location (bin/Release/net10.0/linux-x64/publish/) follows these three; a chosen folder doesn't.
+    partial void OnConfigurationChanged(string oldValue, string newValue)
+        => FollowDefaultLocation((oldValue, TargetFramework, RuntimeOrNull(Runtime)));
+
+    partial void OnTargetFrameworkChanged(string? oldValue, string? newValue)
+        => FollowDefaultLocation((Configuration, oldValue, RuntimeOrNull(Runtime)));
+
+    partial void OnRuntimeChanged(string oldValue, string newValue)
+        => FollowDefaultLocation((Configuration, TargetFramework, RuntimeOrNull(oldValue)));
+
+    private void FollowDefaultLocation((string, string?, string?) before)
+    {
+        if (_ready)
+            Location = PublishProfileStore.FollowDefaultLocation(Location, before, (Configuration, TargetFramework, RuntimeOrNull(Runtime)));
+    }
+
+    private static string? RuntimeOrNull(string runtime) => runtime == PublishTargets.Portable ? null : runtime;
 
     partial void OnRuntimeChanged(string value)
     {

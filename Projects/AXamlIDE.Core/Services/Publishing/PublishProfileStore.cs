@@ -140,9 +140,26 @@ public static class PublishProfileStore
         return new PublishProfile(name, PathFor(projectPath, name), target.Id, location, TargetFramework: targetFramework);
     }
 
-    /// <summary>VS's default folder: bin/Release/{framework}/publish/ under the project.</summary>
-    public static string DefaultLocation(string? targetFramework)
-        => targetFramework is null ? "bin/Release/publish/" : $"bin/Release/{targetFramework}/publish/";
+    /// <summary>
+    /// VS's default folder under the project: bin/{configuration}/{framework}/publish/, with the runtime before
+    /// publish/ when there is one (bin/Release/net10.0/linux-x64/publish/).
+    /// </summary>
+    public static string DefaultLocation(string configuration, string? targetFramework, string? runtimeIdentifier)
+        => string.Join('/', new[] { "bin", configuration, targetFramework, runtimeIdentifier, "publish" }.Where(part => !string.IsNullOrEmpty(part))) + "/";
+
+    /// <summary>
+    /// The location after a change of configuration, framework or runtime: if it was the default for the old
+    /// settings it becomes the default for the new ones (as VS's dialog does); a folder the user chose stays.
+    /// </summary>
+    public static string FollowDefaultLocation(string location,
+        (string Configuration, string? TargetFramework, string? Runtime) before,
+        (string Configuration, string? TargetFramework, string? Runtime) after)
+    {
+        static string Normal(string path) => path.Trim().Replace('\\', '/').TrimEnd('/');
+        var wasDefault = string.Equals(Normal(location),
+            Normal(DefaultLocation(before.Configuration, before.TargetFramework, before.Runtime)), StringComparison.OrdinalIgnoreCase);
+        return wasDefault ? DefaultLocation(after.Configuration, after.TargetFramework, after.Runtime) : location;
+    }
 
     /// <summary>A folder picked with Browse, as a profile keeps it: relative inside the project (bin/...), else full.</summary>
     public static string LocationFor(string projectPath, string folder)

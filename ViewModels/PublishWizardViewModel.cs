@@ -37,7 +37,7 @@ public sealed partial class PublishWizardViewModel : ObservableObject
             new PublishTargetChoice(null, "Import Profile", "Import your publish settings from a .pubxml file.", "Icon.OpenInApp")
         ];
         SelectedTarget = Targets[0];
-        Location = PublishProfileStore.DefaultLocation(targetFramework);
+        Location = PublishProfileStore.DefaultLocation("Release", targetFramework, null);
     }
 
     public string ProjectName { get; }
@@ -88,6 +88,7 @@ public sealed partial class PublishWizardViewModel : ObservableObject
 
     partial void OnIsSecondStepChanged(bool value)
     {
+        OnPropertyChanged(nameof(CanFinish));   // Error may not change (a valid default), so this can't wait for it
         OnPropertyChanged(nameof(IsFirstStep));
         OnPropertyChanged(nameof(ShowsLocation));
         OnPropertyChanged(nameof(ShowsImport));
