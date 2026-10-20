@@ -41,7 +41,8 @@ internal sealed record HostResponse(
     string? ProjectAssetsFile,
     HostItem? Item = null,
     HostDependency[]? Dependencies = null,
-    string[]? Folders = null);
+    string[]? Folders = null,
+    string[]? TargetFrameworks = null);
 
 /// <summary>One entry under a project's Dependencies node, as the project file (evaluated) declares it.
 /// Transitive packages and package analyzers aren't here: they only exist after restore, in project.assets.json.</summary>

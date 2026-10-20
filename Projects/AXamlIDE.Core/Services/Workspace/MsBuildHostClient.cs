@@ -93,6 +93,10 @@ public sealed class MsBuildHostClient : IDisposable
     public string? GetProjectOutputPath(string projectPath, string? configuration = null)
       => GetProjectData(projectPath, configuration).OutputPath?.Replace('\\', Path.DirectorySeparatorChar);
 
+    /// <summary>The project's target frameworks (net10.0...), one or several; empty if it declares none.</summary>
+    public string[] GetProjectTargetFrameworks(string projectPath)
+        => GetProjectData(projectPath).TargetFrameworks ?? [];
+
     public string? GetProjectAssetsFile(string projectPath)
         => GetProjectData(projectPath).ProjectAssetsFile;
 

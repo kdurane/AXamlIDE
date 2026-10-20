@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -13,11 +14,15 @@ public sealed class DotNetProjectRunner : IDisposable
 
     /// <param name="configuration">"Debug" or "Release" (dotnet's <c>--configuration</c>).</param>
     public Task<int> BuildAsync(string projectPath, string configuration)
-        => ExecuteAsync("build", projectPath, configuration, isRun: false);
+        => ExecuteAsync(projectPath, ["build", projectPath, "--configuration", configuration], isRun: false);
 
     /// <summary>Runs the already built project (<c>--no-build</c>); build it first with the same configuration.</summary>
     public Task<int> RunAsync(string projectPath, string configuration)
-        => ExecuteAsync("run", projectPath, configuration, isRun: true);
+        => ExecuteAsync(projectPath, ["run", projectPath, "--configuration", configuration, "--no-build"], isRun: true);
+
+    /// <summary><c>dotnet publish</c> with these arguments (PublishCommandLine's); output goes with the build's.</summary>
+    public Task<int> PublishAsync(string projectPath, IReadOnlyList<string> arguments)
+        => ExecuteAsync(projectPath, arguments, isRun: false);
 
     public void Stop()
     {
@@ -39,7 +44,7 @@ public sealed class DotNetProjectRunner : IDisposable
         }
     }
 
-    private async Task<int> ExecuteAsync(string verb, string projectPath, string configuration, bool isRun)
+    private async Task<int> ExecuteAsync(string projectPath, IReadOnlyList<string> arguments, bool isRun)
     {
         var process = new Process
         {
@@ -52,12 +57,8 @@ public sealed class DotNetProjectRunner : IDisposable
                 CreateNoWindow = true
             }
         };
-        process.StartInfo.ArgumentList.Add(verb);
-        process.StartInfo.ArgumentList.Add(projectPath);
-        process.StartInfo.ArgumentList.Add("--configuration");
-        process.StartInfo.ArgumentList.Add(configuration);
-        if (isRun)
-            process.StartInfo.ArgumentList.Add("--no-build");
+        foreach (var argument in arguments)
+            process.StartInfo.ArgumentList.Add(argument);
 
         try
         {

@@ -91,9 +91,14 @@ static string HandleRequest(string projectPath, string? configuration)
         var outputType = project.GetPropertyValue("OutputType");
         var outputPath = project.GetPropertyValue("OutputPath");
         var projectAssetsFile = project.GetPropertyValue("ProjectAssetsFile");
+        // A multi-targeted project lists them in TargetFrameworks (its outer evaluation has no TargetFramework).
+        var targetFrameworks = (project.GetPropertyValue("TargetFrameworks") is { Length: > 0 } list
+                ? list
+                : project.GetPropertyValue("TargetFramework"))
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return JsonSerializer.Serialize(new HostResponse(
             true, files, projectReferences, null, assemblyName, outputType, outputPath, projectAssetsFile,
-            Dependencies: Dependencies(project).ToArray(), Folders: folders));
+            Dependencies: Dependencies(project).ToArray(), Folders: folders, TargetFrameworks: targetFrameworks));
     }
     catch (Exception ex)
     {
