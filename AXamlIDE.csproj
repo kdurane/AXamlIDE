@@ -9,7 +9,8 @@
     <ItemGroup>
         <Compile Remove="tests/**/*.cs" />
         <Compile Remove="Projects/**/*.cs" />
-        <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" />
+        <!-- Built first, but not copied in: CopyMsBuildHost / PublishHelperProcesses put it in its own msbuildhost/ folder. -->
+        <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" Private="false" />
         <ProjectReference Include="Projects/AXamlIDE.Core/AXamlIDE.Core.csproj" />
         <Compile Update="Views\DocumentWellView.axaml.cs">
           <DependentUpon>DocumentWellView.axaml</DependentUpon>
@@ -100,6 +101,29 @@
             <DebuggerFiles Include="$(NetCoreDbgFolder)**/*" Exclude="$(NetCoreDbgFolder).netcoredbg_hist" />
         </ItemGroup>
         <Copy Condition="'@(DebuggerFiles)' != ''" SourceFiles="@(DebuggerFiles)" DestinationFiles="@(DebuggerFiles->'$(OutDir)netcoredbg/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    </Target>
+
+    <!--
+        Publish takes the MSBuild host and the debugger along, in the folders the app looks for them in (msbuildhost/ and
+        netcoredbg/ beside it, as the build does). They're separate programs, so a single-file publish leaves them as files.
+    -->
+    <Target Name="PublishHelperProcesses" AfterTargets="ComputeResolvedFilesToPublishList" DependsOnTargets="DownloadNetCoreDbg">
+        <ItemGroup>
+            <_HostPublishFile Include="Projects/AXamlIDE.msbuildhost/bin/$(Configuration)/$(TargetFramework)/**/*.*" />
+            <ResolvedFileToPublish Include="@(_HostPublishFile)">
+                <RelativePath>msbuildhost/%(_HostPublishFile.RecursiveDir)%(_HostPublishFile.Filename)%(_HostPublishFile.Extension)</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            </ResolvedFileToPublish>
+        </ItemGroup>
+        <ItemGroup Condition="Exists('$(NetCoreDbgFolder)$(NetCoreDbgExecutable)')">
+            <_DebuggerPublishFile Include="$(NetCoreDbgFolder)**/*" Exclude="$(NetCoreDbgFolder).netcoredbg_hist" />
+            <ResolvedFileToPublish Include="@(_DebuggerPublishFile)">
+                <RelativePath>netcoredbg/%(_DebuggerPublishFile.RecursiveDir)%(_DebuggerPublishFile.Filename)%(_DebuggerPublishFile.Extension)</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            </ResolvedFileToPublish>
+        </ItemGroup>
     </Target>
 
     <ItemGroup>
