@@ -152,11 +152,9 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 
         if (!IsPreviewable(document))
         {
-            ShowIdle();   // the designer host keeps running for the next AXAML tab,
-            _previewProcess.IsPaused = true;   // but isn't asked for frames nobody would see
+            ShowIdle();   // the designer host keeps running for the next AXAML tab
             return;
         }
-        _previewProcess.IsPaused = false;
 
         if (_lastFrames.TryGetValue(document!, out var lastFrame))
         {
