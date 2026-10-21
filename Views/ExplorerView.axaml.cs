@@ -7,7 +7,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using AXamlIDE.Models;
 using AXamlIDE.ViewModels;
@@ -19,6 +18,14 @@ namespace AXamlIDE.Views;
 /// <summary>The Explorer panel (workspace tree). DataContext: <see cref="ExplorerViewModel"/>.</summary>
 public partial class ExplorerView : UserControl
 {
+    // The dragged node travels inside the app as the object itself (not as text).
+    private static readonly DataFormat<ProjectTreeNode> NodeFormat =
+        DataFormat.CreateInProcessFormat<ProjectTreeNode>("AXamlIDE.ExplorerNode");
+
+    private PointerPressedEventArgs? _dragStart;   // a left press on a node, until it becomes a drag or is let go
+    private ProjectTreeNode? _dragNode;
+    private TreeViewItem? _dropTarget;             // the row highlighted as the drop target
+
     public ExplorerView()
     {
         InitializeComponent();
@@ -28,6 +35,12 @@ public partial class ExplorerView : UserControl
         FileTree.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         FileTree.AddHandler(DoubleTappedEvent, OnDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
         FileTree.AddHandler(KeyDownEvent, OnTreeKeyDown, RoutingStrategies.Bubble);
+        FileTree.AddHandler(PointerMovedEvent, OnPointerMoved, RoutingStrategies.Tunnel);
+        FileTree.AddHandler(PointerReleasedEvent, (_, _) => _dragStart = null, RoutingStrategies.Tunnel);
+        DragDrop.SetAllowDrop(FileTree, true);
+        FileTree.AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        FileTree.AddHandler(DragDrop.DragLeaveEvent, (_, _) => ShowDropTarget(null));
+        FileTree.AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
     private ExplorerViewModel? ViewModel => DataContext as ExplorerViewModel;
@@ -61,6 +74,13 @@ public partial class ExplorerView : UserControl
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        if (e.GetCurrentPoint(FileTree).Properties.IsLeftButtonPressed)
+        {
+            _dragStart = e;
+            _dragNode = ItemAt(e.Source)?.DataContext as ProjectTreeNode;
+            return;
+        }
+
         if (!e.GetCurrentPoint(FileTree).Properties.IsRightButtonPressed)
             return;
 
@@ -68,6 +88,56 @@ public partial class ExplorerView : UserControl
         _menuNode = control?.DataContext as ProjectTreeNode;
         control?.IsSelected = true;
     }
+
+    private static TreeViewItem? ItemAt(object? source)
+    => (source as Visual)?.GetSelfAndVisualAncestors().OfType<TreeViewItem>().FirstOrDefault();
+
+    private async void OnPointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (_dragStart is not { } start || _dragNode is not { } node)
+            return;
+        var moved = e.GetPosition(FileTree) - start.GetPosition(FileTree);
+        if (Math.Abs(moved.X) < 4 && Math.Abs(moved.Y) < 4)
+            return;   // still a click
+        _dragStart = null;
+
+        var transfer = new DataTransfer();
+        transfer.Add(DataTransferItem.Create(NodeFormat, node));
+        await DragDrop.DoDragDropAsync(start, transfer, DragDropEffects.Move);   // returns when it's dropped
+        _dragNode = null;
+
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        // While dragging, Linux only says what kind of data it is (the data itself arrives on drop),
+        // so check the kind, and use the node this view started dragging.
+        var item = ItemAt(e.Source);
+        var ok = e.DataTransfer.Contains(NodeFormat)
+                 && _dragNode is { } dragged
+                 && item?.DataContext is ProjectTreeNode target
+                 && ViewModel?.CanDrop(dragged, target) == true;
+        e.DragEffects = ok ? DragDropEffects.Move : DragDropEffects.None;   // the cursor shows which
+        ShowDropTarget(ok ? item : null);
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        ShowDropTarget(null);
+        if (e.DataTransfer.Contains(NodeFormat)
+        && _dragNode is { } dragged
+            && ItemAt(e.Source)?.DataContext is ProjectTreeNode target
+            && ViewModel is { } vm)
+            await vm.DropAsync(dragged, target);
+    }
+
+    private void ShowDropTarget(TreeViewItem? item)
+    {
+        _dropTarget?.Classes.Remove("dropTarget");
+        _dropTarget = item;
+        _dropTarget?.Classes.Add("dropTarget");
+    }
+
 
     private void OnMenuOpening(object? sender, CancelEventArgs e)
     {

@@ -1,4 +1,4 @@
-<UserControl
+﻿<UserControl
     x:Class="AXamlIDE.Views.ExplorerView"
     x:DataType="vm:ExplorerViewModel"
     xmlns="https://github.com/avaloniaui"
@@ -44,10 +44,14 @@
                     <Setter Property="MinHeight" Value="20" />
                     <Setter Property="Padding" Value="0" />
                 </Style>
-                <!--  The startup project is bold, as in Visual Studio.  -->
+                <!--  The startup project is bold  -->
                 <Style Selector="TextBlock.startup">
                     <Setter Property="FontWeight" Value="Bold" />
                 </Style>
+                <Style Selector="TreeViewItem.dropTarget /template/ Border#PART_LayoutRoot">
+                    <Setter Property="Background" Value="{DynamicResource TreeViewItemBackgroundPointerOver}" />
+                </Style>
+
             </TreeView.Styles>
             <TreeView.ItemTemplate>
                 <TreeDataTemplate DataType="{x:Type models:ProjectTreeNode}" ItemsSource="{Binding Children}">

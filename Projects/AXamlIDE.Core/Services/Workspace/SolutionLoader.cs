@@ -97,7 +97,35 @@ public static class SolutionLoader
     {
         var contents = host.GetProjectContents(csprojPath);
         var projectDir = Path.GetDirectoryName(csprojPath)!;
-        return [DependencyTree.Create(csprojPath, contents), .. BuildFolderTree(projectDir, contents.Files, contents.Folders)];
+        var folders = contents.Folders.Concat(FoldersOnDisk(projectDir));   // empty folders show too, as in Rider
+        return [DependencyTree.Create(csprojPath, contents), .. BuildFolderTree(projectDir, contents.Files, folders)];
+    }
+
+    /// <summary>
+    /// Every folder under the project on disk, even empty ones, as Rider shows them (an SDK-style project takes in
+    /// whatever is put there). Skips bin, obj and hidden folders (.git, .vs, .idea).
+    /// </summary>
+    private static IEnumerable<string> FoldersOnDisk(string folder)
+    {
+        List<string> subfolders;
+        try
+        {
+            subfolders = [.. Directory.EnumerateDirectories(folder)];
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            yield break;   // a folder we can't read: leave it out
+        }
+
+        foreach (var subfolder in subfolders)
+        {
+            var name = Path.GetFileName(subfolder);
+            if (name is "bin" or "obj" || name.StartsWith('.'))
+                continue;
+            yield return subfolder;
+            foreach (var deeper in FoldersOnDisk(subfolder))
+                yield return deeper;
+        }
     }
 
     /// <summary>Groups a flat file list into nested folders based on each file's

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Search;
 using AXamlIDE.Services.Workspace;
 using CommunityToolkit.Mvvm.Input;
 
@@ -133,30 +134,148 @@ public sealed partial class ExplorerViewModel
     {
         if (_clipboard is not var (source, isCut) || node is null || FolderFor(node) is not { } folder)
             return;
-        (List<string> Paths, string? Active) reopen = ([], null);
-        if (isCut && !ReleaseOpenDocuments(source, out reopen))
+
+        if (isCut)
+        {
+            if (await MoveWithNamespacesAsync(source, node, folder, alwaysAsk: false) is null)
+                return;
+            _clipboard = null;
+            PasteCommand.NotifyCanExecuteChanged();
             return;
+        }
 
         string pasted;
         try
         {
-            pasted = await Task.Run(() => FileOperations.Paste(source, folder, move: isCut));
+            pasted = await Task.Run(() => FileOperations.Paste(source, folder, move: false));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Status($"Couldn't paste: {ex.Message}");
             return;
         }
-
-        if (isCut)
-        {
-            _clipboard = null;   // moved: there's nothing left to paste again
-            PasteCommand.NotifyCanExecuteChanged();
-            Reopen(reopen, source, pasted);
-            await ReloadAsync(FindNode(source) ?? node);   // where it came from
-        }
         await ReloadAsync(node, select: pasted);
+
     }
+
+    /// <summary>Move a file or folder into a folder, keeping its open tabs open. Returns the new path, or null.</summary>
+    private async Task<string?> MoveAsync(string source, ProjectTreeNode targetNode, string folder)
+    {
+        if (!ReleaseOpenDocuments(source, out var reopen))
+            return null;
+
+        string moved;
+        try
+        {
+            moved = await Task.Run(() => FileOperations.Paste(source, folder, move: true));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Reopen(reopen, source, source);
+            Status($"Couldn't move: {ex.Message}");
+            return null;
+        }
+
+        Reopen(reopen, source, moved);
+        await ReloadAsync(FindNode(source) ?? targetNode);
+        await ReloadAsync(targetNode, select: moved);
+        return moved;
+    }
+
+    /// <summary>Whether a dragged node can be dropped on target (a folder, or a file meaning its folder).</summary>
+    public bool CanDrop(ProjectTreeNode dragged, ProjectTreeNode target)
+        => CanChange(dragged)
+           && FolderFor(target) is { } folder
+           && !FileOperations.IsSameOrInside(folder, dragged.FullPath)                          // not into itself
+           && Path.GetDirectoryName(dragged.FullPath) != Path.TrimEndingDirectorySeparator(folder); // not where it is
+
+    /// <summary>A node dropped on another in the explorer: ask, then move it.</summary>
+    public async Task DropAsync(ProjectTreeNode dragged, ProjectTreeNode target)
+    {
+        if (!CanDrop(dragged, target) || FolderFor(target) is not { } folder)
+            return;
+        var source = dragged.FullPath;
+        if (source.EndsWith(".axaml.cs", StringComparison.OrdinalIgnoreCase) && File.Exists(source[..^3]))
+            source = source[..^3];   // the code-behind goes with its .axaml, never alone
+        await MoveWithNamespacesAsync(source, target, folder, alwaysAsk: true);
+    }
+
+    /// <summary>
+    /// Move, with Rider's "update namespaces": work out what the move would change in the code (NamespaceMove), ask
+    /// (always for a drag; for Paste only when there are namespaces to update), move, then update them if wanted.
+    /// Returns the new path, or null if it wasn't moved.
+    /// </summary>
+    private async Task<string?> MoveWithNamespacesAsync(string source, ProjectTreeNode targetNode, string folder, bool alwaysAsk)
+    {
+        var root = Workspace.Roots.FirstOrDefault()?.FullPath is { } workspace ? FolderOf(workspace) : folder;
+        var openTexts = openDocuments.Documents.ToDictionary(
+            document => Path.GetFullPath(document.Path), document => document.Document.Text, StringComparer.Ordinal);
+        IReadOnlyList<NamespaceFileUpdate> updates;
+        try
+        {
+            updates = await Task.Run(() => NamespaceMove.Plan(source, folder, root, openTexts));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            updates = [];   // still offer the move itself
+        }
+
+        var choice = MoveChoice.Move;
+        if (alwaysAsk || updates.Count > 0)
+        {
+            var codeBehind = FileOperations.CodeBehindOf(source) is null ? "" : " and its code-behind";
+            var from = Path.GetFileName(Path.GetDirectoryName(source));
+            var changes = updates   // each file, then what changes in it
+                .SelectMany(update => update.Changes.Select(change => "    " + change).Prepend(Path.GetRelativePath(root, update.Path)))
+                .ToList();
+            choice = await dialogs.ConfirmMoveAsync(
+                $"Move '{Path.GetFileName(source)}'{codeBehind} from '{from}' to '{Path.GetFileName(folder)}'?", changes);
+            if (choice == MoveChoice.Cancel)
+                return null;
+        }
+
+        var moved = await MoveAsync(source, targetNode, folder);
+        if (moved is not null && choice == MoveChoice.MoveAndUpdateNamespaces)
+            ApplyNamespaceUpdates(updates);
+        return moved;
+    }
+
+    /// <summary>
+    /// Write the namespace updates. The files on disk have already moved, so the project only builds again once the
+    /// updates are saved too: closed files are written, and open ones are saved unless they already had unsaved
+    /// edits of yours (those are changed and left for you to save). A file that changed since the plan was made is
+    /// left alone.
+    /// </summary>
+    private void ApplyNamespaceUpdates(IReadOnlyList<NamespaceFileUpdate> updates)
+    {
+        var paths = updates.Select(update => update.Path).ToHashSet(StringComparer.Ordinal);
+        var cleanBefore = openDocuments.Documents
+            .Where(document => !document.IsDirty && !document.IsReadOnly && paths.Contains(Path.GetFullPath(document.Path)))
+            .ToList();
+
+        var plan = new WorkspaceReplacePlan(
+            [.. updates.Select(update => new WorkspaceFileReplacement(update.Path, update.OriginalText, update.UpdatedText, update.Changes.Count))],
+            updates.Sum(update => update.Changes.Count),
+            LimitReached: false);
+        var open = openDocuments.Documents.ToDictionary(
+            document => Path.GetFullPath(document.Path), document => (ITextBuffer)document, StringComparer.Ordinal);
+        var summary = new WorkspaceSearchService().ApplyReplacePlan(plan, open);
+        foreach (var document in cleanBefore.Where(document => document.IsDirty))
+        {
+            try
+            {
+                openDocuments.Save(document);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Status($"Couldn't save '{document.Title}': {ex.Message}");
+            }
+        }
+        Status(summary.FailedFiles == 0
+            ? $"Updated namespaces in {summary.ReplacedFiles} file(s)."
+            : $"Updated namespaces in {summary.ReplacedFiles} file(s); {summary.FailedFiles} changed in the meantime and were left as they were.");
+    }
+
 
     [RelayCommand]
     private async Task Rename(ProjectTreeNode? node)
@@ -244,6 +363,8 @@ public sealed partial class ExplorerViewModel
     private bool ReleaseOpenDocuments(string path, out (List<string> Paths, string? Active) reopen)
     {
         var open = DocumentsUnder(path);
+        if (FileOperations.CodeBehindOf(path) is { } codeBehind)
+            open.AddRange(DocumentsUnder(codeBehind));   // it moves with the .axaml (Reopen maps it to the new place)
         reopen = (open.Select(document => document.Path).ToList(), open.Contains(openDocuments.Active!) ? openDocuments.Active!.Path : null);
         if (open.FirstOrDefault(document => document.IsDirty) is { } unsaved)
         {
@@ -284,4 +405,5 @@ public sealed partial class ExplorerViewModel
         if (select is not null && reloaded is not null && WorkspaceViewModel.FindByPath(reloaded, select) is { } selected)
             Workspace.SelectedNode = selected;
     }
+
 }

@@ -14,7 +14,7 @@ namespace AXamlIDE.Views;
 /// <summary>
 /// The pixels half of the preview: shows the frame, sizes the image, and owns zoom /
 /// fit-to-viewport / Ctrl+wheel, all of which need this control's bounds and render scaling.
-/// DataContext must be the PreviewPaneViewModel. There is one, moved into the selected AXAML tab by DockViewCache.
+/// DataContext must be the tab's own PreviewPaneViewModel (set once by DocumentView).
 ///
 /// Zoom: the drop-down picks a preset (or a fit mode); you can also type a value, and Ctrl+wheel moves it
 /// <see cref="WheelStepPercent"/> points per notch. The choice is remembered per file by the view model.
@@ -66,7 +66,6 @@ public partial class PreviewPaneView : UserControl
         if (_viewModel is not null)
         {
             _viewModel.FrameChanged -= OnFrameChanged;
-            _viewModel.DocumentChanged -= OnPreviewedDocumentChanged;
         }
 
         _viewModel = DataContext as PreviewPaneViewModel;
@@ -74,12 +73,13 @@ public partial class PreviewPaneView : UserControl
         if (_viewModel is not null)
         {
             _viewModel.FrameChanged += OnFrameChanged;
-            _viewModel.DocumentChanged += OnPreviewedDocumentChanged;
             _viewModel.SelectedTheme = GetComboBoxSelection(PreviewThemeComboBox) ?? "No theme";
 
-            // Connected after the tab switch: catch up with the frame and this file's zoom.
+            // Catch up with the frame it may already have, and the zoom chosen for the file.
             OnFrameChanged(_viewModel.CurrentFrame);
-            OnPreviewedDocumentChanged();
+            SetZoom(_viewModel.Zoom ?? DefaultZoom, remember: false);
+            _zoomApplyTimer.Stop();
+            _ = ApplyZoomAsync();
         }
     }
 
@@ -103,17 +103,6 @@ public partial class PreviewPaneView : UserControl
 
         if (IsFitZoom(_zoom))
             QueuePreviewFit();
-    }
-
-    /// <summary>Another file is previewed: bring back the zoom chosen for it.</summary>
-    private void OnPreviewedDocumentChanged()
-    {
-        if (_viewModel?.Document is not { } document)
-            return;
-
-        SetZoom(_viewModel.ZoomFor(document) ?? DefaultZoom, remember: false);
-        _zoomApplyTimer.Stop();
-        _ = ApplyZoomAsync();
     }
 
     // ---------------------------------------------------------------- zoom input
@@ -187,8 +176,8 @@ public partial class PreviewPaneView : UserControl
             _settingZoomBox = false;
         }
 
-        if (remember && _viewModel?.Document is { } document)
-            _viewModel.RememberZoom(document, zoom);
+        if (remember && _viewModel is not null)
+            _viewModel.Zoom = zoom;
     }
 
     // ---------------------------------------------------------------- applying it

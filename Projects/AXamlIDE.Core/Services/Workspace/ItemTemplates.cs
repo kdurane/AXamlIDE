@@ -217,10 +217,20 @@ public static partial class ItemTemplates
     /// plus the folders below it, as Visual Studio names them; just the folder's name outside a project.
     /// </summary>
     public static string NamespaceFor(string folder)
+        => ProjectNamespaceFor(folder)
+           ?? SafeIdentifier(Path.GetFileName(Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar)));
+
+    /// <summary>
+    /// Like <see cref="NamespaceFor"/>, but null when the folder isn't in a project. The folder doesn't have to exist
+    /// yet (where a folder is about to be moved to).
+    /// </summary>
+    public static string? ProjectNamespaceFor(string folder)
     {
         folder = Path.GetFullPath(folder);
         for (var dir = new DirectoryInfo(folder); dir is not null; dir = dir.Parent)
         {
+            if (!dir.Exists)
+                continue;
             var project = dir.EnumerateFiles("*.csproj").FirstOrDefault();
             if (project is null)
                 continue;
@@ -231,7 +241,7 @@ public static partial class ItemTemplates
             var parts = below == "." ? [] : below.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
             return string.Join(".", new[] { root }.Concat(parts).Select(SafeIdentifier));
         }
-        return SafeIdentifier(Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar)));
+        return null;
     }
 
     private static string SafeIdentifier(string part)

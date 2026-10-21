@@ -59,7 +59,8 @@ public static class FileOperations
             return source;   // cut and pasted back where it was
 
         var target = Path.Combine(targetFolder, Path.GetFileName(source));
-        if (Exists(target))
+        var codeBehind = CodeBehindOf(source);
+        if (Exists(target) || (codeBehind is not null && Exists(target + ".cs")))
         {
             if (move)
                 throw new IOException($"'{Path.GetFileName(source)}' already exists in '{Path.GetFileName(targetFolder)}'.");
@@ -77,6 +78,16 @@ public static class FileOperations
             CopyFolder(source, target);
         else
             File.Copy(source, target);
+
+
+        if (codeBehind is not null)
+        {
+            if (move)
+                File.Move(codeBehind, target + ".cs");
+            else
+                File.Copy(codeBehind, target + ".cs");
+        }
+
         return target;
     }
 
@@ -141,6 +152,16 @@ public static class FileOperations
         var comparison = OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         return path.Equals(folder, comparison) || path.StartsWith(folder + Path.DirectorySeparatorChar, comparison);
     }
+
+    /// <summary>
+    /// An .axaml file's code-behind (MyView.axaml.cs), which goes wherever the .axaml goes, as in Visual Studio.
+    /// Null when the path isn't an .axaml file or has no code-behind.
+    /// </summary>
+    public static string? CodeBehindOf(string path)
+        => path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase) && File.Exists(path + ".cs")
+            ? path + ".cs"
+            : null;
+
 
     private static bool Exists(string path) => File.Exists(path) || Directory.Exists(path);
 

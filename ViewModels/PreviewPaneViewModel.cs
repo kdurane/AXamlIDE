@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,7 +6,6 @@ using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
-using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,51 +14,62 @@ using CommunityToolkit.Mvvm.Messaging;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// Everything about the AXAML preview that isn't pixels: the designer-host processes, the
-/// target, the 300ms debounce, the theme wrapper, and the status message.
+/// One AXAML tab's preview, everything that isn't pixels: its designer-host process, the target, the 300ms
+/// debounce, the theme wrapper, the zoom chosen for it, and the status message. Raises FrameChanged when there
+/// is a new frame. Zoom, fit-to-viewport and image sizing need the control's bounds and render scaling, so
+/// those stay in PreviewPaneView.
 ///
-/// It follows the selected tab and raises FrameChanged when there is a new frame. Zoom, fit-to-viewport
-/// and image sizing need the control's bounds and render scaling, so those stay in PreviewPaneView;
-/// the zoom chosen for each file is remembered here (<see cref="ZoomFor"/>).
+/// Every AXAML tab has its own (made by <see cref="PreviewSessions"/>), so each tab keeps showing its own
+/// preview whichever tab is selected, even when it's dragged out to another window. Its host starts when the
+/// tab is first shown and is killed when the tab closes (as Avalonia's own Visual Studio and VS Code
+/// extensions do). A host compiles every update it is sent and never frees that memory, so a host per file
+/// keeps the cost to the file's lifetime. Updates run one at a time and only the newest one counts.
 ///
-/// Each open AXAML file gets its own designer host, started when the file is first previewed and killed
-/// when its tab closes (as Avalonia's own Visual Studio and VS Code extensions do). A host compiles every
-/// update it is sent and never frees that memory, so a host per file keeps the cost to the file's
-/// lifetime. A file's host keeps running while other tabs are in front, so coming back shows its last
-/// frame straight away, and its XAML is only sent again if it changed. Updates run one at a time and
-/// only the newest one counts, so quick tab switches can't leave a host half-started.
+/// A file edited for a long time still grows its host (every update keeps another preview window alive in
+/// there), so after <see cref="RecycleAfterUpdates"/> updates a fresh host is started alongside, given the same
+/// XAML and zoom, and swapped in once it has drawn; the old one shows its picture until then.
 /// </summary>
 public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 {
-    private const string IdleMessage = "Open an Avalonia AXAML file to start previewing.";
+    /// <summary>About 3 MB of host memory per update for a small file; more for a big one.</summary>
+    private const int RecycleAfterUpdates = 100;
+    private static readonly TimeSpan ReplacementFirstFrameTimeout = TimeSpan.FromSeconds(30);
 
     private readonly XamlLanguageService _xaml;
+    private readonly IMessenger _messenger;
 
     private readonly DispatcherTimer _previewUpdateTimer =
         new() { Interval = TimeSpan.FromMilliseconds(300) };
 
     private readonly SemaphoreSlim _updateGate = new(1, 1);
-    private readonly IMessenger _messenger;
-    private readonly Dictionary<OpenDocument, PreviewSession> _sessions = [];
-    private readonly Dictionary<OpenDocument, string> _zooms = [];
-
-    private OpenDocument? _document;
-    private TextDocument? _hookedDocument;
     private int _requestVersion;
 
-    private string _message = IdleMessage;
+    // The designer host and what it was last given.
+    private AvaloniaPreviewProcess _process = new();
+    private XamlPreviewTarget? _target;
+    private string? _sentXaml;
+    private int _updates;   // sent to this host since it started
+    private bool _isRecycling;
+    private bool _isDisposed;
+
+    private string _message = "Starting Avalonia preview...";
     private bool _isMessageVisible = true;
     private string _selectedTheme = "No theme";
 
-    public PreviewPaneViewModel(XamlLanguageService xaml, DocumentManager documents, IMessenger messenger)
+    public PreviewPaneViewModel(OpenDocument document, XamlLanguageService xaml, IMessenger messenger)
     {
+        Document = document;
         _xaml = xaml;
         _messenger = messenger;
-        documents.ActiveChanged += SetDocument;   // follows the front tab
-        documents.Closing += Forget;
+        Watch(_process);
 
+        document.Document.Changed += OnDocumentChanged;
         _previewUpdateTimer.Tick += OnPreviewUpdateTimer;
+        _ = UpdatePreviewAsync();
     }
+
+    /// <summary>The AXAML file this previews.</summary>
+    public OpenDocument Document { get; }
 
     /// <summary>Raised on the UI thread. Null means "clear the image".</summary>
     public event Action<RawImageData?>? FrameChanged;
@@ -74,16 +83,8 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         FrameChanged?.Invoke(frame);
     }
 
-    /// <summary>Raised when the previewed file changes (the view restores that file's zoom).</summary>
-    public event Action? DocumentChanged;
-
-    /// <summary>The AXAML file being previewed (null when the selected tab isn't one).</summary>
-    public OpenDocument? Document => IsPreviewable(_document) ? _document : null;
-
-    /// <summary>The zoom chosen for a file ("100%", "137%", "Fit All"...), or null if none was chosen yet.</summary>
-    public string? ZoomFor(OpenDocument document) => _zooms.GetValueOrDefault(document);
-
-    public void RememberZoom(OpenDocument document, string zoom) => _zooms[document] = zoom;
+    /// <summary>The zoom chosen for this file ("100%", "137%", "Fit All"...), or null if none was chosen yet.</summary>
+    public string? Zoom { get; set; }
 
     public string Message
     {
@@ -103,76 +104,24 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         get => _selectedTheme;
         set
         {
-            if (!SetProperty(ref _selectedTheme, value))
-                return;
-            if (_document is { } document && IsPreviewable(document))
-                _ = UpdatePreviewAsync(document);
+            if (SetProperty(ref _selectedTheme, value))
+                _ = UpdatePreviewAsync();
         }
     }
 
-    /// <summary>Render scaling the front file's designer host is using (zoom * display scaling).</summary>
-    public double Scaling => FrontSession?.Process.Scaling ?? 1;
+    /// <summary>Render scaling the designer host is using (zoom * display scaling).</summary>
+    public double Scaling => _process.Scaling;
 
     public static bool IsPreviewable(OpenDocument? document)
         => document?.Path.EndsWith(".axaml", StringComparison.OrdinalIgnoreCase) == true;
 
-    private PreviewSession? FrontSession => _document is { } document ? _sessions.GetValueOrDefault(document) : null;
-
-    // ----------------------------------------------------------------- input
-
-    /// <summary>
-    /// The one input: the front tab changed (null = no tab). Non-AXAML documents show the idle message;
-    /// AXAML documents start/refresh their own host and are watched for text changes.
-    /// </summary>
-    private void SetDocument(OpenDocument? document)
-    {
-        if (ReferenceEquals(document, _document))
-            return;
-        _hookedDocument?.Changed -= OnDocumentChanged;
-        _hookedDocument = null;
-
-        _document = document;
-        _previewUpdateTimer.Stop();
-        if (IsPreviewable(document) && !_sessions.ContainsKey(document!))
-            _sessions[document!] = NewSession(document!);   // before DocumentChanged: the view sets its zoom on it
-        DocumentChanged?.Invoke();
-
-        if (!IsPreviewable(document))
-        {
-            ShowIdle();   // the AXAML tabs' hosts keep running for when they come back
-            return;
-        }
-
-        if (_sessions[document!].LastFrame is { } lastFrame)
-        {
-            RaiseFrameChanged(lastFrame);
-            IsMessageVisible = false;
-        }
-        else
-        {
-            RaiseFrameChanged(null);
-        }
-
-        _hookedDocument = document!.Document;
-        _hookedDocument.Changed += OnDocumentChanged;
-        _ = UpdatePreviewAsync(document);
-    }
-
-    /// <summary>A tab is closing: its designer host goes with it.</summary>
-    private void Forget(OpenDocument document)
-    {
-        _zooms.Remove(document);
-        if (_sessions.Remove(document, out var session))
-            session.Dispose();
-    }
-
     public async Task SetScalingAsync(double scaling)
     {
-        if (FrontSession is not { } session)
+        if (_isDisposed)
             return;
         try
         {
-            await session.Process.SetScalingAsync(scaling);   // kept for its start if it isn't running yet
+            await _process.SetScalingAsync(scaling);   // kept for its start if it isn't running yet
         }
         catch (Exception ex)
         {
@@ -182,16 +131,15 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>The tab closed (or the app is exiting): its designer host goes with it.</summary>
     public void Dispose()
     {
+        if (_isDisposed)
+            return;
+        _isDisposed = true;
         _previewUpdateTimer.Stop();
-        _hookedDocument?.Changed -= OnDocumentChanged;
-        _hookedDocument = null;
-
-        foreach (var session in _sessions.Values)
-            session.Dispose();
-        _sessions.Clear();
-        _updateGate.Dispose();
+        Document.Document.Changed -= OnDocumentChanged;
+        _process.Dispose();
     }
 
     // ------------------------------------------------------------ the logic
@@ -205,71 +153,66 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     private void OnPreviewUpdateTimer(object? sender, EventArgs e)
     {
         _previewUpdateTimer.Stop();
-        if (_document is { } document)
-            _ = UpdatePreviewAsync(document);
-    }
-
-    private void ShowIdle()
-    {
-        RaiseFrameChanged(null);
-        Message = IdleMessage;
-        IsMessageVisible = true;
+        _ = UpdatePreviewAsync();
     }
 
     private string GetPreviewXaml(string xaml) => PreviewThemeVariant.Apply(xaml, SelectedTheme);
 
     /// <summary>
-    /// Send the document to its designer host (starting it first if needed), unless the host already has
+    /// Send the document to the designer host (starting it first if needed), unless the host already has
     /// this text. One at a time: a request that is no longer the newest by the time it gets its turn (or
     /// after any await) gives up.
     /// </summary>
-    private async Task UpdatePreviewAsync(OpenDocument document)
+    private async Task UpdatePreviewAsync()
     {
+        if (_isDisposed)
+            return;
         var version = ++_requestVersion;
-        bool IsStale() => version != _requestVersion || !ReferenceEquals(document, _document);
+        bool IsStale() => version != _requestVersion || _isDisposed;
 
         await _updateGate.WaitAsync();
-        PreviewSession? session = null;
         try
         {
-            if (IsStale() || !IsPreviewable(document) || !_sessions.TryGetValue(document, out session))
-                return;
-
-            var xaml = GetPreviewXaml(document.Document.Text);
-            if (session.Process.IsReady && xaml == session.SentXaml)
-                return;   // coming back to a tab whose host already shows this text
-
-            Message = "Starting Avalonia preview...";
-            IsMessageVisible = session.LastFrame is null;
-
-            var target = await _xaml.GetPreviewTargetAsync(document.Path);
             if (IsStale())
                 return;
 
-            if (!session.Process.IsReady || target != session.Target)
+            var xaml = GetPreviewXaml(Document.Document.Text);
+            if (_process.IsReady && xaml == _sentXaml)
+                return;   // the host already shows this text
+
+            Message = "Starting Avalonia preview...";
+            IsMessageVisible = CurrentFrame is null;
+
+            var target = await _xaml.GetPreviewTargetAsync(Document.Path);
+            if (IsStale())
+                return;
+
+            if (!_process.IsReady || target != _target)
             {
-                session.Process.Stop();
-                session.Target = target;
-                session.SentXaml = null;
+                _process.Stop();
+                _target = target;
+                _sentXaml = null;
+                _updates = 0;
                 Message = "Connecting to the Avalonia designer host...";
-                IsMessageVisible = session.LastFrame is null;
-                await session.Process.StartAsync(target);
+                IsMessageVisible = CurrentFrame is null;
+                await _process.StartAsync(target);
                 if (IsStale())
                     return;
             }
 
-            await session.Process.UpdateXamlAsync(target.XamlAssemblyPath, document.Path, xaml);
-            session.SentXaml = xaml;
+            await _process.UpdateXamlAsync(target.XamlAssemblyPath, Document.Path, xaml);
+            _sentXaml = xaml;
+            if (++_updates >= RecycleAfterUpdates)
+                _ = RecycleAsync();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[preview] {ex}");
-            if (!IsStale() && session is not null && !session.IsDisposed)
+            if (!IsStale())
             {
-                session.Process.Stop();
-                session.Target = null;
-                session.SentXaml = null;
-                session.LastFrame = null;
+                _process.Stop();
+                _target = null;
+                _sentXaml = null;
                 RaiseFrameChanged(null);
                 Message = $"Preview unavailable: {ex.Message}";
                 IsMessageVisible = true;
@@ -281,21 +224,76 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         }
     }
 
-    private PreviewSession NewSession(OpenDocument document)
+    /// <summary>A host's frames and errors count only while it is the host (not a replacement warming up, or one swapped out).</summary>
+    private void Watch(AvaloniaPreviewProcess process)
     {
-        var session = new PreviewSession(document);
-        session.Process.FrameReceived += frame => Dispatcher.UIThread.Post(() => OnFrameReceived(session, frame));
-        session.Process.ErrorChanged += error => Dispatcher.UIThread.Post(() => OnErrorChanged(session, error));
-        return session;
+        process.FrameReceived += frame => Dispatcher.UIThread.Post(() =>
+        {
+            if (ReferenceEquals(_process, process))
+                OnFrameReceived(frame);
+        });
+        process.ErrorChanged += error => Dispatcher.UIThread.Post(() =>
+        {
+            if (ReferenceEquals(_process, process))
+                OnErrorChanged(error);
+        });
     }
 
-    private void OnFrameReceived(PreviewSession session, RawImageData? frame)
+    /// <summary>
+    /// Start a fresh host alongside the old one, give it what the old one was last sent, and swap it in once it
+    /// has drawn. If anything goes wrong the old host just carries on, and it's tried again after another half a
+    /// recycle's worth of updates (not on every keystroke).
+    /// </summary>
+    private async Task RecycleAsync()
     {
-        if (session.IsDisposed)
+        if (_isRecycling || _target is not { } target || _sentXaml is not { } xaml)
+            return;
+        _isRecycling = true;
+        var replacement = new AvaloniaPreviewProcess();
+        Watch(replacement);
+        var firstFrame = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        replacement.FrameReceived += frame =>
+        {
+            if (frame is not null)
+                firstFrame.TrySetResult();
+        };
+
+        try
+        {
+            await replacement.SetScalingAsync(_process.Scaling);
+            await replacement.StartAsync(target);
+            await replacement.UpdateXamlAsync(target.XamlAssemblyPath, Document.Path, xaml);
+            await firstFrame.Task.WaitAsync(ReplacementFirstFrameTimeout);
+            if (_isDisposed || !ReferenceEquals(_target, target))
+            {
+                replacement.Dispose();   // the tab closed, or its host was restarted for another target meanwhile
+                return;
+            }
+
+            await replacement.SetScalingAsync(_process.Scaling);   // in case the zoom changed while it started
+            var old = _process;
+            _process = replacement;
+            _sentXaml = xaml;
+            _updates = 1;
+            old.Dispose();
+            _ = UpdatePreviewAsync();   // edits made while it started go to the new host
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[preview] Couldn't replace the designer host: {ex}");
+            replacement.Dispose();
+            _updates = RecycleAfterUpdates / 2;
+        }
+        finally
+        {
+            _isRecycling = false;
+        }
+    }
+
+    private void OnFrameReceived(RawImageData? frame)
+    {
+        if (_isDisposed)
             return;   // a late frame from a closed tab's host
-        session.LastFrame = frame;
-        if (!ReferenceEquals(session.Document, _document))
-            return;   // kept for when its tab comes back
 
         RaiseFrameChanged(frame);
         IsMessageVisible = frame is null;
@@ -307,34 +305,17 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     /// The details go to the Problems tab (they can be long, and need the line); the preview only says there's
     /// an error. A successful update clears the problem.
     /// </summary>
-    private void OnErrorChanged(PreviewSession session, PreviewError? error)
+    private void OnErrorChanged(PreviewError? error)
     {
-        if (session.IsDisposed)
+        if (_isDisposed)
             return;
-        _messenger.Send(new PreviewProblemMessage(session.Document, error));
-        if (error is null || !ReferenceEquals(session.Document, _document))
+        _messenger.Send(new PreviewProblemMessage(Document, error));
+        if (error is null)
             return;
 
         Message = error.Line is { } line
             ? $"The XAML has an error on line {line}: see the Problems tab."
             : "The XAML has an error: see the Problems tab.";
         IsMessageVisible = true;
-    }
-
-    /// <summary>One open AXAML file's designer host, the target it runs, and what it was sent and last drew.</summary>
-    private sealed class PreviewSession(OpenDocument document) : IDisposable
-    {
-        public OpenDocument Document { get; } = document;
-        public AvaloniaPreviewProcess Process { get; } = new();
-        public XamlPreviewTarget? Target { get; set; }
-        public string? SentXaml { get; set; }
-        public RawImageData? LastFrame { get; set; }
-        public bool IsDisposed { get; private set; }
-
-        public void Dispose()
-        {
-            IsDisposed = true;
-            Process.Dispose();
-        }
     }
 }

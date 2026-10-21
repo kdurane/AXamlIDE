@@ -88,7 +88,7 @@
     <SolidColorBrush Color="{DynamicResource tab.border}" x:Key="DockTabActiveIndicatorBrush" />
 
     <!--  Hover and selection  -->
-    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="DockTabHoverBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource app.tab.hoverBackground}" x:Key="DockTabHoverBackgroundBrush" />
     <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="TreeViewItemBackgroundPointerOver" />
     <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="ListBoxItemBackgroundPointerOver" />
     <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="ComboBoxItemBackgroundPointerOver" />

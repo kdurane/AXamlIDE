@@ -152,6 +152,7 @@
                             <DataTemplate x:DataType="codeLens:ReferenceRow">
                                 <Grid ColumnDefinitions="Auto,*">
                                     <TextBlock
+                                    FontSize="11"
                                         Margin="0,0,16,0"
                                         Opacity="0.75"
                                         Text="{Binding Place}" />

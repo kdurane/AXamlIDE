@@ -334,6 +334,81 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
     // ---------------------------------------------------------------- confirm
 
+    public async Task<MoveChoice> ConfirmMoveAsync(string message, IReadOnlyList<string> namespaceChanges)
+    {
+        var choice = MoveChoice.Cancel;
+        var updateNamespaces = new CheckBox
+        {
+            Content = "Update namespaces and references",
+            IsChecked = true
+        };
+        var changes = new Border
+        {
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(8, 6),
+            Child = new ScrollViewer
+            {
+                MaxHeight = 240,
+                Content = new SelectableTextBlock
+                {
+                    Text = string.Join(Environment.NewLine, namespaceChanges),
+                    FontSize = 12,
+                    TextWrapping = TextWrapping.Wrap
+                }
+            }
+        };
+        changes.Bind(Border.BorderBrushProperty, changes.GetResourceObservable("DockBorderSubtleBrush"));
+        updateNamespaces.IsCheckedChanged += (_, _) => changes.IsVisible = updateNamespaces.IsChecked == true;
+
+        Window? dialog = null;
+        var content = new StackPanel { Margin = new Thickness(16), Spacing = 12 };
+        content.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap });
+        if (namespaceChanges.Count > 0)
+        {
+            content.Children.Add(updateNamespaces);
+            content.Children.Add(changes);
+            content.Children.Add(new TextBlock
+            {
+                Text = "Changed files are saved, except open ones with unsaved edits of yours: those are changed and left for you to save.",
+                TextWrapping = TextWrapping.Wrap,
+                Opacity = 0.7,
+                FontSize = 12
+            });
+        }
+        content.Children.Add(new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { MakeButton("Move", accept: true), MakeButton("Cancel", accept: false) }
+        });
+
+        dialog = new Window
+        {
+            Title = "Move",
+            Width = namespaceChanges.Count > 0 ? 620 : 440,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = content
+        };
+        await dialog.ShowDialog(Owner);
+        return choice;
+
+        Button MakeButton(string text, bool accept)
+        {
+            var button = new Button { Content = text, MinWidth = 90 };
+            button.Click += (_, _) =>
+            {
+                choice = !accept ? MoveChoice.Cancel
+                    : namespaceChanges.Count > 0 && updateNamespaces.IsChecked == true ? MoveChoice.MoveAndUpdateNamespaces
+                    : MoveChoice.Move;
+                dialog?.Close();
+            };
+            return button;
+        }
+    }
+
     public async Task<bool> ConfirmAsync(string title, string message, string confirmText)
     {
         var confirmed = false;

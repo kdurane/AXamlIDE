@@ -10,18 +10,17 @@ namespace AXamlIDE.Views;
 /// The view of one document tab (DataContext: <see cref="DocumentDockable"/>): its own editor and, for
 /// AXAML files, a preview area laid out by the tab's <see cref="PreviewMode"/> and <see cref="PreviewSplit"/>.
 ///
-/// There is one live preview (one designer host) and one outline in the app, and they follow the selected
-/// tab. Each tab has its own preview view and outline drop-down, but only the selected tab's are connected
-/// to the shared view models (DockViewCache calls <see cref="Connect"/> / <see cref="Disconnect"/>).
-/// Controls are never moved between tabs, because a tab can be in another window and Avalonia doesn't
-/// allow a control to change window while its layout is pending. Other AXAML tabs keep their layout and
-/// show a placeholder. The bar above the editor only takes space when it has something to show.
+/// Each AXAML tab has its own preview (its own view model and designer host, from PreviewSessions), so it keeps
+/// showing whichever tab is selected, even dragged out to another window. There is one outline in the app,
+/// and it follows the selected tab: only the selected tab's drop-down is connected to it (DockViewCache calls
+/// <see cref="Connect"/> / <see cref="Disconnect"/>). Controls are never moved between tabs, because a tab can
+/// be in another window and Avalonia doesn't allow a control to change window while its layout is pending.
+/// The bar above the editor only takes space when it has something to show.
 /// </summary>
 public partial class DocumentView : UserControl
 {
     private readonly DocumentDockable _tab = null!;
     private OutlineView? _outline;
-    private PreviewPaneView? _preview;
 
     /// <summary>For the XAML designer only.</summary>
     public DocumentView()
@@ -29,7 +28,8 @@ public partial class DocumentView : UserControl
         InitializeComponent();
     }
 
-    public DocumentView(DocumentDockable tab, EditorServices services)
+    /// <param name="preview">This tab's preview; null when it isn't an AXAML file.</param>
+    public DocumentView(DocumentDockable tab, EditorServices services, PreviewPaneViewModel? preview)
     {
         InitializeComponent();
         _tab = tab;
@@ -40,6 +40,9 @@ public partial class DocumentView : UserControl
         Editor.SetDocument(tab.Document);
         EditorHost.Content = Editor;
 
+        if (preview is not null)
+            PreviewHost.Content = new PreviewPaneView { DataContext = preview };
+
         tab.PropertyChanged += OnTabPropertyChanged;
         ApplyLayout();
         UpdateBarVisibility();
@@ -47,8 +50,8 @@ public partial class DocumentView : UserControl
 
     public EditorPaneView Editor { get; } = null!;
 
-    /// <summary>This tab is selected: connect its outline (and, for AXAML, its preview) to the shared view models.</summary>
-    public void Connect(OutlineViewModel outline, PreviewPaneViewModel preview)
+    /// <summary>This tab is selected: connect its outline drop-down to the shared outline.</summary>
+    public void Connect(OutlineViewModel outline)
     {
         if (_outline is null)
         {
@@ -58,24 +61,14 @@ public partial class DocumentView : UserControl
         }
         _outline.DataContext = outline;
         OutlineHost.IsVisible = true;
-
-        if (_tab.IsPreviewable)
-        {
-            _preview ??= new PreviewPaneView();
-            _preview.DataContext = preview;
-            PreviewHost.Content = _preview;
-        }
-
         UpdateBarVisibility();
     }
 
-    /// <summary>Another tab is selected: disconnect (so this tab's views stop following it) and show the placeholder.</summary>
+    /// <summary>Another tab is selected: disconnect the outline drop-down (so it stops following the selected tab).</summary>
     public void Disconnect()
     {
         OutlineHost.IsVisible = false;   // a disconnected drop-down would show empty
         _outline?.DataContext = null;
-        _preview?.DataContext = null;
-        PreviewHost.Content = PreviewPlaceholder;
         UpdateBarVisibility();
     }
 
@@ -140,8 +133,7 @@ public partial class DocumentView : UserControl
         CodeButton.IsChecked = mode == PreviewMode.Code;
         SplitButton.IsChecked = mode == PreviewMode.Split;
         DesignButton.IsChecked = mode == PreviewMode.Design;
-        // SplitDirectionButton.Content = stacked ? "⇆" : "⇅";   // ⇆ / ⇅: what the click switches to
-        SplitDirectionButtonIcon.Data = stacked ? IconResources.Get(this, "Icon.ArrowLeftRight") : IconResources.Get(this, "Icon.ArrowUpDown");
+        SplitDirectionButton.Classes.Set("stacked", stacked);
         ToolTip.SetTip(SplitDirectionButton, stacked ? "Show code and preview side by side" : "Show code and preview stacked");
         SwapSidesButton.IsEnabled = mode == PreviewMode.Split;
         ToolTip.SetTip(SwapSidesButton, stacked

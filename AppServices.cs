@@ -75,7 +75,7 @@ public static class AppServices
         services.AddSingleton<LanguageSessionService>();
 
         // ---- view models
-        services.AddSingleton<PreviewPaneViewModel>();
+        services.AddSingleton<PreviewSessions>();          // each AXAML tab's preview and designer host
         services.AddSingleton<WorkspaceViewModel>();
         services.AddSingleton<ExplorerViewModel>();
         services.AddSingleton<GitTreeDecorator>();

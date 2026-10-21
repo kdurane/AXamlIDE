@@ -13,11 +13,17 @@
             <Setter Property="Padding" Value="8,2" />
             <Setter Property="Margin" Value="0" />
         </Style>
+        <Style Selector="Button#SplitDirectionButton PathIcon">
+            <Setter Property="Data" Value="{StaticResource Icon.ArrowUpDown}" />
+        </Style>
+        <Style Selector="Button#SplitDirectionButton.stacked PathIcon">
+            <Setter Property="Data" Value="{StaticResource Icon.ArrowLeftRight}" />
+        </Style>
     </UserControl.Styles>
 
     <!--
-        One document tab: a bar (the outline drop-down while this is the selected tab; the preview buttons for AXAML),
-        its editor and, for AXAML, the preview (code only / split / design only).
+    One document tab: a bar (the outline drop-down while this is the selected tab; the preview buttons for AXAML),
+    its editor and, for AXAML, the preview (code only / split / design only).
     -->
     <DockPanel>
         <Border
@@ -53,16 +59,16 @@
                     <Button
                         Command="{Binding TogglePreviewSplitCommand}"
                         Margin="6,0,0,0"
-                        Name="SplitDirectionButton">                        
-                        </Button>
-                        <PathIcon Data="{StaticResource Icon.ArrowUpDown}" Name="SplitDirectionButtonIcon"/>
+                        Name="SplitDirectionButton">
+                        <PathIcon Width="15" Height="15" Name="SplitDirectionButtonIcon"/>
+                    </Button>
                     <Button
                         Command="{Binding SwapPreviewSideCommand}"
                         Name="SwapSidesButton">
-                        <PathIcon  Data="{StaticResource Icon.ArrowLeftRight}"/>
-                        </Button>
+                        <PathIcon Width="15" Height="15" Data="{StaticResource Icon.ArrowLeftRight}"/>
+                    </Button>
                 </StackPanel>
-                <ContentControl HorizontalAlignment="Left" Name="OutlineHost" />
+                <ContentControl HorizontalAlignment="Right" Name="OutlineHost" />
             </DockPanel>
         </Border>
 
@@ -74,15 +80,8 @@
                 Name="Splitter"
                 ResizeBehavior="PreviousAndNext"
                 ShowsPreview="False" />
-            <ContentControl Name="PreviewHost">
-                <TextBlock
-                    HorizontalAlignment="Center"
-                    Name="PreviewPlaceholder"
-                    Opacity="0.7"
-                    Text="The preview follows the selected tab. Click in this tab to preview it."
-                    TextWrapping="Wrap"
-                    VerticalAlignment="Center" />
-            </ContentControl>
+            <!--  This tab's own preview (PreviewPaneView), set in code-behind for AXAML files.  -->
+            <ContentControl Name="PreviewHost" />
         </Grid>
     </DockPanel>
 </UserControl>

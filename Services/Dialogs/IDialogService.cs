@@ -22,6 +22,12 @@ public interface IDialogService
 
     /// <summary>A yes/no question; true if the user chose <paramref name="confirmText"/>.</summary>
     Task<bool> ConfirmAsync(string title, string message, string confirmText);
+    /// <summary>
+    /// "Move X from A to B?", with Rider's "update namespaces" check box (ticked) and the list of what it changes
+    /// (one line each, shown as given) when <paramref name="namespaceChanges"/> isn't empty.
+    /// </summary>
+    Task<MoveChoice> ConfirmMoveAsync(string message, IReadOnlyList<string> namespaceChanges);
+
     Task<bool> ConfirmRenameAsync(IReadOnlyDictionary<string, List<(LspRange Range, string NewText)>> changes);
     Task<bool> ConfirmWorkspaceReplaceAsync(WorkspaceReplacePlan plan);
 

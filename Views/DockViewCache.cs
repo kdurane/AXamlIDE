@@ -20,7 +20,7 @@ namespace AXamlIDE.Views;
 /// the same editor too ("already has a visual parent").
 ///
 /// A view is made once and moved, so a tab's editor (caret, undo, folding) survives being dragged to
-/// another tab strip or window. It also connects the selected tab's view to the live preview and outline.
+/// another tab strip or window. It also connects the selected tab's view to the outline.
 /// Everything else Dock asks for (its own dock controls) goes to Dock's normal cache.
 /// </summary>
 public sealed class DockViewCache : IControlRecycling
@@ -28,7 +28,7 @@ public sealed class DockViewCache : IControlRecycling
     private readonly EditorServices _editorServices;
     private readonly ToolPanels _toolPanels;
     private readonly DocumentManager _documents;
-    private readonly PreviewPaneViewModel _previewViewModel;
+    private readonly PreviewSessions _previews;
     private readonly OutlineViewModel _outlineViewModel;
     private readonly ControlRecycling _dockControls = new();
     private readonly Dictionary<DocumentDockable, DocumentView> _documentViews = [];
@@ -40,13 +40,13 @@ public sealed class DockViewCache : IControlRecycling
         ToolPanels toolPanels,
         DockLayoutViewModel docking,
         DocumentManager documents,
-        PreviewPaneViewModel preview,
+        PreviewSessions previews,
         OutlineViewModel outline)
     {
         _editorServices = editorServices;
         _toolPanels = toolPanels;
         _documents = documents;
-        _previewViewModel = preview;
+        _previews = previews;
         _outlineViewModel = outline;
         docking.TabRemoved += OnTabRemoved;
         documents.ActiveChanged += _ => PlaceSharedViews();
@@ -109,7 +109,7 @@ public sealed class DockViewCache : IControlRecycling
         if (_documentViews.TryGetValue(tab, out var view))
             return view;
 
-        view = new DocumentView(tab, _editorServices);
+        view = new DocumentView(tab, _editorServices, tab.IsPreviewable ? _previews.For(tab.Document) : null);
         _documentViews[tab] = view;
         PlaceSharedViews();
         return view;
@@ -155,7 +155,7 @@ public sealed class DockViewCache : IControlRecycling
         view.Shutdown();
     }
 
-    /// <summary>Connect the selected tab's view to the outline and live preview, and disconnect the last one.</summary>
+    /// <summary>Connect the selected tab's view to the outline, and disconnect the last one.</summary>
     private void PlaceSharedViews()
     {
         DocumentView? selected = null;
@@ -168,7 +168,7 @@ public sealed class DockViewCache : IControlRecycling
 
         _connected?.Disconnect();
         _connected = selected;
-        selected?.Connect(_outlineViewModel, _previewViewModel);
+        selected?.Connect(_outlineViewModel);
     }
 
     // ---------------------------------------------------------------- helpers

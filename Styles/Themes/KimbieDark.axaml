@@ -93,6 +93,8 @@
 
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#3C352B</Color>
+    <!--  Ours: tab.inactiveBackground mixed a little towards tab.inactiveForeground (a hovered tab).  -->
+    <Color x:Key="app.tab.hoverBackground">#232420</Color>
     <Color x:Key="app.panelHeader.activeBackground">#332C22</Color>
 
     <!--  Ours: the preview's design grid, a blue that shows on light and dark previews.  -->
