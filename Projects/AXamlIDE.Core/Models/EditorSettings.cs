@@ -1,3 +1,4 @@
+using AXamlIDE.Services.Keymaps;
 using TextMateSharp.Grammars;
 
 namespace AXamlIDE.Models;
@@ -13,4 +14,7 @@ public sealed record EditorSettings
     public bool HighlightCurrentLine { get; init; } = true;
     public bool SolutionExplorerOnRight { get; init; }
     public bool FormatOnSave { get; init; }
+
+    /// <summary>The keyboard mapping scheme (Services/Keymaps/&lt;id&gt;.json).</summary>
+    public string KeymapId { get; init; } = KeymapLibrary.DefaultId;
 }

@@ -28,6 +28,7 @@
     <ItemGroup>
         <!-- The built-in code snippets (SnippetLibrary), in VS Code's snippet file format. -->
         <EmbeddedResource Include="Services/Snippets/*.json" LogicalName="AXamlIDE.Snippets.%(Filename).json" />
+        <EmbeddedResource Include="Services/Keymaps/*.json" LogicalName="AXamlIDE.Keymaps.%(Filename).json" />
     </ItemGroup>
 
     <ItemGroup>

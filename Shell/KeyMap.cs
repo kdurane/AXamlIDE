@@ -1,123 +1,166 @@
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
+using AvaloniaEdit.Editing;
 using AXamlIDE.Messages;
+using AXamlIDE.Services.Keymaps;
 using AXamlIDE.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.Shell;
 
-/// <summary>One keyboard shortcut: the gesture, the command it runs, and the command parameter.</summary>
-public sealed record KeyMapEntry(KeyGesture Gesture, ICommand Command, object? Parameter = null);
+/// <summary>One shortcut from the active keymap: its keys (two for a chord), and the command it runs.</summary>
+public sealed record KeyMapEntry(Shortcut Shortcut, IReadOnlyList<KeyGesture> Strokes, IdeCommandInfo Info, ICommand Command, object? Parameter);
 
 /// <summary>
-/// Every keyboard shortcut in the app, in one table. <see cref="AttachTo"/> hooks it to a window
-/// (MainWindow, the debug toolbar, and any future floating panel windows), so the same keys work
-/// wherever the focus is.
+/// The keyboard shortcuts. Three pieces work together:
+///  - CommandCatalog (Core) lists the commands that can have a key, by id ("Edit.ToggleComment");
+///  - a keymap file (Core, Services/Keymaps/*.json) gives each id its keys; Settings > Keyboard picks the file;
+///  - this class wires each id to the real command (<see cref="WireCommands"/>) and listens for the keys.
 ///
-/// Keys are caught on the tunnelling pass, before the text editor sees them, and a key is only
-/// marked handled when its command can execute (e.g. F10 does nothing unless paused in the debugger).
-/// Menu items show their keys from this table (<see cref="ShowGesturesIn"/>).
+/// <see cref="AttachTo"/> hooks it to a window (MainWindow, the debug toolbar, the floating tab windows), so the
+/// same keys work wherever the focus is. Keys are caught on the tunnelling pass, before the text editor sees them,
+/// and a key is only marked handled when its command can execute (F10 does nothing unless paused in the debugger).
+/// Chords work like Visual Studio's: after Ctrl+K the status bar waits for the second key.
+///
+/// Every menu item shows its key from the active keymap, by its Command, or by <c>shell:KeyMap.CommandId</c> for
+/// items that use Click (the editor's right-click menu). Items with neither keep the InputGesture written in XAML
+/// (the editor's own Ctrl+Z, Ctrl+C...).
 /// </summary>
 public sealed class KeyMap
 {
-    private const KeyModifiers Ctrl = KeyModifiers.Control;
-    private const KeyModifiers Shift = KeyModifiers.Shift;
-    private const KeyModifiers Alt = KeyModifiers.Alt;
-    private const KeyModifiers None = KeyModifiers.None;
+    /// <summary>For menu items without a Command (they use Click): which command's key to show beside it.</summary>
+    public static readonly AttachedProperty<string?> CommandIdProperty =
+        AvaloniaProperty.RegisterAttached<KeyMap, MenuItem, string?>("CommandId");
 
-    public KeyMap(MainWindowViewModel shell, PropertiesViewModel properties)
+    public static string? GetCommandId(MenuItem item) => item.GetValue(CommandIdProperty);
+    public static void SetCommandId(MenuItem item, string? value) => item.SetValue(CommandIdProperty, value);
+
+    private readonly SettingsViewModel _settings;
+    private readonly IMessenger _messenger;
+    private readonly Dictionary<string, (ICommand Command, object? Parameter)> _commands;
+    private KeyGesture? _chordFirstKey;   // the first key of a chord, while waiting for the second
+
+    public KeyMap(MainWindowViewModel shell, PropertiesViewModel properties, SettingsViewModel settings, IMessenger messenger)
+    {
+        _settings = settings;
+        _messenger = messenger;
+        _commands = WireCommands(shell, properties);
+        CheckEveryCommandIsWired();
+
+        Entries = Build(KeymapLibrary.Get(settings.SelectedKeymap.Id));
+        settings.PropertyChanged += OnSettingsChanged;
+
+        // Every menu item, in any window or popup, shows its key when it appears.
+        Control.LoadedEvent.AddClassHandler<MenuItem>((item, _) => ShowShortcut(item));
+    }
+
+    /// <summary>The active keymap's shortcuts.</summary>
+    public IReadOnlyList<KeyMapEntry> Entries { get; private set; }
+
+    /// <summary>The command behind each id in CommandCatalog. To add a command, add a line here and to the catalog.</summary>
+    private static Dictionary<string, (ICommand, object?)> WireCommands(MainWindowViewModel shell, PropertiesViewModel properties)
     {
         var editor = shell.EditorCommands;
+        var documents = shell.DocumentCommands;
         var run = shell.Run;
-
-        Entries =
-        [
-            // ---- File
-            Bind(Key.O, Ctrl | Shift, shell.Workspace.OpenSolutionCommand),
-            Bind(Key.S, Ctrl, shell.DocumentCommands.SaveDocumentCommand),     // null parameter = the selected tab
-            Bind(Key.W, Ctrl, shell.DocumentCommands.CloseDocumentCommand),
-            Bind(Key.OemComma, Ctrl, shell.OpenSettingsCommand),
-            Bind(Key.A, Ctrl | Shift, shell.Explorer.NewItemCommand),       // VS's Add New Item / Add Class; into the explorer selection
-            Bind(Key.C, Shift | Alt, shell.Explorer.NewClassCommand),
-            Bind(Key.N, Shift | Alt, shell.Explorer.NewFolderCommand),
-
-            // ---- Edit (undo, cut, copy... are the editor's own keys)
-            Bind(Key.R, Ctrl, editor.RenameSymbol),
-            Bind(Key.OemPeriod, Ctrl, editor.QuickActions),
-            Bind(Key.Space, Ctrl, editor.Completion),
-            Bind(Key.Space, Ctrl | Shift, editor.SignatureHelp),
-            Bind(Key.I, Ctrl | Shift, shell.DocumentCommands.FormatDocumentCommand),
-            Bind(Key.F, Ctrl | Shift, shell.ShowFindInFilesCommand),
-            Bind(Key.J, Ctrl, editor.InsertSnippet),                         // Rider's Insert Live Template (VS's is the chord Ctrl+K, X)
-
-            // ---- View (VS Code's keys for the panels)
-            Bind(Key.B, Ctrl, shell.ToggleExplorerCommand),
-            Bind(Key.E, Ctrl | Shift, shell.ShowToolCommand, ToolTab.Explorer),
-            Bind(Key.G, Ctrl | Shift, shell.ShowToolCommand, ToolTab.Git),
-            Bind(Key.F4, None, properties.ShowCommand),       // Properties of the explorer selection
-            Bind(Key.Enter, Alt, properties.ShowCommand),
-            Bind(Key.M, Ctrl | Shift, shell.ShowToolCommand, ToolTab.Problems),
-            Bind(Key.O, Ctrl | Alt, shell.ShowToolCommand, ToolTab.Output),     // VS (Ctrl+Shift+U is IBus's Unicode entry)
-            Bind(Key.Y, Ctrl | Shift, shell.ShowToolCommand, ToolTab.Console),
-
-            // ---- Navigate
-            Bind(Key.P, Ctrl, editor.QuickOpen),
-            Bind(Key.T, Ctrl, editor.WorkspaceSymbols),
-            Bind(Key.F12, None, editor.GoToDefinition),
-            Bind(Key.F12, Shift, editor.FindReferences),
-            Bind(Key.F8, None, shell.Problems.NavigateDiagnosticCommand, true),
-            Bind(Key.F8, Shift, shell.Problems.NavigateDiagnosticCommand, false),
-
-            // ---- Build and Debug (Visual Studio layout); they act on the startup project
-            Bind(Key.B, Ctrl | Shift, run.BuildCommand),
-            Bind(Key.F7, Ctrl | Alt, run.RebuildCommand),      // VS's Rebuild Solution (Clean has no default key in VS)
-            Bind(Key.P, Shift | Alt, shell.Publish.PublishCurrentProjectCommand),   // VS has no default key for Publish
-            Bind(Key.F5, Ctrl, run.RunProjectCommand),
-            Bind(Key.F5, None, run.StartOrContinueDebuggingCommand),
-            Bind(Key.F5, Shift, run.StopRunningProjectCommand),
-            Bind(Key.F5, Ctrl | Shift, run.RestartDebuggingCommand),
-            Bind(Key.Pause, Ctrl | Alt, run.PauseDebuggingCommand),   // Ctrl+Alt+Break
-            Bind(Key.F10, None, run.StepOverCommand),
-            Bind(Key.F11, None, run.StepIntoCommand),
-            Bind(Key.F11, Shift, run.StepOutCommand),
-            Bind(Key.F9, Shift, editor.AddWatch),
-            Bind(Key.D3, Alt, shell.ShowToolCommand, ToolTab.Watch),       // VS's classic debugger window keys
-            Bind(Key.D4, Alt, shell.ShowToolCommand, ToolTab.Locals),
-            Bind(Key.D7, Alt, shell.ShowToolCommand, ToolTab.CallStack),
-        ];
-    }
-
-    public IReadOnlyList<KeyMapEntry> Entries { get; }
-
-    /// <summary>
-    /// The key for a command (and parameter), for showing beside it in a menu or tooltip. A command with two keys
-    /// (Properties: F4 and Alt+Enter) gives the first.
-    /// </summary>
-    public KeyGesture? GestureFor(ICommand? command, object? parameter = null)
-    {
-        foreach (var entry in Entries)
-            if (ReferenceEquals(entry.Command, command) && Equals(entry.Parameter, parameter))
-                return entry.Gesture;
-        return null;
-    }
-
-    /// <summary>
-    /// Show each menu item's key from this table (InputGesture), so the menus never disagree with it. Items whose
-    /// key belongs to the control itself (the editor's Ctrl+Z, Ctrl+C...) keep the InputGesture written in XAML.
-    /// </summary>
-    public void ShowGesturesIn(IEnumerable<object?> items)
-    {
-        foreach (var item in items)
+        return new Dictionary<string, (ICommand, object?)>
         {
-            if (item is not MenuItem menuItem)
-                continue;
-            if (GestureFor(menuItem.Command, menuItem.CommandParameter) is { } gesture)
-                menuItem.InputGesture = gesture;
-            ShowGesturesIn(menuItem.Items);
-        }
+            ["File.OpenFolder"] = (shell.Workspace.OpenFolderCommand, null),
+            ["File.OpenSolution"] = (shell.Workspace.OpenSolutionCommand, null),
+            ["File.Save"] = (documents.SaveDocumentCommand, null),     // null parameter = the selected tab
+            ["File.Close"] = (documents.CloseDocumentCommand, null),
+            ["File.NewItem"] = (shell.Explorer.NewItemCommand, null),   // into the explorer selection
+            ["File.NewClass"] = (shell.Explorer.NewClassCommand, null),
+            ["File.NewFolder"] = (shell.Explorer.NewFolderCommand, null),
+
+            ["Edit.ToggleComment"] = (editor.ToggleComment, null),
+            ["Edit.CommentSelection"] = (editor.CommentSelection, null),
+            ["Edit.UncommentSelection"] = (editor.UncommentSelection, null),
+            ["Edit.FormatDocument"] = (documents.FormatDocumentCommand, null),
+            ["Edit.FindInFiles"] = (shell.ShowFindInFilesCommand, null),
+            ["Edit.Rename"] = (editor.RenameSymbol, null),
+            ["Edit.QuickActions"] = (editor.QuickActions, null),
+            ["Edit.CompleteWord"] = (editor.Completion, null),
+            ["Edit.ParameterInfo"] = (editor.SignatureHelp, null),
+            ["Edit.InsertSnippet"] = (editor.InsertSnippet, null),
+
+            ["View.ToggleSideBar"] = (shell.ToggleExplorerCommand, null),
+            ["View.Explorer"] = (shell.ShowToolCommand, ToolTab.Explorer),
+            ["View.Git"] = (shell.ShowToolCommand, ToolTab.Git),
+            ["View.Properties"] = (properties.ShowCommand, null),
+            ["View.Problems"] = (shell.ShowToolCommand, ToolTab.Problems),
+            ["View.Output"] = (shell.ShowToolCommand, ToolTab.Output),
+            ["View.DebugConsole"] = (shell.ShowToolCommand, ToolTab.Console),
+
+            ["Navigate.GoToFile"] = (editor.QuickOpen, null),
+            ["Navigate.GoToSymbol"] = (editor.WorkspaceSymbols, null),
+            ["Navigate.GoToDefinition"] = (editor.GoToDefinition, null),
+            ["Navigate.FindAllReferences"] = (editor.FindReferences, null),
+            ["Navigate.NextProblem"] = (shell.Problems.NavigateDiagnosticCommand, true),
+            ["Navigate.PreviousProblem"] = (shell.Problems.NavigateDiagnosticCommand, false),
+
+            ["Build.Build"] = (run.BuildCommand, null),
+            ["Build.Rebuild"] = (run.RebuildCommand, null),
+            ["Build.Clean"] = (run.CleanCommand, null),
+            ["Build.Publish"] = (shell.Publish.PublishCurrentProjectCommand, null),
+
+            ["Debug.StartOrContinue"] = (run.StartOrContinueDebuggingCommand, null),
+            ["Debug.StartWithoutDebugging"] = (run.RunProjectCommand, null),
+            ["Debug.Stop"] = (run.StopRunningProjectCommand, null),
+            ["Debug.Restart"] = (run.RestartDebuggingCommand, null),
+            ["Debug.Pause"] = (run.PauseDebuggingCommand, null),
+            ["Debug.StepOver"] = (run.StepOverCommand, null),
+            ["Debug.StepInto"] = (run.StepIntoCommand, null),
+            ["Debug.StepOut"] = (run.StepOutCommand, null),
+            ["Debug.AddWatch"] = (editor.AddWatch, null),
+            ["Debug.Watch"] = (shell.ShowToolCommand, ToolTab.Watch),
+            ["Debug.Locals"] = (shell.ShowToolCommand, ToolTab.Locals),
+            ["Debug.CallStack"] = (shell.ShowToolCommand, ToolTab.CallStack),
+
+            ["Tools.Settings"] = (shell.OpenSettingsCommand, null),
+        };
     }
+
+    /// <summary>A command in the catalog with nothing behind it (or the other way round) is a bug: fail at startup.</summary>
+    private void CheckEveryCommandIsWired()
+    {
+        var catalog = CommandCatalog.All.Select(c => c.Id).ToHashSet();
+        var missing = catalog.Except(_commands.Keys).ToList();
+        var unknown = _commands.Keys.Except(catalog).ToList();
+        if (missing.Count > 0 || unknown.Count > 0)
+            throw new InvalidOperationException(
+                $"KeyMap and CommandCatalog disagree. Not wired: {string.Join(", ", missing)}. Not in the catalog: {string.Join(", ", unknown)}.");
+    }
+
+    private List<KeyMapEntry> Build(KeymapProfile profile)
+    {
+        var entries = new List<KeyMapEntry>();
+        foreach (var info in CommandCatalog.All)
+        {
+            var (command, parameter) = _commands[info.Id];
+            foreach (var shortcut in profile.ShortcutsFor(info.Id))
+                entries.Add(new KeyMapEntry(shortcut, [.. shortcut.Strokes.Select(ToGesture)], info, command, parameter));
+        }
+        return entries;
+    }
+
+    private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(SettingsViewModel.SelectedKeymap))
+            return;
+        Entries = Build(KeymapLibrary.Get(_settings.SelectedKeymap.Id));
+        _chordFirstKey = null;
+    }
+
+    // ============================================================ keys
 
     /// <summary>Make the shortcuts work while <paramref name="root"/> (usually a Window) has focus.</summary>
     public void AttachTo(InputElement root)
@@ -125,17 +168,137 @@ public sealed class KeyMap
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
+        if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
+            or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin)
+            return;   // a modifier on its own, e.g. Ctrl going down for the second key of a chord
+
+        var inEditor = IsInTextEditor(e.Source);
+        bool InScope(KeyMapEntry entry) => entry.Info.Scope == CommandScope.Global || inEditor;
+
+        // The second key of a chord: run the command, or say there's no such chord (Visual Studio's message).
+        if (_chordFirstKey is { } first)
+        {
+            _chordFirstKey = null;
+            e.Handled = true;
+            var chord = Entries.FirstOrDefault(entry => entry.Strokes.Count == 2
+                                                        && entry.Strokes[0].Equals(first)
+                                                        && entry.Strokes[1].Matches(e)
+                                                        && InScope(entry));
+            if (chord is not null && chord.Command.CanExecute(chord.Parameter))
+            {
+                Status("");
+                chord.Command.Execute(chord.Parameter);
+            }
+            else
+            {
+                Status($"The key combination ({Text(first)}, {Text(e)}) is not a command.");
+            }
+            return;
+        }
+
         foreach (var entry in Entries)
         {
-            if (!entry.Gesture.Matches(e) || !entry.Command.CanExecute(entry.Parameter))
+            if (entry.Strokes.Count != 1 || !entry.Strokes[0].Matches(e) || !InScope(entry)
+                || !entry.Command.CanExecute(entry.Parameter))
                 continue;
-
             entry.Command.Execute(entry.Parameter);
             e.Handled = true;
             return;
         }
+
+        // The first key of a chord: wait for the second.
+        if (Entries.FirstOrDefault(entry => entry.Strokes.Count == 2 && entry.Strokes[0].Matches(e) && InScope(entry)) is { } started)
+        {
+            _chordFirstKey = started.Strokes[0];
+            e.Handled = true;
+            Status($"({Text(_chordFirstKey)}) was pressed. Waiting for the second key of the chord...");
+        }
     }
 
-    private static KeyMapEntry Bind(Key key, KeyModifiers modifiers, ICommand command, object? parameter = null)
-        => new(new KeyGesture(key, modifiers), command, parameter);
+    private static bool IsInTextEditor(object? source)
+        => source is TextArea || (source as Visual)?.FindAncestorOfType<TextArea>() is not null;
+
+    private void Status(string text) => _messenger.Send(new StatusMessage(text));
+
+    // ============================================================ menus
+
+    /// <summary>
+    /// Show the active keymap's key beside a menu item. Avalonia's menu can only show one KeyGesture, in its own
+    /// spelling ("Ctrl+OemQuestion"), so the item gets the first key as its InputGesture (that makes the slot
+    /// visible) and the slot's text is replaced with ours ("Ctrl+/", "Ctrl+K, Ctrl+C").
+    /// </summary>
+    private void ShowShortcut(MenuItem item)
+    {
+        var id = GetCommandId(item) ?? IdFor(item.Command, item.CommandParameter);
+        if (id is null)
+            return;   // not a catalog command: keep the XAML's InputGesture
+
+        var entry = Entries.FirstOrDefault(e => e.Info.Id == id);
+        item.InputGesture = entry?.Strokes[0];
+        var slot = item.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "PART_InputGestureText");
+        if (slot is null)
+            return;
+        if (entry is null)
+            slot.ClearValue(TextBlock.TextProperty);
+        else
+            slot.Text = entry.Shortcut.ToString();
+    }
+
+    private string? IdFor(ICommand? command, object? parameter)
+    {
+        if (command is null)
+            return null;
+        foreach (var (id, wired) in _commands)
+            if (ReferenceEquals(wired.Command, command) && Equals(wired.Parameter, parameter))
+                return id;
+        return null;
+    }
+
+    // ============================================================ key names
+
+    /// <summary>A keymap file's key stroke as an Avalonia gesture. Core only allows keys this knows (Shortcut.NamedKeys).</summary>
+    private static KeyGesture ToGesture(KeyStroke stroke)
+    {
+        var modifiers = KeyModifiers.None;
+        if (stroke.Modifiers.HasFlag(ShortcutModifiers.Ctrl)) modifiers |= KeyModifiers.Control;
+        if (stroke.Modifiers.HasFlag(ShortcutModifiers.Shift)) modifiers |= KeyModifiers.Shift;
+        if (stroke.Modifiers.HasFlag(ShortcutModifiers.Alt)) modifiers |= KeyModifiers.Alt;
+        if (stroke.Modifiers.HasFlag(ShortcutModifiers.Meta)) modifiers |= KeyModifiers.Meta;
+        return new KeyGesture(ToKey(stroke.Key), modifiers);
+    }
+
+    /// <summary>The keys whose keymap name isn't Avalonia's Key name.</summary>
+    private static readonly Dictionary<string, Key> SpecialKeys = new()
+    {
+        ["/"] = Key.OemQuestion, [","] = Key.OemComma, ["."] = Key.OemPeriod, ["`"] = Key.OemTilde,
+        [";"] = Key.OemSemicolon, ["'"] = Key.OemQuotes, ["["] = Key.OemOpenBrackets, ["]"] = Key.OemCloseBrackets,
+        ["\\"] = Key.OemPipe, ["-"] = Key.OemMinus, ["="] = Key.OemPlus, ["+"] = Key.OemPlus,
+        ["Backspace"] = Key.Back,
+    };
+
+    private static Key ToKey(string key)
+    {
+        if (SpecialKeys.TryGetValue(key, out var special))
+            return special;
+        if (key.Length == 1 && char.IsDigit(key[0]))
+            return Key.D0 + (key[0] - '0');   // "3" is the top-row 3, as in Alt+3
+        return Enum.Parse<Key>(key, ignoreCase: true);
+    }
+
+    /// <summary>A gesture the way keymap files write it: "Ctrl+/", not Avalonia's "Ctrl+OemQuestion".</summary>
+    private static string Text(KeyGesture gesture) => Text(gesture.Key, gesture.KeyModifiers);
+
+    private static string Text(KeyEventArgs e) => Text(e.Key, e.KeyModifiers);
+
+    private static string Text(Key key, KeyModifiers modifiers)
+    {
+        var name = SpecialKeys.FirstOrDefault(pair => pair.Value == key).Key
+                   ?? (key is >= Key.D0 and <= Key.D9 ? ((char)('0' + (key - Key.D0))).ToString() : key.ToString());
+        var shortcutModifiers = ShortcutModifiers.None;
+        if (modifiers.HasFlag(KeyModifiers.Control)) shortcutModifiers |= ShortcutModifiers.Ctrl;
+        if (modifiers.HasFlag(KeyModifiers.Shift)) shortcutModifiers |= ShortcutModifiers.Shift;
+        if (modifiers.HasFlag(KeyModifiers.Alt)) shortcutModifiers |= ShortcutModifiers.Alt;
+        if (modifiers.HasFlag(KeyModifiers.Meta)) shortcutModifiers |= ShortcutModifiers.Meta;
+        return new KeyStroke(shortcutModifiers, name).ToString();
+    }
 }

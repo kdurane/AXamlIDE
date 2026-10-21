@@ -32,6 +32,11 @@ public sealed class EditorCommands(IMessenger messenger)
     public IRelayCommand AddWatch { get; } = Make(messenger, EditorAction.AddWatch);
     public IRelayCommand InsertSnippet { get; } = Make(messenger, EditorAction.InsertSnippet);
 
+    /// <summary>Ctrl+/ and VS's Ctrl+K, Ctrl+C / Ctrl+K, Ctrl+U: line comments in C#, whole elements in AXAML.</summary>
+    public IRelayCommand ToggleComment { get; } = Make(messenger, EditorAction.ToggleComment);
+    public IRelayCommand CommentSelection { get; } = Make(messenger, EditorAction.CommentSelection);
+    public IRelayCommand UncommentSelection { get; } = Make(messenger, EditorAction.UncommentSelection);
+
     private static RelayCommand Make(IMessenger messenger, EditorAction action)
         => new(() => messenger.Send(new EditorActionMessage(action)));
 }

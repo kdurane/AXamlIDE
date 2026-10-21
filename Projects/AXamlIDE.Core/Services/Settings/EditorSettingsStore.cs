@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Keymaps;
 using TextMateSharp.Grammars;
 
 namespace AXamlIDE.Services.Settings;
@@ -77,21 +78,22 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
         }
 
         var fontSize = defaults.FontSize;
-        if (persisted.FontSize is not { } savedFontSize)
-            return new EditorSettingsLoadResult(new EditorSettings
-            {
-                ThemeId = themeId,
-                FontFamily = fontFamily,
-                FontSize = fontSize,
-                ShowLineNumbers = persisted.ShowLineNumbers ?? defaults.ShowLineNumbers,
-                HighlightCurrentLine = persisted.HighlightCurrentLine ?? defaults.HighlightCurrentLine,
-                SolutionExplorerOnRight = persisted.SolutionExplorerOnRight ?? defaults.SolutionExplorerOnRight,
-                FormatOnSave = persisted.FormatOnSave ?? defaults.FormatOnSave
-            }, warnings);
-        if (double.IsFinite(savedFontSize) && savedFontSize is >= 6 and <= 72)
-            fontSize = savedFontSize;
-        else
-            warnings.Add("The saved editor font size must be between 6 and 72; the default is being used.");
+        if (persisted.FontSize is { } savedFontSize)
+        {
+            if (double.IsFinite(savedFontSize) && savedFontSize is >= 6 and <= 72)
+                fontSize = savedFontSize;
+            else
+                warnings.Add("The saved editor font size must be between 6 and 72; the default is being used.");
+        }
+
+        var keymapId = defaults.KeymapId;
+        if (persisted.Keymap is not null)
+        {
+            if (KeymapLibrary.IsKnown(persisted.Keymap))
+                keymapId = persisted.Keymap;
+            else
+                warnings.Add($"Unknown keymap '{persisted.Keymap}'; the Visual Studio keymap is being used.");
+        }
 
         return new EditorSettingsLoadResult(new EditorSettings
         {
@@ -101,7 +103,8 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             ShowLineNumbers = persisted.ShowLineNumbers ?? defaults.ShowLineNumbers,
             HighlightCurrentLine = persisted.HighlightCurrentLine ?? defaults.HighlightCurrentLine,
             SolutionExplorerOnRight = persisted.SolutionExplorerOnRight ?? defaults.SolutionExplorerOnRight,
-            FormatOnSave = persisted.FormatOnSave ?? defaults.FormatOnSave
+            FormatOnSave = persisted.FormatOnSave ?? defaults.FormatOnSave,
+            KeymapId = keymapId
         }, warnings);
     }
 
@@ -128,7 +131,8 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             ShowLineNumbers = settings.ShowLineNumbers,
             HighlightCurrentLine = settings.HighlightCurrentLine,
             SolutionExplorerOnRight = settings.SolutionExplorerOnRight,
-            FormatOnSave = settings.FormatOnSave
+            FormatOnSave = settings.FormatOnSave,
+            Keymap = settings.KeymapId
         };
         var tempPath = SettingsPath + ".tmp";
         File.WriteAllText(tempPath, JsonSerializer.Serialize(persisted, JsonOptions));
@@ -150,5 +154,6 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
         public bool? HighlightCurrentLine { get; init; }
         public bool? SolutionExplorerOnRight { get; init; }
         public bool? FormatOnSave { get; init; }
+        public string? Keymap { get; init; }
     }
 }

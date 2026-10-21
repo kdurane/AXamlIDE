@@ -14,6 +14,7 @@ using AvaloniaEdit.TextMate;
 using AXamlIDE.Editor;
 using AXamlIDE.Editor.CodeActions;
 using AXamlIDE.Editor.CodeLens;
+using AXamlIDE.Editor.Commenting;
 using AXamlIDE.Editor.ColorSwatches;
 using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Debugging;
@@ -25,6 +26,7 @@ using AXamlIDE.Editor.SignatureHelp;
 using AXamlIDE.Editor.Snippets;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Commenting;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Settings;
@@ -84,6 +86,7 @@ public partial class EditorPaneView : UserControl,
     private SignatureHelpController _signatureHelp = null!;
     private CompletionController _completion = null!;
     private SnippetController _snippets = null!;
+    private CommentController _comments = null!;
 
     // ------------------------------------------------------------- initialise
 
@@ -149,6 +152,7 @@ public partial class EditorPaneView : UserControl,
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
         _whitespaceSelection = new WhitespaceSelectionController(_ctx);
+        _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);
         _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin);
@@ -341,6 +345,9 @@ public partial class EditorPaneView : UserControl,
             case EditorAction.SelectAll: Editor.SelectAll(); break;
             case EditorAction.AddWatch: AddWatchAtCaret(); break;
             case EditorAction.InsertSnippet: _ = _snippets.InsertFromListAsync(); break;
+            case EditorAction.ToggleComment: _comments.Run(CommentMode.Toggle); break;
+            case EditorAction.CommentSelection: _comments.Run(CommentMode.Comment); break;
+            case EditorAction.UncommentSelection: _comments.Run(CommentMode.Uncomment); break;
         }
     }
 
@@ -359,14 +366,18 @@ public partial class EditorPaneView : UserControl,
     // Context-menu "Quick Actions..." (the View menu uses EditorCommands.QuickActions).
     private void OnContextMenuOpening(object? sender, EventArgs e)
     {
-        var csharp = _ctx?.Active?.LanguageId == LanguageIds.CSharp;
+        var language = _ctx?.Active?.LanguageId;
+        var csharp = language == LanguageIds.CSharp;
         RenameMenuItem.IsVisible = csharp;
+        ToggleCommentMenuItem.IsVisible = language is LanguageIds.CSharp or LanguageIds.Axaml or LanguageIds.Xml;
         AddWatchMenuItem.IsVisible = csharp && _services.DebugSnapshots.Current is not null;
     }
 
     private void OnAddWatchClick(object? sender, RoutedEventArgs e) => AddWatchAtCaret();
 
     private void OnInsertSnippetClick(object? sender, RoutedEventArgs e) => _ = _snippets.InsertFromListAsync();
+
+    private void OnToggleCommentClick(object? sender, RoutedEventArgs e) => _comments.Run(CommentMode.Toggle);
 
     /// <summary>Watch the selected text, or the expression at the caret (as a DataTip would show it).</summary>
     private void AddWatchAtCaret()

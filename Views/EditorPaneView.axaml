@@ -5,6 +5,7 @@
     xmlns:editing="using:AvaloniaEdit.Editing"
     xmlns:codeLens="using:AXamlIDE.Editor.CodeLens"
     xmlns:highlighting="using:AXamlIDE.Editor.Highlighting"
+    xmlns:shell="using:AXamlIDE.Shell"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  No bindings to a parent view model: everything goes through EditorServices (see Initialize).  -->
@@ -37,23 +38,31 @@
                     <MenuItem
                         Click="OnRenameClick"
                         Header="Rename..."
-                        InputGesture="Ctrl+R"
-                        Name="RenameMenuItem" />
+                        Name="RenameMenuItem"
+                        shell:KeyMap.CommandId="Edit.Rename" />
                     <MenuItem
                         Click="OnCodeActionsClick"
                         Header="Quick Actions..."
-                        InputGesture="Ctrl+." />
-                    <MenuItem Click="OnFormatClick" Header="Format Document" />
+                        shell:KeyMap.CommandId="Edit.QuickActions" />
+                    <MenuItem
+                        Click="OnFormatClick"
+                        Header="Format Document"
+                        shell:KeyMap.CommandId="Edit.FormatDocument" />
+                    <MenuItem
+                        Click="OnToggleCommentClick"
+                        Header="Toggle Comment"
+                        Name="ToggleCommentMenuItem"
+                        shell:KeyMap.CommandId="Edit.ToggleComment" />
                     <MenuItem
                         Click="OnInsertSnippetClick"
                         Header="Insert Snippet..."
-                        InputGesture="Ctrl+J" />
+                        shell:KeyMap.CommandId="Edit.InsertSnippet" />
                     <!--  While paused in C#: watch the selection or the expression at the caret  -->
                     <MenuItem
                         Click="OnAddWatchClick"
                         Header="Add Watch"
-                        InputGesture="Shift+F9"
-                        Name="AddWatchMenuItem" />
+                        Name="AddWatchMenuItem"
+                        shell:KeyMap.CommandId="Debug.AddWatch" />
                     <MenuItem Header="-" />
                     <MenuItem
                         Click="OnSelectAllClick"

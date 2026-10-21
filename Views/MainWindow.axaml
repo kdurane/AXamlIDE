@@ -19,7 +19,7 @@
             <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="4" />
             <!--
             The menus, Visual Studio / Rider style. Each item binds the same command as its button and key; the keys
-            shown come from Shell/KeyMap.cs (KeyMap.ShowGesturesIn), except the editor's own (undo, clipboard).
+            shown come from the active keymap (Shell/KeyMap.cs), except the editor's own (undo, clipboard).
             Build and Debug act on the startup project (the top bar's box).
             -->
             <Menu
@@ -66,6 +66,10 @@
                         Command="{Binding EditorCommands.SelectAll}"
                         Header="Select _All"
                         InputGesture="Ctrl+A" />
+                    <Separator />
+                    <MenuItem Command="{Binding EditorCommands.ToggleComment}" Header="To_ggle Comment" />
+                    <MenuItem Command="{Binding EditorCommands.CommentSelection}" Header="Comment _Selection" />
+                    <MenuItem Command="{Binding EditorCommands.UncommentSelection}" Header="Uncomm_ent Selection" />
                     <Separator />
                     <MenuItem Command="{Binding ShowFindInFilesCommand}" Header="Find in _Files..." />
                     <Separator />

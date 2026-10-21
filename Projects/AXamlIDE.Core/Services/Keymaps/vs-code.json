@@ -1,0 +1,51 @@
+// VS Code's default keys (Linux), for the commands AXamlIDE has.
+{
+  "name": "VS Code",
+  "bindings": {
+    // ---- File
+    "File.OpenFolder": "Ctrl+K, Ctrl+O",
+    "File.Save": "Ctrl+S",
+    "File.Close": ["Ctrl+W", "Ctrl+F4"],
+
+    // ---- Edit
+    "Edit.ToggleComment": "Ctrl+/",
+    "Edit.CommentSelection": "Ctrl+K, Ctrl+C",
+    "Edit.UncommentSelection": "Ctrl+K, Ctrl+U",
+    "Edit.FormatDocument": "Ctrl+Shift+I",
+    "Edit.FindInFiles": "Ctrl+Shift+F",
+    "Edit.Rename": "F2",
+    "Edit.QuickActions": "Ctrl+.",
+    "Edit.CompleteWord": "Ctrl+Space",
+    "Edit.ParameterInfo": "Ctrl+Shift+Space",
+
+    // ---- View
+    "View.ToggleSideBar": "Ctrl+B",
+    "View.Explorer": "Ctrl+Shift+E",
+    "View.Git": "Ctrl+Shift+G",
+    "View.Problems": "Ctrl+Shift+M",
+    "View.Output": "Ctrl+Shift+U",
+    "View.DebugConsole": "Ctrl+Shift+Y",
+
+    // ---- Navigate
+    "Navigate.GoToFile": "Ctrl+P",
+    "Navigate.GoToSymbol": "Ctrl+T",
+    "Navigate.GoToDefinition": "F12",
+    "Navigate.FindAllReferences": "Shift+Alt+F12",
+    "Navigate.NextProblem": "F8",
+    "Navigate.PreviousProblem": "Shift+F8",
+
+    // ---- Build (VS Code's Run Build Task) and Debug
+    "Build.Build": "Ctrl+Shift+B",
+    "Debug.StartOrContinue": "F5",
+    "Debug.StartWithoutDebugging": "Ctrl+F5",
+    "Debug.Stop": "Shift+F5",
+    "Debug.Restart": "Ctrl+Shift+F5",
+    "Debug.Pause": "F6",
+    "Debug.StepOver": "F10",
+    "Debug.StepInto": "F11",
+    "Debug.StepOut": "Shift+F11",
+
+    // ---- Tools
+    "Tools.Settings": "Ctrl+,"
+  }
+}

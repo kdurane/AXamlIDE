@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Keymaps;
 using AXamlIDE.Services.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
@@ -16,7 +17,7 @@ namespace AXamlIDE.ViewModels;
 /// <see cref="IEditorSettings"/>). Every change is saved immediately and raises PropertyChanged
 /// for exactly the properties that changed.
 /// </summary>
-public sealed class SettingsViewModel : ObservableObject, IEditorSettings
+public sealed partial class SettingsViewModel : ObservableObject, IEditorSettings
 {
     private readonly EditorSettingsStore _settingsStore;
     private readonly IMessenger _messenger;
@@ -45,6 +46,8 @@ public sealed class SettingsViewModel : ObservableObject, IEditorSettings
         ];
         _selectedTheme = AvailableThemes.FirstOrDefault(t => t.Id == settings.ThemeId)
                          ?? AvailableThemes.First(t => t.Id == nameof(ThemeName.DarkPlus));
+        _selectedKeymap = KeymapLibrary.Get(settings.KeymapId);
+        ShortcutRows = BuildShortcutRows();
     }
 
     public ObservableCollection<EditorTheme> AvailableThemes { get; } =

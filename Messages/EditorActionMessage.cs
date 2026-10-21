@@ -18,7 +18,10 @@ public enum EditorAction
     Paste,
     SelectAll,
     AddWatch,
-    InsertSnippet
+    InsertSnippet,
+    ToggleComment,
+    CommentSelection,
+    UncommentSelection
 }
 
 /// <summary>Ask the editor pane to perform an action on the active document. Handled by EditorPaneView.</summary>

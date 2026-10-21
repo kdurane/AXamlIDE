@@ -1,15 +1,16 @@
 ﻿<Window
     Background="{DynamicResource AppWindowBackgroundBrush}"
     Foreground="{DynamicResource AppForegroundBrush}"
-    Height="440"
+    Height="560"
     MinHeight="380"
-    MinWidth="500"
+    MinWidth="560"
     Title="Settings"
-    Width="560"
+    Width="820"
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.SettingsWindow"
     x:DataType="vm:SettingsViewModel"
     xmlns="https://github.com/avaloniaui"
+    xmlns:keymaps="using:AXamlIDE.Services.Keymaps"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -75,6 +76,88 @@
                         Text="Window layout" />
                     <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
                 </StackPanel>
+            </TabItem>
+            <!--
+                Visual Studio's Tools > Options > Environment > Keyboard: the mapping scheme, then every command
+                with its keys. The schemes are Services/Keymaps/*.json in AXamlIDE.Core.
+            -->
+            <TabItem FontSize="16" Header="Keyboard">
+                <DockPanel Margin="20,12">
+                    <StackPanel
+                        DockPanel.Dock="Top"
+                        Margin="0,0,0,12"
+                        Spacing="16">
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="Keymap" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="Keyboard mapping scheme" />
+                            <ComboBox
+                                ItemsSource="{Binding AvailableKeymaps}"
+                                MinWidth="220"
+                                SelectedItem="{Binding SelectedKeymap, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="keymaps:KeymapProfile">
+                                        <TextBlock Text="{Binding Name}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBox
+                            Classes="SearchBox"
+                            PlaceholderText="Show commands containing (name or keys, e.g. comment or Ctrl+K)"
+                            Text="{Binding ShortcutFilter}" />
+                    </StackPanel>
+
+                    <!--  The selected command's id (what keymap files use) and what it does  -->
+                    <StackPanel
+                        DockPanel.Dock="Bottom"
+                        Margin="0,8,0,0"
+                        Spacing="2">
+                        <TextBlock
+                            FontSize="12"
+                            Opacity="0.7"
+                            Text="{Binding #ShortcutTable.((models:KeyboardShortcutRow)SelectedItem).Id, FallbackValue=''}" />
+                        <TextBlock
+                            FontSize="13"
+                            Text="{Binding #ShortcutTable.((models:KeyboardShortcutRow)SelectedItem).Description, FallbackValue=''}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <DataGrid
+                        AutoGenerateColumns="False"
+                        CanUserResizeColumns="True"
+                        CanUserSortColumns="True"
+                        FontSize="13"
+                        GridLinesVisibility="Horizontal"
+                        IsReadOnly="True"
+                        ItemsSource="{Binding ShortcutRows}"
+                        Name="ShortcutTable">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn
+                                Binding="{Binding Category}"
+                                Header="Category"
+                                Width="Auto"
+                                x:DataType="models:KeyboardShortcutRow" />
+                            <DataGridTextColumn
+                                Binding="{Binding Command}"
+                                Header="Command"
+                                Width="*"
+                                x:DataType="models:KeyboardShortcutRow" />
+                            <DataGridTextColumn
+                                Binding="{Binding Shortcuts}"
+                                Header="Shortcut"
+                                Width="Auto"
+                                x:DataType="models:KeyboardShortcutRow" />
+                            <DataGridTextColumn
+                                Binding="{Binding AppliesIn}"
+                                Header="Applies in"
+                                Width="Auto"
+                                x:DataType="models:KeyboardShortcutRow" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
             </TabItem>
         </TabControl>
     </Grid>

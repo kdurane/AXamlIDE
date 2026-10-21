@@ -1,0 +1,64 @@
+// Visual Studio's keys, plus VS Code's for the panels where VS has none (Ctrl+B, Ctrl+Shift+E...).
+// A command takes one shortcut or a list; "Ctrl+K, Ctrl+C" is a chord (Ctrl+K, then Ctrl+C).
+// Command ids are listed in CommandCatalog.cs.
+{
+  "name": "Visual Studio",
+  "bindings": {
+    // ---- File
+    "File.OpenSolution": "Ctrl+Shift+O",
+    "File.Save": "Ctrl+S",
+    "File.Close": ["Ctrl+W", "Ctrl+F4"],
+    "File.NewItem": "Ctrl+Shift+A",
+    "File.NewClass": "Shift+Alt+C",
+    "File.NewFolder": "Shift+Alt+N",
+
+    // ---- Edit (undo, cut, copy... are the editor's own keys)
+    "Edit.ToggleComment": ["Ctrl+/", "Ctrl+K, Ctrl+/"],
+    "Edit.CommentSelection": "Ctrl+K, Ctrl+C",
+    "Edit.UncommentSelection": "Ctrl+K, Ctrl+U",
+    "Edit.FormatDocument": ["Ctrl+Shift+I", "Ctrl+K, Ctrl+D"],
+    "Edit.FindInFiles": "Ctrl+Shift+F",
+    "Edit.Rename": "Ctrl+R",
+    "Edit.QuickActions": "Ctrl+.",
+    "Edit.CompleteWord": "Ctrl+Space",
+    "Edit.ParameterInfo": "Ctrl+Shift+Space",
+    "Edit.InsertSnippet": ["Ctrl+J", "Ctrl+K, Ctrl+X"],
+
+    // ---- View
+    "View.ToggleSideBar": "Ctrl+B",
+    "View.Explorer": "Ctrl+Shift+E",
+    "View.Git": "Ctrl+Shift+G",
+    "View.Properties": ["F4", "Alt+Enter"],
+    "View.Problems": "Ctrl+Shift+M",
+    "View.Output": "Ctrl+Alt+O",
+    "View.DebugConsole": "Ctrl+Shift+Y",
+
+    // ---- Navigate
+    "Navigate.GoToFile": "Ctrl+P",
+    "Navigate.GoToSymbol": "Ctrl+T",
+    "Navigate.GoToDefinition": "F12",
+    "Navigate.FindAllReferences": "Shift+F12",
+    "Navigate.NextProblem": "F8",
+    "Navigate.PreviousProblem": "Shift+F8",
+
+    // ---- Build and Debug
+    "Build.Build": "Ctrl+Shift+B",
+    "Build.Rebuild": "Ctrl+Alt+F7",
+    "Build.Publish": "Shift+Alt+P",
+    "Debug.StartOrContinue": "F5",
+    "Debug.StartWithoutDebugging": "Ctrl+F5",
+    "Debug.Stop": "Shift+F5",
+    "Debug.Restart": "Ctrl+Shift+F5",
+    "Debug.Pause": "Ctrl+Alt+Pause",
+    "Debug.StepOver": "F10",
+    "Debug.StepInto": "F11",
+    "Debug.StepOut": "Shift+F11",
+    "Debug.AddWatch": "Shift+F9",
+    "Debug.Watch": "Alt+3",
+    "Debug.Locals": "Alt+4",
+    "Debug.CallStack": "Alt+7",
+
+    // ---- Tools
+    "Tools.Settings": "Ctrl+,"
+  }
+}
