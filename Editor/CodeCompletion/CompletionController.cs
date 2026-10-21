@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -44,7 +44,8 @@ public sealed class CompletionController
     // Called from TypingController (TextArea.TextEntering).
     public void HandleTextEntering(TextInputEventArgs e)
     {
-        if (_completionWindow is { } window && !string.IsNullOrEmpty(e.Text) && !IsNameChar(e.Text[0]))
+
+        if (_completionWindow is { } window && !string.IsNullOrEmpty(e.Text) && !IsNameChar(e.Text[0]) && e.Text != "}")
             window.CompletionList.RequestInsertion(e);
     }
 
@@ -83,6 +84,11 @@ public sealed class CompletionController
 
                     AddSnippets(engineWindow, doc, engineStart);
                     ShowCompletionWindow(engineWindow, doc.Document, engineStart, caret);
+                    // "{" in an attribute value: Binding is by far the most common, so Tab takes it
+                    if (triggerChar == "{"
+                        && engineWindow.CompletionList.CompletionData.FirstOrDefault(d => d.Text == "Binding") is { } binding)
+                        engineWindow.CompletionList.SelectedItem = binding;
+
                     return;
                 }
             }

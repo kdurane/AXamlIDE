@@ -289,7 +289,7 @@ public sealed class HoverController
             {
                 var header = string.Join(Environment.NewLine, content.Diagnostics.Select(diagnostic => diagnostic.Message));
                 Hide(resetOffset: true);
-                _ = _codeActions.ShowCodeActionsAsync(line, editor, header, showAtPointer: true);
+                _ = _codeActions.ShowCodeActionsAsync(line, header);
             }
         : null;
 

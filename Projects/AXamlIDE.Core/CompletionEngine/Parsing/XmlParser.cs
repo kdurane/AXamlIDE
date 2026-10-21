@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace AXamlIDE.CompletionEngine.Parsing;
 
@@ -31,6 +30,7 @@ namespace AXamlIDE.CompletionEngine.Parsing;
         private int _attributeValueStart;
         private Stack<int> _containingTagStart = new();
         private bool _isClosingTag;
+        private char _quote;
 
         public string? TagName => State >= ParserState.StartElement
             ? data.Span.Slice(_elementNameStart, (_elementNameEnd ?? data.Length - 1) - _elementNameStart + 1).ToString()
@@ -193,12 +193,13 @@ namespace AXamlIDE.CompletionEngine.Parsing;
                 State = ParserState.BeforeAttributeValue;
                 _attributeNameEnd = i - 1;
             }
-            else if (State == ParserState.BeforeAttributeValue && c == '"')
+            else if (State == ParserState.BeforeAttributeValue && c is '"' or '\'')
             {
                 State = ParserState.AttributeValue;
                 _attributeValueStart = i + 1;
+                _quote = c;
             }
-            else if (State == ParserState.AttributeValue && c == '"')
+            else if (State == ParserState.AttributeValue && c == _quote)
             {
                 State = ParserState.AfterAttributeValue;
             }
@@ -223,27 +224,24 @@ namespace AXamlIDE.CompletionEngine.Parsing;
             if (NestingLevel - level < 0)
                 return null;
             var start = _containingTagStart.Skip(level).FirstOrDefault();
-            var m = Regex.Match(data.Span[start..].ToString(), @"^<[^\s/>]+");
-            return m.Success ? m.Value[1..] : null;
+            return XamlTagScanner.ReadElementName(data.Span, start);
         }
 
-        public string? FindParentAttributeValue(string attributeExpr, int startLevel = 0, int maxLevels = int.MaxValue)
+        public string? FindParentAttributeValue(string attributeName, int startLevel = 0, int maxLevels = int.MaxValue)
+            => FindParentAttributeValue([attributeName], startLevel, maxLevels);
+
+        /// <summary>
+        /// The value of the first of <paramref name="attributeNames"/> set on the element at <paramref name="startLevel"/>
+        /// (0 = the current element), or on its parents up to <paramref name="maxLevels"/> further up.
+        /// </summary>
+        public string? FindParentAttributeValue(IReadOnlyList<string> attributeNames, int startLevel = 0, int maxLevels = int.MaxValue)
         {
             if (NestingLevel - startLevel - 1 < 0)
                 return null;
-            var attribRegExpr = new Regex($"\\s?(?:{attributeExpr})\\s*\\=\\s*\"(?<AttribValue>.*?)\"", RegexOptions.Multiline | RegexOptions.IgnorePatternWhitespace);
             foreach (var start in _containingTagStart.Skip(startLevel))
             {
-                var m = Regex.Match(data.Span[start..].ToString(), @"^<[^<]+");
-                if (m.Success)
-                {
-                    var tagNameWithAttributes = m.Value[1..];
-                    var attribMatch = attribRegExpr.Match(tagNameWithAttributes);
-                    if (attribMatch.Success)
-                    {
-                        return attribMatch.Groups["AttribValue"].Value;
-                    }
-                }
+                if (XamlTagScanner.ReadStartTag(data.Span, start)?.GetAttribute(attributeNames) is { } value)
+                    return value;
                 if (--maxLevels < 0)
                     break;
             }

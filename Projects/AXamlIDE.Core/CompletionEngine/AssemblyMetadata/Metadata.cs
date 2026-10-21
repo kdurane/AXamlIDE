@@ -67,6 +67,19 @@ public record MetadataType(string Name)
     public MetadataType? UnderlyingType { get; init; }
     public List<(MetadataType Type, string Name)> TemplateParts { get; set; } = [];
     public bool IsAbstract { get; internal set; } = false;
+
+    /// <summary>Can be written as an element: not abstract, static or an enum, and XAML can construct it.</summary>
+    public bool CanBeElement { get; set; }
+    /// <summary>Full names of everything this type can be assigned to (itself, base classes, interfaces).</summary>
+    public IReadOnlySet<string> AssignableTo { get; set; } = EmptySet;
+    /// <summary>What child elements of this collection type must be; empty when it isn't a collection.</summary>
+    public string[] ItemTypeNames { get; set; } = [];
+    /// <summary>The [Content] property, which the type's child elements are assigned to.</summary>
+    public string? ContentPropertyName { get; set; }
+    /// <summary>Hint values are the resource keys the project defines ({StaticResource}, {DynamicResource}).</summary>
+    public bool HintsResourceKeys { get; set; }
+
+    private static readonly IReadOnlySet<string> EmptySet = new HashSet<string>();
 }
 
 public enum MetadataTypeCtorArgument
@@ -78,8 +91,11 @@ public enum MetadataTypeCtorArgument
     HintValues
 }
 
+/// <param name="IsAvaloniaProperty">Backed by an AvaloniaProperty (styled, direct or attached): what Setters, selectors and TemplateBinding can use.</param>
+/// <param name="TypeFullName">The property type's full name, also when <paramref name="Type"/> is unknown (an interface, a framework type).</param>
 [DebuggerDisplay("{Name} from {DeclaringType}")]
-public record MetadataProperty(string Name, MetadataType? Type, MetadataType? DeclaringType, bool IsAttached, bool IsStatic, bool HasGetter, bool HasSetter);
+public record MetadataProperty(string Name, MetadataType? Type, MetadataType? DeclaringType, bool IsAttached, bool IsStatic, bool HasGetter, bool HasSetter,
+    bool IsAvaloniaProperty = false, string? TypeFullName = null);
 
 public record MetadataEvent(string Name, MetadataType? Type, MetadataType? DeclaringType, bool IsAttached);
 

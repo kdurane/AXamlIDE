@@ -380,7 +380,7 @@ public sealed partial class LspClient
         CancellationToken ct = default)
         => RequestAsync("codeAction/resolveFixAll", new
         {
-            title = data.GetProperty("UniqueIdentifier").GetString(),
+            title = RoslynCodeActions.UniqueIdentifier(data),
             data,
             scope
         }, ct);

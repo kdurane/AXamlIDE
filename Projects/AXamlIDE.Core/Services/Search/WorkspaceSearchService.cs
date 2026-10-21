@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -176,10 +176,8 @@ public sealed class WorkspaceSearchService
             IEnumerable<string> childDirectories;
             try
             {
-                files = Directory.EnumerateFiles(directory).ToArray();
-                childDirectories = Directory.EnumerateDirectories(directory)
-                    .Where(IsSearchableDirectory)
-                    .ToArray();
+                files = [.. Directory.EnumerateFiles(directory)];
+                childDirectories = [.. Directory.EnumerateDirectories(directory).Where(IsSearchableDirectory)];
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -299,10 +297,8 @@ public sealed class WorkspaceSearchService
             IEnumerable<string> childDirectories;
             try
             {
-                files = Directory.EnumerateFiles(directory).ToArray();
-                childDirectories = Directory.EnumerateDirectories(directory)
-                    .Where(IsSearchableDirectory)
-                    .ToArray();
+                files = [.. Directory.EnumerateFiles(directory)];
+                childDirectories = [.. Directory.EnumerateDirectories(directory).Where(IsSearchableDirectory)];
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

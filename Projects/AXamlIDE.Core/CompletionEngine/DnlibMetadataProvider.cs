@@ -19,6 +19,7 @@ namespace AXamlIDE.CompletionEngine;
         private readonly ModuleContext _modCtx;
         private readonly Dictionary<ITypeDefOrRef, ITypeDefOrRef> _baseTypes = [];
         private readonly Dictionary<ITypeDefOrRef, TypeDef> _baseTypeDefs = [];
+        private readonly Dictionary<TypeDef, (List<TypeSig> Sigs, List<string> Names)> _hierarchies = [];
         public string? TargetAssemblyName { get; private set; }
         public IReadOnlyCollection<IAssemblyInformation> Assemblies { get; }
         public DnlibMetadataProviderSession(string[] directoryPath)
@@ -46,6 +47,9 @@ namespace AXamlIDE.CompletionEngine;
                 Assemblies = LoadAssemblies(_modCtx, directoryPath).Select(a => new AssemblyWrapper(a, this)).ToList();
             }
         }
+
+        public bool IsTargetAssembly(IAssembly? assembly)
+            => assembly is AssemblyDef def && def.GetFullNameWithPublicKeyToken() == TargetAssemblyName;
 
         public TypeDef? GetTypeDef(ITypeDefOrRef type)
         {
@@ -78,6 +82,61 @@ namespace AXamlIDE.CompletionEngine;
                 return _baseTypes[type] = type.GetBaseType();
             }
 
+        }
+
+        /// <summary>
+        /// The type, then each base class, each followed by the interfaces it declares, with generic parameters
+        /// replaced by the arguments given further down (Controls : AvaloniaList&lt;Control&gt; gives
+        /// ICollection&lt;Control&gt;, not ICollection&lt;T&gt;), and their full names.
+        /// Cached per type: every control repeats its base classes' list.
+        /// </summary>
+        public (List<TypeSig> Sigs, List<string> Names) GetHierarchy(TypeDef type)
+        {
+            if (_hierarchies.TryGetValue(type, out var cached))
+                return cached;
+            _hierarchies[type] = ([], []); // stops a loop in broken metadata
+            return _hierarchies[type] = WalkHierarchy(type, type.ToTypeSig(), null, depth: 0);
+        }
+
+        private (List<TypeSig> Sigs, List<string> Names) WalkHierarchy(TypeDef def, TypeSig sig, IList<TypeSig>? arguments, int depth)
+        {
+            List<TypeSig> sigs = [sig];
+            foreach (var implemented in def.Interfaces)
+                sigs.Add(Substitute(implemented.Interface.ToTypeSig(), arguments));
+            var names = sigs.Select(s => s.FullName).ToList();
+
+            if (depth < 32 && def.BaseType is { } baseType)
+            {
+                var baseSig = Substitute(baseType.ToTypeSig(), arguments);
+                if (GetTypeDef(baseType) is not { } baseDef)
+                {
+                    sigs.Add(baseSig);
+                    names.Add(baseSig.FullName);
+                }
+                else
+                {
+                    // Only a generic base (AvaloniaList<Control>) depends on the arguments; the rest are shared
+                    var (baseSigs, baseNames) = baseSig is GenericInstSig generic
+                        ? WalkHierarchy(baseDef, baseSig, generic.GenericArguments, depth + 1)
+                        : GetHierarchy(baseDef);
+                    sigs.AddRange(baseSigs);
+                    names.AddRange(baseNames);
+                }
+            }
+            return (sigs, names);
+        }
+
+        private static TypeSig Substitute(TypeSig sig, IList<TypeSig>? arguments)
+        {
+            if (arguments is null)
+                return sig;
+            return sig switch
+            {
+                GenericVar variable when variable.Number < arguments.Count => arguments[(int)variable.Number],
+                GenericInstSig generic => new GenericInstSig(generic.GenericType,
+                    generic.GenericArguments.Select(argument => Substitute(argument, arguments)).ToList()),
+                _ => sig,
+            };
         }
 
         private static List<AssemblyDef> LoadAssemblies(ModuleContext context, string[] lst)
@@ -114,6 +173,7 @@ namespace AXamlIDE.CompletionEngine;
         {
             _baseTypes.Clear();
             _baseTypeDefs.Clear();
+            _hierarchies.Clear();
             ((AssemblyResolver)_modCtx.AssemblyResolver).Clear();
         }
     }

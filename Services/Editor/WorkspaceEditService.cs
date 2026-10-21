@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -56,13 +56,35 @@ public sealed class WorkspaceEditService
         }
 
         foreach (var (document, edits) in prepared)
-            foreach (var edit in edits)
-                document.Document.Replace(edit.Start, edit.End - edit.Start, edit.Text);
+            foreach (var (Start, End, Text) in edits)
+                document.Document.Replace(Start, End - Start, Text);
 
         // Move the caret of the selected tab to its first edit.
         if (prepared.FirstOrDefault(item => ReferenceEquals(item.Document, _documents.Active)) is
             { Document: { } activeDocument, Edits.Count: > 0 } activeEdit)
             activeDocument.Reveal(activeEdit.Edits.Min(edit => edit.Start));
+    }
+
+    /// <summary>
+    /// Applies a whole LSP workspace edit: creates the files it creates (left empty on disk until saved, like the
+    /// other edited documents), then its text edits. False when there was nothing to do.
+    /// </summary>
+    public bool Apply(JsonElement workspaceEdit)
+    {
+        var created = false;
+        foreach (var path in LspHelpers.FilesToCreate(workspaceEdit))
+        {
+            if (System.IO.File.Exists(path))
+                continue;
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+            System.IO.File.WriteAllText(path, "");
+            created = true;
+        }
+
+        var changes = LspHelpers.ParseWorkspaceEdit(workspaceEdit);
+        if (changes.Count > 0)
+            Apply(changes);
+        return created || changes.Count > 0;
     }
 
     /// <summary>Applies an edit the language server pushed to us (workspace/applyEdit).</summary>
@@ -71,10 +93,8 @@ public sealed class WorkspaceEditService
         {
             try
             {
-                var changes = LspHelpers.ParseWorkspaceEdit(workspaceEdit);
-                if (changes.Count == 0)
+                if (!Apply(workspaceEdit))
                     return false;
-                Apply(changes);
                 Status("Applied language-server edits. Review and save modified documents.");
                 return true;
             }

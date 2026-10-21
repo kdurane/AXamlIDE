@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Xml;
 using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.CompletionEngine.Parsing;
@@ -22,9 +21,6 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
             private Dictionary<string, MetadataType>? _types;
             private string? _currentAssemblyName;
-            private static Regex? _sFindElementByNameRegex;
-            internal static Regex FindElementByNameRegex => _sFindElementByNameRegex ??=
-                 new($"\\s(?:(x\\:)?Name)=\"(?<AttribValue>[\\w\\:\\s\\|\\.]+)\"", RegexOptions.Compiled);
 
             public void SetMetadata(Metadata metadata, string xml, string? currentAssemblyName = null)
             {
@@ -92,6 +88,16 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
                 return e;
             }
+
+            /// <summary>
+            /// Types that own attached properties ("Grid" for Grid.Row); with <paramref name="includeEvents"/>, also
+            /// non-controls that own attached events ("Gestures" for Gestures.Tapped).
+            /// </summary>
+            public IEnumerable<string> FilterAttachedOwnerNames(string? prefix, bool includeEvents)
+                => FilterTypes(prefix)
+                    .Where(t => t.Value.HasAttachedProperties
+                                || (includeEvents && t.Value is { HasAttachedEvents: true, IsAvaloniaObjectType: false }))
+                    .Select(t => t.Key);
 
             public IEnumerable<string> FilterTypeNames(string? prefix, bool withAttachedPropertiesOrEventsOnly = false, bool markupExtensionsOnly = false, bool staticGettersOnly = false, bool xamlDirectiveOnly = false)
             {
@@ -167,6 +173,12 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
         public MetadataHelper Helper { get; set; } = new MetadataHelper();
 
+        // The document and project of the current GetCompletions call (the engine isn't thread-safe: callers lock).
+        private string _fullText = "";
+        private XamlProjectInfo _project = XamlProjectInfo.Empty;
+
+        private static readonly string[] DataTypeAttributes = ["x:DataType", "DataType"];
+
         public static Dictionary<string, string> GetNamespaceAliases(string xml)
         {
             var rv = new Dictionary<string, string>();
@@ -208,8 +220,10 @@ namespace AXamlIDE.CompletionEngine.Completion;
             return rv;
         }
 
-        public CompletionSet? GetCompletions(Metadata metadata, string fullText, int pos, string? currentAssemblyName = null)
+        public CompletionSet? GetCompletions(Metadata metadata, string fullText, int pos, string? currentAssemblyName = null, XamlProjectInfo? project = null)
         {
+            _fullText = fullText;
+            _project = project ?? XamlProjectInfo.Empty;
             var textToCursor = fullText[..pos];
             Helper.SetMetadata(metadata, textToCursor, currentAssemblyName);
 
@@ -252,7 +266,11 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
                             var sameType = state.GetParentTagName(1) == typeName;
 
-                            completions.AddRange(Helper.FilterPropertyNames(typeName, compName, attached: sameType ? null : true, hasSetter: false)
+                            // A property element sets the property, or adds to it when it's a collection (<Grid.RowDefinitions>)
+                            completions.AddRange(MetadataHelper.FilterProperty(Helper.LookupType(typeName), compName, attached: sameType ? null : true, hasSetter: false)
+                                .Where(p => p.HasSetter || IsCollection(p))
+                                .Select(p => p.Name)
+                                .Distinct()
                                 .Select(p => new Completion(p, sameType ? CompletionKind.Property : CompletionKind.AttachedProperty)));
                         }
                         else
@@ -275,8 +293,10 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                 }
                                 completions.Add(new Completion("!--", "!---->", CompletionKind.Comment) { RecommendedCursorOffset = 3 });
                             }
+                            var allowedChildren = AllowedChildTypes(state);
                             completions.AddRange(Helper.FilterTypes(tagName)
-                                .Where(kvp => !kvp.Value.IsAbstract)
+                                .Where(kvp => (kvp.Value.CanBeElement || kvp.Value.IsMarkupExtension)
+                                              && (allowedChildren is null || allowedChildren.Any(kvp.Value.AssignableTo.Contains)))
                                 .Select(kvp =>
                                 {
                                     var ci = GetElementCompletionInfo(kvp.Key, kvp.Value);
@@ -285,7 +305,9 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                         RecommendedCursorOffset = ci.RecommendedCursorOffset,
                                         TriggerCompletionAfterInsert = ci.TriggerCompletionAfterInsert,
                                     };
-                                }));
+                                })
+                                // {Binding} is both Avalonia.Data.Binding and the BindingExtension made for it
+                                .DistinctBy(c => c.InsertText));
                         }
 
                         break;
@@ -305,34 +327,39 @@ namespace AXamlIDE.CompletionEngine.Completion;
                             attributeOffset = 0;
                         }
                         var attributeName = state.AttributeName;
+                        // Attributes already on the element aren't offered again
+                        var present = PresentAttributes(fullText, state);
                         if (attributeName?.Contains('.') == true)
                         {
                             var dotPos = attributeName.IndexOf('.');
                             curStart += dotPos + 1;
                             var split = attributeName.Split(['.'], 2);
                             completions.AddRange(Helper.FilterPropertyNames(split[0], split[1], attached: true, hasSetter: true)
+                                .Where(x => !present.Contains($"{split[0]}.{x}"))
                                 .Select(x => new Completion(x, x + attributeSuffix, x, CompletionKind.AttachedProperty, x.Length + attributeOffset)));
 
                             completions.AddRange(Helper.FilterEventNames(split[0], split[1], attached: true)
+                                .Where(x => !present.Contains($"{split[0]}.{x}"))
                                 .Select(v => new Completion(v, v + attributeSuffix, v, CompletionKind.AttachedEvent, v.Length + attributeOffset)));
+
+                            // Classes.primary="{Binding IsPrimary}" turns one class on and off
+                            if (split[0] == "Classes")
+                            {
+                                completions.AddRange(StyleClassNames()
+                                    .Where(x => !present.Contains($"Classes.{x}"))
+                                    .Select(x => new Completion(x, x + attributeSuffix, x, CompletionKind.Selector | CompletionKind.Enum, x.Length + attributeOffset)));
+                            }
                         }
                         else if (state.TagName is not null)
                         {
                             completions.AddRange(Helper.FilterPropertyNames(state.TagName, attributeName, attached: false, hasSetter: true)
+                                .Distinct()
+                                .Where(x => !present.Contains(x))
                                 .Select(x => new Completion(x, x + attributeSuffix, x, CompletionKind.Property, x.Length + attributeOffset)));
 
-                            // Special case for "<On " here, 'Options' property is get only list property
-                            // which is skipped above - Add it back here
-                            // Future TODO: The metadata probably needs to adapt for this, but this opens up
-                            // potential issues with readonly properties that we don't want visible, so leaving
-                            // this up to be dealt with in the future
-                            if (state.TagName.Equals("On"))
-                            {
-                                completions.Add(new Completion("Options", "Options=\"\"", "Options",
-                                    CompletionKind.Property, 9 /*recommendedCursorOffset*/));
-                            }
-
                             completions.AddRange(Helper.FilterEventNames(state.TagName, attributeName, attached: false)
+                                .Distinct()
+                                .Where(x => !present.Contains(x))
                                 .Select(v => new Completion(v, v + attributeSuffix, v, CompletionKind.Event, v.Length + attributeOffset)));
 
                             var targetType = Helper.LookupType(state.TagName);
@@ -341,6 +368,8 @@ namespace AXamlIDE.CompletionEngine.Completion;
                             {
                                 completions.AddRange(
                                     Helper.FilterTypes(attributeName, xamlDirectiveOnly: true)
+                                        .Where(t => !present.Contains(t.Key))
+                                        .Where(t => t.Value.Name != "Class" || state.NestingLevel == 1) // x:Class: root only
                                         .Where(t => t.Value.IsValidForXamlContextFunc?.Invoke(currentAssemblyName, targetType, null) ?? true)
                                         .Select(v => new Completion(v.Key, v.Key + attributeSuffix, v.Key, CompletionKind.Class, v.Key.Length + attributeOffset)));
 
@@ -351,8 +380,8 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                         completions.Add(new("xmlns:", CompletionKind.Class));
                                     }
                                     completions.AddRange(
-                                        Helper.FilterTypeNames(attributeName, withAttachedPropertiesOrEventsOnly: true)
-                                            .Select(v => new Completion(v, v + ".", v, CompletionKind.Class)));
+                                        Helper.FilterAttachedOwnerNames(attributeName, includeEvents: true)
+                                            .Select(v => new Completion(v, v + ".", v, CompletionKind.Class) { TriggerCompletionAfterInsert = true }));
                                 }
                             }
                         }
@@ -391,6 +420,17 @@ namespace AXamlIDE.CompletionEngine.Completion;
                             }
                             completions.Add(new Completion("<New Event Handler>", $"{name}_{state.AttributeName}", CompletionKind.StaticProperty));
                         }
+                        else if (state.AttributeName == "Classes" && state.CurrentValueStart is { } classesStart)
+                        {
+                            // Classes="primary big": the classes the styles use, for the word being typed
+                            var value = textToCursor[classesStart..];
+                            var wordStart = value.LastIndexOf(' ') + 1;
+                            curStart = classesStart + wordStart;
+                            var used = value[..wordStart].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                            completions.AddRange(StyleClassNames()
+                                .Where(c => !used.Contains(c))
+                                .Select(c => new Completion(c, CompletionKind.Selector | CompletionKind.Enum)));
+                        }
                         else
                         {
                             prop ??= Helper.LookupType(state.AttributeName)?.Properties.FirstOrDefault(p => string.IsNullOrEmpty(p.Name));
@@ -405,7 +445,14 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                     if (state.AttributeName!.Equals("Selector"))
                                     {
                                         hintCompletions = false;
-                                        if (ProcessSelector(search.AsSpan(), state, completions, currentAssemblyName, fullText) is { } delta)
+                                        if (SelectorScanner.EndsInStyleClass(search, out var classStart))
+                                        {
+                                            // "Button.pri": the classes the project's styles use
+                                            curStart += classStart;
+                                            completions.AddRange(StyleClassNames()
+                                                .Select(c => new Completion(c, CompletionKind.Selector | CompletionKind.Enum)));
+                                        }
+                                        else if (ProcessSelector(search.AsSpan(), state, completions, currentAssemblyName, fullText) is { } delta)
                                         {
                                             curStart += delta;
                                         }
@@ -413,8 +460,8 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                     else
                                     {
                                         var last = search.Split(' ', ',').Last();
+                                        curStart += search.Length - last.Length;
                                         search = last;
-                                        curStart = curStart + search.Length - last?.Length ?? 0;
                                     }
                                 }
                                 if (hintCompletions)
@@ -504,7 +551,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                         completions.Add(new Completion("macOS", CompletionKind.Enum));
                                         completions.Add(new Completion("Linux", CompletionKind.Enum));
                                         completions.Add(new Completion("Android", CompletionKind.Enum));
-                                        completions.Add(new Completion("IOS", CompletionKind.Enum));
+                                        completions.Add(new Completion("iOS", CompletionKind.Enum));
                                         completions.Add(new Completion("Browser", CompletionKind.Enum));
                                     }
                                     else if (parentTag?.Equals("OnFormFactor") == true)
@@ -634,35 +681,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
         private void ProcessStyleSetter(string setterPropertyName, XmlParser state, List<Completion> completions, string? currentAssemblyName)
         {
-            const string selectorTypes = @"(?<type>([\w|])+)|([:\.#/]\w+)";
-
-            // TODO: This improves ControlThemes to properly suggest properties in Setters,
-            // but we still need to improve this for nested Styles:
-            // <Style Selector="^:pointerover">
-            // Won't show suggestions (or incorrect ones), because the else clause below will fail
-            // to find a type in that selector and we don't search up the Xml tree
-            string? selectorTypeName = null;
-            if (state.GetParentTagName(1)?.Equals("ControlTheme") == true)
-            {
-                selectorTypeName = state.FindParentAttributeValue("TargetType", 1, maxLevels: 0);
-            }
-            else
-            {
-                if (state.FindParentAttributeValue("Selector", 1, maxLevels: 0)?.Trim() is { Length: > 0 } selector)
-                {
-                    if (selector[0] == '^')
-                    {
-                        selectorTypeName = state.FindParentAttributeValue("TargetType", 2, maxLevels: 0);
-                    }
-                    else
-                    {
-                        var matches = Regex.Matches(selector, selectorTypes);
-                        var types = matches.OfType<Match>().Select(m => m.Groups["type"].Value).Where(v => !string.IsNullOrEmpty(v));
-                        selectorTypeName = types.LastOrDefault()?.Replace('|', ':') ?? "Control";
-                    }
-                }
-            }
-
+            var selectorTypeName = ResolveStyleTargetType(state, level: 1);
             if (string.IsNullOrEmpty(selectorTypeName))
                 return;
 
@@ -674,23 +693,24 @@ namespace AXamlIDE.CompletionEngine.Completion;
 
                         if (value.Contains('.'))
                         {
-                            var curStart = state.CurrentValueStart ?? 0;
                             var dotPos = value.IndexOf('.');
                             var typeName = value[..dotPos];
                             var compName = value[(dotPos + 1)..];
-                            curStart = curStart + dotPos + 1;
-
-                            var sameType = state.GetParentTagName(1) == typeName;
 
                             completions.AddRange(Helper.FilterPropertyNames(typeName, compName, attached: true, hasSetter: true)
                                 .Select(p => new Completion(p, p, p, CompletionKind.AttachedProperty)));
                         }
                         else
                         {
-                            completions.AddRange(Helper.FilterPropertyNames(selectorTypeName, value, attached: false, hasSetter: true)
+                            // Setters can only set AvaloniaProperties, not plain CLR ones
+                            completions.AddRange(MetadataHelper.FilterProperty(Helper.LookupType(selectorTypeName), value, attached: false, hasSetter: true)
+                                .Where(p => p.IsAvaloniaProperty)
+                                .Select(p => p.Name)
+                                .Distinct()
                                 .Select(x => new Completion(x, CompletionKind.Property)));
 
-                            completions.AddRange(Helper.FilterTypeNames(value, withAttachedPropertiesOrEventsOnly: true).Select(x => new Completion(x, CompletionKind.Class)));
+                            completions.AddRange(Helper.FilterAttachedOwnerNames(value, includeEvents: false)
+                                .Select(x => new Completion(x, x + ".", x, CompletionKind.Class) { TriggerCompletionAfterInsert = true }));
                         }
 
                         break;
@@ -719,12 +739,159 @@ namespace AXamlIDE.CompletionEngine.Completion;
             }
         }
 
+        /// <summary>
+        /// The type a Style's or ControlTheme's setters apply to, starting from the element <paramref name="level"/>
+        /// up (1 = the parent): a ControlTheme's TargetType, or the last type in a Style's Selector. A nested selector
+        /// ("^:pointerover") takes its parent style's type. Null when there's no style there.
+        /// </summary>
+        private static string? ResolveStyleTargetType(XmlParser state, int level)
+        {
+            for (; state.GetParentTagName(level) is { } tag; level++)
+            {
+                if (tag == "ControlTheme")
+                    return TypeNameFromAttribute(state.FindParentAttributeValue("TargetType", level, maxLevels: 0));
+
+                if (tag == "Style")
+                {
+                    var selector = state.FindParentAttributeValue("Selector", level, maxLevels: 0)?.Trim();
+                    if (string.IsNullOrEmpty(selector))
+                        return null;
+                    if (SelectorScanner.LastTypeName(selector) is { } typeName)
+                        return typeName.Replace('|', ':');
+                    if (!selector.StartsWith('^'))
+                        return "Control"; // ".primary" applies to any control
+                    continue;
+                }
+
+                // Property elements (<ControlTheme.Styles>) can sit between a nested style and its parent
+                if (!tag.Contains('.'))
+                    return null;
+            }
+            return null;
+        }
+
+        /// <summary>"vm:Main" from "vm:Main" or "{x:Type vm:Main}".</summary>
+        private static string? TypeNameFromAttribute(string? value)
+        {
+            value = value?.Trim();
+            if (value is null || !value.StartsWith('{') || !value.EndsWith('}'))
+                return value;
+            var inner = value[1..^1].Trim();
+            var space = inner.IndexOf(' ');
+            if (space < 0)
+                return null;
+            var typeName = inner[(space + 1)..].Trim();
+            return typeName.StartsWith("TypeName=", StringComparison.Ordinal) ? typeName["TypeName=".Length..].Trim() : typeName;
+        }
+
+        /// <summary>The x:DataType (or DataTemplate DataType) in effect at the current element.</summary>
+        private static string? DataTypeName(XmlParser state)
+            => TypeNameFromAttribute(state.FindParentAttributeValue(DataTypeAttributes));
+
+        /// <summary>
+        /// What a new child element may be, as full type names: the parent collection's item type (Grid: Control),
+        /// its [Content] property's type (Border: Control), or a property element's type (&lt;Button.Background&gt;:
+        /// IBrush). Null when anything goes, or it can't be worked out.
+        /// </summary>
+        private string[]? AllowedChildTypes(XmlParser state)
+        {
+            if (state.GetParentTagName(1) is not { } parentTag)
+                return null;
+
+            MetadataType? target;
+            string? targetName;
+            var dot = parentTag.IndexOf('.');
+            if (parentTag is "Setter" or "Setter.Value")
+            {
+                // A setter's value has the type of the property it sets
+                var setterLevel = parentTag == "Setter" ? 1 : 2;
+                var setterProperty = state.FindParentAttributeValue("Property", setterLevel, maxLevels: 0);
+                if (setterProperty is null)
+                    return null;
+                var property = setterProperty.Split('.') is [var owner, var attached]
+                    ? Helper.LookupProperty(owner, attached)
+                    : Helper.LookupProperty(ResolveStyleTargetType(state, setterLevel + 1), setterProperty);
+                (target, targetName) = (property?.Type, property?.TypeFullName);
+            }
+            else if (dot > 0)
+            {
+                var property = Helper.LookupProperty(parentTag[..dot], parentTag[(dot + 1)..]);
+                (target, targetName) = (property?.Type, property?.TypeFullName);
+            }
+            else
+            {
+                if (Helper.LookupType(parentTag) is not { } parentType)
+                    return null;
+                if (parentType.ItemTypeNames.Length > 0)
+                    return OrAnything(parentType.ItemTypeNames);
+                if (parentType.ContentPropertyName is not { } contentName
+                    || parentType.Properties.FirstOrDefault(p => p.Name == contentName) is not { } content)
+                    return null;
+                (target, targetName) = (content.Type, content.TypeFullName);
+
+                // Content="object" on a control or template (Button, UserControl, DataTemplate): in practice, controls
+                if (targetName == "System.Object" && (IsStyleable(parentType) || IsTemplate(parentType)))
+                    return ["Avalonia.Controls.Control"];
+            }
+
+            if (target is { ItemTypeNames.Length: > 0 })
+                return OrAnything(target.ItemTypeNames);
+            if (CollectionItemTypeFromName(targetName) is { } itemName)
+                return OrAnything([itemName]);
+            if (target is not null)
+                targetName = target.FullName.Length > 0 ? target.FullName : target.Name;
+            return targetName is null or "System.Object" ? null : [targetName];
+
+            static string[]? OrAnything(string[] names) => names.Contains("System.Object") ? null : names;
+        }
+
+        private static bool IsCollection(MetadataProperty property)
+            => property.Type is { ItemTypeNames.Length: > 0 } || CollectionItemTypeFromName(property.TypeFullName) is not null;
+
+        /// <summary>"X" from an interface-typed collection: IList`1&lt;X&gt; or ICollection`1&lt;X&gt;.</summary>
+        private static string? CollectionItemTypeFromName(string? typeName)
+        {
+            if (typeName is null || !typeName.EndsWith('>'))
+                return null;
+            foreach (var prefix in (string[])["System.Collections.Generic.IList`1<", "System.Collections.Generic.ICollection`1<"])
+                if (typeName.StartsWith(prefix, StringComparison.Ordinal))
+                    return typeName[prefix.Length..^1];
+            return null;
+        }
+
+        /// <summary>The attributes already set on the element being edited, apart from the one being typed.</summary>
+        private static HashSet<string> PresentAttributes(string fullText, XmlParser state)
+        {
+            var present = new HashSet<string>();
+            if (XamlTagScanner.ReadStartTag(fullText, state.ContainingTagStart) is { } tag)
+                foreach (var attribute in tag.Attributes)
+                    if (attribute.NameStart != state.CurrentValueStart)
+                        present.Add(attribute.Name);
+            return present;
+        }
+
+        /// <summary>The style classes used by selectors in this document and the rest of the project.</summary>
+        private IEnumerable<string> StyleClassNames()
+            => XamlTagScanner.StyleClasses(_fullText).Concat(_project.StyleClasses).Distinct();
+
+        private static bool IsStyleable(MetadataType type) => type.AssignableTo.Contains("Avalonia.StyledElement");
+
+        private static bool IsTemplate(MetadataType type)
+            => type.AssignableTo.Any(name => name.StartsWith("Avalonia.Controls.Templates.ITemplate`", StringComparison.Ordinal));
+
         public IEnumerable<string> FilterHintValues(MetadataType type, string? entered, string? currentAssemblyName, XmlParser? state)
         {
             entered ??= "";
 
             if (type == null)
                 yield break;
+
+            if (type.HintsResourceKeys)
+            {
+                foreach (var key in XamlTagScanner.ResourceKeys(_fullText).Concat(_project.ResourceKeys).Distinct())
+                    yield return key;
+                yield break;
+            }
 
             if (!string.IsNullOrEmpty(currentAssemblyName) && type.XamlContextHintValuesFunc != null)
             {
@@ -758,7 +925,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                     => ForPropertiesFromType(Helper.LookupType(filterType ?? ""), filter, fmtInsertText);
 
             if (string.IsNullOrEmpty(entered))
-                return forProperties(state.FindParentAttributeValue("(x\\:)?DataType"), entered);
+                return forProperties(DataTypeName(state), entered);
 
             var values = entered.Split('.');
 
@@ -771,21 +938,12 @@ namespace AXamlIDE.CompletionEngine.Completion;
                 }
                 else if (values[0].StartsWith('#'))
                 {
-                    if (fullText is null) return [];
-                    var nameMatch = MetadataHelper.FindElementByNameRegex.Matches(fullText);
-                    if (nameMatch is not { Count: > 0 }) return [];
-                    var result = new List<Completion>();
-                    foreach (Match m in nameMatch)
-                    {
-                        if (!m.Success) continue;
-                        var name = m.Groups["AttribValue"].Value;
-                        result.Add(new Completion(name, $"#{name}", name, CompletionKind.Class));
-                    }
-                    return result;
-
+                    return XamlTagScanner.NamedElements(fullText ?? _fullText)
+                        .Select(e => new Completion(e.Name, $"#{e.Name}", e.Name, CompletionKind.Class))
+                        .ToList();
                 }
 
-                return forProperties(state.FindParentAttributeValue("(x\\:)?DataType"), entered);
+                return forProperties(DataTypeName(state), entered);
             }
 
             var mdType = WalkBindingPath(values, state, values.Length - 1, out var i);
@@ -858,14 +1016,15 @@ namespace AXamlIDE.CompletionEngine.Completion;
             }
             else if (values[0].StartsWith('#'))
             {
+                // #name: the named element's own type
                 i = 1;
-                //todo: find the control type etc ???
-                type = "Control";
+                var elementName = values[0][1..];
+                type = XamlTagScanner.NamedElements(_fullText).FirstOrDefault(e => e.Name == elementName).TagName ?? "Control";
             }
             else
             {
                 i = 0;
-                type = state.FindParentAttributeValue("(x\\:)?DataType");
+                type = DataTypeName(state);
             }
 
             var mdType = Helper.LookupType(type ?? "");
@@ -875,7 +1034,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                 if (i <= 1 && values[i] == "DataContext")
                 {
                     //assume parent.datacontext is x:datatype so we have some intellisense
-                    type = state.FindParentAttributeValue("(x\\:)?DataType");
+                    type = DataTypeName(state);
                     mdType = type is not null ? Helper.LookupType(type) : null;
                 }
                 else
@@ -915,9 +1074,18 @@ namespace AXamlIDE.CompletionEngine.Completion;
             switch (ext.State)
             {
                 case MarkupExtensionParser.ParserStateType.StartElement:
-                    completions.AddRange(Helper.FilterTypeNames(ext.ElementName, markupExtensionsOnly: true)
-                        .Select(t => t.EndsWith("Extension") ? t[..^"Extension".Length] : t)
-                        .Select(t => new Completion(t, CompletionKind.MarkupExtension)));
+                    completions.AddRange(Helper.FilterTypes(ext.ElementName, markupExtensionsOnly: true)
+                        .Select(t =>
+                        {
+                            var name = t.Key.EndsWith("Extension") ? t.Key[..^"Extension".Length] : t.Key;
+                            // One that takes arguments ({Binding Path}) gets a space and the list for them straight away;
+                            // one that doesn't ({x:Null}) is complete as it is
+                            var takesArguments = t.Value.SupportCtorArgument != MetadataTypeCtorArgument.None
+                                                 || t.Value.Properties.Any(p => p.HasSetter);
+                            return takesArguments
+                                ? new Completion(name, name + " ", name, CompletionKind.MarkupExtension) { TriggerCompletionAfterInsert = true }
+                                : new Completion(name, CompletionKind.MarkupExtension);
+                        }));
                     break;
                 case MarkupExtensionParser.ParserStateType.StartAttribute:
                 case MarkupExtensionParser.ParserStateType.InsideElement:
@@ -978,6 +1146,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                         }
 
                         completions.AddRange(Helper.FilterPropertyNames(transformedName, ext.AttributeName ?? "", attached: false, hasSetter: true)
+                            .Where(x => x.Length > 0) // "" is the positional argument ({Binding Path}), not a name to type
                             .Select(x => new Completion(x, x + "=", x, CompletionKind.Property)));
 
                         var attribName = ext.AttributeName ?? "";
@@ -989,7 +1158,17 @@ namespace AXamlIDE.CompletionEngine.Completion;
                         {
                             if (t.SupportCtorArgument == MetadataTypeCtorArgument.HintValues)
                             {
-                                if (t.HasHintValues)
+                                // {TemplateBinding X}: the properties of the type the template is for
+                                if (t.Name == "TemplateBindingExtension"
+                                    && Helper.LookupType(TypeNameFromAttribute(state.FindParentAttributeValue("TargetType"))) is { } templated)
+                                {
+                                    completions.AddRange(templated.Properties
+                                        .Where(p => p is { IsAvaloniaProperty: true, IsAttached: false })
+                                        .Select(p => p.Name)
+                                        .Distinct()
+                                        .Select(p => new Completion(p, CompletionKind.Property)));
+                                }
+                                else if (t.HasHintValues)
                                 {
                                     completions.AddRange(GetHintCompletions(t, attribName));
                                 }
@@ -1057,6 +1236,10 @@ namespace AXamlIDE.CompletionEngine.Completion;
                             var start = data[ext.CurrentValueStart..];
                             completions.AddRange(GetHintCompletions(prop.Type, start, currentAssemblyName, fullText, state));
                         }
+                        else if (ext.AttributeName == "ResourceKey" && Helper.LookupType(transformedName) is { HintsResourceKeys: true } resourceExtension)
+                        {
+                            completions.AddRange(GetHintCompletions(resourceExtension, null, currentAssemblyName));
+                        }
 
                         break;
                     }
@@ -1118,11 +1301,10 @@ namespace AXamlIDE.CompletionEngine.Completion;
                         if (fn == "is")
                         {
                             var types = Helper.FilterTypes(default)
-                                   .Where(t => t.Value.IsAvaloniaObjectType)
+                                   .Where(t => IsStyleable(t.Value))
                                    .Select(t => t.Value);
                             if (types?.Any() == true)
                             {
-                                parsed = text.Length - (parser.LastParsedPosition + 1);
                                 completions.AddRange(types.Select(v =>
                                 {
                                     var name = GetXmlnsFullName(v);
@@ -1183,25 +1365,13 @@ namespace AXamlIDE.CompletionEngine.Completion;
                         }
                         else if (fullText is not null)
                         {
-                            var nameMatch = MetadataHelper
-                                .FindElementByNameRegex
-                                .Matches(fullText);
-                            if (nameMatch is { Count: > 0 })
+                            var elementName = parser.ElementName;
+                            foreach (var (name, _) in XamlTagScanner.NamedElements(fullText).DistinctBy(e => e.Name))
                             {
-                                var filterName = nameMatch.OfType<Match>();
-                                var elementName = parser.ElementName;
-                                if (!string.IsNullOrEmpty(elementName))
-                                {
-                                    filterName = filterName
-                                        .Where(m => m.Groups["AttribValue"].Value.StartsWith(elementName, StringComparison.OrdinalIgnoreCase));
-                                }
-                                foreach (var m in filterName)
-                                {
-                                    if (!m.Success) continue;
-                                    parsed = (parser.LastParsedPosition ?? 0);
-                                    var name = m.Groups["AttribValue"].Value;
-                                    completions.Add(new Completion(name, CompletionKind.Name | CompletionKind.Class));
-                                }
+                                if (!string.IsNullOrEmpty(elementName) && !name.StartsWith(elementName, StringComparison.OrdinalIgnoreCase))
+                                    continue;
+                                parsed = parser.LastParsedPosition ?? 0;
+                                completions.Add(new Completion(name, CompletionKind.Name | CompletionKind.Class));
                             }
                         }
                     }
@@ -1226,7 +1396,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                         ft = ft
                                             .Where(t => t.IsGeneric == false)
                                             .Where(t => t.IsMarkupExtension == false)
-                                            .Where(t => t.IsAvaloniaObjectType || t.HasAttachedProperties);
+                                            .Where(IsStyleable);
                                         completions.AddRange(ft.Select(v => new Completion(v.Name, $"{ns}|{v.Name}", CompletionKind.Class | CompletionKind.TargetTypeClass)));
                                         parsed = (parser.LastParsedPosition ?? 0) - (tn?.Length ?? 0);
                                     }
@@ -1236,7 +1406,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                     types = types
                                             .Where(t => t.IsGeneric == false)
                                             .Where(t => t.IsMarkupExtension == false)
-                                            .Where(t => t.IsAvaloniaObjectType || t.HasAttachedProperties);
+                                            .Where(IsStyleable);
                                     completions.AddRange(types.Select(v =>
                                     {
                                         var name = GetXmlnsFullName(v);
@@ -1254,14 +1424,15 @@ namespace AXamlIDE.CompletionEngine.Completion;
                         if (Helper.LookupType(typeFullName) is { } type)
                         {
                             var propertyName = parser.PropertyName;
+                            // [Property=value] matches AvaloniaProperties only
                             var selectorElementProperties = MetadataHelper.FilterProperty(type,
                                 propName: propertyName,
-                                attached: default,
+                                attached: false,
                                 hasSetter: false
-                                );
-                            if (selectorElementProperties?.Any() == true)
+                                ).Where(p => p.IsAvaloniaProperty).DistinctBy(p => p.Name).ToList();
+                            if (selectorElementProperties.Count > 0)
                             {
-                                parsed = (parser.LastParsedPosition ?? 0) - (propertyName?.Length ?? 0);
+                                parsed = text.Length - (propertyName?.Length ?? 0);
                                 completions.AddRange(selectorElementProperties.Select(v => new Completion(v.Name, v.Name + "=", v.IsAttached ? CompletionKind.AttachedProperty : CompletionKind.Property)));
                             }
                         }
@@ -1280,11 +1451,8 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                 );
                             if (selectorElementProperties?.Any() == true)
                             {
-                                var lenPropertyName = propertyName?.Length ?? 0;
-                                var lenType = lenPropertyName == 0 || typeFullName is null
-                                    ? 0
-                                    : typeFullName.Length + 1;
-                                parsed = (parser.LastParsedPosition ?? 0) - lenType - lenType + 1;
+                                // The property name being typed runs to the end of the text
+                                parsed = text.Length - (propertyName?.Length ?? 0);
                                 completions.AddRange(selectorElementProperties.Select(v => new Completion(v.Name, v.Name + ")", v.IsAttached ? CompletionKind.AttachedProperty : CompletionKind.Property)));
                             }
                         }
@@ -1332,7 +1500,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                 completions.Add(new Completion(":nth-last-child()", ":nth-last-child(", CompletionKind.Selector | CompletionKind.Enum));
                                 completions.Add(new Completion("/template/", "/template/", CompletionKind.Selector | CompletionKind.Enum));
                                 var types = Helper.FilterTypes(default)
-                                    .Where(t => t.Value.IsAvaloniaObjectType || t.Value.HasAttachedProperties)
+                                    .Where(t => IsStyleable(t.Value))
                                     .Select(t => new Completion(t.Value.Name.Replace(":", "|"), CompletionKind.Class | CompletionKind.TargetTypeClass));
                                 completions.AddRange(types);
                             }
@@ -1368,7 +1536,7 @@ namespace AXamlIDE.CompletionEngine.Completion;
                                         .Where(v => v.StartsWith(value, StringComparison.OrdinalIgnoreCase));
                                 }
                                 completions.AddRange(values.Select(v => new Completion(v, kind)));
-                                parsed = parser.LastParsedPosition - (parser.Value?.Length ?? 0);
+                                parsed = text.Length - (parser.Value?.Length ?? 0);
                             }
                         }
                     }
@@ -1396,15 +1564,8 @@ namespace AXamlIDE.CompletionEngine.Completion;
                 return typeFullName ?? string.Empty;
             }
 
-            string? GetTypeFromControlTheme()
-            {
-                if (state.GetParentTagName(1)?.Equals("ControlTheme") != true) return default;
-                if (state.FindParentAttributeValue("TargetType", 1, maxLevels: 0) is { } implicitSelectorTypeName)
-                {
-                    return implicitSelectorTypeName;
-                }
-                return default;
-            }
+            // "^" in a ControlTheme or nested Style stands for the parent's type
+            string? GetTypeFromControlTheme() => ResolveStyleTargetType(state, 1);
         }
 
         string GetXmlnsFullName(MetadataType type, char namespaceSeparator = '|')

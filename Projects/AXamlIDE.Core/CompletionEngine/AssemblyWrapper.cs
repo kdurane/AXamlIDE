@@ -78,6 +78,52 @@ namespace AXamlIDE.CompletionEngine;
         public bool IsGeneric => _type.HasGenericParameters;
         public bool IsAbstract => _type is { IsAbstract: true, IsSealed: false };
         public bool IsInternal => _type is { IsNotPublic: true, IsNestedPrivate: false };
+        public bool IsValueType => _type.IsValueType;
+
+        public bool HasDefaultConstructor => _type.FindDefaultConstructor() is { } ctor
+            && (ctor.IsPublic || (ctor.IsAssembly && _session.IsTargetAssembly(_type.DefinitionAssembly)));
+
+        public IEnumerable<string> AssignableTypeNames
+            => _session.GetHierarchy(_type).Names.Distinct();
+
+        public IEnumerable<string> CollectionItemTypeNames
+        {
+            get
+            {
+                // A typed collection usually implements the untyped IList too (AvaloniaList<T> does): the typed
+                // item type wins. A dictionary takes anything (keyed resources).
+                var typedItems = new HashSet<string>();
+                var untyped = false;
+                foreach (var sig in _session.GetHierarchy(_type).Sigs)
+                {
+                    if (sig is GenericInstSig generic)
+                    {
+                        switch (generic.GenericType.FullName)
+                        {
+                            case "System.Collections.Generic.ICollection`1":
+                            case "Avalonia.Metadata.IAddChild`1":
+                                var item = generic.GenericArguments[0];
+                                if (item is GenericSig)
+                                    untyped = true;
+                                else
+                                    typedItems.Add(item.FullName);
+                                break;
+                            case "System.Collections.Generic.IDictionary`2":
+                                return ["System.Object"];
+                        }
+                    }
+                    else if (sig.FullName is "System.Collections.IDictionary")
+                    {
+                        return ["System.Object"];
+                    }
+                    else if (sig.FullName is "System.Collections.IList" or "Avalonia.Metadata.IAddChild")
+                    {
+                        untyped = true;
+                    }
+                }
+                return typedItems.Count > 0 ? typedItems : untyped ? ["System.Object"] : [];
+            }
+        }
 
         public IEnumerable<string> EnumValues
         {
@@ -124,12 +170,15 @@ namespace AXamlIDE.CompletionEngine;
             {
                 var attributes = _type.CustomAttributes
                     .Where(a => a.TypeFullName.EndsWith("TemplatePartAttribute", StringComparison.OrdinalIgnoreCase)
-                        && a.HasConstructorArguments);
+                        && a.ConstructorArguments.Count >= 2);
                 foreach (var attr in attributes)
                 {
-                    var name = attr.ConstructorArguments[0].Value.ToString()!;
-                    var def = _session.GetTypeDef(((ClassSig)attr.ConstructorArguments[1].Value).TypeDefOrRef);
-                    ITypeInformation type = FromDef(def, _session)!;
+                    // [TemplatePart("PART_Name", typeof(Foo))]: the type can be any signature (a generic Foo<T> too),
+                    // and may live in an assembly that isn't loaded.
+                    if (attr.ConstructorArguments[0].Value?.ToString() is not { } name
+                        || attr.ConstructorArguments[1].Value is not TypeSig typeSig
+                        || FromDef(_session.GetTypeDef(typeSig.ToTypeDefOrRef()), _session) is not { } type)
+                        continue;
                     yield return (type, name);
                 }
             }
@@ -160,6 +209,7 @@ namespace AXamlIDE.CompletionEngine;
         public PropertyWrapper(PropertyDef prop)
         {
             Name = prop.Name;
+            IsContent = prop.CustomAttributes.Any(a => a.TypeFullName == "Avalonia.Metadata.ContentAttribute");
 
             var setMethod = prop.SetMethod;
             var getMethod = prop.GetMethod;
@@ -251,6 +301,7 @@ namespace AXamlIDE.CompletionEngine;
         public string TypeFullName { get; }
         public string QualifiedTypeFullName { get; }
         public string Name { get; }
+        public bool IsContent { get; }
 
         public bool IsVisbleTo(IAssemblyInformation assembly) =>
             _isVisbleTo(_prop, assembly);
@@ -269,22 +320,23 @@ namespace AXamlIDE.CompletionEngine;
             QualifiedTypeFullName = f.FieldType.DefinitionAssembly is null
                 ? f.FieldType.FullName
                 : $"{f.FieldType.FullName}, {f.FieldType.DefinitionAssembly.Name}";
-            bool isRoutedEvent = false;
-            ITypeDefOrRef t = f.FieldType.ToTypeDefOrRef();
-            while (t != null)
+            // Only asked about static fields of the type itself, so worked out on first use
+            _isRoutedEvent = new Lazy<bool>(() =>
             {
-                if (t.Name == "RoutedEvent" && t.Namespace == "Avalonia.Interactivity")
+                ITypeDefOrRef t = f.FieldType.ToTypeDefOrRef();
+                while (t != null)
                 {
-                    isRoutedEvent = true;
-                    break;
+                    if (t.Name == "RoutedEvent" && t.Namespace == "Avalonia.Interactivity")
+                        return true;
+                    t = session.GetBaseType(t);
                 }
-                t = session.GetBaseType(t);
-            }
-
-            IsRoutedEvent = isRoutedEvent;
+                return false;
+            });
         }
 
-        public bool IsRoutedEvent { get; }
+        private readonly Lazy<bool> _isRoutedEvent;
+
+        public bool IsRoutedEvent => _isRoutedEvent.Value;
 
         public bool IsStatic { get; }
 

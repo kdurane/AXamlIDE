@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using Avalonia.Input;
 using AvaloniaEdit.Document;
@@ -32,7 +32,7 @@ public sealed class TypingController
         _completion = completion;
         _signature = signature;
 
-        ctx.Editor.TextArea.TextEntering += (_, e) => _completion.HandleTextEntering(e);
+        ctx.Editor.TextArea.TextEntering += OnTextEntering;
         ctx.Editor.TextArea.TextEntered += OnTextEntered;
     }
 
@@ -53,6 +53,9 @@ public sealed class TypingController
         {
             case LanguageIds.Axaml when e.Text == ">":
                 TryInsertXamlClosingTag(doc.Document);
+                break;
+            case LanguageIds.Axaml when e.Text == "{" && IsInAttributeValue(doc.Document):
+                TryInsertClosingBrace(doc.Document);
                 break;
             case LanguageIds.CSharp when e.Text == "{":
                 TryInsertClosingBrace(doc.Document);
@@ -106,6 +109,22 @@ public sealed class TypingController
                     }
             }
     }
+
+    private void OnTextEntering(object? sender, TextInputEventArgs e)
+    {
+        // Typing the '}' that auto-close already put there: step over it instead of adding a second one
+        var editor = _ctx.Editor;
+        var caret = editor.CaretOffset;
+        if (e.Text == "}" && caret < editor.Document.TextLength && editor.Document.GetCharAt(caret) == '}')
+        {
+            editor.CaretOffset = caret + 1;
+            e.Handled = true;   // the '}' is never inserted, so TextEntered doesn't fire either
+            return;
+        }
+
+        _completion.HandleTextEntering(e);
+    }
+
 
     private void TryInsertXamlClosingTag(TextDocument document)
     {
@@ -170,4 +189,9 @@ public sealed class TypingController
         document.Insert(caret, "}");
         editor.CaretOffset = caret;
     }
+
+    /// <summary>The caret is inside an attribute's quotes (where '{' starts a markup extension).</summary>
+    private bool IsInAttributeValue(TextDocument document)
+        => XmlParser.Parse(document.Text.AsMemory(0, _ctx.Editor.CaretOffset)).State == XmlParser.ParserState.AttributeValue;
+
 }

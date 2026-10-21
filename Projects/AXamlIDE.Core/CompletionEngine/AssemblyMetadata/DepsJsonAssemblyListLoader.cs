@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
@@ -27,23 +26,21 @@ namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
 
         private static IEnumerable<string> GetNugetPackagesDirs()
         {
-            var home = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "USERPROFILE" : "HOME";
-
-            yield return Path.Combine(home, ".nuget/packages");
-
+            // NUGET_PACKAGES moves the global packages folder, so it comes first
             var redirectedPath = Environment.GetEnvironmentVariable("NUGET_PACKAGES");
-
-            if (redirectedPath is not null)
+            if (!string.IsNullOrEmpty(redirectedPath))
             {
                 yield return redirectedPath;
             }
+
+            yield return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
         }
 
         public static IEnumerable<string> ParseFile(string path)
         {
             var dir = Path.GetDirectoryName(path);
             var nugetDirs = GetNugetPackagesDirs();
-            var deps = JsonDocument.Parse(File.ReadAllText(path));
+            using var deps = JsonDocument.Parse(File.ReadAllText(path));
             if (dir is null)
             {
                 yield break;

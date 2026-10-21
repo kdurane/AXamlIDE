@@ -204,6 +204,8 @@ public sealed partial class LspClient : ILspSender, IDisposable
                     workspaceEdit = new
                     {
                         documentChanges = true,
+                        // Creating files: GlobalSuppressions.cs, .editorconfig ("Suppress or configure issues")
+                        resourceOperations = new[] { "create" },
                         failureHandling = "abort"
                     }
                 },

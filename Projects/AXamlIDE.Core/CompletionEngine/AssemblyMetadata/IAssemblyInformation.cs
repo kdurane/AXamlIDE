@@ -48,8 +48,23 @@ public interface ITypeInformation
     bool IsGeneric { get; }
     bool IsAbstract { get; }
     bool IsInternal { get; }
+    bool IsValueType { get; }
+    /// <summary>Has a parameterless constructor XAML can call (public, or internal in the project's own assembly).</summary>
+    bool HasDefaultConstructor { get; }
     IEnumerable<string> EnumValues { get; }
     IEnumerable<ITypeInformation> NestedTypes { get; }
+
+    /// <summary>
+    /// Full names of everything this type can be assigned to: itself, its base classes and all their interfaces,
+    /// with generic arguments filled in ("System.Collections.Generic.ICollection`1&lt;Avalonia.Controls.Control&gt;").
+    /// </summary>
+    IEnumerable<string> AssignableTypeNames { get; }
+
+    /// <summary>
+    /// When this type is a collection XAML adds child elements to (ICollection&lt;T&gt;, IAddChild&lt;T&gt;): the full
+    /// names of what those children must be. "System.Object" when anything goes; empty when it isn't a collection.
+    /// </summary>
+    IEnumerable<string> CollectionItemTypeNames { get; }
 }
 
 public interface IMethodInformation
@@ -88,6 +103,8 @@ public interface IPropertyInformation
     string TypeFullName { get; }
     string QualifiedTypeFullName { get; }
     string Name { get; }
+    /// <summary>Marked [Content]: child elements of the declaring type are assigned to this property.</summary>
+    bool IsContent { get; }
     bool IsVisbleTo(IAssemblyInformation assembly);
 }
 

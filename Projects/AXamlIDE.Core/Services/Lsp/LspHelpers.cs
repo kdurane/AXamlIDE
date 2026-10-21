@@ -61,6 +61,9 @@ public static class LspHelpers
         {
             foreach (var change in documentChanges.EnumerateArray())
             {
+                // A file to create comes before its edits (see FilesToCreate); renames and deletes aren't offered to servers
+                if (change.TryGetProperty("kind", out var kind) && kind.GetString() == "create")
+                    continue;
                 if (!change.TryGetProperty("textDocument", out var textDocument)
                     || !textDocument.TryGetProperty("uri", out var uri)
                     || !change.TryGetProperty("edits", out var edits))
@@ -89,6 +92,27 @@ public static class LspHelpers
                 pathEdits.Add((ParseLspRange(range), newText.GetString() ?? ""));
             }
         }
+    }
+
+    /// <summary>
+    /// The files a workspace edit creates (its "create" resource operations), as local paths: Roslyn's
+    /// "Suppress in Suppression File" creates GlobalSuppressions.cs, "Configure severity" an .editorconfig.
+    /// The text edits for them follow in the same edit.
+    /// </summary>
+    public static IReadOnlyList<string> FilesToCreate(JsonElement workspaceEdit)
+    {
+        if (workspaceEdit.ValueKind != JsonValueKind.Object
+            || !workspaceEdit.TryGetProperty("documentChanges", out var documentChanges)
+            || documentChanges.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var paths = new List<string>();
+        foreach (var change in documentChanges.EnumerateArray())
+            if (change.TryGetProperty("kind", out var kind) && kind.GetString() == "create"
+                && change.TryGetProperty("uri", out var uriText)
+                && Uri.TryCreate(uriText.GetString(), UriKind.Absolute, out var uri) && uri.IsFile)
+                paths.Add(Path.GetFullPath(uri.LocalPath));
+        return paths;
     }
 
     public static LspRange ParseLspRange(JsonElement range)

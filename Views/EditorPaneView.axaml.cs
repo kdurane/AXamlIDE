@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -19,6 +19,7 @@ using AXamlIDE.Editor.ColorSwatches;
 using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Debugging;
 using AXamlIDE.Editor.Folding;
+using AXamlIDE.Editor.Indentation;
 using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Editor.Hover;
 using AXamlIDE.Editor.Navigation;
@@ -60,6 +61,7 @@ public partial class EditorPaneView : UserControl,
     private BreakpointMargin? _breakpointMargin;
     private TextMateController _textMateController = null!;
     private FoldingController _folding = null!;
+    private IndentationController _indentation = null!;
     private WhitespaceSelectionController _whitespaceSelection = null!;
     private OccurrenceController _occurrences = null!;
     private TypingController _typing = null!;
@@ -151,6 +153,7 @@ public partial class EditorPaneView : UserControl,
         _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots, _breakpointMargin);
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
+        _indentation = new IndentationController(_ctx);
         _whitespaceSelection = new WhitespaceSelectionController(_ctx);
         _comments = new CommentController(_ctx);
 
@@ -404,7 +407,7 @@ public partial class EditorPaneView : UserControl,
     private void OnRenameClick(object? sender, RoutedEventArgs e) => _ = _navigation.RenameSymbolAsync();
 
     private async void OnCodeActionsClick(object? sender, RoutedEventArgs e)
-        => await _codeActions.ShowCodeActionsAsync(anchor: Editor);
+        => await _codeActions.ShowCodeActionsAsync();
 
     private void OnFormatClick(object? sender, RoutedEventArgs e)
     {

@@ -19,9 +19,13 @@ public sealed class XamlEngineCompletionData(Completion completion, Action? trig
     public void Complete(TextArea textArea, ISegment completionSegment, EventArgs insertionRequestEventArgs)
     {
         var start = completionSegment.Offset;
-        textArea.Document.Replace(start, completionSegment.Length, completion.InsertText);
+        var insertText = completion.InsertText;
+        // Committed by typing a space: that space goes in too, so "Binding " mustn't bring its own
+        if (insertionRequestEventArgs is TextInputEventArgs { Text: " " } && insertText.EndsWith(' '))
+            insertText = insertText[..^1];
+        textArea.Document.Replace(start, completionSegment.Length, insertText);
 
-        var caret = start + completion.InsertText.Length;
+        var caret = start + insertText.Length;
         if (completion.DeleteTextOffset is { } deleteOffset)
         {
             var deleteStart = caret + deleteOffset;
@@ -35,7 +39,7 @@ public sealed class XamlEngineCompletionData(Completion completion, Action? trig
         }
 
         if (completion.RecommendedCursorOffset is { } cursorOffset)
-            caret = start + Math.Clamp(cursorOffset, 0, completion.InsertText.Length);
+            caret = start + Math.Clamp(cursorOffset, 0, insertText.Length);
 
         if (ShouldInsertElementPair(textArea, start, insertionRequestEventArgs))
         {

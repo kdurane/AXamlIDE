@@ -104,10 +104,38 @@ namespace AXamlIDE.CompletionEngine.Parsing;
         private void Parse()
         {
             AttributesCount = 0;
+            var quote = '\0';
             for (var c = 0; c < _data.Length; c++)
             {
                 var st = _state.State;
                 var ch = _data[c];
+
+                // Inside a quoted value ({Binding StringFormat='{}{0:N2}, more'}) commas and braces are just text.
+                if (quote != '\0')
+                {
+                    if (ch == '\\')
+                        c++;
+                    else if (ch == quote)
+                        quote = '\0';
+                    continue;
+                }
+                if (ch is '\'' or '"')
+                {
+                    if (st == ParserStateType.BeforeAttributeValue)
+                    {
+                        quote = ch;
+                        _state.AttributeValueStart = c;
+                        _state.State = ParserStateType.AttributeValue;
+                        continue;
+                    }
+                    if (st == ParserStateType.InsideElement)
+                    {
+                        quote = ch;
+                        _state.AttributeNameStart = c;
+                        _state.State = ParserStateType.StartAttribute;
+                        continue;
+                    }
+                }
 
                 switch (ch)
                 {

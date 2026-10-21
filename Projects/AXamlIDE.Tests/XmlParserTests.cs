@@ -33,4 +33,23 @@ public class XmlParserTests
         Assert.Equal("TextBlock", parser.TagName);
         Assert.Equal("StackPanel", parser.GetParentTagName(1));
     }
+
+    [Fact]
+    public void Single_quoted_value_then_a_new_attribute()
+    {
+        var parser = XmlParser.Parse("<Grid><Button Content='a>b' Wi");
+
+        Assert.Equal(XmlParser.ParserState.StartAttribute, parser.State);
+        Assert.Equal("Button", parser.TagName);
+        Assert.Equal("Wi", parser.AttributeName);
+    }
+
+    [Fact]
+    public void Parent_attribute_matches_the_whole_name()
+    {
+        var parser = XmlParser.Parse("<UserControl d:DataType=\"vm:Design\" x:DataType=\"vm:Main\"><TextBlock Text=\"");
+
+        Assert.Equal("vm:Main", parser.FindParentAttributeValue(["x:DataType", "DataType"]));
+        Assert.Null(parser.FindParentAttributeValue("Type"));
+    }
 }

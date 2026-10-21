@@ -30,7 +30,9 @@ public sealed class XamlCompletionService
     /// <param name="PropertyType">The property's type, for display ("ObservableCollection&lt;StartupProjectItem&gt;").</param>
     /// <param name="Compiled">Where the type is compiled, for showing decompiled source when it isn't in the workspace.</param>
     public sealed record BindingTarget(string Owner, string OwnerFullName, string Property, string? PropertyType, NavigationTarget? Compiled);
+    private sealed record ProjectXamlEntry(int FileCount, DateTime NewestWriteUtc, XamlProjectInfo Info);
     private readonly ConcurrentDictionary<string, MetadataEntry> _metadata = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, ProjectXamlEntry> _projectXaml = new(StringComparer.OrdinalIgnoreCase);
     private readonly MetadataReader _reader = new(new DnlibMetadataProvider());
     private readonly CompletionEngine.Completion.CompletionEngine _engine = new();
     private readonly object _engineGate = new();
@@ -38,9 +40,58 @@ public sealed class XamlCompletionService
     public async Task<CompletionSet?> GetCompletionsAsync(string projectPath, string assemblyName, string text, int caretOffset, string? outputPath = null, string? assetsPath = null)
     {
         var (targetAssembly, bundle) = await GetMetadataAsync(projectPath, assemblyName, outputPath, assetsPath);
+        var projectXaml = GetProjectXaml(projectPath);
         lock (_engineGate)
             return _engine.GetCompletions(
-                bundle.Metadata, text, caretOffset, Path.GetFileNameWithoutExtension(targetAssembly));
+                bundle.Metadata, text, caretOffset, Path.GetFileNameWithoutExtension(targetAssembly), projectXaml);
+    }
+
+    /// <summary>
+    /// The x:Keys and selector style classes in the project's .axaml files, for {StaticResource ...} and Classes="...".
+    /// Read again when a file is added, removed or saved (the open document's unsaved text is read by the engine itself).
+    /// </summary>
+    private XamlProjectInfo GetProjectXaml(string projectPath)
+    {
+        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectPath));
+        if (projectDirectory is null || !Directory.Exists(projectDirectory))
+            return XamlProjectInfo.Empty;
+
+        var files = Directory.EnumerateFiles(projectDirectory, "*.axaml",
+                new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
+            .Where(path => !IsBuildOutput(Path.GetRelativePath(projectDirectory, path)))
+            .Select(path => new FileInfo(path))
+            .ToList();
+        var newest = files.Count == 0 ? DateTime.MinValue : files.Max(file => file.LastWriteTimeUtc);
+
+        if (_projectXaml.TryGetValue(projectDirectory, out var cached)
+            && cached.FileCount == files.Count && cached.NewestWriteUtc == newest)
+            return cached.Info;
+
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        var classes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in files)
+        {
+            try
+            {
+                var xaml = File.ReadAllText(file.FullName);
+                keys.UnionWith(XamlTagScanner.ResourceKeys(xaml));
+                classes.UnionWith(XamlTagScanner.StyleClasses(xaml));
+            }
+            catch (IOException)
+            {
+                // Being written: picked up on the next request
+            }
+        }
+
+        var info = new XamlProjectInfo(keys, classes);
+        _projectXaml[projectDirectory] = new ProjectXamlEntry(files.Count, newest, info);
+        return info;
+
+        static bool IsBuildOutput(string relativePath)
+        {
+            var firstSegment = relativePath.Split(Path.DirectorySeparatorChar)[0];
+            return firstSegment is "bin" or "obj" || firstSegment.StartsWith('.');
+        }
     }
 
     public async Task<string?> GetHoverAsync(string projectPath, string assemblyName, string text, int offset, string? outputPath = null, string? assetsPath = null)

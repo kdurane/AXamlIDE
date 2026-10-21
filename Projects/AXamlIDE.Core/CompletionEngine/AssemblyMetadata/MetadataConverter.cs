@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace AXamlIDE.CompletionEngine.AssemblyMetadata;
@@ -21,7 +20,6 @@ public static class MetadataConverter
                   "Avalonia.Data.Binding,",
                   "Avalonia.Controls.Control,",
                   "Avalonia.Data.TemplateBinding,",
-                  "Portable.Xaml.Markup.TypeExtension,",
                   "Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension,",
                   "Avalonia.Markup.Xaml.MarkupExtensions.StaticResourceExtension,",
                   "Avalonia.Media.Brushes",
@@ -33,9 +31,41 @@ public static class MetadataConverter
                   "Avalonia.Markup.Xaml.Styling.StyleInclude,",
               ];
 
-    private static readonly Regex SExtractType = new(
-      @"System.Nullable`1<(?<Type>[^>]+)>|System.Nullable`1\[\[(?<Type>[^\]]+)\]\].*", RegexOptions.CultureInvariant | RegexOptions.Compiled
-    );
+    private const string NullablePrefix = "System.Nullable`1";
+
+    /// <summary>"X" from "System.Nullable`1&lt;X&gt;" (dnlib's form) or "System.Nullable`1[[X, Assembly]]" (reflection's).</summary>
+    private static string? NullableArgument(string typeName)
+    {
+        if (!typeName.StartsWith(NullablePrefix, StringComparison.Ordinal))
+            return null;
+        var rest = typeName.AsSpan(NullablePrefix.Length);
+        if (rest.StartsWith("<"))
+        {
+            var end = rest.LastIndexOf('>');
+            return end > 1 ? rest[1..end].ToString() : null;
+        }
+        if (rest.StartsWith("[["))
+        {
+            var end = rest.IndexOfAny(',', ']');
+            return end > 2 ? rest[2..end].ToString() : null;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Get-only collections the XAML compiler fills from an attribute value: Classes="a b" adds each class,
+    /// &lt;On Options="Windows, macOS"&gt; adds each platform. Treated as settable so they're offered as attributes.
+    /// </summary>
+    private static bool IsSettableFromXaml(string declaringType, string property)
+        => (declaringType, property) is ("Avalonia.StyledElement", "Classes") or ("Avalonia.Markup.Xaml.MarkupExtensions.On`1", "Options");
+
+    private static bool IsAvaloniaPropertyField(IFieldInformation field)
+        => field.IsStatic
+           && field.Name.EndsWith("Property", StringComparison.Ordinal)
+           && (field.ReturnTypeFullName.StartsWith("Avalonia.StyledProperty`1", StringComparison.Ordinal)
+               || field.ReturnTypeFullName.StartsWith("Avalonia.DirectProperty`2", StringComparison.Ordinal)
+               || field.ReturnTypeFullName.StartsWith("Avalonia.AttachedProperty`1", StringComparison.Ordinal)
+               || field.ReturnTypeFullName == "Avalonia.AvaloniaProperty");
 
     private static bool IsMarkupExtension(ITypeInformation type)
     {
@@ -48,7 +78,7 @@ public static class MetadataConverter
             def = def.GetBaseType();
         }
 
-        //in avalonia 0.9 there is no required base class, but convention only
+        // XAML also treats any *Extension type with a ProvideValue method as a markup extension
         if (type.FullName.EndsWith("Extension") && type.Methods.Any(m => m.Name == "ProvideValue"))
         {
             return true;
@@ -64,16 +94,28 @@ public static class MetadataConverter
 
     private static MetadataType ConvertTypeInformation(ITypeInformation type)
     {
+        var isMarkupExtension = IsMarkupExtension(type);
+        var assignableTo = new HashSet<string>(type.AssignableTypeNames);
         var mt = new MetadataType(type.Name)
         {
             FullName = type.FullName,
             AssemblyQualifiedName = type.AssemblyQualifiedName,
             IsStatic = type.IsStatic,
-            IsMarkupExtension = IsMarkupExtension(type),
+            IsMarkupExtension = isMarkupExtension,
             IsEnum = type.IsEnum,
             HasHintValues = type.IsEnum,
             IsGeneric = type.IsGeneric,
             IsAbstract = type.IsAbstract,
+            CanBeElement = !type.IsAbstract && !type.IsStatic && !type.IsEnum
+                           && (type.HasDefaultConstructor || type.IsValueType || isMarkupExtension)
+                           && !assignableTo.Contains("System.Attribute")
+                           && !assignableTo.Contains("System.Exception")
+                           && !assignableTo.Contains("System.EventArgs"),
+            AssignableTo = assignableTo,
+            // Styles and ControlThemes take any child (IAddChild), but only setters and nested styles make sense.
+            ItemTypeNames = assignableTo.Contains("Avalonia.Styling.StyleBase")
+                ? ["Avalonia.Styling.SetterBase", "Avalonia.Styling.IStyle"]
+                : [.. type.CollectionItemTypeNames],
         };
         if (mt.IsEnum)
             mt.HintValues = [.. type.EnumValues];
@@ -88,7 +130,8 @@ public static class MetadataConverter
     public static Metadata ConvertMetadata(IMetadataReaderSession provider)
     {
         var types = new Dictionary<string, MetadataType>();
-        var typeDefs = new Dictionary<MetadataType, ITypeInformation>();
+        // By reference: MetadataType is a record whose value (and hash) changes as it's filled in.
+        var typeDefs = new Dictionary<MetadataType, ITypeInformation>(ReferenceEqualityComparer.Instance);
         var metadata = new Metadata();
         var resourceUrls = new List<string>();
         var avaresValues = new List<AvaresInfo>();
@@ -103,7 +146,6 @@ public static class MetadataConverter
         {
             var aliases = new Dictionary<string, string[]>();
 
-            ProcessWellKnownAliases(asm, aliases);
             ProcessCustomAttributes(asm, aliases);
 
             Func<ITypeInformation, bool> typeFilter = type => type is { IsInterface: false, IsPublic: true };
@@ -171,11 +213,24 @@ public static class MetadataConverter
                     metadata.AddType(alias, mt);
             }
 
+            // Public interfaces are known by type (so a property typed IResourceDictionary is known to take keyed
+            // children, and binding paths can go through interface-typed properties), but they're not elements
+            foreach (var type in asm.Types.Where(t => t is { IsInterface: true, IsPublic: true }))
+            {
+                var mt = types[type.AssemblyQualifiedName] = ConvertTypeInformation(type);
+                typeDefs[mt] = type;
+            }
+
             ProcessAvaloniaResources(asm, asmTypes, avaresValues);
 
             resourceUrls.AddRange(asm.ManifestResourceNames.Where(r => !SkipRes(r)).Select(r => $"resm:{r}?assembly={asm.Name}"));
         }
 
+        var typesByFullName = new Dictionary<string, MetadataType>();
+        foreach (var type in types.Values)
+            typesByFullName.TryAdd(type.FullName.Length > 0 ? type.FullName : type.Name, type);
+
+        var avaloniaPropertiesByType = new Dictionary<string, HashSet<string>>();
         var at = types.Values.ToArray();
         foreach (var type in at)
         {
@@ -197,7 +252,8 @@ public static class MetadataConverter
             var level = 0;
             typepseudoclasses.Clear();
 
-            type.TemplateParts = [.. (typeDef?.TemplateParts ?? []).Select(item => (Type: ConvertTypeInformation(item.Type), item.Name))];
+            type.TemplateParts = [.. (typeDef?.TemplateParts ?? []).Select(item =>
+                (Type: types.GetValueOrDefault(item.Type.AssemblyQualifiedName) ?? ConvertTypeInformation(item.Type), item.Name))];
 
             while (typeDef != null)
             {
@@ -208,6 +264,10 @@ public static class MetadataConverter
                 }
 
                 var currentType = CollectionExtensions.GetValueOrDefault(types, typeDef.AssemblyQualifiedName);
+                // Per declaring type, not per level: every control shares the base classes' fields
+                var levelType = typeDef;
+                var avaloniaProperties = avaloniaPropertiesByType.GetOrCreate(typeDef.AssemblyQualifiedName,
+                    _ => levelType.Fields.Where(IsAvaloniaPropertyField).Select(f => f.Name[..^"Property".Length]).ToHashSet());
                 foreach (var prop in typeDef.Properties)
                 {
                     if (!prop.IsVisbleTo(targetAssembly))
@@ -217,9 +277,13 @@ public static class MetadataConverter
 
                     var p = new MetadataProperty(prop.Name, propertyType,
                         currentType, false, prop.IsStatic, prop.HasPublicGetter,
-                        prop.HasPublicSetter);
+                        prop.HasPublicSetter || IsSettableFromXaml(typeDef.FullName, prop.Name),
+                        IsAvaloniaProperty: avaloniaProperties.Contains(prop.Name),
+                        TypeFullName: prop.TypeFullName);
 
                     type.Properties.Add(p);
+                    if (prop.IsContent)
+                        type.ContentPropertyName ??= prop.Name;
                 }
 
                 foreach (var eventDef in typeDef.Events)
@@ -285,7 +349,9 @@ public static class MetadataConverter
                                     IsAttached: true,
                                     IsStatic: false,
                                     HasGetter: true,
-                                    HasSetter: setMethod is not null));
+                                    HasSetter: setMethod is not null,
+                                    IsAvaloniaProperty: true,
+                                    TypeFullName: getMethod.ReturnTypeFullName));
                             }
                         }
                         else if (type.IsStatic)
@@ -322,7 +388,7 @@ public static class MetadataConverter
                     var supportType = methodInformations.Any(m => m.Parameters[0].TypeFullName == "System.Type");
                     var supportObject = methodInformations.Any(m => m.Parameters[0].TypeFullName is "System.Object" or "System.String");
 
-                    if ((types.TryGetValue(methodInformations.First().Parameters[0].QualifiedTypeFullName, out var parType)
+                    if ((types.TryGetValue(methodInformations.First().Parameters[0].TypeFullName, out var parType)
                          || types.TryGetValue(methodInformations.First().Parameters[0].QualifiedTypeFullName, out parType))
                         && parType.HasHintValues)
                     {
@@ -362,16 +428,19 @@ public static class MetadataConverter
                 {
                     break;
                 }
-                else if (key.StartsWith("System.Nullable`1", StringComparison.OrdinalIgnoreCase))
+                // Types are keyed by assembly-qualified name, but a Nullable<X> names X by its full name only.
+                if (NullableArgument(key) is { } argument
+                    && (mTypes.TryGetValue(argument, out var underlying) || typesByFullName.TryGetValue(argument, out underlying)))
                 {
-                    var typeName = SExtractType.Match(key);
-                    if (!typeName.Success || !mTypes.TryGetValue(typeName.Groups[1].Value, out type)) continue;
                     type = new MetadataType(key)
                     {
-                        AssemblyQualifiedName = type.AssemblyQualifiedName,
-                        FullName = $"System.Nullable`1<{type.FullName}>",
+                        AssemblyQualifiedName = underlying.AssemblyQualifiedName,
+                        FullName = $"{NullablePrefix}<{underlying.FullName}>",
                         IsNullable = true,
-                        UnderlyingType = type
+                        UnderlyingType = underlying,
+                        IsEnum = underlying.IsEnum,
+                        HasHintValues = underlying.HasHintValues,
+                        HintValues = underlying.HintValues,
                     };
                     mTypes.Add(key, type);
                     break;
@@ -522,8 +591,7 @@ public static class MetadataConverter
     {
         foreach (
             var attr in
-            asm.CustomAttributes.Where(a => a.TypeFullName == "Avalonia.Metadata.XmlnsDefinitionAttribute" ||
-                                            a.TypeFullName == "Portable.Xaml.Markup.XmlnsDefinitionAttribute"))
+            asm.CustomAttributes.Where(a => a.TypeFullName == "Avalonia.Metadata.XmlnsDefinitionAttribute"))
         {
             var ns = attr.ConstructorArguments[1].Value?.ToString();
             var val = attr.ConstructorArguments[0].Value?.ToString();
@@ -541,13 +609,6 @@ public static class MetadataConverter
         }
     }
 
-    private static void ProcessWellKnownAliases(IAssemblyInformation asm, Dictionary<string, string[]> aliases)
-    {
-        //look like we don't have xmlns for avalonia.layout TODO: add it in avalonia
-        //may be don 't remove it for avalonia 0.7 or below for support completion for layout enums etc.
-        aliases["Avalonia.Layout"] = ["https://github.com/avaloniaui"];
-    }
-
     private static void PreProcessTypes(Dictionary<string, MetadataType> types, Metadata metadata)
     {
         MetadataType xDataType, xCompiledBindings, boolType, typeType, int32Type;
@@ -561,6 +622,7 @@ public static class MetadataConverter
                       new("System.Nullable`1<System.Boolean>")
                       {
                           HasHintValues = true,
+                          HintValues = ["True", "False"],
                           IsNullable = true,
                           UnderlyingType = boolType,
                       },
@@ -638,7 +700,7 @@ public static class MetadataConverter
                       },
                   };
 
-        //as in avalonia 0.9 Portablexaml is missing we need to hardcode some extensions
+        // The x: namespace's markup extensions and directives aren't types in any Avalonia assembly
         foreach (var t in portableXamlExtTypes)
         {
             metadata.AddType(Utils.Xaml2006Namespace, t);
@@ -695,7 +757,7 @@ public static class MetadataConverter
 
         foreach (var type in types.Where(t => t.Value.IsAvaloniaObjectType))
         {
-            foreach (var v in type.Value.Properties.Where(p => p is { HasSetter: true, HasGetter: true }))
+            foreach (var v in type.Value.Properties.Where(p => p is { IsAvaloniaProperty: true, IsAttached: false }))
             {
                 allProps[v.Name] = v;
             }
@@ -709,7 +771,8 @@ public static class MetadataConverter
             if (SAvaloniaBaseType.FirstOrDefault((a, b) => b.StartsWith(a, StringComparison.OrdinalIgnoreCase), kv.Key)
                 is not { } at) continue;
             var len = at.Length - 1;
-            avaloniaBaseType.Add(at[len] == ',' ? at[..^1] : at, kv.Value);
+            // First wins: IImage and IBitmap are both hand-made (by name) and real (by assembly-qualified name)
+            avaloniaBaseType.TryAdd(at[len] == ',' ? at[..^1] : at, kv.Value);
         }
 
         string[] allAvaloniaProps = [.. allProps.Keys];
@@ -718,7 +781,7 @@ public static class MetadataConverter
         {
             if (avaloniaBaseType.TryGetValue("Avalonia.Data.Binding", out var origBindingType))
             {
-                //avalonia 0.10 has implicit binding extension
+                // There's no BindingExtension type: {Binding} creates an Avalonia.Data.Binding
                 bindingExtType = origBindingType with
                 {
                     Name = "BindingExtension",
@@ -774,37 +837,19 @@ public static class MetadataConverter
             metadata.AddType(Utils.AvaloniaNamespace, tbext);
         }
 
-        if (avaloniaBaseType.TryGetValue("Portable.Xaml.Markup.TypeExtension", out var typeExtension))
-        {
-            typeExtension.SupportCtorArgument = MetadataTypeCtorArgument.Type;
-        }
-
-        //TODO: may be make it to load from assembly resources
-        string[] commonResKeys = [
-            //common brushes
-            "ThemeBackgroundBrush","ThemeBorderLowBrush","ThemeBorderMidBrush","ThemeBorderHighBrush",
-                      "ThemeControlLowBrush","ThemeControlMidBrush","ThemeControlHighBrush",
-                      "ThemeControlHighlightLowBrush","ThemeControlHighlightMidBrush","ThemeControlHighlightHighBrush",
-                      "ThemeForegroundBrush","ThemeForegroundLowBrush","HighlightBrush",
-                      "ThemeAccentBrush","ThemeAccentBrush2","ThemeAccentBrush3","ThemeAccentBrush4",
-                      "ErrorBrush","ErrorLowBrush",
-                      //some other usefull
-                      "ThemeBorderThickness", "ThemeDisabledOpacity",
-                      "FontSizeSmall","FontSizeNormal","FontSizeLarge"
-            ];
-
+        // Resource keys come from the project's XAML, at completion time (the theme assemblies don't keep their XAML)
         if (avaloniaBaseType.TryGetValue("Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension", out var dynRes))
         {
             dynRes.SupportCtorArgument = MetadataTypeCtorArgument.HintValues;
             dynRes.HasHintValues = true;
-            dynRes.HintValues = commonResKeys;
+            dynRes.HintsResourceKeys = true;
         }
 
         if (avaloniaBaseType.TryGetValue("Avalonia.Markup.Xaml.MarkupExtensions.StaticResourceExtension", out var stRes))
         {
             stRes.SupportCtorArgument = MetadataTypeCtorArgument.HintValues;
             stRes.HasHintValues = true;
-            stRes.HintValues = commonResKeys;
+            stRes.HintsResourceKeys = true;
         }
 
         //brushes

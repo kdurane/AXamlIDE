@@ -11,6 +11,9 @@
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
         <PackageReference Include="xunit" Version="2.9.3" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+        <!-- Not used by code: its assemblies land in bin/, where XamlCompletionEngineTests reads completion metadata
+             from them. Keep the version in step with the app's. -->
+        <PackageReference Include="Avalonia" Version="12.1.4" />
     </ItemGroup>
 
     <ItemGroup>

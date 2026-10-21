@@ -8,7 +8,7 @@ namespace AXamlIDE.Services.Lsp;
 /// <summary>Reading LSP JSON into the records in LspTypes.cs.</summary>
 public sealed partial class LspClient
 {
-    private static LspCodeAction? ParseCodeAction(JsonElement action)
+    internal static LspCodeAction? ParseCodeAction(JsonElement action)
     {
         if (action.ValueKind != JsonValueKind.Object || Str(action, "title") is not { } title)
             return null;

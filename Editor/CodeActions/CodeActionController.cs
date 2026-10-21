@@ -1,10 +1,15 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Media;
+using AvaloniaEdit;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Rendering;
 using AXamlIDE.Editor.Hover;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
@@ -31,7 +36,7 @@ public sealed class CodeActionController
         _edits = edits;
 
         _margin = new CodeActionMargin(
-            (line, anchor) => ShowCodeActionsAsync(line, anchor),
+            (line, anchor) => ShowCodeActionsAsync(line),
             () => _ctx.Languages.ClientFor(_ctx.Active)?.SupportsCodeActions == true);
         _ctx.Editor.TextArea.LeftMargins.Insert(1, _margin);
 
@@ -41,11 +46,7 @@ public sealed class CodeActionController
     /// <summary>Called when the active document's diagnostics change, to redraw the lightbulbs.</summary>
     public void RefreshMargin(OpenDocument document) => _margin.SetDocument(document);
 
-    public async Task<bool> ShowCodeActionsAsync(
-        int? requestedLine = null,
-        Control? anchor = null,
-        string? diagnosticHeader = null,
-        bool showAtPointer = false)
+    public async Task<bool> ShowCodeActionsAsync(int? requestedLine = null, string? diagnosticHeader = null)
     {
         var editor = _ctx.Editor;
 
@@ -111,7 +112,7 @@ public sealed class CodeActionController
                 Environment.NewLine,
                 diagnostics.Select(diagnostic => diagnostic.Message).Distinct(StringComparer.Ordinal));
             FlyoutOpening?.Invoke();
-            ShowCodeActionFlyout(actions, client, anchor ?? editor, header, true);
+            ShowCodeActionFlyout(actions, client, header, startOffset);
             return true;
         }
         catch (Exception ex)
@@ -125,8 +126,7 @@ public sealed class CodeActionController
     /// The quick-fix list: the diagnostics it's for (in their colour), then one item per fix. A MenuFlyout, so
     /// it's light dismissable and keyboard-driven (it takes focus on purpose: it was asked for).
     /// </summary>
-    private void ShowCodeActionFlyout(IReadOnlyList<LspCodeAction> actions, LspClient client,
-        Control anchor, string? diagnosticHeader, bool showAtPointer)
+    private void ShowCodeActionFlyout(IReadOnlyList<LspCodeAction> actions, LspClient client, string? diagnosticHeader, int offset)
     {
         var flyout = new MenuFlyout();
         if (!string.IsNullOrWhiteSpace(diagnosticHeader))
@@ -139,30 +139,145 @@ public sealed class CodeActionController
                     Text = diagnosticHeader,
                     Foreground = HoverCard.DiagnosticBrush(LspDiagnosticSeverity.Error),
                     TextWrapping = TextWrapping.Wrap,
-                    MaxWidth = 420
+                    MaxWidth = 360
                 }
             });
             flyout.Items.Add(new Separator());
         }
 
         foreach (var action in actions)
-        {
-            var item = new MenuItem
-            {
-                Header = new TextBlock { Text = action.Title, TextWrapping = TextWrapping.Wrap, MaxWidth = 420 },
-                Icon = new PathIcon
-                {
-                    Data = LightbulbIcon,
-                    Width = 14,
-                    Height = 14,
-                    Foreground = HoverCard.DiagnosticBrush(LspDiagnosticSeverity.Warning)
-                }
-            };
-            item.Click += async (_, _) => await ApplyCodeActionAsync(action, client);
-            flyout.Items.Add(item);
-        }
+            flyout.Items.Add(CreateActionItem(action, client));
 
-        flyout.ShowAt(anchor, showAtPointer);
+        var editor = _ctx.Editor;
+        var view = editor.TextArea.TextView;
+        var document = editor.Document;
+        var line = document.GetLineByOffset(offset);
+        var textStart = line.Offset + TextUtilities.GetLeadingWhitespace(document, line).Length;
+        var position = view.GetVisualPosition(new TextViewPosition(document.GetLocation(textStart)), VisualYPosition.LineBottom)
+                       - view.ScrollOffset;
+        var point = view.TranslatePoint(position, editor) ?? default;
+
+        flyout.Placement = PlacementMode.AnchorAndGravity;
+        flyout.PlacementAnchor = PopupAnchor.TopLeft;     // measured from the editor's top-left corner...
+        flyout.PlacementGravity = PopupGravity.BottomRight; // ...the menu opens down and to the right of that point
+        flyout.HorizontalOffset = point.X;
+        flyout.VerticalOffset = point.Y;
+        flyout.ShowAt(editor);
+    }
+
+    /// <summary>
+    /// One quick action. Roslyn's groups ("Suppress or configure issues") and fix-alls become submenus, as in
+    /// Visual Studio: the client is meant to offer their choices, not send them back to the server.
+    /// </summary>
+    private MenuItem CreateActionItem(LspCodeAction action, LspClient client)
+    {
+        var item = NewItem(action.Title, withIcon: true);
+        var nested = RoslynCodeActions.Nested(action);
+        var fixAllData = RoslynCodeActions.CommandName(action) == RoslynCodeActions.FixAllCommand
+            ? RoslynCodeActions.CommandData(action)
+            : null;
+
+        if (nested.Count > 0)
+            AddNestedItems(item.Items, action.Title, nested, client);
+        else if (fixAllData is { } data && RoslynCodeActions.FixAllFlavors(data).Count > 0)
+            AddFixAllItems(item.Items, data, action.Title, client);
+        else
+            item.Click += async (_, _) => await ApplyCodeActionAsync(action, client);
+        return item;
+    }
+
+    /// <summary>
+    /// A group's actions, as submenus following each one's path: "Suppress CA1822" &gt; "in Source",
+    /// "Configure CA1822 severity" &gt; "Warning".
+    /// </summary>
+    private void AddNestedItems(ItemCollection items, string groupTitle, IReadOnlyList<LspCodeAction> nested, LspClient client)
+    {
+        foreach (var action in nested)
+        {
+            var path = RoslynCodeActions.MenuPath(action, groupTitle);
+            var owner = items;
+            foreach (var segment in path.SkipLast(1))
+            {
+                var submenu = owner.OfType<MenuItem>().FirstOrDefault(i => Equals(i.Tag, segment));
+                if (submenu is null)
+                {
+                    submenu = NewItem(segment, withIcon: false);
+                    owner.Add(submenu);
+                }
+                owner = submenu.Items;
+            }
+
+            var data = RoslynCodeActions.CommandData(action) ?? RoslynCodeActions.Data(action);
+            if (data is { } fixAll && RoslynCodeActions.FixAllFlavors(fixAll).Count > 0)
+            {
+                // Its path ends like the single fix's ("in Source"): its title says it's the fix-all ("Fix All: in Source")
+                var fixAllItem = NewItem(action.Title, withIcon: false);
+                AddFixAllItems(fixAllItem.Items, fixAll, action.Title, client);
+                owner.Add(fixAllItem);
+            }
+            else
+            {
+                var leaf = NewItem(path[^1], withIcon: false);
+                leaf.Click += async (_, _) => await ApplyCodeActionAsync(action, client);
+                owner.Add(leaf);
+            }
+        }
+    }
+
+    /// <summary>"Document", "Project", "Solution": one item per scope the fix-all offers.</summary>
+    private void AddFixAllItems(ItemCollection items, JsonElement data, string title, LspClient client)
+    {
+        foreach (var scope in RoslynCodeActions.FixAllFlavors(data))
+        {
+            var item = NewItem(ScopeLabel(scope), withIcon: false);
+            item.Click += async (_, _) => await ApplyFixAllAsync(data, scope, title, client);
+            items.Add(item);
+        }
+    }
+
+    /// <summary>"ContainingMember" → "Containing member".</summary>
+    private static string ScopeLabel(string scope)
+    {
+        var label = new System.Text.StringBuilder();
+        foreach (var c in scope)
+        {
+            if (char.IsUpper(c) && label.Length > 0)
+                label.Append(' ').Append(char.ToLowerInvariant(c));
+            else
+                label.Append(c);
+        }
+        return label.ToString();
+    }
+
+    private static MenuItem NewItem(string text, bool withIcon) => new()
+    {
+        Tag = text,
+        Header = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 },
+        Icon = withIcon
+            ? new PathIcon
+            {
+                Data = LightbulbIcon,
+                Width = 14,
+                Height = 14,
+                Foreground = HoverCard.DiagnosticBrush(LspDiagnosticSeverity.Warning)
+            }
+            : null
+    };
+
+    private async Task ApplyFixAllAsync(JsonElement data, string scope, string title, LspClient client)
+    {
+        try
+        {
+            var response = await client.ResolveFixAllAsync(data, scope);
+            var applied = response.TryGetProperty("edit", out var edit) && _edits.Apply(edit);
+            _ctx.Status(applied
+                ? $"Applied '{title}' ({scope}). Review and save modified documents."
+                : $"'{title}' ({scope}) had nothing to change.");
+        }
+        catch (Exception ex)
+        {
+            _ctx.Status($"Quick action failed: {ex.Message}");
+        }
     }
 
     private static readonly Geometry LightbulbIcon = Geometry.Parse(
@@ -176,15 +291,8 @@ public sealed class CodeActionController
                 ? await client.ResolveCodeActionAsync(action)
                 : action;
             var didWork = false;
-            if (selected.Edit is { } edit)
-            {
-                var replacements = LspHelpers.ParseWorkspaceEdit(edit);
-                if (replacements.Count > 0)
-                {
-                    _edits.Apply(replacements);
-                    didWork = true;
-                }
-            }
+            if (selected.Edit is { } edit && _edits.Apply(edit))
+                didWork = true;
 
             if (selected.Command is { } command)
             {
@@ -197,7 +305,16 @@ public sealed class CodeActionController
                     ? values.Clone()
                     : (JsonElement?)null;
 
-                if (name == "roslyn.client.fixAllCodeAction")
+                if (name == RoslynCodeActions.NestedCommand)
+                {
+                    // Only known once resolved: offer the group's choices where the caret is
+                    var flyout = new MenuFlyout();
+                    AddNestedItems(flyout.Items, selected.Title, RoslynCodeActions.Nested(selected), client);
+                    if (flyout.Items.Count > 0)
+                        flyout.ShowAt(_ctx.Editor);
+                    return;
+                }
+                if (name == RoslynCodeActions.FixAllCommand)
                 {
                     if (arguments is not { ValueKind: JsonValueKind.Array } args
                         || args.GetArrayLength() == 0)
@@ -207,15 +324,8 @@ public sealed class CodeActionController
                     }
                     var response = await client.ResolveFixAllAsync(args[0], "Document");
 
-                    if (response.TryGetProperty("edit", out var fixAllEdit))
-                    {
-                        var replacements = LspHelpers.ParseWorkspaceEdit(fixAllEdit);
-                        if (replacements.Count > 0)
-                        {
-                            _edits.Apply(replacements);
-                            didWork = true;
-                        }
-                    }
+                    if (response.TryGetProperty("edit", out var fixAllEdit) && _edits.Apply(fixAllEdit))
+                        didWork = true;
                 }
                 else
                 {

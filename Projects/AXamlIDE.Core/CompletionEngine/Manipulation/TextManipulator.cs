@@ -23,10 +23,11 @@ namespace AXamlIDE.CompletionEngine.Manipulation;
             var parserStart = 0;
             var parserEnd = 0;
 
-            // To improve performance parse only last tag
+            // Parse up to the caret; XmlParser.Parse always starts at 0 (it needs the nesting), the start here only
+            // marks the last tag
             if (text.Length > 0)
             {
-                // Findl last < tag
+                // Find last < tag
                 parserStart = position;
                 if (position >= text.Length)
                 {
