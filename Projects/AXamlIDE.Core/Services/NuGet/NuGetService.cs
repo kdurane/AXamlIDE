@@ -8,6 +8,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Services.NuGet;
 
@@ -137,6 +138,34 @@ public sealed class NuGetService : IDisposable
     // ---------------------------------------------------------------- the project
 
     public Task<InstalledPackages> GetInstalledAsync(string projectPath, CancellationToken ct) => NuGetCli.ListInstalledAsync(projectPath, ct);
+
+    /// <summary>
+    /// The packages the project gets through its packages, merged across target frameworks; empty until the
+    /// project has been restored.
+    /// </summary>
+    public Task<IReadOnlyList<TransitivePackage>> GetTransitiveAsync(string projectPath, CancellationToken ct)
+        => Task.Run(() => ProjectAssets.TryLoad(projectPath) is { } assets ? Transitive(assets) : [], ct);   // the file can be MBs
+
+    public static IReadOnlyList<TransitivePackage> Transitive(ProjectAssets assets)
+    {
+        // Top-level in any framework means it's in the Installed list already.
+        var topLevel = assets.Targets.SelectMany(target => target.TopLevelPackages).Select(p => p.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var byId = new Dictionary<string, (string Version, SortedSet<string> ReferencedBy)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var target in assets.Targets)
+            foreach (var (id, referencedBy) in target.TransitivePackages())
+            {
+                if (topLevel.Contains(id))
+                    continue;
+                if (!byId.TryGetValue(id, out var entry))
+                    byId[id] = entry = (target.Packages[id].Version, new SortedSet<string>(StringComparer.OrdinalIgnoreCase));
+                entry.ReferencedBy.UnionWith(referencedBy);
+            }
+
+        return [.. byId.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(pair => new TransitivePackage(pair.Key, pair.Value.Version, [.. pair.Value.ReferencedBy]))];
+    }
 
     /// <summary>Install, or change the version of, a package, then restore.</summary>
     public async Task<NuGetChangeResult> InstallAsync(string projectPath, string id, string version, CancellationToken ct)

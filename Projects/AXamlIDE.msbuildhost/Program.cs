@@ -29,6 +29,7 @@ while (Console.ReadLine() is { } line)
                 HostCommands.GetItem => ItemResponse(() => ItemProperties.Get(request.ProjectPath, request.FilePath!)),
                 HostCommands.SetItem => ItemResponse(() => ItemProperties.Set(request.ProjectPath, request.FilePath!,
                     request.ItemType, request.MetadataName, request.MetadataValue)),
+                HostCommands.MoveItem => MoveResponse(request.ProjectPath, request.FilePath!, request.NewPath),
                 _ => HandleRequest(request.ProjectPath, request.Configuration)
             };
     }
@@ -152,6 +153,19 @@ static string ItemResponse(Func<HostItem> read)
     try
     {
         return JsonSerializer.Serialize(new HostResponse(true, [], [], null, null, null, null, null, read()));
+    }
+    catch (Exception ex)
+    {
+        return JsonSerializer.Serialize(new HostResponse(false, [], [], ex.Message, null, null, null, null));
+    }
+}
+
+static string MoveResponse(string projectPath, string oldPath, string? newPath)
+{
+    try
+    {
+        var changed = ItemPaths.Move(projectPath, oldPath, newPath);
+        return JsonSerializer.Serialize(new HostResponse(true, [], [], null, null, null, null, null, ProjectChanged: changed));
     }
     catch (Exception ex)
     {

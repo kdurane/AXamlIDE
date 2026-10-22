@@ -53,12 +53,14 @@ public static class AppServices
         services.AddSingleton<NuGetService>();
         services.AddSingleton<NuGetManager>();     // opens the NuGet manager tab (explorer: Manage NuGet Packages...)
         services.AddSingleton<PublishManager>();   // opens the Publish tab (Build > Publish, explorer: Publish...)
+        services.AddSingleton<ImageViewerManager>();
 
         // ---- workspace, documents, languages
         services.AddSingleton<WorkspaceModel>();
         services.AddSingleton<WorkspaceStateStore>();
         services.AddSingleton<DocumentManager>();
         services.AddSingleton<DocumentSaveService>();
+        services.AddSingleton<FileChangeWatcher>();     // tells open tabs when their file changes on disk
         services.AddSingleton<DocumentCommands>();
         services.AddSingleton<IDocumentHost, DocumentHost>();
         services.AddSingleton<NavigationService>();
@@ -67,6 +69,7 @@ public static class AppServices
         services.AddSingleton<EditorServices>();
         services.AddSingleton(_ => new LspManager(LspServers.Defaults));
         services.AddSingleton<XamlLanguageService>();
+        services.AddSingleton<DocumentReloader>();      // reloads or flags those tabs
 
         // ---- git: the service runs git; the tracker keeps the workspace's status current
         services.AddSingleton<GitService>();

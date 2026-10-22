@@ -28,9 +28,10 @@
         <Style Selector="ListBox.packages ListBoxItem">
             <Setter Property="Padding" Value="8,6" />
         </Style>
-
-
-
+        <!--  A section heading ("Transitive packages (12)") can't be selected or reached with the arrow keys.  -->
+        <Style Selector="ListBox.packages ListBoxItem" x:DataType="vm:NuGetPackageRow">
+            <Setter Property="IsEnabled" Value="{Binding !IsHeader}" />
+        </Style>
     </UserControl.Styles>
 
     <Grid Background="{DynamicResource AppWindowBackgroundBrush}" RowDefinitions="Auto,Auto,Auto,*">
@@ -124,76 +125,87 @@
                         SelectedItem="{Binding SelectedPackage}">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:NuGetPackageRow">
-                                <Grid ColumnDefinitions="Auto,40,*,Auto">
-                                    <CheckBox
-                                        IsChecked="{Binding IsChecked}"
-                                        IsVisible="{Binding $parent[views:NuGetView].((vm:NuGetDockable)DataContext).IsUpdatesTab}"
-                                        Margin="0,0,4,0"
-                                        MinWidth="0"
-                                        VerticalAlignment="Center" />
-                                    <Panel
-                                        Grid.Column="1"
-                                        Height="32"
-                                        VerticalAlignment="Top"
-                                        Width="32">
-                                        <!--  The placeholder shows until there's an icon (and for icons that can't be shown, e.g. SVG).  -->
-                                        <PathIcon
-                                            Data="{StaticResource Icon.Package}"
-                                            Height="24"
-                                            IsVisible="{Binding #RowIcon.Source, Converter={x:Static ObjectConverters.IsNull}}"
-                                            Opacity="0.6"
-                                            Width="24" />
-                                        <Image Name="RowIcon" Source="{Binding IconData, Converter={x:Static views:NuGetConverters.Icon}}" />
-                                    </Panel>
-                                    <StackPanel Grid.Column="2" Spacing="2">
-                                        <!--  Id, verified tick, then "by authors  12M downloads" (cut short when long)  -->
-                                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
-                                            <TextBlock FontWeight="SemiBold" Text="{Binding Id}" />
+                                <Panel>
+                                    <TextBlock
+                                        Classes="heading"
+                                        IsVisible="{Binding IsHeader}"
+                                        Text="{Binding Id}" />
+                                    <!--  A transitive package's tooltip says which of the project's packages bring it in.  -->
+                                    <Grid
+                                        Background="Transparent"
+                                        ColumnDefinitions="Auto,40,*,Auto"
+                                        IsVisible="{Binding !IsHeader}"
+                                        ToolTip.Tip="{Binding ReferencedByText}">
+                                        <CheckBox
+                                            IsChecked="{Binding IsChecked}"
+                                            IsVisible="{Binding $parent[views:NuGetView].((vm:NuGetDockable)DataContext).IsUpdatesTab}"
+                                            Margin="0,0,4,0"
+                                            MinWidth="0"
+                                            VerticalAlignment="Center" />
+                                        <Panel
+                                            Grid.Column="1"
+                                            Height="32"
+                                            VerticalAlignment="Top"
+                                            Width="32">
+                                            <!--  The placeholder shows until there's an icon (and for icons that can't be shown, e.g. SVG).  -->
                                             <PathIcon
-                                                Data="{StaticResource Icon.CheckDecagram}"
-                                                Foreground="{DynamicResource LinkBrush}"
-                                                Grid.Column="1"
-                                                Height="12"
-                                                IsVisible="{Binding IsVerified}"
-                                                ToolTip.Tip="The owner's identity is verified on nuget.org"
-                                                Width="12" />
+                                                Data="{StaticResource Icon.Package}"
+                                                Height="24"
+                                                IsVisible="{Binding #RowIcon.Source, Converter={x:Static ObjectConverters.IsNull}}"
+                                                Opacity="0.6"
+                                                Width="24" />
+                                            <Image Name="RowIcon" Source="{Binding IconData, Converter={x:Static views:NuGetConverters.Icon}}" />
+                                        </Panel>
+                                        <StackPanel Grid.Column="2" Spacing="2">
+                                            <!--  Id, verified tick, then "by authors  12M downloads" (cut short when long)  -->
+                                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding Id}" />
+                                                <PathIcon
+                                                    Data="{StaticResource Icon.CheckDecagram}"
+                                                    Foreground="{DynamicResource LinkBrush}"
+                                                    Grid.Column="1"
+                                                    Height="12"
+                                                    IsVisible="{Binding IsVerified}"
+                                                    ToolTip.Tip="The owner's identity is verified on nuget.org"
+                                                    Width="12" />
+                                                <TextBlock
+                                                    Grid.Column="2"
+                                                    Opacity="0.7"
+                                                    TextTrimming="CharacterEllipsis">
+                                                    <!--  OneWay: Run.Text binds two-way by default, which loops with a StringFormat.  -->
+                                                    <Run Text="{Binding Authors, StringFormat='by {0}', Mode=OneWay}" />
+                                                    <Run Text="  " />
+                                                    <Run Text="{Binding DownloadsText, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </Grid>
                                             <TextBlock
-                                                Grid.Column="2"
-                                                Opacity="0.7"
-                                                TextTrimming="CharacterEllipsis">
-                                                <!--  OneWay: Run.Text binds two-way by default, which loops with a StringFormat.  -->
-                                                <Run Text="{Binding Authors, StringFormat='by {0}', Mode=OneWay}" />
-                                                <Run Text="  " />
-                                                <Run Text="{Binding DownloadsText, Mode=OneWay}" />
-                                            </TextBlock>
-                                        </Grid>
-                                        <TextBlock
-                                            MaxLines="2"
-                                            Opacity="0.85"
-                                            Text="{Binding ShortDescription}"
-                                            TextTrimming="CharacterEllipsis"
-                                            TextWrapping="Wrap" />
-                                    </StackPanel>
-                                    <StackPanel
-                                        Grid.Column="3"
-                                        HorizontalAlignment="Right"
-                                        Margin="12,0,0,0"
-                                        Spacing="2">
-                                        <TextBlock HorizontalAlignment="Right" Text="{Binding VersionText}" />
-                                        <TextBlock
-                                            FontSize="11"
-                                            Foreground="{DynamicResource GitAddedBrush}"
+                                                MaxLines="2"
+                                                Opacity="0.85"
+                                                Text="{Binding ShortDescription}"
+                                                TextTrimming="CharacterEllipsis"
+                                                TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel
+                                            Grid.Column="3"
                                             HorizontalAlignment="Right"
-                                            IsVisible="{Binding IsInstalled}"
-                                            Text="installed" />
-                                        <TextBlock
-                                            FontSize="11"
-                                            Foreground="{DynamicResource LinkBrush}"
-                                            HorizontalAlignment="Right"
-                                            IsVisible="{Binding HasUpdate}"
-                                            Text="update available" />
-                                    </StackPanel>
-                                </Grid>
+                                            Margin="12,0,0,0"
+                                            Spacing="2">
+                                            <TextBlock HorizontalAlignment="Right" Text="{Binding VersionText}" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{DynamicResource GitAddedBrush}"
+                                                HorizontalAlignment="Right"
+                                                IsVisible="{Binding IsInstalled}"
+                                                Text="{Binding InstalledLabel}" />
+                                            <TextBlock
+                                                FontSize="11"
+                                                Foreground="{DynamicResource LinkBrush}"
+                                                HorizontalAlignment="Right"
+                                                IsVisible="{Binding HasUpdate}"
+                                                Text="update available" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Panel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

@@ -113,6 +113,13 @@ public sealed class MsBuildHostClient : IDisposable
     public ProjectItemProperties SetItemMetadata(string projectPath, string filePath, string name, string value)
         => ToProperties(Send(new HostRequest(projectPath, HostCommands.SetItem, filePath, MetadataName: name, MetadataValue: value)));
 
+    /// <summary>
+    /// A file or folder was moved or renamed (<paramref name="newPath"/>), or deleted (null): rewrite or drop the
+    /// project file's explicit entries for it. Returns whether the project file changed.
+    /// </summary>
+    public bool MoveItem(string projectPath, string oldPath, string? newPath)
+        => Send(new HostRequest(projectPath, HostCommands.MoveItem, oldPath, NewPath: newPath)).ProjectChanged;
+
     private static ProjectItemProperties ToProperties(HostResponse response)
         => response.Item is { } item
             ? new ProjectItemProperties(item.ItemType, item.AvailableItemTypes, item.Metadata)

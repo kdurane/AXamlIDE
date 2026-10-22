@@ -13,6 +13,27 @@
             <Setter Property="Padding" Value="8,2" />
             <Setter Property="Margin" Value="0" />
         </Style>
+        <Style Selector="Border.DiskBanner">
+            <Setter Property="Background" Value="{DynamicResource AppDocumentBarBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DiagnosticWarningBrush}" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="Padding" Value="8,3" />
+        </Style>
+        <Style Selector="Border.DiskBanner PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource DiagnosticWarningBrush}" />
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style Selector="Border.DiskBanner TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.DiskBanner Button">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
         <Style Selector="Button#SplitDirectionButton PathIcon">
             <Setter Property="Data" Value="{StaticResource Icon.ArrowUpDown}" />
         </Style>
@@ -69,6 +90,42 @@
                     </Button>
                 </StackPanel>
                 <ContentControl HorizontalAlignment="Right" Name="OutlineHost" />
+            </DockPanel>
+        </Border>
+
+        <!--
+            The file changed (or went) on disk under unsaved edits. Theme colours only: the doc bar's background with
+            the warning colour as an accent, since every theme has those.
+        -->
+        <Border
+            Classes="DiskBanner"
+            DockPanel.Dock="Top"
+            IsVisible="{Binding Document.ChangedOnDisk}">
+            <DockPanel>
+                <StackPanel
+                    DockPanel.Dock="Right"
+                    Orientation="Horizontal"
+                    Spacing="4">
+                    <Button
+                        Command="{Binding ReloadFromDiskCommand}"
+                        Content="Reload"
+                        ToolTip.Tip="Take the version on disk (Ctrl+Z brings your edits back)" />
+                    <Button
+                        Command="{Binding KeepMineCommand}"
+                        Content="Keep mine"
+                        ToolTip.Tip="Keep your edits; saving overwrites the file on disk" />
+                </StackPanel>
+                <PathIcon Data="{StaticResource Icon.AlertOutline}" />
+                <TextBlock Text="This file was changed outside the IDE, and you have unsaved edits." />
+            </DockPanel>
+        </Border>
+        <Border
+            Classes="DiskBanner"
+            DockPanel.Dock="Top"
+            IsVisible="{Binding Document.DeletedOnDisk}">
+            <DockPanel>
+                <PathIcon Data="{StaticResource Icon.AlertOutline}" />
+                <TextBlock Text="This file was deleted on disk. Save to write it again." />
             </DockPanel>
         </Border>
 

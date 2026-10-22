@@ -127,6 +127,7 @@ public sealed class DockViewCache : IControlRecycling
             NuGetDockable nuget => new NuGetView { DataContext = nuget },
             PublishDockable publish => new PublishView { DataContext = publish },
             VisualizerDockable visualizer => new VisualizerView { DataContext = visualizer },
+            ImageDockable image => new ImageView { DataContext = image },
             _ => null
         };
         if (view is not null)

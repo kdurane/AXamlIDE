@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:vm="using:AXamlIDE.ViewModels"
+             x:DataType="vm:ImageDockable"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="AXamlIDE.Views.ImageView">
+
+    <DockPanel>
+        <!--  pixel size and file size, like VS's image viewer footer  -->
+        <TextBlock
+            DockPanel.Dock="Bottom"
+            FontSize="11"
+            Margin="8,4"
+            Opacity="0.7"
+            Text="{Binding Info}" />
+
+        <Panel>
+            <TextBlock
+                HorizontalAlignment="Center"
+                IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}"
+                Text="{Binding Error}"
+                VerticalAlignment="Center" />
+
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                <!--  the checkerboard sits behind the image only, so transparent areas show  -->
+                <Border
+                    Background="{DynamicResource CheckerboardBrush}"
+                    HorizontalAlignment="Center"
+                    Margin="16"
+                    VerticalAlignment="Center">
+                    <Image
+                        RenderOptions.BitmapInterpolationMode="None"
+                        Source="{Binding Image}"
+                        Stretch="Uniform"
+                        StretchDirection="DownOnly" />
+                </Border>
+            </ScrollViewer>
+        </Panel>
+    </DockPanel>
+</UserControl>

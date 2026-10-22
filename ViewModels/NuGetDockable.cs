@@ -39,6 +39,7 @@ public sealed partial class NuGetDockable : PageDockable
     private readonly NuGetService _nuget;
     private readonly IMessenger _messenger;
     private readonly Dictionary<string, InstalledPackage> _installed = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<TransitivePackage> _transitive = [];
     private readonly Dictionary<string, string> _latest = new(StringComparer.OrdinalIgnoreCase);
     private CancellationTokenSource _listCts = new();
     private readonly CancellationTokenSource _lifetime = new();
@@ -167,6 +168,7 @@ public sealed partial class NuGetDockable : PageDockable
             foreach (var package in installed.Packages)
                 _installed[package.Id] = package;
             InstalledCount = _installed.Count;
+            _transitive = await _nuget.GetTransitiveAsync(ProjectPath, ct);
             if (installed.Problem is { } problem)
                 _messenger.Send(new Messages.StatusMessage($"NuGet: {problem}"));
 
@@ -238,9 +240,9 @@ public sealed partial class NuGetDockable : PageDockable
                 _ => "All packages are up to date."
             };
             SelectedPackage = Packages.FirstOrDefault(row => row.Id.Equals(keep, StringComparison.OrdinalIgnoreCase))
-                              ?? Packages.FirstOrDefault();
+                              ?? Packages.FirstOrDefault(row => !row.IsHeader);
 
-            foreach (var row in rows)
+            foreach (var row in rows.Where(row => !row.IsHeader))
                 _ = LoadRowExtrasAsync(row, ct);
         }
         catch (OperationCanceledException)
@@ -271,15 +273,31 @@ public sealed partial class NuGetDockable : PageDockable
         })];
     }
 
+    /// <summary>
+    /// The project's packages; on the Installed tab, then its transitive ones under their own heading, as Visual
+    /// Studio does. (Updates leaves them out: updating the top-level package brings its dependencies along.)
+    /// </summary>
     private List<NuGetPackageRow> InstalledRows()
-        => [.. _installed.Values
+    {
+        var rows = _installed.Values
             .Where(package => Tab != NuGetTab.Updates || HasUpdate(package.Id))
-            .Where(package => SearchText.Length == 0 || package.Id.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Where(package => Matches(package.Id))
             .Select(package => new NuGetPackageRow(package.Id)
             {
                 InstalledVersion = package.ResolvedVersion ?? package.RequestedVersion,
                 LatestVersion = _latest.GetValueOrDefault(package.Id)
-            })];
+            })
+            .ToList();
+
+        if (Tab == NuGetTab.Installed && _transitive.Where(package => Matches(package.Id)).ToList() is { Count: > 0 } transitive)
+        {
+            rows.Add(NuGetPackageRow.Header($"Transitive packages ({transitive.Count})"));
+            rows.AddRange(transitive.Select(NuGetPackageRow.From));
+        }
+        return rows;
+    }
+
+    private bool Matches(string id) => SearchText.Length == 0 || id.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The row's icon, and (for installed rows) its description and authors from the local package.</summary>
     private async Task LoadRowExtrasAsync(NuGetPackageRow row, CancellationToken ct)

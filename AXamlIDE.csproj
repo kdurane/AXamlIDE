@@ -4,6 +4,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
+        <ApplicationIcon>AxamlIdeIcon.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
@@ -26,10 +27,6 @@
         </Compile>
         <Compile Update="Views\ProblemsView.axaml.cs">
           <DependentUpon>ProblemsView.axaml</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
-        <Compile Update="Views\DebugToolbarWindow.axaml.cs">
-          <DependentUpon>DebugToolbarWindow.axaml</DependentUpon>
           <SubType>Code</SubType>
         </Compile>
         <Compile Update="Views\OutputView.axaml.cs">
@@ -140,6 +137,7 @@
         <PackageReference Include="Markdig" Version="1.4.2" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
         <PackageReference Include="TextMateSharp" Version="2.0.4" />
+        <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.7" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
         <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
         <PackageReference Include="ClosedXML" Version="0.105.1" />
@@ -149,5 +147,14 @@
     <ItemGroup>
       <AvaloniaResource Include="Assets/*.json" />
       <AvaloniaResource Include="Assets/Grammars/*.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="AxamlIdeIcon.ico">
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+    <ItemGroup>
+        <AvaloniaResource Update="AxamlIdeIcon.ico" Link="AxamlIdeIcon.ico" />
     </ItemGroup>
 </Project>

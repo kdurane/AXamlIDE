@@ -1,6 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using Avalonia.Controls;
+using AXamlIDE.Services.Documents;
 using AXamlIDE.Shell;
 using AXamlIDE.ViewModels;
 using Dock.Avalonia.Controls;
@@ -17,7 +18,6 @@ public partial class MainWindow : Window
 {
     private readonly SettingsViewModel _settings = null!;
     private readonly KeyMap _keyMap = null!;
-    private readonly DebugToolbarController? _debugToolbar;
 
     /// <summary>
     /// For the XAML designer/previewer only: shows the layout with no services behind it.
@@ -29,10 +29,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Created by the DI container (see AppServices).</summary>
-    public MainWindow(
-        MainWindowViewModel viewModel,
-        SettingsViewModel settings,
-        KeyMap keyMap)
+    public MainWindow(MainWindowViewModel viewModel, SettingsViewModel settings, KeyMap keyMap, FileChangeWatcher fileWatcher)
     {
         InitializeComponent();
         _settings = settings;
@@ -49,9 +46,6 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         viewModel.ExitRequested += Close;
 
-        keyMap.AttachTo(this);
-        _debugToolbar = new DebugToolbarController(this, viewModel.Run, keyMap.AttachTo);
-
         settings.PropertyChanged += OnSettingsPropertyChanged;
         ApplyActivityBarSide();
 
@@ -64,6 +58,8 @@ public partial class MainWindow : Window
             viewModel.Session.Save();   // before the floating windows close (the Search window's place)
             docking.CloseFloatingWindows();
         };
+        keyMap.AttachTo(this);
+        Activated += (_, _) => fileWatcher.CheckAll();
     }
 
     private void UpdateBoundsForDocking(DockLayoutViewModel docking)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using AXamlIDE.Models;
 
@@ -41,6 +41,7 @@ public sealed class ExplorerNodeMenu
         CanUnignore = ignorable && node.GitState == GitFileState.Ignored;
         CanIgnore = ignorable && !CanUnignore;
         ShowGit = CanShowDiff || CanStage || CanUnstage || CanIgnore || CanUnignore;
+        IsProjectNode = node.Kind == NodeKind.Project && HasPath;
     }
 
     public ProjectTreeNode Node { get; }
@@ -53,6 +54,8 @@ public sealed class ExplorerNodeMenu
     public bool CanAdd { get; }
     public bool CanRefresh { get; }
     public bool IsProject { get; }
+    /// <summary>A project node in a solution: Open Project File opens its .csproj.</summary>
+    public bool IsProjectNode { get; }
     public bool CanBuild { get; }
 
     /// <summary>The path the Git items act on (the parameter of their commands).</summary>

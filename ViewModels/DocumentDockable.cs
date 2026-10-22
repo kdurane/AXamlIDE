@@ -9,8 +9,7 @@ namespace AXamlIDE.ViewModels;
 /// <summary>
 /// One document tab in the dock layout, for one <see cref="OpenDocument"/>. Its view (Views/DocumentView:
 /// the editor, and the preview for AXAML) is made by Views/DockViewCache and moves with the tab between
-/// tab strips and windows. Each AXAML tab has its own preview mode and split.
-/// </summary>
+/// tab strips and windows. Each AXAML tab has its own preview mode and split
 public sealed partial class DocumentDockable : Document
 {
     public DocumentDockable(OpenDocument document, PreviewMode mode, PreviewSplit split, bool previewFirst)
@@ -28,6 +27,8 @@ public sealed partial class DocumentDockable : Document
         TogglePreviewSplitCommand = new RelayCommand(() =>
             PreviewSplit = PreviewSplit == PreviewSplit.SideBySide ? PreviewSplit.Stacked : PreviewSplit.SideBySide);
         SwapPreviewSideCommand = new RelayCommand(() => PreviewFirst = !PreviewFirst);
+        ReloadFromDiskCommand = new RelayCommand(() => Document.ReloadFromDisk());
+        KeepMineCommand = new RelayCommand(Document.KeepOwnChanges);
     }
 
     public OpenDocument Document { get; }
@@ -49,6 +50,10 @@ public sealed partial class DocumentDockable : Document
     public RelayCommand<PreviewMode> SetPreviewModeCommand { get; }
     public RelayCommand SwapPreviewSideCommand { get; }
     public RelayCommand TogglePreviewSplitCommand { get; }
+
+    /// <summary>The "changed on disk" bar: take the disk's text (Ctrl+Z gets the edits back), or keep the edits.</summary>
+    public RelayCommand ReloadFromDiskCommand { get; }
+    public RelayCommand KeepMineCommand { get; }
 
     private void OnDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

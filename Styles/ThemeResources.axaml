@@ -1,16 +1,16 @@
 <!--
-    The UI colours for every theme in Settings, switched by Avalonia's theme variants.
+The UI colours for every theme in Settings, switched by Avalonia's theme variants.
 
-    1. ThemeDictionaries: one entry per theme (Views/ThemeVariants), each a Styles/Themes/<Id>.axaml file of
-       colours named after VS Code's theme keys ("editor.background", "sideBar.background"...). Selecting a
-       theme sets Application.RequestedThemeVariant (Views/ThemeSwitcher); Avalonia does the rest.
-       Each theme is based on Dark or Light, so Dock's matching preset and Fluent's matching look fill in
-       anything not set here.
-    2. Brushes: the resource keys the views use (our App*/Theme* brushes, and the Dock and Fluent ones we
-       restyle), each coloured from a theme key with {DynamicResource}, so they follow the theme.
+1. ThemeDictionaries: one entry per theme (Views/ThemeVariants), each a Styles/Themes/<Id>.axaml file of
+colours named after VS Code's theme keys ("editor.background", "sideBar.background"...). Selecting a
+theme sets Application.RequestedThemeVariant (Views/ThemeSwitcher); Avalonia does the rest.
+Each theme is based on Dark or Light, so Dock's matching preset and Fluent's matching look fill in
+anything not set here.
+2. Brushes: the resource keys the views use (our App*/Theme* brushes, and the Dock and Fluent ones we
+restyle), each coloured from a theme key with {DynamicResource}, so they follow the theme.
 
-    To colour another part of the UI: add a brush below (from an existing key, or add the key to every
-    file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
+To colour another part of the UI: add a brush below (from an existing key, or add the key to every
+file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
 -->
 <ResourceDictionary
     xmlns="https://github.com/avaloniaui"
@@ -217,4 +217,12 @@
     <!--  Preview design grid (Views/PreviewGridLines)  -->
     <SolidColorBrush Color="{DynamicResource app.preview.gridLine}" x:Key="PreviewGridLineBrush" />
     <SolidColorBrush Color="{DynamicResource app.preview.gridLineMajor}" x:Key="PreviewGridLineMajorBrush" />
+    <DrawingBrush x:Key="CheckerboardBrush" DestinationRect="0,0,16,16" TileMode="Tile">
+        <DrawingBrush.Drawing>
+            <DrawingGroup>
+                <GeometryDrawing Brush="#FFFFFF" Geometry="M0,0 H16 V16 H0 Z" />
+                <GeometryDrawing Brush="#DDDDDD" Geometry="M0,0 H8 V8 H0 Z M8,8 H16 V16 H8 Z" />
+            </DrawingGroup>
+        </DrawingBrush.Drawing>
+    </DrawingBrush>
 </ResourceDictionary>

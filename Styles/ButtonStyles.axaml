@@ -1,5 +1,5 @@
 <!--
-    App-wide button looks, picked with a class (Classes="icon"). Colours come from Styles/ThemeResources.axaml.
+App-wide button looks, picked with a class (Classes="icon"). Colours come from Styles/ThemeResources.axaml.
 -->
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Design.PreviewWith>
@@ -44,8 +44,8 @@
     </Style>
 
     <!--
-        row: a whole list row you click (search results), flat and highlighted on hover like a list item.
-        ToggleButton.row.expander is a group header: its PathIcon.chevron points down while it's open.
+    row: a whole list row you click (search results), flat and highlighted on hover like a list item.
+    ToggleButton.row.expander is a group header: its PathIcon.chevron points down while it's open.
     -->
     <Style Selector="Button.row, ToggleButton.row">
         <Setter Property="Background" Value="Transparent" />
@@ -81,5 +81,24 @@
         <Setter Property="Width" Value="10" />
         <Setter Property="Height" Value="10" />
         <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+    </Style>
+
+    <Style Selector="Button.dbg">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="Button.dbg ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector="Button.dbg PathIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+    </Style>
+    <Style Selector="Button.pause > PathIcon">
+        <Setter Property="Data" Value="{DynamicResource Icon.Pause}" />
+    </Style>
+    <Style Selector="Button.play > PathIcon">
+        <Setter Property="Data" Value="{DynamicResource Icon.Play}" />
     </Style>
 </Styles>

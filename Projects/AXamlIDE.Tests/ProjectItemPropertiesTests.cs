@@ -86,6 +86,37 @@ public sealed class ProjectItemPropertiesTests : IDisposable
         Assert.DoesNotContain("<None Update", ProjectText);
     }
 
+    [Fact]
+    public void A_hidden_item_the_sdk_adds_late_neither_wins_nor_piles_up_Removes()
+    {
+        // As Avalonia's targets do with $(ApplicationIcon): a Visible="false" AvaloniaResource, added after the
+        // project file is read, so a Remove in the project can't take it out.
+        _workspace.Write("App/late.targets", """
+            <Project>
+              <ItemGroup>
+                <AvaloniaResource Include="icon.ico" Visible="false" Link="!__AvaloniaDefaultWindowIcon" />
+              </ItemGroup>
+            </Project>
+            """);
+        System.IO.File.WriteAllText(_project, OriginalProject.Replace("</Project>", """
+              <ItemGroup>
+                <AvaloniaResource Include="icon.ico" />
+              </ItemGroup>
+              <Import Project="late.targets" />
+            </Project>
+            """));
+        _workspace.Write("App/icon.ico", "");
+
+        var result = _host.SetItemType(_project, File("icon.ico"), "EmbeddedResource");
+        result = _host.SetItemMetadata(_project, File("icon.ico"), "CopyToOutputDirectory", "PreserveNewest");
+
+        Assert.Equal("EmbeddedResource", result.ItemType);
+        Assert.Equal("PreserveNewest", result.MetadataOrEmpty("CopyToOutputDirectory"));
+        Assert.DoesNotContain("<AvaloniaResource Remove", ProjectText);
+        Assert.DoesNotContain("<AvaloniaResource Update", ProjectText);
+        Assert.Contains("<EmbeddedResource Include=\"icon.ico\">", ProjectText);
+    }
+
     /// <summary>The host built next to this project: Projects/AXamlIDE.msbuildhost/bin/&lt;config&gt;/&lt;tfm&gt;/.</summary>
     internal static string HostPath()
     {

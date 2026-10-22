@@ -1,0 +1,65 @@
+<UserControl
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    x:DataType="vm:RunViewModel"
+    Background="Transparent"
+    IsVisible="{Binding IsDebugging}"
+    x:Class="AXamlIDE.Views.DebugToolbarView">
+
+    <StackPanel
+        VerticalAlignment="Stretch"
+        HorizontalAlignment="Center"
+        Orientation="Horizontal"
+        Spacing="8">
+
+        <Button
+            Classes="dbg"
+            Classes.pause="{Binding !IsDebugStopped}"
+            Classes.play="{Binding IsDebugStopped}"
+            Command="{Binding ContinueOrPauseDebuggingCommand}"
+            ToolTip.Tip="Continue (F5) / Pause">
+            <PathIcon Foreground="{DynamicResource DebugContinueBrush}" />
+        </Button>
+        <Button
+            Classes="dbg"
+            Command="{Binding StepOverCommand}"
+            IsEnabled="{Binding IsDebugStopped}"
+            ToolTip.Tip="Step Over (F10)">
+            <PathIcon Data="{StaticResource Icon.DebugStepOver}" Width="18" />
+        </Button>
+        <Button
+            Classes="dbg"
+            Command="{Binding StepIntoCommand}"
+            IsEnabled="{Binding IsDebugStopped}"
+            ToolTip.Tip="Step Into (F11)">
+            <PathIcon Data="{StaticResource Icon.DebugStepInto}" />
+        </Button>
+        <Button
+            Classes="dbg"
+            Command="{Binding StepOutCommand}"
+            IsEnabled="{Binding IsDebugStopped}"
+            ToolTip.Tip="Step Out (Shift+F11)">
+            <PathIcon Data="{StaticResource Icon.DebugStepOut}" />
+        </Button>
+
+        <Button
+            Classes="dbg"
+            Command="{Binding RestartDebuggingCommand}"
+            IsEnabled="{Binding IsDebugging}"
+            ToolTip.Tip="Restart (Ctrl+Shift+F5)">
+            <PathIcon Data="{StaticResource Icon.Restart}" Foreground="{DynamicResource DebugRestartBrush}" />
+        </Button>
+
+        <!-- <Button
+        Classes="dbg"
+        Command="{Binding StopRunningProjectCommand}"
+        IsEnabled="{Binding IsDebugging}"
+        ToolTip.Tip="Stop (Shift+F5)">
+        <PathIcon
+        Data="{StaticResource Icon.SquareOutline}"
+        Foreground="{DynamicResource DebugStopBrush}"
+        Width="14" />
+        </Button> -->
+    </StackPanel>
+</UserControl>

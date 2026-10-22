@@ -1,6 +1,8 @@
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using AXamlIDE.Services.NuGet;
+using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Tests;
 
@@ -98,6 +100,52 @@ public sealed class NuGetCliTests
 
         Assert.Empty(installed.Packages);
         Assert.Contains("run restore", installed.Problem);
+    }
+
+    // A -> B -> C, D -> C, and A -> D (D is top-level too); the SDK's ILLink -> E only. net10.0 adds D -> F.
+    private const string Assets = """
+        {
+          "targets": {
+            "net8.0": {
+              "A/1.0.0": { "type": "package", "dependencies": { "B": "1.0.0", "D": "1.0.0" } },
+              "B/1.0.0": { "type": "package", "dependencies": { "C": "2.0.0" } },
+              "C/2.0.0": { "type": "package" },
+              "D/1.0.0": { "type": "package", "dependencies": { "C": "2.0.0" } },
+              "ILLink/9.0.0": { "type": "package", "dependencies": { "E": "1.0.0" } },
+              "E/1.0.0": { "type": "package" }
+            },
+            "net10.0": {
+              "A/1.0.0": { "type": "package", "dependencies": { "B": "1.0.0", "D": "1.0.0" } },
+              "B/1.0.0": { "type": "package", "dependencies": { "C": "2.0.0" } },
+              "C/2.0.0": { "type": "package" },
+              "D/1.0.0": { "type": "package", "dependencies": { "C": "2.0.0", "F": "3.0.0" } },
+              "F/3.0.0": { "type": "package" }
+            }
+          },
+          "libraries": {},
+          "project": { "frameworks": {
+            "net8.0": { "dependencies": {
+              "A": { "version": "[1.0.0, )" },
+              "D": { "version": "[1.0.0, )" },
+              "ILLink": { "version": "[9.0.0, )", "autoReferenced": true } } },
+            "net10.0": { "dependencies": {
+              "A": { "version": "[1.0.0, )" },
+              "D": { "version": "[1.0.0, )" } } } } }
+        }
+        """;
+
+    [Fact]
+    public void Finds_transitive_packages_and_the_top_level_packages_that_bring_them_in()
+    {
+        using var json = JsonDocument.Parse(Assets);
+
+        var transitive = NuGetService.Transitive(ProjectAssets.Parse(json.RootElement));
+
+        Assert.Equal(["B", "C", "F"], transitive.Select(p => p.Id));   // not D (top-level), not E (only the SDK's)
+        Assert.Equal(["A"], transitive.Single(p => p.Id == "B").ReferencedBy);
+        Assert.Equal(["A", "D"], transitive.Single(p => p.Id == "C").ReferencedBy);   // through B, and directly from D
+        Assert.Equal("2.0.0", transitive.Single(p => p.Id == "C").Version);
+        Assert.Equal(["A", "D"], transitive.Single(p => p.Id == "F").ReferencedBy);   // net10.0 only: A -> D -> F
     }
 }
 

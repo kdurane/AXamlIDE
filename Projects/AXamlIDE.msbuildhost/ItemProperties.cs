@@ -71,16 +71,30 @@ static class ItemProperties
         return new HostItem(item?.ItemType, available, metadata);
     }
 
-    /// <summary>The evaluated item for the file: of a common type first, else any type offered as a build action.</summary>
+    /// <summary>
+    /// The evaluated item for the file: of a common type first, else any type offered as a build action. A file can
+    /// be two types at once when the SDK adds a hidden one (Avalonia makes $(ApplicationIcon) a Visible="false"
+    /// AvaloniaResource for the default window icon); the one the explorer shows comes first.
+    /// </summary>
     private static ProjectItem? ItemFor(Project project, string filePath)
-        => CommonTypes
+    {
+        var items = CommonTypes
             .Concat(project.GetItems("AvailableItemName").Select(name => name.EvaluatedInclude))
             .Distinct()
             .Select(type => ItemOfType(project, type, filePath))
-            .FirstOrDefault(item => item is not null);
+            .OfType<ProjectItem>()
+            .ToList();
+        return items.FirstOrDefault(item => !IsHidden(item)) ?? items.FirstOrDefault();
+    }
+
+    private static bool IsHidden(ProjectItem item)
+        => string.Equals(item.GetMetadataValue("Visible"), "false", StringComparison.OrdinalIgnoreCase);
 
     private static ProjectItem? ItemOfType(Project project, string type, string filePath)
-        => project.GetItems(type).FirstOrDefault(item => SameFullPath(item.GetMetadataValue("FullPath"), filePath));
+        => project.GetItems(type)
+            .Where(item => SameFullPath(item.GetMetadataValue("FullPath"), filePath))
+            .OrderBy(IsHidden)
+            .FirstOrDefault();
 
     // ------------------------------------------------------------- build action
 
@@ -107,7 +121,15 @@ static class ItemProperties
 
         project.ReevaluateIfNecessary();
         if (oldType is not null && ItemOfType(project, oldType, filePath) is not null)
-            AppendToGroup(root, Element(root, oldType, remove: relative));   // still included by a glob
+        {
+            // Still included by a glob: remove it from that. An item added after the project file is read (in the
+            // SDK's .targets) can't be removed this way, so a Remove that changes nothing goes again.
+            var remove = Element(root, oldType, remove: relative);
+            AppendToGroup(root, remove);
+            project.ReevaluateIfNecessary();
+            if (ItemOfType(project, oldType, filePath) is not null)
+                Delete(remove);
+        }
 
         project.ReevaluateIfNecessary();
         if (ItemOfType(project, newType, filePath) is null)
@@ -187,7 +209,8 @@ static class ItemProperties
         group.AppendChild(element);
     }
 
-    private static void Delete(ProjectElement element)
+    /// <summary>Remove an element, and its ItemGroup if that leaves it empty.</summary>
+    internal static void Delete(ProjectElement element)
     {
         var parent = element.Parent;
         parent.RemoveChild(element);
@@ -195,7 +218,7 @@ static class ItemProperties
             group.Parent.RemoveChild(group);
     }
 
-    private static readonly StringComparison PathComparison =
+    internal static readonly StringComparison PathComparison =
         OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     /// <summary>Two full paths (an evaluated item's FullPath and the file).</summary>
@@ -205,7 +228,8 @@ static class ItemProperties
     private static bool SamePath(string attribute, string relative)
         => attribute.Length > 0 && string.Equals(Normalize(attribute), Normalize(relative), PathComparison);
 
-    private static string Normalize(string path)
+    /// <summary>A path as written in the project: forward slashes, no leading "./".</summary>
+    internal static string Normalize(string path)
     {
         path = path.Trim().Replace('\\', '/');
         return path.StartsWith("./", StringComparison.Ordinal) ? path[2..] : path;

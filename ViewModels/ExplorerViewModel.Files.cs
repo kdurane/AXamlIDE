@@ -177,6 +177,7 @@ public sealed partial class ExplorerViewModel
         }
 
         Reopen(reopen, source, moved);
+        await UpdateProjectPathsAsync(source, moved);
         await ReloadAsync(FindNode(source) ?? targetNode);
         await ReloadAsync(targetNode, select: moved);
         return moved;
@@ -306,6 +307,7 @@ public sealed partial class ExplorerViewModel
         }
 
         Reopen(reopen, node.FullPath, renamed);
+        await UpdateProjectPathsAsync(node.FullPath, renamed);
         await ReloadAsync(node, select: renamed);
     }
 
@@ -340,6 +342,8 @@ public sealed partial class ExplorerViewModel
             Status($"Couldn't delete '{node.Name}': {ex.Message}");
         }
 
+        if (!File.Exists(node.FullPath) && !Directory.Exists(node.FullPath))
+            await UpdateProjectPathsAsync(node.FullPath, null);
         await ReloadAsync(node);
     }
 
@@ -352,6 +356,24 @@ public sealed partial class ExplorerViewModel
         NodeKind.Project or NodeKind.Solution or NodeKind.File => Path.GetDirectoryName(node.FullPath),
         _ => null
     };
+
+    /// <summary>
+    /// A file or folder moved (or was deleted: newPath null): fix the paths its project's .csproj names it by,
+    /// e.g. &lt;AvaloniaResource Include="..."&gt; or &lt;ApplicationIcon&gt;.
+    /// </summary>
+    private async Task UpdateProjectPathsAsync(string oldPath, string? newPath)
+    {
+        if (model.FindProjectForDocument(oldPath) is not { } project)
+            return;   // not in a project
+        try
+        {
+            await Task.Run(() => model.Host.MoveItem(project, oldPath, newPath));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or IOException)
+        {
+            Status($"Couldn't update {Path.GetFileName(project)}: {ex.Message}");
+        }
+    }
 
     private List<OpenDocument> DocumentsUnder(string path)
         => [.. openDocuments.Documents.Where(document => FileOperations.IsSameOrInside(document.Path, path))];
@@ -405,5 +427,4 @@ public sealed partial class ExplorerViewModel
         if (select is not null && reloaded is not null && WorkspaceViewModel.FindByPath(reloaded, select) is { } selected)
             Workspace.SelectedNode = selected;
     }
-
 }

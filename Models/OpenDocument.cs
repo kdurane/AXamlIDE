@@ -110,6 +110,8 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 
         File.WriteAllText(Path, Document.Text, Encoding);
         Document.UndoStack.MarkAsOriginalFile();
+        ChangedOnDisk = false;   // what's on disk is ours now
+        DeletedOnDisk = false;
     }
 
     public void ToggleBreakpoint(int lineNumber)
@@ -190,4 +192,56 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
     public event Action? BreakpointsChanged;
     private void Raise([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    /// <summary>The file changed on disk while this had unsaved edits (the tab offers Reload / Keep mine).</summary>
+    public bool ChangedOnDisk { get; private set { field = value; Raise(); } }
+
+    /// <summary>The file was deleted on disk (the tab stays open; saving writes it again).</summary>
+    public bool DeletedOnDisk { get; private set { field = value; Raise(); } }
+
+    /// <summary>
+    /// Take the text from disk. Only the part that differs is replaced, so the caret, scroll position and
+    /// breakpoints stay put; it's one undo step, so Ctrl+Z gets the old text back.
+    /// </summary>
+    public void ReloadFrom(string text)
+    {
+        var old = Document.Text;
+        var prefix = 0;
+        var max = Math.Min(old.Length, text.Length);
+        while (prefix < max && old[prefix] == text[prefix])
+            prefix++;
+        var suffix = 0;
+        while (suffix < max - prefix && old[old.Length - 1 - suffix] == text[text.Length - 1 - suffix])
+            suffix++;
+
+        if (old.Length != text.Length || prefix < old.Length)
+            Document.Replace(prefix, old.Length - prefix - suffix, text.Substring(prefix, text.Length - prefix - suffix));
+
+        Document.UndoStack.MarkAsOriginalFile();   // matches the disk again, so not dirty
+        ChangedOnDisk = false;
+        DeletedOnDisk = false;
+    }
+
+    /// <summary>Read the file again (see <see cref="ReloadFrom"/>); false when it can't be read just now.</summary>
+    public bool ReloadFromDisk()
+    {
+        string text;
+        try
+        {
+            text = File.ReadAllText(Path, Encoding);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;   // locked mid-write or gone again; the watcher reports the next change
+        }
+
+        ReloadFrom(text);
+        return true;
+    }
+
+    /// <summary>"Keep mine": keep the edits; saving will overwrite the disk.</summary>
+    public void KeepOwnChanges() => ChangedOnDisk = false;
+
+    public void MarkChangedOnDisk() => ChangedOnDisk = true;
+    public void MarkDeletedOnDisk() => DeletedOnDisk = true;
 }

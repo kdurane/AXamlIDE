@@ -1,10 +1,12 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Workspace;
+using AXamlIDE.Views;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -17,6 +19,7 @@ namespace AXamlIDE.ViewModels;
 /// </summary>
 public sealed partial class ExplorerViewModel(
     WorkspaceViewModel workspace,
+    WorkspaceModel model,
     RunViewModel run,
     GitViewModel git,
     PropertiesViewModel properties,
@@ -25,7 +28,8 @@ public sealed partial class ExplorerViewModel(
     IDocumentHost documents,
     DocumentManager openDocuments,
     IDialogService dialogs,
-    IMessenger messenger)
+    IMessenger messenger,
+    ImageViewerManager images)
 {
     public WorkspaceViewModel Workspace { get; } = workspace;
 
@@ -51,6 +55,24 @@ public sealed partial class ExplorerViewModel(
             return;
         try
         {
+            if (!images.TryOpen(node.FullPath))
+                documents.OpenAndActivate(node.FullPath);
+
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Status($"Couldn't open '{node.FullPath}': {ex.Message}");
+        }
+    }
+
+    /// <summary>Right-click a project > Open Project File: the .csproj behind the project node.</summary>
+    [RelayCommand]
+    private void OpenProjectFile(ProjectTreeNode? node)
+    {
+        if (node is not { Kind: NodeKind.Project } || string.IsNullOrEmpty(node.FullPath))
+            return;
+        try
+        {
             documents.OpenAndActivate(node.FullPath);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
@@ -58,6 +80,7 @@ public sealed partial class ExplorerViewModel(
             Status($"Couldn't open '{node.FullPath}': {ex.Message}");
         }
     }
+
 
     [RelayCommand]
     private async Task RefreshAsync(ProjectTreeNode? node)

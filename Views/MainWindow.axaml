@@ -3,13 +3,14 @@
     Foreground="{DynamicResource AppForegroundBrush}"
     Title="AXamlIDE"
     d:DesignHeight="800"
-    d:DesignWidth="1200"
+    d:DesignWidth="1600"
     x:Class="AXamlIDE.Views.MainWindow"
     x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:msg="using:AXamlIDE.Messages"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -200,10 +201,11 @@
             -->
             <StackPanel
                 Grid.Column="1"
-                Margin="12,0,0,0"
                 HorizontalAlignment="Right"
+                Margin="12,0,0,0"
                 Orientation="Horizontal"
                 Spacing="4">
+                <views:DebugToolbarView DataContext="{Binding Run}" />
                 <Button
                     AutomationProperties.Name="Build"
                     Background="Transparent"
@@ -226,10 +228,10 @@
                     MinHeight="0"
                     MinWidth="140"
                     Padding="8,2"
-                    VerticalAlignment="Stretch"
                     PlaceholderText="Startup project"
                     SelectedItem="{Binding Run.StartupProject}"
                     ToolTip.Tip="Startup project: what Run and Debug start"
+                    VerticalAlignment="Stretch"
                     VerticalContentAlignment="Center">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:StartupProjectItem">
@@ -245,9 +247,9 @@
                     Margin="0,3"
                     MinHeight="0"
                     Padding="8,2"
-                    VerticalAlignment="Stretch"
                     SelectedItem="{Binding Run.Configuration}"
                     ToolTip.Tip="Build configuration"
+                    VerticalAlignment="Stretch"
                     VerticalContentAlignment="Center" />
                 <Button
                     AutomationProperties.Name="{Binding Run.StartOrStopToolTip}"
@@ -294,8 +296,8 @@
                 Grid.Column="2"
                 Margin="4,3"
                 MinHeight="0"
-                Text="{Binding TopBarSearchText}"
                 PlaceholderText="Search in files (Ctrl+Shift+F)"
+                Text="{Binding TopBarSearchText}"
                 Width="280">
                 <TextBox.KeyBindings>
                     <KeyBinding Command="{Binding SearchFromTopBarCommand}" Gesture="Enter" />
@@ -382,9 +384,7 @@
             TextElement.Foreground="{DynamicResource AppStatusBarForegroundBrush}"
             x:Name="StatusBar">
             <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBlock
-                    Grid.Column="0"
-                    Text="{Binding StatusText}" />
+                <TextBlock Grid.Column="0" Text="{Binding StatusText}" />
                 <TextBlock
                     Grid.Column="1"
                     Margin="0,0,16,0"

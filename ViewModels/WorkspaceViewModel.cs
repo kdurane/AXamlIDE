@@ -22,18 +22,24 @@ namespace AXamlIDE.ViewModels;
 /// The solution explorer: open a folder or a solution, refresh it, close it, and which node
 /// is selected. Opening points the language servers at the new root.
 /// </summary>
-public sealed partial class WorkspaceViewModel(
-    WorkspaceModel workspace,
-    XamlLanguageService xaml,
-    LanguageSessionService languages,
-    IDialogService dialogs,
-    IMessenger messenger) : ObservableObject
+public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<FilesCreatedMessage>
 {
-    private readonly WorkspaceModel _workspace = workspace;
-    private readonly XamlLanguageService _xaml = xaml;
-    private readonly LanguageSessionService _languages = languages;
-    private readonly IDialogService _dialogs = dialogs;
-    private readonly IMessenger _messenger = messenger;
+    private readonly WorkspaceModel _workspace;
+    private readonly XamlLanguageService _xaml;
+    private readonly LanguageSessionService _languages;
+    private readonly IDialogService _dialogs;
+    private readonly IMessenger _messenger;
+
+    public WorkspaceViewModel(WorkspaceModel workspace, XamlLanguageService xaml, LanguageSessionService languages,
+        IDialogService dialogs, IMessenger messenger)
+    {
+        _workspace = workspace;
+        _xaml = xaml;
+        _languages = languages;
+        _dialogs = dialogs;
+        _messenger = messenger;
+        messenger.RegisterAll(this);
+    }
 
     /// <summary>The tree roots (one: the folder or the solution).</summary>
     public ObservableCollection<ProjectTreeNode> Roots => _workspace.WorkspaceRoots;
@@ -219,4 +225,40 @@ public sealed partial class WorkspaceViewModel(
         OnPropertyChanged(nameof(IsOpen));
         Closed?.Invoke();
     }
+
+    /// <summary>A code action (or anything else) created files: reload the folders or projects that hold them.</summary>
+    public async void Receive(FilesCreatedMessage message)
+    {
+        var containers = message.Paths
+         .Select(FindContainer)
+         .OfType<ProjectTreeNode>()
+         .Distinct();
+        foreach (var container in containers)
+            await ReloadAroundAsync(container);
+    }
+
+    private ProjectTreeNode? FindContainer(string path)
+    {
+        for (var dir = Path.GetDirectoryName(path); dir is not null; dir = Path.GetDirectoryName(dir))
+        {
+            foreach (var node in Roots.SelectMany(Descendants))
+            {
+                if (node.Kind == NodeKind.Directory && GitStatus.PathComparer.Equals(node.FullPath, dir))
+                    return node;
+                if (node.Kind == NodeKind.Project && GitStatus.PathComparer.Equals(Path.GetDirectoryName(node.FullPath), dir))
+                    return node;
+            }
+        }
+        return null;
+    }
+
+    /// <summary>The node and every loaded node under it.</summary>
+    private static IEnumerable<ProjectTreeNode> Descendants(ProjectTreeNode node)
+    {
+        yield return node;
+        foreach (var child in node.Children)
+            foreach (var descendant in Descendants(child))
+                yield return descendant;
+    }
+
 }

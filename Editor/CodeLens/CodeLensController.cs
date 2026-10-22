@@ -199,16 +199,17 @@ public sealed class CodeLensController : IDisposable
 
     private void OnListKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter)
+        switch (e.Key)
         {
-            GoToSelected();
-            e.Handled = true;
-        }
-        else if (e.Key == Key.Escape)
-        {
-            _popup.IsOpen = false;
-            _ctx.Editor.TextArea.Focus();
-            e.Handled = true;
+            case Key.Enter:
+                GoToSelected();
+                e.Handled = true;
+                break;
+            case Key.Escape:
+                _popup.IsOpen = false;
+                _ctx.Editor.TextArea.Focus();
+                e.Handled = true;
+                break;
         }
     }
 

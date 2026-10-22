@@ -14,10 +14,14 @@ internal static class HostCommands
 
     /// <summary>Change one file's build action and/or one metadata value, write the project, and return the result.</summary>
     public const string SetItem = "setItem";
+
+    /// <summary>A file or folder was moved, renamed or deleted: fix the paths the project file names it by.</summary>
+    public const string MoveItem = "moveItem";
 }
 
 /// <param name="Command">One of <see cref="HostCommands"/>; null means Evaluate.</param>
 /// <param name="ItemType">SetItem: the new build action, or null to keep it.</param>
+/// <param name="NewPath">MoveItem: where the file or folder (<paramref name="FilePath"/>) went, or null if it was deleted.</param>
 /// <param name="MetadataName">SetItem: the metadata to change, or null; an empty <paramref name="MetadataValue"/> clears it.</param>
 /// <param name="Configuration">Evaluate: the build configuration ("Debug", "Release"), so OutputPath matches what
 /// <c>dotnet build -c</c> writes; null means the project's default.</param>
@@ -28,7 +32,8 @@ internal sealed record HostRequest(
     string? ItemType = null,
     string? MetadataName = null,
     string? MetadataValue = null,
-    string? Configuration = null);
+    string? Configuration = null,
+    string? NewPath = null);
 
 internal sealed record HostResponse(
     bool Success,
@@ -42,7 +47,8 @@ internal sealed record HostResponse(
     HostItem? Item = null,
     HostDependency[]? Dependencies = null,
     string[]? Folders = null,
-    string[]? TargetFrameworks = null);
+    string[]? TargetFrameworks = null,
+    bool ProjectChanged = false);
 
 /// <summary>One entry under a project's Dependencies node, as the project file (evaluated) declares it.
 /// Transitive packages and package analyzers aren't here: they only exist after restore, in project.assets.json.</summary>

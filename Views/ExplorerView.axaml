@@ -114,6 +114,14 @@
                         Header="Open"
                         IsVisible="{Binding IsFile}" />
                     <Separator IsVisible="{Binding IsFile}" />
+                    
+                    <MenuItem
+                    Command="{Binding Explorer.OpenProjectFileCommand}"
+    CommandParameter="{Binding Node}"
+    Header="Open Project File"
+    IsVisible="{Binding IsProjectNode}" />
+<Separator IsVisible="{Binding IsProjectNode}" />
+
 
                     <MenuItem
                         Command="{Binding Explorer.CutCommand}"

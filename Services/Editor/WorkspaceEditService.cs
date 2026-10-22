@@ -71,20 +71,25 @@ public sealed class WorkspaceEditService
     /// </summary>
     public bool Apply(JsonElement workspaceEdit)
     {
-        var created = false;
+        var createdPaths = new List<string>();
         foreach (var path in LspHelpers.FilesToCreate(workspaceEdit))
         {
             if (System.IO.File.Exists(path))
                 continue;
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
             System.IO.File.WriteAllText(path, "");
-            created = true;
+            createdPaths.Add(path);
         }
 
         var changes = LspHelpers.ParseWorkspaceEdit(workspaceEdit);
+
         if (changes.Count > 0)
             Apply(changes);
-        return created || changes.Count > 0;
+
+        if (createdPaths.Count > 0)
+            _messenger.Send(new FilesCreatedMessage(createdPaths));
+
+        return createdPaths.Count > 0 || changes.Count > 0;
     }
 
     /// <summary>Applies an edit the language server pushed to us (workspace/applyEdit).</summary>

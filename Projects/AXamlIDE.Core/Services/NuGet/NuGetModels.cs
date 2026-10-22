@@ -28,6 +28,12 @@ public sealed record NuGetSearchResult(
 /// <param name="Frameworks">The target frameworks that reference it.</param>
 public sealed record InstalledPackage(string Id, string? RequestedVersion, string? ResolvedVersion, IReadOnlyList<string> Frameworks);
 
+/// <summary>
+/// A package the project only gets through other packages (from project.assets.json), with the top-level packages
+/// that bring it in, as Visual Studio's "Transitively referenced by".
+/// </summary>
+public sealed record TransitivePackage(string Id, string Version, IReadOnlyList<string> ReferencedBy);
+
 /// <summary>What <c>dotnet list package</c> found, or why it couldn't.</summary>
 public sealed record InstalledPackages(IReadOnlyList<InstalledPackage> Packages, string? Problem);
 

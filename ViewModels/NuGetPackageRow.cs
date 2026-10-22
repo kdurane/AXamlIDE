@@ -6,12 +6,22 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// One line of the NuGet manager's list: a search result (Browse) or an installed package (Installed / Updates).
+/// One line of the NuGet manager's list: a search result (Browse), an installed package (Installed / Updates), a
+/// transitive package (Installed, under its own heading) or that heading.
 /// Installed and latest versions are filled in as they're known; the icon loads in the background.
 /// </summary>
 public sealed partial class NuGetPackageRow(string id) : ObservableObject
 {
     public string Id { get; } = id;
+
+    /// <summary>A section title in the list ("Transitive packages (12)"), not a package: Id is its text.</summary>
+    public bool IsHeader { get; init; }
+
+    /// <summary>Installed through other packages, not referenced by the project (can't be uninstalled on its own).</summary>
+    public bool IsTransitive { get; init; }
+
+    /// <summary>The row's tooltip for a transitive package: "Transitively referenced by:" and the packages, one a line.</summary>
+    public string? ReferencedByText { get; init; }
 
     [ObservableProperty] public partial string? Authors { get; set; }
     [ObservableProperty] public partial string? Description { get; set; }
@@ -35,6 +45,9 @@ public sealed partial class NuGetPackageRow(string id) : ObservableObject
 
     public bool IsInstalled => InstalledVersion is not null;
 
+    /// <summary>The list's tag under the version: "installed", or "transitive" for one that came with another package.</summary>
+    public string InstalledLabel => IsTransitive ? "transitive" : "installed";
+
     public bool HasUpdate => NuGetVersion.TryParse(InstalledVersion) is { } installed
                              && NuGetVersion.TryParse(LatestVersion) is { } latest
                              && latest > installed;
@@ -56,6 +69,16 @@ public sealed partial class NuGetPackageRow(string id) : ObservableObject
 
     partial void OnDescriptionChanged(string? value) => OnPropertyChanged(nameof(ShortDescription));
     partial void OnTotalDownloadsChanged(long? value) => OnPropertyChanged(nameof(DownloadsText));
+
+    public static NuGetPackageRow Header(string text) => new(text) { IsHeader = true };
+
+    public static NuGetPackageRow From(TransitivePackage package) => new(package.Id)
+    {
+        IsTransitive = true,
+        InstalledVersion = package.Version,
+        // One per line: some (Avalonia.BuildServices) come with ten packages.
+        ReferencedByText = "Transitively referenced by:\n" + string.Join("\n", package.ReferencedBy)
+    };
 
     public static NuGetPackageRow From(NuGetSearchResult result) => new(result.Id)
     {

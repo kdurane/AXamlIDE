@@ -180,7 +180,12 @@ public sealed partial class NuGetDockable
         var verb = PrimaryActionText;
         await ChangeAsync($"{verb} {row.Id} {version}",
             ct => _nuget.InstallAsync(ProjectPath, row.Id, version, ct),
-            $"{(verb == "Install" ? "Installed" : verb == "Update" ? "Updated" : "Downgraded")} {row.Id} to {version}.");
+            $"{(verb switch
+            {
+                "Install" => "Installed",
+                "Update" => "Updated",
+                _ => "Downgraded"
+            })} {row.Id} to {version}.");
     }
 
     private bool CanInstallSelected() => !IsBusy && SelectedPackage is not null && SelectedVersion is not null && PrimaryActionText != "Installed";
@@ -193,7 +198,8 @@ public sealed partial class NuGetDockable
         await ChangeAsync($"Uninstall {row.Id}", ct => _nuget.UninstallAsync(ProjectPath, row.Id, ct), $"Uninstalled {row.Id}.");
     }
 
-    private bool CanUninstallSelected() => !IsBusy && SelectedPackage is { IsInstalled: true };
+    // A transitive package isn't in the project file: it goes when the packages that bring it in do.
+    private bool CanUninstallSelected() => !IsBusy && SelectedPackage is { IsInstalled: true, IsTransitive: false };
 
     /// <summary>Run a dotnet change, report it, then re-read the installed packages and the list.</summary>
     private async Task ChangeAsync(string what, Func<CancellationToken, Task<NuGetChangeResult>> change, string done)
