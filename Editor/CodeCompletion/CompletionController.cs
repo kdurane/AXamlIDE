@@ -51,8 +51,13 @@ public sealed class CompletionController
     // Called from TypingController (TextArea.TextEntering).
     public void HandleTextEntering(TextInputEventArgs e)
     {
+        if (_completionWindow is not { } window || string.IsNullOrEmpty(e.Text) || IsNameChar(e.Text[0]) || e.Text == "}")
+            return;
 
-        if (_completionWindow is { } window && !string.IsNullOrEmpty(e.Text) && !IsNameChar(e.Text[0]) && e.Text != "}")
+        // A snippet only goes in with Tab or Enter, as in Visual Studio: typing anything else just carries on typing.
+        if (window.CompletionList.SelectedItem is SnippetCompletionData)
+            window.Close();
+        else
             window.CompletionList.RequestInsertion(e);
     }
 
@@ -130,7 +135,7 @@ public sealed class CompletionController
         var items = list.Items;
         if (items.Count == 0)
         {
-            ShowSnippetsOnly(doc, seq, caret);
+            //ShowSnippetsOnly(doc, seq, caret);
             return;
         }
 

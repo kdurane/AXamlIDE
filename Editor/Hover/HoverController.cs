@@ -314,6 +314,9 @@ public sealed class HoverController
         // (OnWindowPointerMoved) - its own menus are popups too, and moving onto one leaves the card.
         card.PointerExited += (_, e) =>
         {
+            // Raised while the popup is being torn down too (Hide, light dismiss): the card isn't on screen any more.
+            if (TopLevel.GetTopLevel(card) is null)
+                return;
             if (ReferenceEquals(_card, card) && !_sticky && !KeepsCardOpen(ScreenPoint(e, card)))
                 Hide(resetOffset: true);
         };

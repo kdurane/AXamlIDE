@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using AXamlIDE.CompletionEngine.Parsing;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Lsp;
@@ -47,6 +48,8 @@ public sealed class SnippetController
         var snippets = _library.For(document.LanguageId);
         if (document.LanguageId == LanguageIds.Axaml)
         {
+            if (XmlParser.Parse(text.Text.AsMemory(0, start)).State == XmlParser.ParserState.AttributeValue)
+                return [];   // inside Text="...": a value, not markup
             var element = start > 0 && text.GetCharAt(start - 1) == '<' || !InsideTag(text.Text, start);
             snippets = [.. snippets.Where(snippet => snippet.Body.StartsWith('<') == element)];
         }

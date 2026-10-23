@@ -138,8 +138,9 @@ public partial class EditorPaneView : UserControl,
         Editor.Options.EnableTextDragDrop = true;
         Editor.Options.CompletionAcceptAction = CompletionAcceptAction.DoubleTapped;
 
-        // Ctrl+wheel over the editor changes the font size. (The preview handles its own wheel.)
-        Editor.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Bubble, true);
+        // Tunnel: seen before the editor's ScrollViewer, so Ctrl+wheel zooms without scrolling too.
+        Editor.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);
+
 
         _breakpointMargin = new BreakpointMargin();
         Editor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
@@ -369,14 +370,22 @@ public partial class EditorPaneView : UserControl,
 
     // -------------------------------------------------------------- handlers
 
+    // Wheel movement not yet turned into a size change (touchpads send many small deltas).
+    private double _zoomDelta;
+
     private void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         if (e.KeyModifiers != KeyModifiers.Control)
             return;
-
-        var nextSize = _settings.EditorFontSize + (e.Delta.Y > 0 ? 1 : -1);
-        _settings.EditorFontSize = Math.Clamp(nextSize, 6, 72);
         e.Handled = true;
+
+        _zoomDelta += e.Delta.Y;
+        if (Math.Abs(_zoomDelta) < 1)
+            return;   // not a full notch yet
+
+        var step = _zoomDelta > 0 ? 1 : -1;
+        _zoomDelta = 0;
+        _settings.EditorFontSize = Math.Clamp(_settings.EditorFontSize + step, 6, 72);
     }
 
     // Context-menu "Quick Actions..." (the View menu uses EditorCommands.QuickActions).
