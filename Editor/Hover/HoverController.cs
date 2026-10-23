@@ -219,7 +219,10 @@ public sealed class HoverController
             .ToList();
         (int Start, int End) range = segments.Count > 0 ? (segments[0].StartOffset, segments[0].EndOffset) : (offset, offset + 1);
 
-        var (signature, documentation, symbolRange) = await GetSymbolHoverAsync(document, offset, cts.Token);
+        // Quick Info switched off: just the errors and warnings (they always show).
+        var (signature, documentation, symbolRange) = _ctx.Settings.Features.QuickInfoOnHover
+            ? await GetSymbolHoverAsync(document, offset, cts.Token)
+            : default;
         if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
             return;   // the pointer moved on, or the tab changed, while we were waiting
 

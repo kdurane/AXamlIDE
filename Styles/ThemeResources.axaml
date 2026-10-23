@@ -155,6 +155,9 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource editorGroup.border}" x:Key="EditorSplitterBrush" />
     <SolidColorBrush Color="{DynamicResource editorLink.activeForeground}" x:Key="EditorLinkBrush" />
     <SolidColorBrush Color="{DynamicResource editorCodeLens.foreground}" x:Key="CodeLensForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorCodeLens.foreground}" x:Key="CompletionDetailForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorInlayHint.foreground}" x:Key="InlayHintForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorInlayHint.background}" x:Key="InlayHintBackgroundBrush" />
     <!--  Avalonia's DataGrid (the debugger's table visualizer): its own keys, mapped to the theme.  -->
     <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.background}" x:Key="DataGridColumnHeaderBackgroundBrush" />
     <SolidColorBrush Color="{DynamicResource sideBarSectionHeader.foreground}" x:Key="DataGridColumnHeaderForegroundBrush" />

@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Keymaps;
@@ -137,6 +138,103 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         }
     }
 
+    // ---------------------------------------------------------------- the helpers that can be switched off
+
+    public EditorFeatureSettings Features => _editorSettings.Features;
+
+    public bool AutoCloseBraces
+    {
+        get => Features.AutoCloseBraces;
+        set => SetFeatures(Features with { AutoCloseBraces = value });
+    }
+
+    public bool AutoCloseXamlTags
+    {
+        get => Features.AutoCloseXamlTags;
+        set => SetFeatures(Features with { AutoCloseXamlTags = value });
+    }
+
+    public bool FileScopedNamespaceOnSemicolon
+    {
+        get => Features.FileScopedNamespaceOnSemicolon;
+        set => SetFeatures(Features with { FileScopedNamespaceOnSemicolon = value });
+    }
+
+    public bool CompletionWhileTyping
+    {
+        get => Features.CompletionWhileTyping;
+        set => SetFeatures(Features with { CompletionWhileTyping = value });
+    }
+
+    public bool CompletionFromUnimportedNamespaces
+    {
+        get => Features.CompletionFromUnimportedNamespaces;
+        set => SetFeatures(Features with { CompletionFromUnimportedNamespaces = value });
+    }
+
+    public bool ParameterInfoWhileTyping
+    {
+        get => Features.ParameterInfoWhileTyping;
+        set => SetFeatures(Features with { ParameterInfoWhileTyping = value });
+    }
+
+    public bool QuickInfoOnHover
+    {
+        get => Features.QuickInfoOnHover;
+        set => SetFeatures(Features with { QuickInfoOnHover = value });
+    }
+
+    public bool SemanticHighlighting
+    {
+        get => Features.SemanticHighlighting;
+        set => SetFeatures(Features with { SemanticHighlighting = value });
+    }
+
+    public bool CodeLens
+    {
+        get => Features.CodeLens;
+        set => SetFeatures(Features with { CodeLens = value });
+    }
+
+    public bool InlayParameterHints
+    {
+        get => Features.InlayParameterHints;
+        set => SetFeatures(Features with { InlayParameterHints = value });
+    }
+
+    public bool InlayTypeHints
+    {
+        get => Features.InlayTypeHints;
+        set => SetFeatures(Features with { InlayTypeHints = value });
+    }
+
+    public bool HighlightSelectionOccurrences
+    {
+        get => Features.HighlightSelectionOccurrences;
+        set => SetFeatures(Features with { HighlightSelectionOccurrences = value });
+    }
+
+    public bool ColorSwatches
+    {
+        get => Features.ColorSwatches;
+        set => SetFeatures(Features with { ColorSwatches = value });
+    }
+
+    public bool InlineDebugValues
+    {
+        get => Features.InlineDebugValues;
+        set => SetFeatures(Features with { InlineDebugValues = value });
+    }
+
+    /// <summary>Change the features; PropertyChanged names the property set (for its checkbox) and <c>Features</c> (for the editor).</summary>
+    private void SetFeatures(EditorFeatureSettings features, [CallerMemberName] string? propertyName = null)
+    {
+        if (features == _editorSettings.Features)
+            return;
+        UpdateEditorSettings(_editorSettings with { Features = features });
+        OnPropertyChanged(propertyName);
+    }
+
     private void UpdateEditorSettings(EditorSettings settings)
     {
         var old = _editorSettings;
@@ -147,6 +245,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         if (old.HighlightCurrentLine != settings.HighlightCurrentLine) OnPropertyChanged(nameof(HighlightCurrentLine));
         if (old.SolutionExplorerOnRight != settings.SolutionExplorerOnRight) OnPropertyChanged(nameof(SolutionExplorerOnRight));
         if (old.FormatOnSave != settings.FormatOnSave) OnPropertyChanged(nameof(FormatOnSave));
+        if (old.Features != settings.Features) OnPropertyChanged(nameof(Features));
 
         try
         {

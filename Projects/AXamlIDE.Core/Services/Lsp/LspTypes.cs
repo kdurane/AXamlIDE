@@ -31,7 +31,43 @@ public sealed record LspDocumentSymbol(
 public sealed record LspCodeLens(LspRange Range, string? Title, System.Text.Json.JsonElement Raw);
 public sealed record LspHover(string Text, LspRange? Range, bool IsMarkdown);
 public sealed record LspTextEdit(LspRange Range, string NewText);
-public sealed record LspCompletionItem(string Label, int Kind, string? Detail, string? Documentation, string? SortText, string? FilterText, string? InsertText, LspTextEdit? Edit);
+/// <summary>One completion. Some of it may only arrive once resolved (completionItem/resolve): the documentation, and
+/// the edits elsewhere in the file.</summary>
+/// <param name="LabelDescription">Shown dimmed after the label: for a type from a namespace that isn't imported yet, the
+/// namespace ("System.Text").</param>
+/// <param name="AdditionalEdits">Made along with the completion, elsewhere in the file: the using for that namespace.</param>
+/// <param name="Command">Run after inserting it (Roslyn's override completion, see <see cref="RoslynCompletion"/>).</param>
+/// <param name="Raw">The server's object, sent back as-is to resolve it.</param>
+public sealed record LspCompletionItem(
+    string Label,
+    int Kind,
+    string? Detail,
+    string? Documentation,
+    string? SortText,
+    string? FilterText,
+    string? InsertText,
+    LspTextEdit? Edit,
+    string? LabelDescription = null,
+    IReadOnlyList<LspTextEdit>? AdditionalEdits = null,
+    JsonElement? Command = null,
+    JsonElement? Raw = null);
+
+/// <summary>A completion list. Incomplete means the server left items out (too many, or still loading): ask again as
+/// more of the word is typed.</summary>
+public sealed record LspCompletionList(IReadOnlyList<LspCompletionItem> Items, bool IsIncomplete);
+
+/// <summary>
+/// A semantic token: what the code at a place is (a class, a parameter, a local...), which plain syntax colouring
+/// can't tell. <paramref name="Type"/> is one of the server's token type names ("class", "parameter"...);
+/// <paramref name="Modifiers"/> is a bit set over the server's modifier names ("static"...).
+/// </summary>
+public readonly record struct LspSemanticToken(int Line, int Character, int Length, string Type, int Modifiers);
+
+/// <summary>
+/// An inlay hint: text shown in the code that isn't in the file, such as a parameter name before an argument
+/// ("count:") or the type of a var. Shown before the character at <paramref name="Line"/>, <paramref name="Character"/>.
+/// </summary>
+public sealed record LspInlayHint(int Line, int Character, string Label, bool PaddingLeft, bool PaddingRight);
 public sealed record LspParameterInformation(string Label, string? Documentation);
 public sealed record LspSignatureInformation(
     string Label,

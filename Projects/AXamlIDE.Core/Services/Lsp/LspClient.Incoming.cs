@@ -46,7 +46,12 @@ public sealed partial class LspClient
             case "workspace/configuration" when p.ValueKind == JsonValueKind.Object
                                                 && p.TryGetProperty("items", out var items)
                                                 && items.ValueKind == JsonValueKind.Array:
-                result = items.EnumerateArray().Select(_ => JsonNull).ToArray();   // one null per item
+                // One answer per item, in order; null leaves the server's default.
+                result = items.EnumerateArray()
+                    .Select(item => (item.ValueKind == JsonValueKind.Object && Str(item, "section") is { } section
+                        ? _settings?.Invoke(section)
+                        : null) ?? JsonNull)
+                    .ToArray();
                 break;
 
             case "client/registerCapability":
@@ -63,6 +68,14 @@ public sealed partial class LspClient
 
             case "workspace/codeLens/refresh":
                 CodeLensRefreshRequested?.Invoke();
+                break;
+
+            case "workspace/semanticTokens/refresh":
+                SemanticTokensRefreshRequested?.Invoke();
+                break;
+
+            case "workspace/inlayHint/refresh":
+                InlayHintsRefreshRequested?.Invoke();
                 break;
 
             case "workspace/applyEdit":
@@ -85,6 +98,8 @@ public sealed partial class LspClient
         }
 
         Enqueue(new { jsonrpc = "2.0", id, result });
+        if (method == "workspace/configuration")
+            ConfigurationAnswered?.Invoke();
     }
 
     private void RegisterCapabilities(JsonElement p)

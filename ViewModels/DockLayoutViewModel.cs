@@ -104,9 +104,9 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
 
         if (_factory.FloatsByDefault(tool) && !_factory.IsInLayout(tool))
         {
-            var main = MainWindowBounds;
+            var (mainX, mainY, mainWidth, mainHeight) = MainWindowBounds;
             var (x, y, width, height) = _searchWindowBounds
-                ?? (main.X + main.Width / 2 - 350, main.Y + 80, 700, Math.Min(560, main.Height - 120));
+                ?? (mainX + mainWidth / 2 - 350, mainY + 80, 700, Math.Min(560, mainHeight - 120));
             _factory.FloatTool(tool, x, y, width, height);
         }
         else

@@ -104,6 +104,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             HighlightCurrentLine = persisted.HighlightCurrentLine ?? defaults.HighlightCurrentLine,
             SolutionExplorerOnRight = persisted.SolutionExplorerOnRight ?? defaults.SolutionExplorerOnRight,
             FormatOnSave = persisted.FormatOnSave ?? defaults.FormatOnSave,
+            Features = persisted.Features ?? defaults.Features,
             KeymapId = keymapId
         }, warnings);
     }
@@ -132,6 +133,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             HighlightCurrentLine = settings.HighlightCurrentLine,
             SolutionExplorerOnRight = settings.SolutionExplorerOnRight,
             FormatOnSave = settings.FormatOnSave,
+            Features = settings.Features,
             Keymap = settings.KeymapId
         };
         var tempPath = SettingsPath + ".tmp";
@@ -154,6 +156,9 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
         public bool? HighlightCurrentLine { get; init; }
         public bool? SolutionExplorerOnRight { get; init; }
         public bool? FormatOnSave { get; init; }
+
+        // Saved as the record itself: a feature missing from the file keeps the default its property starts with.
+        public EditorFeatureSettings? Features { get; init; }
         public string? Keymap { get; init; }
     }
 }

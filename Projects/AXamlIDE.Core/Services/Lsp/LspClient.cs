@@ -62,6 +62,21 @@ public sealed partial class LspClient : ILspSender, IDisposable
     /// <summary>textDocument/codeLens: the "N references" lines above declarations.</summary>
     public bool SupportsCodeLens { get; private set; }
 
+    /// <summary>completionItem/resolve: an item's documentation and extra edits (the using to add) on request.</summary>
+    public bool SupportsCompletionResolve { get; private set; }
+
+    /// <summary>textDocument/semanticTokens/range: what each name in some lines is (class, parameter, local...).</summary>
+    public bool SupportsSemanticTokens { get; private set; }
+
+    /// <summary>The token type names semantic tokens refer to by index (the server's legend).</summary>
+    public IReadOnlyList<string> SemanticTokenTypes { get; private set; } = [];
+
+    /// <summary>The modifier names semantic tokens' modifier bits stand for, lowest bit first.</summary>
+    public IReadOnlyList<string> SemanticTokenModifiers { get; private set; } = [];
+
+    /// <summary>textDocument/inlayHint: parameter names and inferred types shown in the code.</summary>
+    public bool SupportsInlayHints { get; private set; }
+
     /// <summary>True if the server wants diagnostics pulled (textDocument/diagnostic) rather than pushing them.</summary>
     public bool SupportsPullDiagnostics { get; private set; }
 
@@ -100,14 +115,31 @@ public sealed partial class LspClient : ILspSender, IDisposable
 
     /// <summary>The server's code lenses changed (e.g. references in another file): ask again. Background thread.</summary>
     public event Action? CodeLensRefreshRequested;
+
+    /// <summary>The server's semantic tokens changed (its projects loaded, another file changed): ask again. Background thread.</summary>
+    public event Action? SemanticTokensRefreshRequested;
+
+    /// <summary>The server's inlay hints changed: ask again. Background thread.</summary>
+    public event Action? InlayHintsRefreshRequested;
+
+    /// <summary>
+    /// The server has just been given its options (workspace/configuration), at start-up or after
+    /// <see cref="DidChangeConfiguration"/>. Roslyn doesn't say when that changes its inlay hints, so ask again on this.
+    /// Background thread.
+    /// </summary>
+    public event Action? ConfigurationAnswered;
     public Func<JsonElement, Task<bool>>? WorkspaceEditHandler { get; set; }
+
+    /// <summary>Answers the server's workspace/configuration questions by section name (see <see cref="LspServerConfig.Settings"/>).</summary>
+    private readonly Func<string, object?>? _settings;
 
     /// <summary>Current work-done progress text ("Loading projects: ..."), or null when idle. Background thread.</summary>
     public event Action<string?>? Progress;
 
-    private LspClient(Process process)
+    private LspClient(Process process, Func<string, object?>? settings)
     {
         _process = process;
+        _settings = settings;
         _stdin = process.StandardInput.BaseStream;
         _stdout = new BufferedStream(process.StandardOutput.BaseStream);
 
@@ -133,8 +165,9 @@ public sealed partial class LspClient : ILspSender, IDisposable
         ServerLog?.Invoke(line);
     }
 
+    /// <param name="settings">Answers the server's workspace/configuration questions (it may ask straight after initialize).</param>
     public static async Task<LspClient> StartAsync(
-        string command, IEnumerable<string> args, string rootPath, CancellationToken ct = default)
+        string command, IEnumerable<string> args, string rootPath, Func<string, object?>? settings = null, CancellationToken ct = default)
     {
         var psi = new ProcessStartInfo(command)
         {
@@ -150,7 +183,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
         var process = Process.Start(psi)
             ?? throw new InvalidOperationException($"Couldn't start '{command}'.");
 
-        var client = new LspClient(process);
+        var client = new LspClient(process, settings);
         try
         {
             await client.InitializeAsync(rootPath, ct);
@@ -179,6 +212,11 @@ public sealed partial class LspClient : ILspSender, IDisposable
 
     private readonly string[] _supports = ["edit", "command"];
 
+    // What may be left out of completion items until they're resolved: the server fills it in for the one picked.
+    private readonly string[] _completionResolve = ["documentation", "detail", "additionalTextEdits", "command", "textEdit"];
+
+    private readonly string[] _relativeTokens = ["relative"];
+
     private async Task InitializeAsync(string rootPath, CancellationToken ct)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -200,6 +238,8 @@ public sealed partial class LspClient : ILspSender, IDisposable
                     configuration = true,
                     diagnostics = new { refreshSupport = true },
                     codeLens = new { refreshSupport = true },
+                    semanticTokens = new { refreshSupport = true },
+                    inlayHint = new { refreshSupport = true },
                     applyEdit = true,
                     workspaceEdit = new
                     {
@@ -229,7 +269,26 @@ public sealed partial class LspClient : ILspSender, IDisposable
                     },
                     hover = new { contentFormat = _hoverContext },
                     codeLens = new { dynamicRegistration = true },
-                    completion = new { completionItem = new { snippetSupport = false } },
+                    completion = new
+                    {
+                        completionItem = new
+                        {
+                            snippetSupport = false,
+                            labelDetailsSupport = true,
+                            resolveSupport = new { properties = _completionResolve }
+                        }
+                    },
+                    // Ranges only: we ask about the lines on screen. The types and modifiers we know are whatever the
+                    // server's legend says (none listed here); syntax colouring stays TextMate's.
+                    semanticTokens = new
+                    {
+                        requests = new { range = true, full = false },
+                        tokenTypes = Array.Empty<string>(),
+                        tokenModifiers = Array.Empty<string>(),
+                        formats = _relativeTokens,
+                        augmentsSyntaxTokens = true
+                    },
+                    inlayHint = new { },
                     signatureHelp = new
                     {
                         dynamicRegistration = false,
@@ -268,6 +327,22 @@ public sealed partial class LspClient : ILspSender, IDisposable
                 CompletionTriggerCharacters =
                 [.. trig.EnumerateArray().Select(t => t.GetString() ?? "").Where(t => t.Length > 0)];
             }
+            SupportsCompletionResolve = comp.ValueKind == JsonValueKind.Object
+                                        && comp.TryGetProperty("resolveProvider", out var completionResolve)
+                                        && completionResolve.ValueKind == JsonValueKind.True;
+
+            // { legend: { tokenTypes, tokenModifiers }, range, full }
+            if (caps.TryGetProperty("semanticTokensProvider", out var semanticTokens)
+                && semanticTokens.ValueKind == JsonValueKind.Object
+                && semanticTokens.TryGetProperty("legend", out var legend)
+                && HasProvider(semanticTokens, "range"))
+            {
+                SemanticTokenTypes = ReadStringArray(legend, "tokenTypes");
+                SemanticTokenModifiers = ReadStringArray(legend, "tokenModifiers");
+                SupportsSemanticTokens = SemanticTokenTypes.Count > 0;
+            }
+
+            SupportsInlayHints = HasProvider(caps, "inlayHintProvider");
 
             if (caps.TryGetProperty("signatureHelpProvider", out var signatureHelp)
                 && signatureHelp.ValueKind == JsonValueKind.Object)
@@ -344,6 +419,10 @@ public sealed partial class LspClient : ILspSender, IDisposable
 
     public void DidClose(string uri)
         => Notify("textDocument/didClose", new { textDocument = new { uri } });
+
+    /// <summary>The settings changed: the server asks for the ones it uses again (workspace/configuration).</summary>
+    public void DidChangeConfiguration()
+        => Notify("workspace/didChangeConfiguration", new { settings = (object?)null });
 
     // --------------------------------------------------------------- cleanup
 

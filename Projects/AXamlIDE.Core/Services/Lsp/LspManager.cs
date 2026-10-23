@@ -143,7 +143,7 @@ public sealed class LspManager : IDisposable
         try
         {
             var args = config.BuildArgs?.Invoke(workspace) ?? [];
-            var client = await LspClient.StartAsync(command, args, workspace.RootPath);
+            var client = await LspClient.StartAsync(command, args, workspace.RootPath, config.Settings);
 
             if (generation != Generation)   // workspace changed while we were starting
             {
@@ -217,6 +217,13 @@ public sealed class LspManager : IDisposable
     {
         state.Status = status;
         StatusChanged?.Invoke();
+    }
+
+    /// <summary>The user changed settings some servers read as options: they ask for them again.</summary>
+    public void SettingsChanged()
+    {
+        foreach (var state in _servers.Values)
+            state.Client?.DidChangeConfiguration();
     }
 
     public void Dispose()

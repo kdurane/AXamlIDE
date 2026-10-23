@@ -28,6 +28,7 @@ public sealed class DebugValuesController : IDisposable
         _snapshots.Changed += Apply;
         _snapshots.InlineValuesChanged += Apply;
         _ctx.Attached += _ => Apply();
+        _ctx.FeaturesChanged += Apply;
     }
 
     public void Dispose()
@@ -41,7 +42,8 @@ public sealed class DebugValuesController : IDisposable
         var stop = _snapshots.Current;
         var path = _ctx.Active?.Path;
 
-        if (stop?.Top is { Path: { } topPath } top && string.Equals(topPath, path, StringComparison.Ordinal))
+        if (stop?.Top is { Path: { } topPath } top && string.Equals(topPath, path, StringComparison.Ordinal)
+            && _ctx.Settings.Features.InlineDebugValues)
             _inlineValues.Show(_snapshots.InlineValues, top.Line);
         else
             _inlineValues.Clear();

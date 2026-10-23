@@ -17,4 +17,12 @@
         <Setter Property="Padding" Value="6,1" />
         <Setter Property="MinHeight" Value="0" />
     </Style>
+    <!--  compact tree: the same dense rows (the references list under a code lens).  -->
+    <Style Selector="TreeView.compact">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="TreeView.compact TreeViewItem">
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
 </Styles>

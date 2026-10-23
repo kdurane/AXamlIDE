@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AXamlIDE.Models;
 
 namespace AXamlIDE.Services.Lsp;
 
@@ -20,6 +21,8 @@ public sealed record LspWorkspace(string RootPath, string? SolutionPath);
 /// a custom notification before they do anything (Roslyn's solution/open).</param>
 /// <param name="WaitsForProjectInitialization">The status reads "loading solution..." until the server
 /// sends workspace/projectInitializationComplete.</param>
+/// <param name="Settings">Answers the server's workspace/configuration questions, by section name; null (or no
+/// function) leaves the server's default.</param>
 public sealed record LspServerConfig(
     string Id,
     IReadOnlyList<string> LanguageIds,
@@ -27,12 +30,15 @@ public sealed record LspServerConfig(
     string InstallHint,
     Func<LspWorkspace, IReadOnlyList<string>>? BuildArgs = null,
     Func<LspClient, LspWorkspace, Task>? AfterInitialize = null,
-    bool WaitsForProjectInitialization = false);
+    bool WaitsForProjectInitialization = false,
+    Func<string, object?>? Settings = null);
 
 public static class LspServers
 {
     /// <summary>The language servers enabled by default.</summary>
-    public static IReadOnlyList<LspServerConfig> Defaults => [Roslyn];
+    /// <param name="features">The user's current editor settings: some are Roslyn options (inlay hints...).</param>
+    public static IReadOnlyList<LspServerConfig> Defaults(Func<EditorFeatureSettings> features)
+        => [Roslyn with { Settings = section => RoslynSettings.Get(section, features()) }];
 
     // AXSG is temporarily disabled while the in-process completion engine is evaluated.
     private static LspServerConfig Axaml { get; } = new(

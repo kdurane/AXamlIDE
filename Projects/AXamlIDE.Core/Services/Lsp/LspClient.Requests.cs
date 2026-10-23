@@ -67,7 +67,7 @@ public sealed partial class LspClient
         return new LspHover(content, range, isMarkdown);
     }
 
-    public async Task<IReadOnlyList<LspCompletionItem>> CompletionAsync(
+    public async Task<LspCompletionList> CompletionAsync(
         string uri, int line, int character, string? triggerCharacter, CancellationToken ct = default)
     {
         var result = await RequestAsync("textDocument/completion", new
@@ -89,10 +89,65 @@ public sealed partial class LspClient
             JsonValueKind.Object when result.TryGetProperty("items", out var it) => it,
             _ => default
         };
+        var isIncomplete = result.ValueKind == JsonValueKind.Object
+                           && result.TryGetProperty("isIncomplete", out var incomplete)
+                           && incomplete.ValueKind == JsonValueKind.True;
 
-        if (items.ValueKind != JsonValueKind.Array) return [];
+        if (items.ValueKind != JsonValueKind.Array) return new LspCompletionList([], isIncomplete);
 
-        return [.. items.EnumerateArray().Select(ParseCompletionItem)];
+        return new LspCompletionList([.. items.EnumerateArray().Select(ParseCompletionItem)], isIncomplete);
+    }
+
+    /// <summary>
+    /// Fill in a completion item (completionItem/resolve): its documentation, and the edits it makes elsewhere (the
+    /// using for a type from another namespace). The item unchanged if the server can't resolve it.
+    /// </summary>
+    public async Task<LspCompletionItem> ResolveCompletionAsync(LspCompletionItem item, CancellationToken ct = default)
+    {
+        if (!SupportsCompletionResolve || item.Raw is not { } raw)
+            return item;
+        var result = await RequestAsync("completionItem/resolve", raw, ct);
+        return result.ValueKind == JsonValueKind.Object && result.TryGetProperty("label", out _)
+            ? ParseCompletionItem(result)
+            : item;
+    }
+
+    /// <summary>
+    /// The semantic tokens in a range: what each name there is (class, parameter, local...), per
+    /// <see cref="SemanticTokenTypes"/>. The range has to be inside the document (Roslyn refuses a line past its end).
+    /// </summary>
+    public async Task<IReadOnlyList<LspSemanticToken>> SemanticTokensAsync(
+        string uri, LspRange range, CancellationToken ct = default)
+    {
+        var result = await RequestAsync("textDocument/semanticTokens/range", new
+        {
+            textDocument = new { uri },
+            range = ToLspRange(range)
+        }, ct);
+        if (result.ValueKind != JsonValueKind.Object
+            || !result.TryGetProperty("data", out var data)
+            || data.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var numbers = new int[data.GetArrayLength()];
+        var index = 0;
+        foreach (var number in data.EnumerateArray())
+            numbers[index++] = number.GetInt32();
+        return SemanticTokens.Decode(numbers, SemanticTokenTypes);
+    }
+
+    /// <summary>The inlay hints in a range (inside the document, as for <see cref="SemanticTokensAsync"/>).</summary>
+    public async Task<IReadOnlyList<LspInlayHint>> InlayHintsAsync(
+        string uri, LspRange range, CancellationToken ct = default)
+    {
+        var result = await RequestAsync("textDocument/inlayHint", new
+        {
+            textDocument = new { uri },
+            range = ToLspRange(range)
+        }, ct);
+        return result.ValueKind == JsonValueKind.Array
+            ? [.. result.EnumerateArray().Select(ParseInlayHint).OfType<LspInlayHint>()]
+            : [];
     }
 
     public async Task<LspSignatureHelp?> SignatureHelpAsync(

@@ -67,7 +67,11 @@ public static class AppServices
         services.AddSingleton<WorkspaceEditService>();
         services.AddSingleton<DebugSnapshotTracker>();
         services.AddSingleton<EditorServices>();
-        services.AddSingleton(_ => new LspManager(LspServers.Defaults));
+        services.AddSingleton(sp =>
+        {
+            var settings = sp.GetRequiredService<IEditorSettings>();
+            return new LspManager(LspServers.Defaults(() => settings.Features));   // some settings are server options
+        });
         services.AddSingleton<XamlLanguageService>();
         services.AddSingleton<DocumentReloader>();      // reloads or flags those tabs
 

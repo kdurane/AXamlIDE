@@ -25,6 +25,7 @@ public sealed class CompletionController
     private readonly SnippetController _snippets;
 
     private CompletionWindow? _completionWindow;
+    private CompletionWindow? _incompleteWindow;   // the open list, when the server left items out of it
     private int _completionSeq;
 
     public CompletionController(EditorContext ctx, HoverController hover, SnippetController snippets)
@@ -37,6 +38,12 @@ public sealed class CompletionController
     }
 
     public bool IsOpen => _completionWindow is not null;
+
+    /// <summary>
+    /// The open list is incomplete: the server left items out (there were too many, or some were still loading), so
+    /// typing more of the word should ask again (<see cref="ShowCompletionAsync"/> then refills the open list).
+    /// </summary>
+    public bool IsIncomplete => _incompleteWindow is not null && ReferenceEquals(_incompleteWindow, _completionWindow);
 
     public void Close() => _completionWindow?.Close();
 
@@ -107,10 +114,10 @@ public sealed class CompletionController
 
         sync.Flush(); // the server has to see what's on screen
         var loc = doc.Document.GetLocation(caret);
-        IReadOnlyList<LspCompletionItem> items;
+        LspCompletionList list;
         try
         {
-            items = await client.CompletionAsync(doc.Uri, loc.Line - 1, loc.Column - 1, triggerChar);
+            list = await client.CompletionAsync(doc.Uri, loc.Line - 1, loc.Column - 1, triggerChar);
         }
         catch (Exception)
         {
@@ -120,6 +127,7 @@ public sealed class CompletionController
         // Nothing to show, a newer request superseded this one, the tab changed, or the caret went backwards.
         if (seq != _completionSeq || !ReferenceEquals(doc, _ctx.Active) || editor.CaretOffset < caret)
             return;
+        var items = list.Items;
         if (items.Count == 0)
         {
             ShowSnippetsOnly(doc, seq, caret);
@@ -132,19 +140,52 @@ public sealed class CompletionController
             : WordStart(doc.Document, caret);
         start = Math.Min(start, caret);
 
-        var window = new CompletionWindow(editor.TextArea) { StartOffset = start };
-
         var rank = 0;
+        var data = new List<ICompletionData>(items.Count);
         foreach (var item in items.OrderBy(i => i.SortText ?? i.Label, StringComparer.Ordinal))
         {
             var editStart = item.Edit is { } edit
                 ? doc.OffsetOf(edit.Range.StartLine, edit.Range.StartChar)
                 : start;
-            window.CompletionList.CompletionData.Add(new LspCompletionData(item, editStart, priority: -rank++));
+            data.Add(new LspCompletionData(item, editStart, priority: -rank++, client, doc.Path));
         }
+
+        // Asked again because the open list was incomplete: refill it rather than open another (no flicker, and the
+        // selection stays on the item the typing matches).
+        if (IsIncomplete && _completionWindow is { } open && open.StartOffset == start)
+        {
+            Refill(open, data, doc, start);
+            if (!list.IsIncomplete)
+                _incompleteWindow = null;
+            return;
+        }
+
+        var window = new CompletionWindow(editor.TextArea) { StartOffset = start };
+        foreach (var item in data)
+            window.CompletionList.CompletionData.Add(item);
         AddSnippets(window, doc, start);
 
+        // The selected item is resolved (its documentation, the using it adds) while the user looks at it.
+        window.CompletionList.SelectionChanged += (_, _) => (window.CompletionList.SelectedItem as LspCompletionData)?.Resolve();
+
         ShowCompletionWindow(window, doc.Document, start, caret);
+        _incompleteWindow = list.IsIncomplete ? window : null;
+    }
+
+    /// <summary>Swap the open list's items for a new answer, keeping the filter (the word typed so far).</summary>
+    private void Refill(CompletionWindow window, IReadOnlyList<ICompletionData> data, OpenDocument doc, int start)
+    {
+        var completionList = window.CompletionList;
+        completionList.CompletionData.Clear();
+        foreach (var item in data)
+            completionList.CompletionData.Add(item);
+        AddSnippets(window, doc, start);
+
+        // SelectItem does nothing for the text it last filtered by, so clear the filter first.
+        var caret = _ctx.Editor.CaretOffset;
+        completionList.SelectItem(string.Empty);
+        if (caret > start)
+            completionList.SelectItem(doc.Document.GetText(start, caret - start));
     }
 
     /// <summary>The language's snippets go in every list (below the server's items; see SnippetCompletionData).</summary>

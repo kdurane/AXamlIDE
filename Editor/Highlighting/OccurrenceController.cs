@@ -28,12 +28,13 @@ public sealed class OccurrenceController
         ctx.Editor.TextArea.SelectionChanged += (_, _) => Update();
         ctx.TextChanged += _ => Update();
         ctx.Attached += _ => Update(); // also covers the "no tab open" reset
+        ctx.FeaturesChanged += Update;
     }
 
     private void Update()
     {
         var editor = _ctx.Editor;
-        var selectedText = editor.TextArea.Selection.IsEmpty
+        var selectedText = editor.TextArea.Selection.IsEmpty || !_ctx.Settings.Features.HighlightSelectionOccurrences
             ? null
             : editor.SelectedText;
 

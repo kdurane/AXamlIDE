@@ -58,6 +58,14 @@ public sealed class EditorContext(
     /// <summary>Raised on every text change of the active document only.</summary>
     public event Action<OpenDocument>? TextChanged;
 
+    /// <summary>
+    /// A helper was switched on or off in the settings (<c>Settings.Features</c>). Raised by EditorPaneView, which
+    /// watches the settings for the editor (and stops when it closes), so controllers needn't subscribe to them.
+    /// </summary>
+    public event Action? FeaturesChanged;
+
+    public void RaiseFeaturesChanged() => FeaturesChanged?.Invoke();
+
     public void Detach()
     {
         Detaching?.Invoke(Active);

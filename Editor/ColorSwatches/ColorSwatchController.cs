@@ -40,20 +40,24 @@ public sealed class ColorSwatchController
         textView.ElementGenerators.Add(_generator);
 
         ctx.Detaching += _ => ClosePicker();   // before the editor's document (and its undo stack) changes
-        ctx.Attached += document =>
-        {
-            _generator.Find = document?.LanguageId switch
-            {
-                LanguageIds.Axaml => ColorLiterals.FindInXaml,
-                LanguageIds.CSharp => ColorLiterals.FindInCSharp,
-                _ => null
-            };
-            textView.Redraw();
-        };
+        ctx.Attached += _ => ShowSwatches();
+        ctx.FeaturesChanged += ShowSwatches;
 
         popup.PlacementTarget = textView;
         popup.Closed += (_, _) => EndEdit();
         picker.ColorChanged += (_, e) => OnPickerColorChanged(e.NewColor);
+    }
+
+    /// <summary>Swatches for the document's language, unless they're switched off in the settings.</summary>
+    private void ShowSwatches()
+    {
+        _generator.Find = !_ctx.Settings.Features.ColorSwatches ? null : _ctx.Active?.LanguageId switch
+        {
+            LanguageIds.Axaml => ColorLiterals.FindInXaml,
+            LanguageIds.CSharp => ColorLiterals.FindInCSharp,
+            _ => null
+        };
+        _ctx.Editor.TextArea.TextView.Redraw();
     }
 
     private void OpenPicker(ColorSwatch swatch)

@@ -15,6 +15,9 @@ public sealed record EditorSettings
     public bool SolutionExplorerOnRight { get; init; }
     public bool FormatOnSave { get; init; }
 
+    /// <summary>The editor helpers that can be switched off (inlay hints, code lens, auto-closing braces...).</summary>
+    public EditorFeatureSettings Features { get; init; } = new();
+
     /// <summary>The keyboard mapping scheme (Services/Keymaps/&lt;id&gt;.json).</summary>
     public string KeymapId { get; init; } = KeymapLibrary.DefaultId;
 }

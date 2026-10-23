@@ -23,14 +23,11 @@
             Text="Settings" />
 
         <TabControl Grid.Row="1" TabStripPlacement="Left">
+            <!--  The editor: how it looks, and what it does as you type (VS: Text Editor > General)  -->
             <TabItem FontSize="16" Header="Text Editor">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20,12" Spacing="16">
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Text="Appearance" />
-
+                    <StackPanel Margin="20,12" Spacing="10">
+                        <TextBlock Classes="SettingsHeading" Text="Appearance" />
                         <StackPanel Spacing="6">
                             <TextBlock Text="Color theme" />
                             <ComboBox
@@ -63,17 +60,73 @@
 
                         <CheckBox Content="Show line numbers" IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}" />
                         <CheckBox Content="Highlight current line" IsChecked="{Binding HighlightCurrentLine, Mode=TwoWay}" />
-                        <TextBlock FontWeight="SemiBold" Text="Formatting" />
+
+                        <TextBlock Classes="SettingsHeading" Text="Highlighting" />
+                        <CheckBox Content="Semantic highlighting" IsChecked="{Binding SemanticHighlighting, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Colour names by what they are (class, parameter, local...), not only by syntax. C#." />
+                        <CheckBox Content="Highlight other occurrences of the selection" IsChecked="{Binding HighlightSelectionOccurrences, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Wherever the selected text appears in the file." />
+                        <CheckBox Content="Colour swatches" IsChecked="{Binding ColorSwatches, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="A swatch beside colour values; click it to pick a colour." />
+
+                        <TextBlock Classes="SettingsHeading" Text="Typing" />
+                        <CheckBox Content="Automatic brace completion" IsChecked="{Binding AutoCloseBraces, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Typing { adds the matching }." />
+                        <CheckBox Content="Close AXAML tags" IsChecked="{Binding AutoCloseXamlTags, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Typing the &gt; of a start tag adds its end tag." />
+                        <CheckBox Content="Make namespaces file-scoped on ;" IsChecked="{Binding FileScopedNamespaceOnSemicolon, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Typing ; after namespace X removes the namespace's braces and indentation (Ctrl+Z undoes it)." />
+
+                        <TextBlock Classes="SettingsHeading" Text="Formatting" />
                         <CheckBox Content="Format documents on save when supported" IsChecked="{Binding FormatOnSave, Mode=TwoWay}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <!--  What pops up as you type or point (VS: Text Editor > C# > IntelliSense)  -->
+            <TabItem FontSize="16" Header="IntelliSense">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,12" Spacing="10">
+                        <TextBlock Classes="SettingsHeading" Text="IntelliSense" />
+                        <CheckBox Content="Show the completion list while typing" IsChecked="{Binding CompletionWhileTyping, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Off: it opens with Ctrl+Space, or after a character such as . or &lt;." />
+                        <CheckBox Content="Show items from namespaces that aren't imported" IsChecked="{Binding CompletionFromUnimportedNamespaces, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Picking one adds the using. C#." />
+                        <CheckBox Content="Show parameter info while typing" IsChecked="{Binding ParameterInfoWhileTyping, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="On ( and , in a call. Off: Ctrl+Shift+Space shows it." />
+                        <CheckBox Content="Show Quick Info on hover" IsChecked="{Binding QuickInfoOnHover, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="What the name under the pointer is, and its documentation. Errors and warnings under the pointer always show." />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <!--  Text shown in the code that isn't in the file (VS: C# > Advanced > Inline Hints, and CodeLens)  -->
+            <TabItem FontSize="16" Header="Inline Hints">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,12" Spacing="10">
+                        <TextBlock Classes="SettingsHeading" Text="Inline hints (C#)" />
+                        <CheckBox Content="Parameter names" IsChecked="{Binding InlayParameterHints, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Before literal arguments: Process(force: true)." />
+                        <CheckBox Content="Types" IsChecked="{Binding InlayTypeHints, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="The types behind var, lambda parameters and new()." />
+
+                        <TextBlock Classes="SettingsHeading" Text="CodeLens (C#)" />
+                        <CheckBox Content="Show references" IsChecked="{Binding CodeLens, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="&quot;3 references&quot; above declarations; click it for the list." />
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <!--  VS: Debugging > General  -->
+            <TabItem FontSize="16" Header="Debugging">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="20,12" Spacing="10">
+                        <TextBlock Classes="SettingsHeading" Text="While paused" />
+                        <CheckBox Content="Show inline values" IsChecked="{Binding InlineDebugValues, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="name = value at the end of the lines around the current statement." />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
             <TabItem FontSize="16" Header="Environment">
                 <StackPanel Margin="20,12" Spacing="16">
-                    <TextBlock
-                        FontSize="16"
-                        FontWeight="SemiBold"
-                        Text="Window layout" />
+                    <TextBlock Classes="SettingsHeading" Text="Window layout" />
                     <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
                 </StackPanel>
             </TabItem>
@@ -87,10 +140,7 @@
                         DockPanel.Dock="Top"
                         Margin="0,0,0,12"
                         Spacing="16">
-                        <TextBlock
-                            FontSize="16"
-                            FontWeight="SemiBold"
-                            Text="Keymap" />
+                        <TextBlock Classes="SettingsHeading" Text="Keymap" />
                         <StackPanel Spacing="6">
                             <TextBlock Text="Keyboard mapping scheme" />
                             <ComboBox

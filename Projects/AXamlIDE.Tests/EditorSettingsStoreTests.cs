@@ -37,6 +37,29 @@ public sealed class EditorSettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Switched_off_features_load_back()
+    {
+        var store = new EditorSettingsStore(SettingsPath);
+        var settings = new EditorSettings { Features = new EditorFeatureSettings { InlayTypeHints = false, CodeLens = false } };
+
+        store.Save(settings);
+
+        Assert.Equal(settings, new EditorSettingsStore(SettingsPath).Load().Settings);
+    }
+
+    [Fact]
+    public void Features_missing_from_the_file_keep_their_defaults()
+    {
+        Directory.CreateDirectory(_directory);
+        // Written before a feature existed: only one of them is in the file.
+        File.WriteAllText(SettingsPath, """{ "SchemaVersion": 3, "Features": { "CodeLens": false } }""");
+
+        var features = new EditorSettingsStore(SettingsPath).Load().Settings.Features;
+
+        Assert.Equal(new EditorFeatureSettings { CodeLens = false }, features);
+    }
+
+    [Fact]
     public void Invalid_json_gives_defaults_and_a_warning()
     {
         Directory.CreateDirectory(_directory);

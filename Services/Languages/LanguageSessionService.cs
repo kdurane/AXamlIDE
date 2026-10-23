@@ -10,6 +10,7 @@ using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Settings;
 using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.Services.Languages;
@@ -31,11 +32,18 @@ public sealed class LanguageSessionService
     private readonly IMessenger _messenger;
     private readonly Dictionary<OpenDocument, DocumentConnection> _connections = [];
 
-    public LanguageSessionService(DocumentManager documents, LspManager servers, IMessenger messenger)
+    public LanguageSessionService(DocumentManager documents, LspManager servers, IEditorSettings settings, IMessenger messenger)
     {
         _documents = documents;
         _servers = servers;
         _messenger = messenger;
+
+        // Some settings are server options (Roslyn's inlay hints, its completion of unimported types).
+        settings.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(IEditorSettings.Features))
+                _servers.SettingsChanged();
+        };
 
         _documents.Opened += OnDocumentOpened;
         _documents.Closing += OnDocumentClosing;

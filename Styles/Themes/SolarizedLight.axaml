@@ -90,6 +90,8 @@
     <!--  Links in the editor text (URLs). Default: a soft blue on dark themes, so it isn't too saturated.  -->
     <Color x:Key="editorLink.activeForeground">#1A5FB4</Color>   <!-- default -->
     <Color x:Key="editorCodeLens.foreground">#919191</Color>   <!-- default: the "3 references" lines -->
+    <Color x:Key="editorInlayHint.foreground">#969696</Color>   <!-- default: parameter names and types shown in the code -->
+    <Color x:Key="editorInlayHint.background">#1AC4C4C4</Color>   <!-- default -->
 
     <!--  Ours (not VS Code keys): tab.activeBackground mixed a little towards tab.activeForeground.  -->
     <Color x:Key="app.tab.selectedBackground">#E4DECD</Color>

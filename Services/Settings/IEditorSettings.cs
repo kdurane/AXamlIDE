@@ -12,4 +12,7 @@ public interface IEditorSettings : INotifyPropertyChanged
     bool HighlightCurrentLine { get; }
     EditorTheme SelectedTheme { get; }
     bool FormatOnSave { get; }
+
+    /// <summary>The helpers that can be switched off. PropertyChanged names <c>Features</c> when any of them changes.</summary>
+    EditorFeatureSettings Features { get; }
 }

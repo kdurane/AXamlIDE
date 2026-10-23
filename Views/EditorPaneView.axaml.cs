@@ -22,6 +22,7 @@ using AXamlIDE.Editor.Folding;
 using AXamlIDE.Editor.Indentation;
 using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Editor.Hover;
+using AXamlIDE.Editor.InlayHints;
 using AXamlIDE.Editor.Navigation;
 using AXamlIDE.Editor.SignatureHelp;
 using AXamlIDE.Editor.Snippets;
@@ -67,6 +68,8 @@ public partial class EditorPaneView : UserControl,
     private TypingController _typing = null!;
     private HoverController _hover = null!;
     private CodeLensController _codeLens = null!;
+    private SemanticHighlightController _semanticHighlighting = null!;
+    private InlayHintController _inlayHints = null!;
     private ColorSwatchController _colorSwatches = null!;
 
     public EditorPaneView()
@@ -143,7 +146,7 @@ public partial class EditorPaneView : UserControl,
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
         _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
-        _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesList, ReferencesTitle);
+        _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesTree, ReferencesTitle);
         _colorSwatches = new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
         _signatureHelp = new SignatureHelpController(_ctx);
         _snippets = new SnippetController(_ctx, services.Snippets, services.Dialogs);
@@ -159,6 +162,8 @@ public partial class EditorPaneView : UserControl,
 
         _textMate = Editor.InstallTextMate(_grammars);
         _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin);
+        _semanticHighlighting = new SemanticHighlightController(_ctx, _grammars);   // after TextMate: drawn over its colours
+        _inlayHints = new InlayHintController(_ctx);
 
         // Settings are observed here, so nobody has to call ApplyEditorSettings from outside.
         _settings.PropertyChanged += OnSettingsChanged;
@@ -178,6 +183,8 @@ public partial class EditorPaneView : UserControl,
         _folding.Dispose();
         _textMate.Dispose();
         _codeLens.Dispose();
+        _semanticHighlighting.Dispose();
+        _inlayHints.Dispose();
     }
 
     // ------------------------------------------------------------ the one direct input
@@ -292,12 +299,18 @@ public partial class EditorPaneView : UserControl,
     {
         if (e.PropertyName == nameof(IEditorSettings.SelectedTheme))
             ApplyTheme();
+        else if (e.PropertyName == nameof(IEditorSettings.Features))
+            _ctx.RaiseFeaturesChanged();
         else
             ApplyEditorSettings();
     }
 
     private void ApplyTheme()
-        => _textMate.SetTheme(_grammars.LoadTheme(_settings.SelectedTheme));
+    {
+        var theme = _grammars.LoadTheme(_settings.SelectedTheme);
+        _textMate.SetTheme(theme);
+        _semanticHighlighting.SetTheme(theme);
+    }
 
     private void ApplyEditorSettings()
     {

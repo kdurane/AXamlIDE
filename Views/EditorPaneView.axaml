@@ -5,6 +5,7 @@
     xmlns:editing="using:AvaloniaEdit.Editing"
     xmlns:codeLens="using:AXamlIDE.Editor.CodeLens"
     xmlns:highlighting="using:AXamlIDE.Editor.Highlighting"
+    xmlns:models="using:AXamlIDE.Models"
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -142,30 +143,43 @@
                         FontWeight="SemiBold"
                         Margin="8,4,8,6"
                         Name="ReferencesTitle" />
-                    <ListBox
+                    <!--  By file (Editor/CodeLens/CodeLensController.GroupAsync), as VS Code's peek and Rider's usages list  -->
+                    <TreeView
                         Classes="compact"
-                        Background="Transparent"
-                        MaxHeight="320"
+                        MaxHeight="360"
                         MaxWidth="760"
                         MinWidth="420"
-                        Name="ReferencesList">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="codeLens:ReferenceRow">
-                                <Grid ColumnDefinitions="Auto,*">
+                        Name="ReferencesTree">
+                        <TreeView.Styles>
+                            <Style Selector="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+                            </Style>
+                        </TreeView.Styles>
+                        <TreeView.DataTemplates>
+                            <TreeDataTemplate DataType="models:ReferenceGroup" ItemsSource="{Binding Items}">
+                                <DockPanel>
+                                    <Border Classes="CountBadge" DockPanel.Dock="Right">
+                                        <TextBlock Text="{Binding Count}" />
+                                    </Border>
+                                    <TextBlock FontSize="12" TextTrimming="CharacterEllipsis">
+                                        <Run FontWeight="SemiBold" Text="{Binding Name}" />
+                                        <Run Text="  " />
+                                        <Run FontSize="11" Foreground="{DynamicResource CompletionDetailForegroundBrush}" Text="{Binding Folder}" />
+                                    </TextBlock>
+                                </DockPanel>
+                            </TreeDataTemplate>
+                            <DataTemplate DataType="models:ReferenceItem">
+                                <DockPanel>
                                     <TextBlock
-                                        FontSize="11"
-                                        Margin="0,0,16,0"
-                                        Opacity="0.75"
-                                        Text="{Binding Place}" />
-                                    <TextBlock
-                                        FontSize="11"
-                                        Grid.Column="1"
-                                        Text="{Binding Preview}"
-                                        TextTrimming="CharacterEllipsis" />
-                                </Grid>
+                                        Classes="LineNumber"
+                                        DockPanel.Dock="Left"
+                                        Text="{Binding LineNumber}" />
+                                    <!--  The Runs touch: whitespace between them in the XAML would show as spaces in the code  -->
+                                    <TextBlock FontFamily="{Binding #Editor.FontFamily}" FontSize="12" TextTrimming="CharacterEllipsis"><Run Text="{Binding Preview.Before}" /><Run Background="{DynamicResource WordHighlightBrush}" Text="{Binding Preview.Match}" /><Run Text="{Binding Preview.After}" /></TextBlock>
+                                </DockPanel>
                             </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                        </TreeView.DataTemplates>
+                    </TreeView>
                 </DockPanel>
             </Border>
         </Popup>

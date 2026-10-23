@@ -168,7 +168,7 @@ public sealed partial class LspClient
             : null;
     }
 
-    private static LspCompletionItem ParseCompletionItem(JsonElement i)
+    internal static LspCompletionItem ParseCompletionItem(JsonElement i)
     {
         LspTextEdit? edit = null;
         if (i.TryGetProperty("textEdit", out var te) && te.ValueKind == JsonValueKind.Object
@@ -192,7 +192,43 @@ public sealed partial class LspClient
             SortText: Str(i, "sortText"),
             FilterText: Str(i, "filterText"),
             InsertText: Str(i, "insertText"),
-            Edit: edit);
+            Edit: edit,
+            LabelDescription: i.TryGetProperty("labelDetails", out var labelDetails) && labelDetails.ValueKind == JsonValueKind.Object
+                ? Str(labelDetails, "description")
+                : null,
+            AdditionalEdits: i.TryGetProperty("additionalTextEdits", out var additional) && additional.ValueKind == JsonValueKind.Array
+                ? [.. additional.EnumerateArray()
+                    .Where(e => e.TryGetProperty("range", out _) && e.TryGetProperty("newText", out _))
+                    .Select(e => new LspTextEdit(ParseRange(e.GetProperty("range")), Str(e, "newText") ?? ""))]
+                : null,
+            Command: i.TryGetProperty("command", out var command) && command.ValueKind == JsonValueKind.Object ? command : null,
+            // The response is already a clone (see HandleResponse), so this outlives the message.
+            Raw: i);
+    }
+
+    /// <summary>An inlay hint; its label is a string or a list of parts (joined). Null when it has no position or text.</summary>
+    internal static LspInlayHint? ParseInlayHint(JsonElement hint)
+    {
+        if (hint.ValueKind != JsonValueKind.Object
+            || !hint.TryGetProperty("position", out var position)
+            || !hint.TryGetProperty("label", out var label))
+            return null;
+
+        var text = label.ValueKind switch
+        {
+            JsonValueKind.String => label.GetString() ?? "",
+            JsonValueKind.Array => string.Concat(label.EnumerateArray().Select(part => Str(part, "value"))),
+            _ => ""
+        };
+        if (text.Length == 0)
+            return null;
+
+        return new LspInlayHint(
+            position.GetProperty("line").GetInt32(),
+            position.GetProperty("character").GetInt32(),
+            text,
+            hint.TryGetProperty("paddingLeft", out var left) && left.ValueKind == JsonValueKind.True,
+            hint.TryGetProperty("paddingRight", out var right) && right.ValueKind == JsonValueKind.True);
     }
 
     private static string? Str(JsonElement e, string name)

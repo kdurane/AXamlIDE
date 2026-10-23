@@ -1,0 +1,48 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!-- Add controls for the previewer here -->
+        </Border>
+    </Design.PreviewWith>
+
+     <Style Selector="Border#DocumentBar ToggleButton, Border#DocumentBar Button">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="8,2" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+        <Style Selector="Border.DiskBanner">
+            <Setter Property="Background" Value="{DynamicResource AppDocumentBarBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource DiagnosticWarningBrush}" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+            <Setter Property="Padding" Value="8,3" />
+        </Style>
+        <Style Selector="Border.DiskBanner PathIcon">
+            <Setter Property="Foreground" Value="{DynamicResource DiagnosticWarningBrush}" />
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+        </Style>
+        <Style Selector="Border.DiskBanner TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.DiskBanner Button">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+
+    <!--  A count in a pill (a file's number of references, as VS Code's peek shows it).  -->
+    <Style Selector="Border.CountBadge">
+        <Setter Property="Background" Value="{DynamicResource InlayHintBackgroundBrush}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="6,0" />
+        <Setter Property="Margin" Value="12,0,4,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.CountBadge > TextBlock">
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+</Styles>

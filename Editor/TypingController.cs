@@ -49,25 +49,27 @@ public sealed class TypingController
         if (_ctx.Active is not { } doc || string.IsNullOrEmpty(e.Text))
             return;
 
+        var features = _ctx.Settings.Features;
         switch (doc.LanguageId)
         {
-            case LanguageIds.Axaml when e.Text == ">":
+            case LanguageIds.Axaml when e.Text == ">" && features.AutoCloseXamlTags:
                 TryInsertXamlClosingTag(doc.Document);
                 break;
-            case LanguageIds.Axaml when e.Text == "{" && IsInAttributeValue(doc.Document):
+            case LanguageIds.Axaml when e.Text == "{" && features.AutoCloseBraces && IsInAttributeValue(doc.Document):
                 TryInsertClosingBrace(doc.Document);
                 break;
-            case LanguageIds.CSharp when e.Text == "{":
+            case LanguageIds.CSharp when e.Text == "{" && features.AutoCloseBraces:
                 TryInsertClosingBrace(doc.Document);
                 break;
-            case LanguageIds.CSharp when e.Text == ";":
+            case LanguageIds.CSharp when e.Text == ";" && features.FileScopedNamespaceOnSemicolon:
                 TryMakeNamespaceFileScoped(doc.Document);
                 break;
         }
 
         var client = _ctx.Languages.ClientFor(doc);   // null when the document has no server connection
+        // With completion-while-typing off, only the characters that start something new (. < = ...) open it.
         var xamlTrigger = doc.LanguageId == LanguageIds.Axaml
-            && (IsNameStart(e.Text[0]) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
+            && ((features.CompletionWhileTyping && IsNameStart(e.Text[0])) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
 
         if (doc.LanguageId == LanguageIds.Axaml && !_completion.IsOpen
             && (xamlTrigger || client?.CompletionTriggerCharacters.Contains(e.Text) == true))
@@ -75,11 +77,14 @@ public sealed class TypingController
         else if (client is not null
                  && client.CompletionTriggerCharacters.Contains(e.Text))
             _ = _completion.ShowCompletionAsync(doc, triggerChar: e.Text);
-        else if (client is not null
-                 && !_completion.IsOpen && IsNameStart(e.Text[0]))
+        else if (client is not null && ShouldAskForCompletion(e.Text[0]))
             _ = _completion.ShowCompletionAsync(doc, triggerChar: null);
 
         if (client is null)
+            return;
+
+        // Parameter info opened by hand (Ctrl+Shift+Space) still follows the typing; it just doesn't open by itself.
+        if (!features.ParameterInfoWhileTyping && !_signature.IsVisible)
             return;
 
         if (client.SignatureHelpTriggerCharacters.Contains(e.Text))
@@ -109,6 +114,12 @@ public sealed class TypingController
                     }
             }
     }
+
+    /// <summary>A name is being typed: open the list, or ask again when the open one is incomplete (the server left items out).</summary>
+    private bool ShouldAskForCompletion(char typed)
+        => _completion.IsOpen
+            ? _completion.IsIncomplete && IsNameChar(typed)
+            : _ctx.Settings.Features.CompletionWhileTyping && IsNameStart(typed);
 
     private void OnTextEntering(object? sender, TextInputEventArgs e)
     {
