@@ -21,6 +21,7 @@
         <StyleInclude Source="/Styles/EditorStyles.axaml" />
         <StyleInclude Source="/Styles/BorderStyles.axaml" />
         <StyleInclude Source="/Styles/TextBlockStyles.axaml" />
+        <StyleInclude Source="/Styles/TreeViewStyles.axaml" />
     </Application.Styles>
 
     <Application.Resources>
@@ -34,7 +35,8 @@
             <Thickness x:Key="DockDocumentTabItemPadding">10,3,6,3</Thickness>
             <Thickness x:Key="DockToolTabItemPadding">10,3,10,3</Thickness>
             <Thickness x:Key="DockToolTabItemSelectedPadding">10,3,10,3</Thickness>
-            <x:Double x:Key="TreeViewItemIndent">10</x:Double>
+            <x:Double x:Key="TreeViewItemIndent">4</x:Double>
+            <Thickness x:Key="TreeViewItemExpandCollapseChevronMargin">4,0</Thickness>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
