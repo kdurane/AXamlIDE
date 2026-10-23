@@ -1,0 +1,46 @@
+{
+  "about": [
+    "C# colours laid under every editor theme: a theme that sets the same scope wins. They fill gaps.",
+    "Escapes as VS Code's Dark+/Light+; type kinds as Visual Studio 2022's dark theme."
+  ],
+  "dark": [
+    {
+      "scope": "constant.character.escape",
+      "settings": {
+        "foreground": "#D7BA7D"
+      }
+    },
+    {
+      "scope": "entity.name.type.enum",
+      "settings": {
+        "foreground": "#B8D7A3"
+      }
+    },
+    {
+      "scope": "entity.name.type.interface",
+      "settings": {
+        "foreground": "#B8D7A3"
+      }
+    },
+    {
+      "scope": "entity.name.type.parameter",
+      "settings": {
+        "foreground": "#B8D7A3"
+      }
+    },
+    {
+      "scope": "entity.name.type.struct",
+      "settings": {
+        "foreground": "#86C691"
+      }
+    }
+  ],
+  "light": [
+    {
+      "scope": "constant.character.escape",
+      "settings": {
+        "foreground": "#EE0000"
+      }
+    }
+  ]
+}

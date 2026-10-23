@@ -27,8 +27,10 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
     private const string AxamlGrammarUri = "avares://AXamlIDE/Assets/Grammars/axaml.tmLanguage.json";
     private const string AxamlColorsUri = "avares://AXamlIDE/Assets/Grammars/axaml-colors.json";
 
+    private const string CSharpColorsUri = "avares://AXamlIDE/Assets/Grammars/csharp-colors.json";
+
     private IRawGrammar? _axamlGrammar;
-    private readonly Dictionary<string, IRawTheme> _axamlColors = [];
+    private readonly Dictionary<string, IRawTheme> _colorLayers = [];
 
     /// <summary>The grammar scope for a file, or null when there's no grammar for it.</summary>
     public string? ScopeForFile(string? path)
@@ -48,8 +50,8 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
     public IRawTheme LoadTheme(EditorTheme theme)
     {
         var baseTheme = theme.Load(builtIn);
-        var isDark = ThemeVariants.For(theme.Id).InheritVariant == ThemeVariant.Dark;
-        return new LayeredTheme(baseTheme, AxamlColors(isDark ? "dark" : "light"));
+        var variant = ThemeVariants.For(theme.Id).InheritVariant == ThemeVariant.Dark ? "dark" : "light";
+        return new LayeredTheme(baseTheme, under: ReadColorLayer(CSharpColorsUri, variant), over: ReadColorLayer(AxamlColorsUri, variant));
     }
 
     // ---------------------------------------------------------------- IRegistryOptions
@@ -69,29 +71,31 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
         return GrammarReader.ReadGrammarSync(reader);
     }
 
-    /// <summary>The "dark" or "light" rules of axaml-colors.json, read as a theme of tokenColors.</summary>
-    private IRawTheme AxamlColors(string variant)
+    /// <summary>The "dark" or "light" rules of one of our colour files (axaml-colors.json, csharp-colors.json), read as a theme of tokenColors.</summary>
+    private IRawTheme ReadColorLayer(string uri, string variant)
     {
-        if (_axamlColors.TryGetValue(variant, out var cached))
+        var cacheKey = uri + "|" + variant;   // both files have a "dark" and a "light"
+        if (_colorLayers.TryGetValue(cacheKey, out var cached))
             return cached;
 
-        using var stream = AssetLoader.Open(new Uri(AxamlColorsUri));
-        var rules = JsonNode.Parse(stream)?[variant]?.ToJsonString() ?? "[]";
-        var json = $$"""{ "name": "axaml-colors-{{variant}}", "tokenColors": {{rules}} }""";
+        using var stream = AssetLoader.Open(new Uri(uri));
+        var rules = JsonNode.Parse(stream)?[variant]?.ToJsonString() ?? "[]";   // in the file it's just "dark" / "light"
+        var json = $$"""{ "name": "{{cacheKey}}", "tokenColors": {{rules}} }""";
         using var reader = new StreamReader(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)));
-        return _axamlColors[variant] = ThemeReader.ReadThemeSync(reader);
+        return _colorLayers[cacheKey] = ThemeReader.ReadThemeSync(reader);
     }
 
     /// <summary>
     /// A theme plus extra token rules. TextMateSharp reads a theme's "settings" then its "tokenColors", and a later
     /// rule wins over an earlier one for the same scope, so the extra rules go last.
     /// </summary>
-    private sealed class LayeredTheme(IRawTheme theme, IRawTheme extra) : IRawTheme
+    private sealed class LayeredTheme(IRawTheme theme, IRawTheme under, IRawTheme over) : IRawTheme
     {
         public string GetName() => theme.GetName();
         public string GetInclude() => theme.GetInclude();
-        public ICollection<IRawThemeSetting> GetSettings() => theme.GetSettings();
-        public ICollection<IRawThemeSetting> GetTokenColors() => [.. theme.GetTokenColors() ?? [], .. extra.GetTokenColors() ?? []];
+        // First, so any rule of the theme's for the same scope comes later and wins.
+        public ICollection<IRawThemeSetting> GetSettings() => [.. under.GetTokenColors() ?? [], .. theme.GetSettings() ?? []];
+        public ICollection<IRawThemeSetting> GetTokenColors() => [.. theme.GetTokenColors() ?? [], .. over.GetTokenColors() ?? []];
         public ICollection<KeyValuePair<string, object>> GetGuiColors() => theme.GetGuiColors();
     }
 }

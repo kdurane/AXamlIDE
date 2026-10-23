@@ -57,8 +57,11 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
     partial void OnSelectedItemChanged(DocumentOutlineItem? value)
     {
         if (value is not null)
-            _messenger.Send(new NavigateToOutlineItemMessage(value));
+            NavigateTo(value);
     }
+
+    /// <summary>Go to an entry (also when it's picked again while already selected; see OutlineView).</summary>
+    public void NavigateTo(DocumentOutlineItem item) => _messenger.Send(new NavigateToOutlineItemMessage(item));
 
     // ------------------------------------------------------------ triggers
 

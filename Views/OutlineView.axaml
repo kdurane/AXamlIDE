@@ -8,6 +8,7 @@
 
     <!--  Types and members of the selected tab. One instance, moved into the selected tab's bar by DockViewCache.  -->
     <ComboBox
+        Name="Combo"
         DisplayMemberBinding="{Binding DisplayName}"
         IsTextSearchEnabled="True"
         ItemsSource="{Binding Items}"
