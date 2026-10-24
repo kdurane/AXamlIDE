@@ -134,6 +134,7 @@ public partial class DocumentView : UserControl
         SplitButton.IsChecked = mode == PreviewMode.Split;
         DesignButton.IsChecked = mode == PreviewMode.Design;
         SplitDirectionButton.Classes.Set("stacked", stacked);
+        SplitDirectionButton.Classes.Set("nonstacked", !stacked);
         ToolTip.SetTip(SplitDirectionButton, stacked ? "Show code and preview side by side" : "Show code and preview stacked");
         SwapSidesButton.IsEnabled = mode == PreviewMode.Split;
         ToolTip.SetTip(SwapSidesButton, stacked

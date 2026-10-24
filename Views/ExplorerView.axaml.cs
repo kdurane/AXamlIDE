@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
@@ -178,7 +179,7 @@ public partial class ExplorerView : UserControl
     }
 
     // Uses the clipboard of whichever window this panel is in.
-    private async System.Threading.Tasks.Task CopyPathAsync(ProjectTreeNode node)
+    private async Task CopyPathAsync(ProjectTreeNode node)
     {
         try
         {

@@ -1,4 +1,4 @@
-<!--
+﻿<!--
 App-wide button looks, picked with a class (Classes="icon"). Colours come from Styles/ThemeResources.axaml.
 -->
 <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -100,5 +100,11 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
     </Style>
     <Style Selector="Button.play > PathIcon">
         <Setter Property="Data" Value="{DynamicResource Icon.Play}" />
+    </Style>
+    <Style Selector="Button.stacked > PathIcon">
+        <Setter Property="Data" Value="{DynamicResource Icon.ArrowUpDown}" />
+    </Style>
+    <Style Selector="Button.nonstacked > PathIcon">
+        <Setter Property="Data" Value="{DynamicResource Icon.ArrowLeftRight}" />
     </Style>
 </Styles>
