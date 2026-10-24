@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using AXamlIDE.Models;
 using Dock.Model.Mvvm.Controls;
 
 namespace AXamlIDE.ViewModels;
@@ -16,4 +18,6 @@ public sealed class ToolDockable : Tool
         CanClose = false;
         CanPin = false;
     }
+
+    public IReadOnlyList<ToolMenuOption> Options { get; init; } = [];
 }
