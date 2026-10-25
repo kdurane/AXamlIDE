@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using AXamlIDE.Models;
 using AXamlIDE.ViewModels;
+using RemoteInput = Avalonia.Remote.Protocol.Input;
 
 namespace AXamlIDE.Views;
 
@@ -52,6 +55,30 @@ public partial class PreviewPaneView : UserControl
         PreviewThemeComboBox.SelectionChanged += OnPreviewThemeSelectionChanged;
         PreviewViewport.SizeChanged += OnPreviewViewportSizeChanged;
 
+        PreviewImage.PointerMoved += (_, e) => SendPointer(e, new RemoteInput.PointerMovedEventMessage());
+        PreviewImage.PointerPressed += (_, e) => SendPointer(e, new RemoteInput.PointerPressedEventMessage
+        { Button = ToRemoteButton(e.GetCurrentPoint(PreviewImage).Properties.PointerUpdateKind) });
+        PreviewImage.PointerReleased += (_, e) => SendPointer(e, new RemoteInput.PointerReleasedEventMessage
+        { Button = ToRemoteButton(e.InitialPressMouseButton) });
+        PreviewImage.PointerExited += (_, _) =>
+        _viewModel?.SendInputAsync(new RemoteInput.PointerMovedEventMessage { X = -1, Y = -1 });
+
+        PreviewImage.PointerWheelChanged += (_, e) =>
+        {
+            if (e.KeyModifiers == KeyModifiers.Control || _viewModel is null || PreviewImage.Source is null)
+                return;   // zoom: left to OnPointerWheelChanged on the viewport
+            var p = ToPagePoint(e);
+            _ = _viewModel.SendInputAsync(new RemoteInput.ScrollEventMessage
+            {
+                X = p.X,
+                Y = p.Y,
+                DeltaX = e.Delta.X,
+                DeltaY = e.Delta.Y,
+                Modifiers = ToRemoteModifiers(e.KeyModifiers, e.GetCurrentPoint(PreviewImage).Properties),
+            });
+            e.Handled = true;   // so the outer ScrollViewer doesn't move the picture too
+        };
+
         // Ctrl+wheel zooms the preview. handledEventsToo: the ScrollViewer marks wheel
         // events handled before they bubble up to the viewport.
         PreviewViewport.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged,
@@ -59,6 +86,63 @@ public partial class PreviewPaneView : UserControl
 
         DataContextChanged += OnDataContextChanged;
         DetachedFromVisualTree += (_, _) => _previewFitTimer.Stop();
+    }
+
+    private static RemoteInput.MouseButton ToRemoteButton(PointerUpdateKind kind) => kind switch
+    {
+        PointerUpdateKind.LeftButtonPressed => RemoteInput.MouseButton.Left,
+        PointerUpdateKind.RightButtonPressed => RemoteInput.MouseButton.Right,
+        PointerUpdateKind.MiddleButtonPressed => RemoteInput.MouseButton.Middle,
+        _ => RemoteInput.MouseButton.None,
+    };
+
+    private static RemoteInput.MouseButton ToRemoteButton(MouseButton button) => button switch
+    {
+        MouseButton.Left => RemoteInput.MouseButton.Left,
+        MouseButton.Right => RemoteInput.MouseButton.Right,
+        MouseButton.Middle => RemoteInput.MouseButton.Middle,
+        _ => RemoteInput.MouseButton.None,
+    };
+
+
+    private static RemoteInput.InputModifiers[]? ToRemoteModifiers(KeyModifiers keys, PointerPointProperties props)
+    {
+        var result = new List<RemoteInput.InputModifiers>();
+
+        if (keys.HasFlag(KeyModifiers.Alt))
+            result.Add(RemoteInput.InputModifiers.Alt);
+        if (keys.HasFlag(KeyModifiers.Control))
+            result.Add(RemoteInput.InputModifiers.Control);
+        if (keys.HasFlag(KeyModifiers.Shift))
+            result.Add(RemoteInput.InputModifiers.Shift);
+        if (keys.HasFlag(KeyModifiers.Meta))
+            result.Add(RemoteInput.InputModifiers.Windows);
+        if (props.IsLeftButtonPressed)
+            result.Add(RemoteInput.InputModifiers.LeftMouseButton);
+        if (props.IsRightButtonPressed)
+            result.Add(RemoteInput.InputModifiers.RightMouseButton);
+        if (props.IsMiddleButtonPressed)
+            result.Add(RemoteInput.InputModifiers.MiddleMouseButton);
+
+        return [.. result];
+    }
+
+    private void SendPointer(PointerEventArgs e, RemoteInput.PointerEventMessageBase message)
+    {
+        if (_viewModel is null || PreviewImage.Source is null)
+            return;
+        var p = ToPagePoint(e);
+        message.X = p.X;
+        message.Y = p.Y;
+        message.Modifiers = ToRemoteModifiers(e.KeyModifiers, e.GetCurrentPoint(PreviewImage).Properties);
+        _ = _viewModel.SendInputAsync(message);
+    }
+
+    private Point ToPagePoint(PointerEventArgs e)
+    {
+        var p = e.GetPosition(PreviewImage);
+        var zoom = _viewModel!.Scaling / GetPreviewRenderScaling();
+        return new Point(p.X / zoom, p.Y / zoom);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)

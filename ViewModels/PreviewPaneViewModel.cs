@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Remote.Protocol.Input;
 using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using AXamlIDE.Messages;
@@ -55,6 +56,8 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     private string _message = "Starting Avalonia preview...";
     private bool _isMessageVisible = true;
     private string _selectedTheme = "No theme";
+
+    public Task SendInputAsync(InputEventMessageBase message) => _process.SendInputAsync(message);
 
     public PreviewPaneViewModel(OpenDocument document, XamlLanguageService xaml, IMessenger messenger)
     {

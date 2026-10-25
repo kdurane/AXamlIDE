@@ -6,9 +6,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia;
 using Avalonia.Remote.Protocol;
 using Avalonia.Remote.Protocol.Designer;
+using Avalonia.Remote.Protocol.Input;
 using Avalonia.Remote.Protocol.Viewport;
 using AXamlIDE.Models;
 using SkiaSharp;
@@ -124,6 +124,14 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         });
     }
 
+    /// <summary>Mouse, wheel or keyboard input for the previewed page; dropped while the host isn't connected.</summary>
+    public async Task SendInputAsync(InputEventMessageBase message)
+    {
+        if (_connection is { } connection)
+            await connection.Send(message);
+    }
+
+
     public async Task SetScalingAsync(double scaling)
     {
         if (!double.IsFinite(scaling) || scaling <= 0)
@@ -198,8 +206,8 @@ public sealed class AvaloniaPreviewProcess : IDisposable
         {
             Formats =
             [
-                Avalonia.Remote.Protocol.Viewport.PixelFormat.Bgra8888,
-                          Avalonia.Remote.Protocol.Viewport.PixelFormat.Rgba8888
+                PixelFormat.Bgra8888,
+                PixelFormat.Rgba8888
             ]
         });
         await connection.Send(new ClientRenderInfoMessage
@@ -254,8 +262,8 @@ public sealed class AvaloniaPreviewProcess : IDisposable
 
         var colorType = frame.Format switch
         {
-            Avalonia.Remote.Protocol.Viewport.PixelFormat.Bgra8888 => SKColorType.Bgra8888,
-            Avalonia.Remote.Protocol.Viewport.PixelFormat.Rgba8888 => SKColorType.Rgba8888,
+            PixelFormat.Bgra8888 => SKColorType.Bgra8888,
+            PixelFormat.Rgba8888 => SKColorType.Rgba8888,
             _ => throw new NotSupportedException($"Unsupported preview pixel format '{frame.Format}'.")
         };
         return new RawImageData(frame.Data, frame.Width, frame.Height, colorType, SKAlphaType.Unpremul, frame.Stride);
