@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -18,8 +19,8 @@ namespace AXamlIDE.Services.Xaml;
 public sealed class XamlCompletionService
 {
     private sealed record MetadataEntry(string AssemblyPath, DateTime AssemblyLastWriteUtc, string? AssetsPath, DateTime AssetsLastWriteUtc, Task<MetadataBundle> Metadata);
-    private sealed record MetadataBundle(Metadata Metadata, IReadOnlyDictionary<string, string> Documentation, IReadOnlyList<string> AssemblyPaths);
-    public sealed record NavigationTarget(string AssemblyPath, string TypeFullName);
+    private sealed record MetadataBundle(Metadata Metadata, IReadOnlyDictionary<string, string> Documentation, IReadOnlyList<string> AssemblyPaths, IReadOnlyDictionary<string, string> DocumentationFiles);
+    public sealed record NavigationTarget(string AssemblyPath, string TypeFullName, string? DocumentationPath);
 
     /// <summary>
     /// The view-model property a binding path segment names (the caret on "StartupProjects" in
@@ -247,7 +248,7 @@ public sealed class XamlCompletionService
             return null;
         var assemblyPath = bundle.AssemblyPaths.FirstOrDefault(path =>
             string.Equals(Path.GetFileNameWithoutExtension(path), assembly, StringComparison.OrdinalIgnoreCase));
-        return assemblyPath is null ? null : new NavigationTarget(assemblyPath, type.FullName);
+        return assemblyPath is null ? null : new NavigationTarget(assemblyPath, type.FullName, bundle.DocumentationFiles.GetValueOrDefault(assembly));
     }
 
     public async Task<NavigationTarget?> GetNavigationTargetAsync(string projectPath, string assemblyName, string text, int caretOffset, string? outputPath = null, string? assetsPath = null)
@@ -279,7 +280,7 @@ public sealed class XamlCompletionService
                     Path.GetFileNameWithoutExtension(path),
                     definingAssemblyName,
                     StringComparison.OrdinalIgnoreCase));
-            return assemblyPath is null ? null : new NavigationTarget(assemblyPath, type.FullName);
+            return assemblyPath is null ? null : new NavigationTarget(assemblyPath, type.FullName, bundle.DocumentationFiles.GetValueOrDefault(definingAssemblyName));
         }
     }
 
@@ -343,10 +344,8 @@ public sealed class XamlCompletionService
                 var assemblies = provider.GetAssemblies().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
                 var metadata = _reader.GetForTargetAssembly(new StaticAssemblyProvider(assemblies))
                     ?? throw new InvalidOperationException($"Could not read XAML completion metadata from '{assemblyPath}'.");
-                return new MetadataBundle(
-                    metadata,
-                    ReadDocumentation(assemblies, projectAssetsPath: assetsPath),
-                    assemblies);
+                var (summaries, documentationFiles) = ReadDocumentation(assemblies, projectAssetsPath: assetsPath);
+                return new MetadataBundle(metadata, summaries, assemblies, documentationFiles);
             }));
 
     private static string FindBuiltAssembly(string projectPath, string assemblyName, string? outputPath)
@@ -380,9 +379,11 @@ public sealed class XamlCompletionService
     private static string FormatHover(string signature, string? summary)
         => string.IsNullOrWhiteSpace(summary) ? signature : $"{signature}{Environment.NewLine}{summary}";
 
-    private static IReadOnlyDictionary<string, string> ReadDocumentation(IEnumerable<string> assemblies, string? projectAssetsPath)
+    private static (IReadOnlyDictionary<string, string> Summaries, IReadOnlyDictionary<string, string> Files)
+    ReadDocumentation(IEnumerable<string> assemblies, string? projectAssetsPath)
     {
         var summaries = new Dictionary<string, string>(StringComparer.Ordinal);
+        var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var assemblyPath in assemblies)
         {
             var xmlPath = Path.ChangeExtension(assemblyPath, ".xml");
@@ -390,9 +391,11 @@ public sealed class XamlCompletionService
                 continue;
 
             LoadDocumentationFile(xmlPath, summaries);
+            files[Path.GetFileNameWithoutExtension(xmlPath)] = xmlPath;
         }
 
-        if (string.IsNullOrWhiteSpace(projectAssetsPath) || !File.Exists(projectAssetsPath)) return summaries;
+
+        if (string.IsNullOrWhiteSpace(projectAssetsPath) || !File.Exists(projectAssetsPath)) return (summaries, files);
         {
             try
             {
@@ -421,7 +424,10 @@ public sealed class XamlCompletionService
                                 var xmlPath = Path.ChangeExtension(
                                     Path.Combine(packageFolder, packagePath, asset.Name), ".xml");
                                 if (File.Exists(xmlPath))
+                                {
                                     LoadDocumentationFile(xmlPath, summaries);
+                                    files[Path.GetFileNameWithoutExtension(xmlPath)] = xmlPath;
+                                }
                             }
                         }
                     }
@@ -429,12 +435,12 @@ public sealed class XamlCompletionService
             }
             catch (Exception ex) when (ex is IOException or XmlException or JsonException)
             {
-                System.Diagnostics.Debug.WriteLine(
+                Debug.WriteLine(
                     $"[AXAML hover] Could not resolve XML documentation from '{projectAssetsPath}': {ex.Message}");
             }
         }
 
-        return summaries;
+        return (summaries, files);
     }
 
     private static void LoadDocumentationFile(string xmlPath, IDictionary<string, string> summaries)
@@ -453,7 +459,7 @@ public sealed class XamlCompletionService
         }
         catch (Exception ex) when (ex is IOException or XmlException)
         {
-            System.Diagnostics.Debug.WriteLine($"[AXAML hover] Could not read XML documentation '{xmlPath}': {ex.Message}");
+            Debug.WriteLine($"[AXAML hover] Could not read XML documentation '{xmlPath}': {ex.Message}");
         }
     }
 

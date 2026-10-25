@@ -69,14 +69,14 @@ public sealed class XamlLanguageService
 
     /// <summary>Decompiled source of a compiled type (for a binding whose view model isn't in the workspace).</summary>
     public async Task<DecompiledSource?> DecompileAsync(XamlCompletionService.NavigationTarget target)
-        => await _xamlDecompilation.DecompileTypeAsync(target.AssemblyPath, target.TypeFullName);
+        => await _xamlDecompilation.DecompileTypeAsync(target.AssemblyPath, target.TypeFullName, target.DocumentationPath);
 
     public async Task<DecompiledSource?> DecompileTypeAsync(string documentPath, string text, int offset)
     {
         var target = await GetNavigationTargetAsync(documentPath, text, offset);
         return target is null
             ? null
-            : await _xamlDecompilation.DecompileTypeAsync(target.AssemblyPath, target.TypeFullName);
+            : await _xamlDecompilation.DecompileTypeAsync(target.AssemblyPath, target.TypeFullName, target.DocumentationPath);
     }
 
     public Task<XamlPreviewTarget> GetPreviewTargetAsync(string documentPath)
