@@ -11,3 +11,8 @@ public sealed record StatusMessage(string Text);
 public sealed record ShowToolTabMessage(string PanelId);
 /// <summary>Files were created outside the explorer (e.g. by a code action); the explorer shows them.</summary>
 public sealed record FilesCreatedMessage(IReadOnlyList<string> Paths);
+
+/// <summary>A build (or rebuild/clean) is starting; previews pause until it finishes.</summary>
+public sealed record BuildStartedMessage;
+/// <summary>A build finished; <paramref name="Succeeded"/> is false if it failed or threw.</summary>
+public sealed record BuildFinishedMessage(bool Succeeded);

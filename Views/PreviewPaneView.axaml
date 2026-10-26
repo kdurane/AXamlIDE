@@ -80,7 +80,7 @@
                 Padding="12"
                 VerticalAlignment="Center">
                 <TextBlock
-                    Foreground="White"
+                    Foreground="{DynamicResource ThemeForegroundBrush}"
                     Text="{Binding Message}"
                     TextWrapping="Wrap" />
             </Border>

@@ -56,6 +56,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     private string _message = "Starting Avalonia preview...";
     private bool _isMessageVisible = true;
     private string _selectedTheme = "No theme";
+    private bool _isPausedForBuild;
 
     public Task SendInputAsync(InputEventMessageBase message) => _process.SendInputAsync(message);
 
@@ -134,6 +135,27 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>A build started: keep showing the last frame, but stop sending updates until it finishes.</summary>
+    public void PauseForBuild()
+    {
+        if (_isDisposed)
+            return;
+        _isPausedForBuild = true;
+        Message = "Preview paused while building...";
+        IsMessageVisible = true;
+    }
+
+    /// <summary>The build finished: catch up. A new build of the dll restarts the host (see UpdatePreviewAsync).</summary>
+    public void ResumeAfterBuild()
+    {
+        if (_isDisposed)
+            return;
+        _isPausedForBuild = false;
+        IsMessageVisible = CurrentFrame is null;
+        _ = UpdatePreviewAsync();
+    }
+
+
     /// <summary>The tab closed (or the app is exiting): its designer host goes with it.</summary>
     public void Dispose()
     {
@@ -168,7 +190,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
     /// </summary>
     private async Task UpdatePreviewAsync()
     {
-        if (_isDisposed)
+        if (_isDisposed || _isPausedForBuild)
             return;
         var version = ++_requestVersion;
         bool IsStale() => version != _requestVersion || _isDisposed;
@@ -180,8 +202,8 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
                 return;
 
             var xaml = GetPreviewXaml(Document.Document.Text);
-            if (_process.IsReady && xaml == _sentXaml)
-                return;   // the host already shows this text
+            if (_process.IsReady && xaml == _sentXaml && _target?.IsCurrent == true)
+                return;   // the host already shows this text, from the current build
 
             Message = "Starting Avalonia preview...";
             IsMessageVisible = CurrentFrame is null;
@@ -299,7 +321,7 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
             return;   // a late frame from a closed tab's host
 
         RaiseFrameChanged(frame);
-        IsMessageVisible = frame is null;
+        IsMessageVisible = frame is null || _isPausedForBuild;
         if (frame is null && string.IsNullOrEmpty(Message))
             Message = "Waiting for preview frame...";
     }

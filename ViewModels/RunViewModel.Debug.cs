@@ -29,8 +29,8 @@ public partial class RunViewModel
 
     /// <summary>Paused at a breakpoint or step: Continue and the Step commands are only available then.</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(ViewModels.RunViewModel.ContinueDebuggingCommand), nameof(ViewModels.RunViewModel.StepOverCommand),
-        nameof(ViewModels.RunViewModel.StepIntoCommand), nameof(ViewModels.RunViewModel.StepOutCommand), nameof(ViewModels.RunViewModel.PauseDebuggingCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ContinueDebuggingCommand), nameof(StepOverCommand),
+        nameof(StepIntoCommand), nameof(StepOutCommand), nameof(PauseDebuggingCommand))]
     public partial bool IsDebugStopped { get; set; }
 
     /// <summary>What the debugger is doing ("Paused (breakpoint).", "Stepping..."); shown in the status bar.</summary>
@@ -87,7 +87,8 @@ public partial class RunViewModel
         BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration}) before debugging");
         try
         {
-            var buildExitCode = await _projectRunner.BuildAsync(projectPath, configuration);
+            var buildExitCode = await BuildWithNoticeAsync(() => _projectRunner.BuildAsync(projectPath, configuration));
+
             if (buildExitCode != 0)
             {
                 AppendBuildOutput($"Debugging cancelled because the build failed with exit code {buildExitCode}.");

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Xaml;
@@ -21,9 +22,24 @@ public sealed class PreviewSessions : IDisposable
     public PreviewSessions(XamlLanguageService xaml, DocumentManager documents, IMessenger messenger)
     {
         _xaml = xaml;
+        messenger.Register<PreviewSessions, BuildStartedMessage>(this, (sessions, _) => sessions.OnBuildStarted());
+        messenger.Register<PreviewSessions, BuildFinishedMessage>(this, (sessions, _) => sessions.OnBuildFinished());
         _messenger = messenger;
         documents.Closing += OnDocumentClosing;
     }
+
+    private void OnBuildStarted()
+    {
+        foreach (var preview in _previews.Values)
+            preview.PauseForBuild();
+    }
+
+    private void OnBuildFinished()
+    {
+        foreach (var preview in _previews.Values)
+            preview.ResumeAfterBuild();
+    }
+
 
     /// <summary>The preview of an AXAML document, made (and its host started) the first time it's asked for.</summary>
     public PreviewPaneViewModel For(OpenDocument document)
@@ -41,6 +57,7 @@ public sealed class PreviewSessions : IDisposable
         foreach (var preview in _previews.Values)
             preview.Dispose();
         _previews.Clear();
+        _messenger.UnregisterAll(this);
     }
 
     /// <summary>A tab is closing: its designer host goes with it.</summary>

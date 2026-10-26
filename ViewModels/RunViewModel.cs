@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Messages;
@@ -128,11 +127,13 @@ public partial class RunViewModel : ObservableObject, IDisposable
             BuildKind.Clean => ("Cleaning", "Clean"),
             _ => ("Building", "Build")
         };
+
+        _messenger.Send(new BuildStartedMessage());
         BeginBuildOutput($"{doing} {Path.GetFileName(path)} ({configuration})");
         IsBusy = true;
         try
         {
-            var exitCode = await (kind switch
+            var exitCode = await BuildWithNoticeAsync(() => kind switch
             {
                 BuildKind.Rebuild => _projectRunner.RebuildAsync(path, configuration),
                 BuildKind.Clean => _projectRunner.CleanAsync(path, configuration),
@@ -149,6 +150,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
         finally
         {
             IsBusy = false;
+            _messenger.Send(new BuildFinishedMessage(true));
         }
     }
 
@@ -166,6 +168,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
         var configuration = Configuration;
         BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration}) before running");
         IsBusy = true;
+
         try
         {
             var buildExitCode = await _projectRunner.BuildAsync(projectPath, configuration);
@@ -193,6 +196,23 @@ public partial class RunViewModel : ObservableObject, IDisposable
             IsRunning = false;
             _runStopRequested = false;
             IsBusy = false;
+        }
+    }
+
+
+    /// <summary>Runs a build, telling the rest of the app (the previews) when it starts and finishes.</summary>
+    private async Task<int> BuildWithNoticeAsync(Func<Task<int>> build)
+    {
+        _messenger.Send(new BuildStartedMessage());
+        var exitCode = -1;
+        try
+        {
+            exitCode = await build();
+            return exitCode;
+        }
+        finally
+        {
+            _messenger.Send(new BuildFinishedMessage(exitCode == 0));
         }
     }
 
