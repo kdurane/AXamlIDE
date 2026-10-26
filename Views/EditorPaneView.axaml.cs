@@ -59,12 +59,14 @@ public partial class EditorPaneView : UserControl,
     private EditorServices _services = null!;
     private EditorGrammars _grammars = null!;
     private readonly DiagnosticRenderer _diagnosticRenderer = new();
+    private readonly CurrentLineRenderer _currentLineRenderer = new();
     private BreakpointMargin? _breakpointMargin;
     private TextMateController _textMateController = null!;
     private FoldingController _folding = null!;
     private IndentationController _indentation = null!;
     private WhitespaceSelectionController _whitespaceSelection = null!;
     private OccurrenceController _occurrences = null!;
+    private SelectionRenderer _selectionRenderer = null!;
     private TypingController _typing = null!;
     private HoverController _hover = null!;
     private CodeLensController _codeLens = null!;
@@ -106,8 +108,14 @@ public partial class EditorPaneView : UserControl,
         _ctx = new EditorContext(Editor, services.Settings, services.Xaml, services.Documents, services.Languages, services.Messenger);
 
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineRenderer);
         _occurrences = new OccurrenceController(_ctx);
         OverviewRuler.Attach(_ctx, _occurrences);
+
+        // Our own selection drawing (not over code lenses); added after the occurrences so it's drawn over them.
+        _selectionRenderer = new SelectionRenderer(Editor.TextArea);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_selectionRenderer);
+        Editor.TextArea.SelectionBrush = Brushes.Transparent;   // AvaloniaEdit's own selection layer draws nothing
 
         Editor.TextArea.Caret.PositionChanged += (_, _) =>
         {
@@ -162,7 +170,7 @@ public partial class EditorPaneView : UserControl,
         _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);
-        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin);
+        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin, _selectionRenderer, _currentLineRenderer);
         _semanticHighlighting = new SemanticHighlightController(_ctx, _grammars);   // after TextMate: drawn over its colours
         _inlayHints = new InlayHintController(_ctx);
 
@@ -318,7 +326,9 @@ public partial class EditorPaneView : UserControl,
         Editor.FontFamily = new FontFamily(_settings.EditorFontFamily);
         Editor.FontSize = _settings.EditorFontSize;
         Editor.ShowLineNumbers = _settings.ShowLineNumbers;
-        Editor.Options.HighlightCurrentLine = _settings.HighlightCurrentLine;
+        Editor.Options.HighlightCurrentLine = false;   // AvaloniaEdit's own; ours (CurrentLineRenderer) skips code lenses
+        _currentLineRenderer.IsEnabled = _settings.HighlightCurrentLine;
+        Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Background);   // so toggling the setting shows at once
     }
 
     /// <summary>The active document's diagnostics changed: redraw squiggles, lightbulbs and the overview ruler.</summary>

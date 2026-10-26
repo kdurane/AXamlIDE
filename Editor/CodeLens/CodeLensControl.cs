@@ -43,6 +43,9 @@ internal sealed class CodeLensControl : Control, ICustomHitTest
 
     public CodeLensItem Item { get; }
 
+    /// <summary>The band above the code this lens is drawn in.</summary>
+    public double LensHeight => _lensHeight;
+
     /// <summary>Where the text is, for placing the references list under it.</summary>
     public Rect TextBounds => new(0, 0, _text.Width, _lensHeight);
 

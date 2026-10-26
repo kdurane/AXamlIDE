@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -20,17 +19,23 @@ public sealed class TextMateController
     private readonly TextMate.Installation _textMate;
     private readonly EditorGrammars _grammars;
     private readonly BreakpointMargin? _breakpointMargin;
+    private readonly SelectionRenderer _selection;
+    private readonly CurrentLineRenderer _currentLine;
 
     public TextMateController(
         EditorContext ctx,
         TextMate.Installation textMate,
         EditorGrammars grammars,
-        BreakpointMargin? breakpointMargin)
+        BreakpointMargin? breakpointMargin,
+        SelectionRenderer selection,
+        CurrentLineRenderer currentLine)
     {
         _ctx = ctx;
         _textMate = textMate;
         _grammars = grammars;
         _breakpointMargin = breakpointMargin;
+        _selection = selection;
+        _currentLine = currentLine;
 
         _textMate.AppliedTheme += OnAppliedTheme;
     }
@@ -50,27 +55,26 @@ public sealed class TextMateController
         ApplyBrushAction(e, "editor.background", brush => editor.Background = brush);
         ApplyBrushAction(e, "editor.foreground", brush => editor.Foreground = brush);
 
-        if (!ApplyBrushAction(e, "editor.selectionBackground",
-                brush => editor.TextArea.SelectionBrush = brush))
+        if (!ApplyBrushAction(e, "editor.selectionBackground", brush => _selection.Brush = brush))
         {
             if (Application.Current!.TryGetResource("TextAreaSelectionBrush", out var resourceObject))
             {
                 if (resourceObject is IBrush brush)
                 {
-                    editor.TextArea.SelectionBrush = brush;
+                    _selection.Brush = brush;
                 }
             }
         }
 
         if (!ApplyBrushAction(e, "editor.lineHighlightBackground",
-                brush =>
-                {
-                    editor.TextArea.TextView.CurrentLineBackground = brush;
-                    editor.TextArea.TextView.CurrentLineBorder = new Pen(brush);
-                    // VS Code has no current-line border; use the same colour so it doesn't show.
-                }))
+         brush =>
+         {
+             _currentLine.Background = brush;
+             _currentLine.Border = new Pen(brush);
+             // VS Code has no current-line border; use the same colour so it doesn't show.
+         }))
         {
-            editor.TextArea.TextView.SetDefaultHighlightLineColors();
+            _currentLine.SetDefaultColors();
         }
 
         // TODO: highlight the current line number in the margin too.
@@ -82,8 +86,7 @@ public sealed class TextMateController
 
         if (!ApplyBrushAction(e, "sideBar.background", brush =>
             {
-                if (_breakpointMargin is not null)
-                    _breakpointMargin.BackgroundBrush = brush;
+                _breakpointMargin?.BackgroundBrush = brush;
             }))
         {
             _breakpointMargin?.SetDefaultBackgroundBrush();

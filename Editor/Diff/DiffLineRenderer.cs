@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Editor.CodeLens;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Views;
 
@@ -29,8 +30,9 @@ public sealed class DiffLineRenderer(bool isLeftSide) : IBackgroundRenderer
             var index = line.FirstDocumentLine.LineNumber - 1;
             if (index >= Lines.Count || BrushFor(Lines[index].Kind) is not { } brush)
                 continue;
-            var top = line.VisualTop - textView.VerticalOffset;
-            drawingContext.FillRectangle(brush, new Rect(0, top, textView.Bounds.Width, line.Height));
+            var lens = CodeLensSpace.Above(line);
+            var top = line.VisualTop - textView.VerticalOffset + lens;
+            drawingContext.FillRectangle(brush, new Rect(0, top, textView.Bounds.Width, line.Height - lens));
         }
     }
 

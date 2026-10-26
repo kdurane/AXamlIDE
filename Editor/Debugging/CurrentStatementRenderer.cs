@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Editor.CodeLens;
 using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Debugging;
@@ -32,8 +33,10 @@ public sealed class CurrentStatementRenderer : IBackgroundRenderer
         {
             if (visualLine.FirstDocumentLine.LineNumber > line.LineNumber || visualLine.LastDocumentLine.LineNumber < line.LineNumber)
                 continue;
-            var top = visualLine.VisualTop - textView.VerticalOffset;
-            drawingContext.FillRectangle(brush, new Rect(0, top, textView.Bounds.Width, visualLine.Height));
+
+            var lens = CodeLensSpace.Above(visualLine);
+            var top = visualLine.VisualTop - textView.VerticalOffset + lens;
+            drawingContext.FillRectangle(brush, new Rect(0, top, textView.Bounds.Width, visualLine.Height - lens));
         }
     }
 }

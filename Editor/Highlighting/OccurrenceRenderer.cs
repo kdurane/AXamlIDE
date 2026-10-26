@@ -3,6 +3,7 @@ using System.Linq;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Editor.CodeLens;
 using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Highlighting;
@@ -55,7 +56,7 @@ public sealed class OccurrenceRenderer : IBackgroundRenderer
                 continue;
 
             foreach (var rect in BackgroundGeometryBuilder.GetRectsForSegment(textView, segment))
-                drawingContext.FillRectangle(brush, rect);
+                drawingContext.FillRectangle(brush, CodeLensSpace.Trim(textView, rect));
         }
     }
 
