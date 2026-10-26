@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text.Json;
 
 namespace AXamlIDE.Services.Lsp;
@@ -18,12 +18,8 @@ public sealed record LspDiagnostic(
 
 public sealed record LspRange(int StartLine, int StartChar, int EndLine, int EndChar);
 public sealed record LspLocation(string Uri, LspRange Range, string? Name = null, string? ContainerName = null);
-public sealed record LspDocumentSymbol(
-    string Name,
-    int Kind,
-    LspRange Range,
-    LspRange SelectionRange,
-    string? ContainerName = null);
+public sealed record LspDocumentSymbol(string Name, int Kind, LspRange Range, LspRange SelectionRange, string? ContainerName = null);
+
 /// <summary>
 /// A code lens: a line of text shown above <paramref name="Range"/> ("3 references"). <paramref name="Title"/> is null
 /// until resolved; <paramref name="Raw"/> is the server's object, sent back as-is to resolve it.

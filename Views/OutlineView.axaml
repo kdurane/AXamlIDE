@@ -9,7 +9,6 @@
     <!--  Types and members of the selected tab. One instance, moved into the selected tab's bar by DockViewCache.  -->
     <ComboBox
         Name="Combo"
-        DisplayMemberBinding="{Binding DisplayName}"
         IsTextSearchEnabled="True"
         ItemsSource="{Binding Items}"
         MaxWidth="360"
@@ -17,5 +16,14 @@
         MinWidth="220"
         Padding="6,1"
         SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
-        ToolTip.Tip="Navigate to a C# type or member" />
+        ToolTip.Tip="Navigate to a C# type or member">
+        <ComboBox.ItemTemplate>
+            <DataTemplate >
+                <TextBlock Text="{Binding DisplayName}"
+                           MaxWidth="400"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip.Tip="{Binding DisplayName}" />
+            </DataTemplate>
+        </ComboBox.ItemTemplate>
+    </ComboBox>
 </UserControl>

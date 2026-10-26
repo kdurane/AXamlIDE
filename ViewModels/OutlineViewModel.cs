@@ -178,7 +178,6 @@ public sealed partial class OutlineViewModel : ObservableObject, IDisposable
             cancellation.Dispose();
         }
     }
-
     private void Clear()
     {
         Interlocked.Increment(ref _requestSequence);
