@@ -26,8 +26,9 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
     public const string AxamlScope = "text.xml.axaml";
     private const string AxamlGrammarUri = "avares://AXamlIDE/Assets/Grammars/axaml.tmLanguage.json";
     private const string AxamlColorsUri = "avares://AXamlIDE/Assets/Grammars/axaml-colors.json";
-
     private const string CSharpColorsUri = "avares://AXamlIDE/Assets/Grammars/csharp-colors.json";
+    private static readonly HashSet<string> AxamlScopedExtensions =
+    new([".axaml", ".xml", ".manifest", ".csproj", ".props", ".targets"], StringComparer.OrdinalIgnoreCase);
 
     private IRawGrammar? _axamlGrammar;
     private readonly Dictionary<string, IRawTheme> _colorLayers = [];
@@ -38,7 +39,7 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
         var extension = Path.GetExtension(path);
         if (string.IsNullOrEmpty(extension))
             return null;
-        if (extension.Equals(".axaml", StringComparison.OrdinalIgnoreCase))
+        if (AxamlScopedExtensions.Contains(extension))
             return AxamlScope;
 
         return builtIn.GetLanguageByExtension(extension) is { } language
