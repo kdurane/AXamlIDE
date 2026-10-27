@@ -250,6 +250,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Session.Close();   // remember what was open before closing it
         foreach (var document in _documents.Documents.ToArray())
             _documents.Close(document, force: true);
+        Docking.CloseAllPages();
 
         _documents.Active = null;
         Workspace.Close();

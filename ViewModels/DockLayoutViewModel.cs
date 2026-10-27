@@ -366,6 +366,18 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         Activate(page);
     }
 
+    /// <summary>Close every page tab (diffs, NuGet, Publish...): they belong to the workspace that's closing.</summary>
+    public void CloseAllPages()
+    {
+        foreach (var page in _pages.Values.ToArray())
+        {
+            if (_factory.IsInLayout(page))
+                _factory.RemoveDockable(page, collapse: true);
+            ForgetPage(page);
+        }
+    }
+
+
     private void Activate(PageDockable page)
     {
         _factory.SetActiveDockable(page);
