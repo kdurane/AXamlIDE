@@ -27,4 +27,9 @@
         <Setter Property="MinHeight" Value="0" />
     </Style>
 
+    <Style Selector="MenuFlyoutPresenter.editorMenu">
+        <Setter Property="MinWidth" Value="260" />
+    </Style>
+
+
 </Styles>

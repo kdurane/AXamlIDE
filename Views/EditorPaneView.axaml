@@ -21,7 +21,7 @@
             ShowLineNumbers="True"
             VerticalScrollBarVisibility="Hidden">
             <edit:TextEditor.ContextFlyout>
-                <MenuFlyout Opening="OnContextMenuOpening">
+                <MenuFlyout Opening="OnContextMenuOpening" FlyoutPresenterClasses="editorMenu">
                     <MenuItem
                         Click="OnCopyClick"
                         Header="Copy"

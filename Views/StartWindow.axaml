@@ -48,7 +48,7 @@ left (a search box, then the pinned entries and the rest by when they were last 
             <TextBlock
                 Classes="startHeading"
                 DockPanel.Dock="Top"
-                Text="Open recent" />
+                Text="Pick up where you left off" />
             <TextBox
                 AutomationProperties.Name="Search recent"
                 Classes="SearchBox"
@@ -151,7 +151,7 @@ left (a search box, then the pinned entries and the rest by when they were last 
             Grid.Column="2"
             Grid.Row="1"
             Spacing="8">
-            <TextBlock Classes="startHeading" Text="Get started" />
+            <TextBlock Classes="startHeading" Text="New or existing" />
             <Button Classes="startAction" Command="{Binding CloneRepositoryCommand}">
                 <DockPanel>
                     <PathIcon Data="{StaticResource Icon.SourceBranch}" />
@@ -159,7 +159,7 @@ left (a search box, then the pinned entries and the rest by when they were last 
                         <TextBlock FontSize="15" Text="Clone a repository" />
                         <TextBlock
                             Classes="dim"
-                            Text="Get code from an online repository like GitHub or Azure DevOps"
+                            Text="Copy a Git repository from GitHub, GitLab or any server"
                             TextWrapping="Wrap" />
                     </StackPanel>
                 </DockPanel>
@@ -180,10 +180,10 @@ left (a search box, then the pinned entries and the rest by when they were last 
                 <DockPanel>
                     <PathIcon Data="{StaticResource Icon.FolderOutline}" />
                     <StackPanel Spacing="2">
-                        <TextBlock FontSize="15" Text="Open a local folder" />
+                        <TextBlock FontSize="15" Text="Open a folder" />
                         <TextBlock
                             Classes="dim"
-                            Text="Navigate and edit code within any folder"
+                            Text="Work with the files in any folder, no solution needed"
                             TextWrapping="Wrap" />
                     </StackPanel>
                 </DockPanel>
@@ -192,10 +192,10 @@ left (a search box, then the pinned entries and the rest by when they were last 
                 <DockPanel>
                     <PathIcon Data="{StaticResource Icon.FilePlus}" />
                     <StackPanel Spacing="2">
-                        <TextBlock FontSize="15" Text="Create a new project" />
+                        <TextBlock FontSize="15" Text="New project" />
                         <TextBlock
                             Classes="dim"
-                            Text="Choose a project template, Avalonia or any other installed for dotnet new"
+                            Text="Start from a template: Avalonia, console, class library and more"
                             TextWrapping="Wrap" />
                     </StackPanel>
                 </DockPanel>
@@ -203,7 +203,7 @@ left (a search box, then the pinned entries and the rest by when they were last 
             <Button
                 Classes="link"
                 Command="{Binding ContinueWithoutCodeCommand}"
-                Content="Continue without code →"
+                Content="Go straight to the editor →"
                 HorizontalAlignment="Right"
                 Margin="0,4,0,0" />
         </StackPanel>

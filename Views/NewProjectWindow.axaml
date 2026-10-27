@@ -31,7 +31,7 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
                 DockPanel.Dock="Top"
                 FontSize="18"
                 Margin="0,0,0,12"
-                Text="Create a new project" />
+                Text="	Choose a template" />
             <Grid
                 ColumnDefinitions="*,Auto"
                 DockPanel.Dock="Top"
@@ -72,7 +72,7 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
 
         <!--  Step 2: configure it  -->
         <StackPanel IsVisible="{Binding IsConfiguring}" Spacing="6">
-            <TextBlock FontSize="18" Text="Configure your new project" />
+            <TextBlock FontSize="18" Text="	Name and location" />
             <TextBlock
                 Margin="0,0,0,10"
                 Opacity="0.75"
@@ -102,7 +102,7 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
             </StackPanel>
 
             <CheckBox
-                Content="Place solution and project in the same directory"
+                Content="Keep the solution file in the project's folder"
                 IsChecked="{Binding SolutionInProjectFolder}"
                 Margin="0,8,0,0" />
 

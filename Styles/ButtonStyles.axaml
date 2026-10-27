@@ -26,8 +26,8 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.icon PathIcon">
-        <Setter Property="Width" Value="14" />
-        <Setter Property="Height" Value="14" />
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
     </Style>
 
     <!--  link: looks like a hyperlink (the click handler opens it).  -->

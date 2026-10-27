@@ -45,10 +45,10 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
     private bool _explorerOnRight;
 
     /// <summary>The documents column: the document tabs over the bottom panel.</summary>
-    private IProportionalDock _centre = null!;
+    private ProportionalDock _centre = null!;
 
     /// <summary>The bottom panel (Problems, Output, Terminal...), and whether the user has hidden it.</summary>
-    private IToolDock _bottomPanel = null!;
+    private ToolDock _bottomPanel = null!;
     private bool _bottomPanelHidden;
 
     public IReadOnlyDictionary<string, ToolDockable> Tools { get; private set; } = new Dictionary<string, ToolDockable>();

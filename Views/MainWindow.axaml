@@ -38,11 +38,12 @@
                     <MenuItem Command="{Binding CloseSolutionCommand}" Header="_Close Solution" />
                     <Separator />
                     <MenuItem
+                        Classes="recent"
                         Header="Recent Projects and Sol_utions"
                         IsEnabled="{Binding Start.HasMenuItems}"
                         ItemsSource="{Binding Start.MenuItems}">
                         <MenuItem.Styles>
-                            <Style x:DataType="vm:RecentItemViewModel" Selector="MenuItem">
+                            <Style x:DataType="vm:RecentItemViewModel" Selector="MenuItem.recent > MenuItem">
                                 <Setter Property="Header" Value="{Binding MenuHeader}" />
                                 <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Start.OpenRecentCommand, FallbackValue={x:Null}}" />
                                 <Setter Property="CommandParameter" Value="{Binding}" />

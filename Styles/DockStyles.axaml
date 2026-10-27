@@ -1,15 +1,30 @@
-<!--
+﻿<!--
 The bottom panel (Problems, Output, Debug Console, Terminal...), made to look like VS Code's: the tabs along the top,
 with an X on the right that hides the whole panel (View.TogglePanel), and an X on the tabs that can be closed
 (Terminal, Tests, the debugger windows). Only the dock with Id "BottomTools" (ViewModels/DockFactory) gets this;
 Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the selectors match.
 -->
+
 <Styles
     xmlns="https://github.com/avaloniaui"
     xmlns:core="using:Dock.Model.Core"
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+
+    <Design.PreviewWith>
+        <Border>
+            <Button
+                AutomationProperties.Name="Hide Panel"
+                Classes="icon panelHide"
+                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}"
+                Name="HidePanelButton"
+                shell:KeyMap.ShortcutTip="Hide Panel">
+                <PathIcon Data="{StaticResource Icon.Close}"/>
+            </Button>
+        </Border>
+    </Design.PreviewWith>
 
     <!--  No title bar: the content (the tabs and the selected tool), with the panel's own buttons over the tab row's right end.  -->
     <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolChromeControl">
@@ -27,7 +42,7 @@ Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the sel
                         Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}"
                         Name="HidePanelButton"
                         shell:KeyMap.ShortcutTip="Hide Panel">
-                        <PathIcon Data="{StaticResource Icon.Close}" />
+                        <PathIcon Data="{StaticResource Icon.Close}"/>
                     </Button>
                 </Panel>
             </ControlTemplate>
@@ -69,12 +84,13 @@ Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the sel
     <Style Selector="Button.panelHide">
         <Setter Property="HorizontalAlignment" Value="Right" />
         <Setter Property="VerticalAlignment" Value="Top" />
-        <Setter Property="Margin" Value="0,3,6,0" />
+        <Setter Property="Margin" Value="0,6,6,0" />
     </Style>
 
     <Style Selector="Button.panelTabClose">
         <Setter Property="Margin" Value="4,0,-4,0" />
         <Setter Property="Padding" Value="2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.panelTabClose PathIcon">
         <Setter Property="Width" Value="10" />
