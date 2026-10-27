@@ -479,5 +479,20 @@
     <!-- https://pictogrammers.com/library/mdi/icon/vector-link/ -->
     <StreamGeometry x:Key="Icon.VectorLink">M3 1c-1.11 0-2 .89-2 2v11c0 1.11.89 2 2 2h11c1.11 0 2-.89 2-2v-3h-2v3H3V3h11v2h2V3c0-1.11-.89-2-2-2M9 7c-1.11 0-2 .89-2 2v3h2V9h11v11H9v-2H7v2c0 1.11.89 2 2 2h11c1.11 0 2-.89 2-2V9c0-1.11-.89-2-2-2z</StreamGeometry>
 
+    <!--  https://pictogrammers.com/library/mdi/icon/console/  -->
+    <StreamGeometry x:Key="Icon.Console">M20 19V7H4v12zm0-16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm-7 14v-2h5v2zm-3.42-4L5.57 9H8.4l3.3 3.3c.39.39.39 1.03 0 1.42L8.42 17H5.59z</StreamGeometry>
+
+    <!--  The bottom panel (VS Code's Toggle Panel): a window outline with its bottom strip filled.  -->
+    <StreamGeometry x:Key="Icon.PanelBottom">M3 3h18v18H3zm2 2v10h14V5z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/check-circle/  -->
+    <StreamGeometry x:Key="Icon.CheckCircle">M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2m-2 15-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8z</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/circle-outline/  -->
+    <StreamGeometry x:Key="Icon.CircleOutline">M12 20a8 8 0 0 1-8-8 8 8 0 0 1 8-8 8 8 0 0 1 8 8 8 8 0 0 1-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2</StreamGeometry>
+
+    <!--  https://pictogrammers.com/library/mdi/icon/minus-circle/  -->
+    <StreamGeometry x:Key="Icon.MinusCircle">M17 13H7v-2h10m-5-9A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2</StreamGeometry>
+
 
 </ResourceDictionary>

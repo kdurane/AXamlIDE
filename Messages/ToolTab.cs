@@ -12,6 +12,8 @@ public static class ToolTab
     public const string Problems = "problems";
     public const string Output = "output";
     public const string Console = "console";
+    public const string Terminal = "terminal";
+    public const string Tests = "tests";
     public const string Search = "search";
     public const string Locals = "locals";
     public const string Watch = "watch";

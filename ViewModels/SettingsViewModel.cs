@@ -138,6 +138,18 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         }
     }
 
+    /// <summary>The bottom panel as it was left (DockLayoutViewModel keeps it up to date and restores it at startup).</summary>
+    public PanelSettings Panel
+    {
+        get => _editorSettings.Panel;
+        set
+        {
+            if (_editorSettings.Panel == value)
+                return;
+            UpdateEditorSettings(_editorSettings with { Panel = value });
+        }
+    }
+
     // ---------------------------------------------------------------- the helpers that can be switched off
 
     public EditorFeatureSettings Features => _editorSettings.Features;

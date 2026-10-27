@@ -32,7 +32,8 @@ public sealed record KeyMapEntry(Shortcut Shortcut, IReadOnlyList<KeyGesture> St
 ///
 /// Every menu item shows its key from the active keymap, by its Command, or by <c>shell:KeyMap.CommandId</c> for
 /// items that use Click (the editor's right-click menu). Items with neither keep the InputGesture written in XAML
-/// (the editor's own Ctrl+Z, Ctrl+C...).
+/// (the editor's own Ctrl+Z, Ctrl+C...). A button with <c>shell:KeyMap.ShortcutTip</c> shows its command's key in
+/// its tooltip the same way.
 /// </summary>
 public sealed class KeyMap
 {
@@ -42,6 +43,22 @@ public sealed class KeyMap
 
     public static string? GetCommandId(MenuItem item) => item.GetValue(CommandIdProperty);
     public static void SetCommandId(MenuItem item, string? value) => item.SetValue(CommandIdProperty, value);
+
+    /// <summary>
+    /// A button's tooltip, used instead of ToolTip.Tip: the key of the button's Command in the active keymap is added
+    /// when it opens, as in VS Code ("Hide Panel (Ctrl+J)").
+    /// </summary>
+    public static readonly AttachedProperty<string?> ShortcutTipProperty =
+        AvaloniaProperty.RegisterAttached<KeyMap, Button, string?>("ShortcutTip");
+
+    public static string? GetShortcutTip(Button button) => button.GetValue(ShortcutTipProperty);
+    public static void SetShortcutTip(Button button, string? value) => button.SetValue(ShortcutTipProperty, value);
+
+    static KeyMap()
+    {
+        // Something to open: the key is added when it does (the keymap can change in Settings).
+        ShortcutTipProperty.Changed.AddClassHandler<Button>((button, e) => ToolTip.SetTip(button, e.NewValue));
+    }
 
     private readonly SettingsViewModel _settings;
     private readonly IMessenger _messenger;
@@ -60,6 +77,7 @@ public sealed class KeyMap
 
         // Every menu item, in any window or popup, shows its key when it appears.
         Control.LoadedEvent.AddClassHandler<MenuItem>((item, _) => ShowShortcut(item));
+        ToolTip.ToolTipOpeningEvent.AddClassHandler<Button>((button, _) => ShowShortcut(button));
     }
 
     /// <summary>The active keymap's shortcuts.</summary>
@@ -100,6 +118,9 @@ public sealed class KeyMap
             ["View.Problems"] = (shell.ShowToolCommand, ToolTab.Problems),
             ["View.Output"] = (shell.ShowToolCommand, ToolTab.Output),
             ["View.DebugConsole"] = (shell.ShowToolCommand, ToolTab.Console),
+            ["View.Terminal"] = (shell.ShowTerminalCommand, null),
+            ["View.TestExplorer"] = (shell.ShowToolCommand, ToolTab.Tests),
+            ["View.TogglePanel"] = (shell.TogglePanelCommand, null),
 
             ["Navigate.GoToFile"] = (editor.QuickOpen, null),
             ["Navigate.GoToSymbol"] = (editor.WorkspaceSymbols, null),
@@ -125,6 +146,9 @@ public sealed class KeyMap
             ["Debug.Watch"] = (shell.ShowToolCommand, ToolTab.Watch),
             ["Debug.Locals"] = (shell.ShowToolCommand, ToolTab.Locals),
             ["Debug.CallStack"] = (shell.ShowToolCommand, ToolTab.CallStack),
+
+            ["Test.RunAll"] = (shell.Tests.RunAllCommand, null),
+            ["Test.RunFailed"] = (shell.Tests.RunFailedCommand, null),
 
             ["Tools.Settings"] = (shell.OpenSettingsCommand, null),
         };
@@ -243,6 +267,15 @@ public sealed class KeyMap
             slot.ClearValue(TextBlock.TextProperty);
         else
             slot.Text = entry.Shortcut.ToString();
+    }
+
+    private void ShowShortcut(Button button)
+    {
+        if (GetShortcutTip(button) is not { } tip)
+            return;
+        var id = IdFor(button.Command, button.CommandParameter);
+        var entry = Entries.FirstOrDefault(e => e.Info.Id == id);
+        ToolTip.SetTip(button, entry is null ? tip : $"{tip} ({entry.Shortcut})");
     }
 
     private string? IdFor(ICommand? command, object? parameter)

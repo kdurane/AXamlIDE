@@ -10,6 +10,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:msg="using:AXamlIDE.Messages"
+    xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -105,9 +106,15 @@
                         Command="{Binding ShowToolCommand}"
                         CommandParameter="{x:Static msg:ToolTab.Console}"
                         Header="_Debug Console" />
+                    <MenuItem Command="{Binding ShowTerminalCommand}" Header="_Terminal" />
+                    <MenuItem
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Tests}"
+                        Header="Test E_xplorer" />
                     <MenuItem Command="{Binding ShowFindInFilesCommand}" Header="_Search" />
                     <Separator />
                     <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
+                    <MenuItem Command="{Binding TogglePanelCommand}" Header="Show/Hide P_anel" />
                     <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="Move Side Bar to Other Side" />
                 </MenuItem>
                 <MenuItem Header="_Navigate">
@@ -187,6 +194,19 @@
                             CommandParameter="{x:Static msg:ToolTab.Console}"
                             Header="Debug C_onsole" />
                     </MenuItem>
+                </MenuItem>
+                <!--  Visual Studio's Test menu  -->
+                <MenuItem Header="Te_st">
+                    <MenuItem Command="{Binding Tests.RunAllCommand}" Header="Run _All Tests" />
+                    <MenuItem Command="{Binding Tests.RunFailedCommand}" Header="Run _Failed Tests" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Tests}"
+                        Header="Test E_xplorer" />
+                    <MenuItem Command="{Binding Tests.DiscoverCommand}" Header="_Refresh Tests" />
+                    <Separator />
+                    <MenuItem Command="{Binding Tests.NewTestProjectCommand}" Header="_New Test Project..." />
                 </MenuItem>
                 <MenuItem Header="_Tools">
                     <MenuItem Command="{Binding NuGet.ManagePackagesForCurrentProjectCommand}" Header="Manage _NuGet Packages..." />
@@ -351,7 +371,7 @@
                         Background="Transparent"
                         Command="{Binding ToggleExplorerCommand}"
                         Padding="8"
-                        ToolTip.Tip="Explorer">
+                        shell:KeyMap.ShortcutTip="Explorer">
                         <PathIcon
                             Data="{DynamicResource Icon.FolderMultipleOutline}"
                             Height="16"
@@ -362,9 +382,43 @@
                         Background="Transparent"
                         Command="{Binding ShowFindInFilesCommand}"
                         Padding="8"
-                        ToolTip.Tip="Search in files">
+                        shell:KeyMap.ShortcutTip="Search in files">
                         <PathIcon
                             Data="{DynamicResource Icon.Search}"
+                            Height="16"
+                            Width="16" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Test Explorer"
+                        Background="Transparent"
+                        Command="{Binding ShowToolCommand}"
+                        CommandParameter="{x:Static msg:ToolTab.Tests}"
+                        Padding="8"
+                        shell:KeyMap.ShortcutTip="Test Explorer">
+                        <PathIcon
+                            Data="{DynamicResource Icon.FlaskEmptyOutline}"
+                            Height="16"
+                            Width="16" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Terminal"
+                        Background="Transparent"
+                        Command="{Binding ShowTerminalCommand}"
+                        Padding="8"
+                        shell:KeyMap.ShortcutTip="Terminal">
+                        <PathIcon
+                            Data="{DynamicResource Icon.Console}"
+                            Height="16"
+                            Width="16" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Show or hide the panel"
+                        Background="Transparent"
+                        Command="{Binding TogglePanelCommand}"
+                        Padding="8"
+                        shell:KeyMap.ShortcutTip="Show/Hide Panel">
+                        <PathIcon
+                            Data="{DynamicResource Icon.PanelBottom}"
                             Height="16"
                             Width="16" />
                     </Button>

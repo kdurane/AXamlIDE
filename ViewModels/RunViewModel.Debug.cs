@@ -355,6 +355,7 @@ public partial class RunViewModel
     private void OnIsDebuggingChanged()
     {
         OnPropertyChanged(nameof(IsDebugging));
+        _messenger.Send(new DebugSessionChangedMessage(IsDebugging));
         RestartDebuggingCommand.NotifyCanExecuteChanged();
         PauseDebuggingCommand.NotifyCanExecuteChanged();
         ContinueOrPauseDebuggingCommand.NotifyCanExecuteChanged();

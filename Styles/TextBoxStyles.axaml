@@ -55,4 +55,19 @@
         <Setter Property="Background" Value="{DynamicResource SearchPanelBackgroundBrush}" />
         <Setter Property="BorderThickness" Value="0.5" />
     </Style>
+
+    <!--  terminal: the Terminal panel's command line. Flat, in the output's monospace font, so it reads as the prompt's line.  -->
+    <Style Selector="TextBox.terminal">
+        <Setter Property="FontFamily" Value="Cascadia Code,Consolas,Menlo,Monospace" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Padding" Value="2,1" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox.terminal:pointerover /template/ Border#PART_BorderElement, TextBox.terminal:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
 </Styles>

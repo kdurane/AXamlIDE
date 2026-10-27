@@ -134,8 +134,8 @@
         <PackageReference Include="Dock.Avalonia" Version="12.1.0.12" />
         <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.1.0.12" />
         <PackageReference Include="Dock.Model.Mvvm" Version="12.1.0.12" />
-        <PackageReference Include="Markdig" Version="1.4.2" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+        <PackageReference Include="Markdig" Version="1.5.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
         <PackageReference Include="TextMateSharp" Version="2.0.4" />
         <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.7" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />

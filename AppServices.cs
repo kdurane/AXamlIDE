@@ -93,6 +93,8 @@ public static class AppServices
         services.AddSingleton<OutlineViewModel>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<RunViewModel>();
+        services.AddSingleton<TerminalViewModel>();       // the Terminal panel's shell
+        services.AddSingleton<TestExplorerViewModel>();   // the Tests panel (Test Explorer)
         services.AddSingleton<LocalsViewModel>();          // the debugger's windows (Locals, Watch, Call Stack, visualizers)
         services.AddSingleton<WatchViewModel>();
         services.AddSingleton<CallStackViewModel>();

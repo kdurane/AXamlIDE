@@ -105,6 +105,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             SolutionExplorerOnRight = persisted.SolutionExplorerOnRight ?? defaults.SolutionExplorerOnRight,
             FormatOnSave = persisted.FormatOnSave ?? defaults.FormatOnSave,
             Features = persisted.Features ?? defaults.Features,
+            Panel = persisted.Panel is { } panel ? panel with { OpenTools = panel.OpenTools ?? [] } : defaults.Panel,
             KeymapId = keymapId
         }, warnings);
     }
@@ -134,6 +135,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             SolutionExplorerOnRight = settings.SolutionExplorerOnRight,
             FormatOnSave = settings.FormatOnSave,
             Features = settings.Features,
+            Panel = settings.Panel,
             Keymap = settings.KeymapId
         };
         var tempPath = SettingsPath + ".tmp";
@@ -159,6 +161,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
 
         // Saved as the record itself: a feature missing from the file keeps the default its property starts with.
         public EditorFeatureSettings? Features { get; init; }
+        public PanelSettings? Panel { get; init; }
         public string? Keymap { get; init; }
     }
 }

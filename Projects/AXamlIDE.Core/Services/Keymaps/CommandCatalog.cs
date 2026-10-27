@@ -64,6 +64,9 @@ public static class CommandCatalog
         new("View.Problems", "Problems", "Show the Problems list."),
         new("View.Output", "Output", "Show the Output panel."),
         new("View.DebugConsole", "Debug Console", "Show the Debug Console."),
+        new("View.Terminal", "Terminal", "Show the Terminal and type a command."),
+        new("View.TestExplorer", "Test Explorer", "Show the Tests panel."),
+        new("View.TogglePanel", "Show/Hide Panel", "Show or hide the bottom panel (Problems, Output, Terminal...)."),
 
         // ---- Navigate
         new("Navigate.GoToFile", "Go to File", "Find a file by name and open it."),
@@ -92,6 +95,10 @@ public static class CommandCatalog
         new("Debug.Watch", "Watch Window", "Show the Watch window."),
         new("Debug.Locals", "Locals Window", "Show the Locals window."),
         new("Debug.CallStack", "Call Stack Window", "Show the Call Stack window."),
+
+        // ---- Test
+        new("Test.RunAll", "Run All Tests", "Run every test in the workspace's test projects."),
+        new("Test.RunFailed", "Run Failed Tests", "Run the tests that failed last time."),
 
         // ---- Tools
         new("Tools.Settings", "Settings", "Open the settings window."),

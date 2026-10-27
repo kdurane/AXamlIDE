@@ -25,6 +25,8 @@
     "View.Problems": "Ctrl+Shift+M",
     "View.Output": "Ctrl+Shift+U",
     "View.DebugConsole": "Ctrl+Shift+Y",
+    "View.Terminal": "Ctrl+`",
+    "View.TogglePanel": "Ctrl+J",
 
     // ---- Navigate
     "Navigate.GoToFile": "Ctrl+P",
@@ -44,6 +46,10 @@
     "Debug.StepOver": "F10",
     "Debug.StepInto": "F11",
     "Debug.StepOut": "Shift+F11",
+
+    // ---- Test (VS Code's testing.runAll / testing.reRunFailTests)
+    "Test.RunAll": "Ctrl+;, A",
+    "Test.RunFailed": "Ctrl+;, E",
 
     // ---- Tools
     "Tools.Settings": "Ctrl+,"

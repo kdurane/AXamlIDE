@@ -1,0 +1,83 @@
+<UserControl
+    x:Class="AXamlIDE.Views.TerminalView"
+    x:DataType="vm:TerminalViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:edit="using:AvaloniaEdit"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    The Terminal panel (DataContext: TerminalViewModel): the shell's output, read-only and selectable, over the
+    command line. Enter runs, Up/Down go through the commands typed, Ctrl+C stops the running command (copies when
+    text is selected), Ctrl+L clears.
+    -->
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <DockPanel Grid.Row="0" Margin="6,0,2,0">
+            <StackPanel
+                DockPanel.Dock="Right"
+                Orientation="Horizontal"
+                Spacing="2">
+                <Button
+                    AutomationProperties.Name="Stop the running command"
+                    Classes="icon"
+                    Command="{Binding InterruptCommand}"
+                    IsEnabled="{Binding IsBusy}"
+                    ToolTip.Tip="Stop the running command (Ctrl+C)">
+                    <PathIcon Data="{StaticResource Icon.Stop}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="Clear"
+                    Classes="icon"
+                    Command="{Binding ClearCommand}"
+                    ToolTip.Tip="Clear (Ctrl+L)">
+                    <PathIcon Data="{StaticResource Icon.TrashCan}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="Restart the shell"
+                    Classes="icon"
+                    Command="{Binding RestartCommand}"
+                    ToolTip.Tip="Stop the shell and start a new one in the workspace folder">
+                    <PathIcon Data="{StaticResource Icon.Restart}" />
+                </Button>
+            </StackPanel>
+            <TextBlock
+                Opacity="0.7"
+                Text="{Binding ShellName}"
+                VerticalAlignment="Center" />
+        </DockPanel>
+
+        <edit:TextEditor
+            Background="Transparent"
+            Document="{Binding Output}"
+            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+            FontSize="12"
+            Foreground="{DynamicResource ThemeForegroundBrush}"
+            Grid.Row="1"
+            HorizontalScrollBarVisibility="Disabled"
+            IsReadOnly="True"
+            Name="OutputEditor"
+            Padding="6,0"
+            ShowLineNumbers="False"
+            VerticalScrollBarVisibility="Auto"
+            WordWrap="True" />
+
+        <Grid
+            ColumnDefinitions="Auto,*"
+            Grid.Row="2"
+            Margin="6,0,6,2">
+            <TextBlock
+                FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                FontSize="12"
+                Margin="0,0,4,0"
+                Text="{Binding Prompt}"
+                VerticalAlignment="Center" />
+            <TextBox
+                AutomationProperties.Name="Command"
+                Classes="terminal"
+                Grid.Column="1"
+                Name="InputBox"
+                Text="{Binding InputText}" />
+        </Grid>
+    </Grid>
+</UserControl>

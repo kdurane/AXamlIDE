@@ -1,0 +1,264 @@
+<UserControl
+    x:Class="AXamlIDE.Views.TestExplorerView"
+    x:DataType="vm:TestExplorerViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:b="using:AXamlIDE.Behaviors"
+    xmlns:testing="using:AXamlIDE.Services.Testing"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    The Tests panel (DataContext: TestExplorerViewModel), laid out like Visual Studio's Test Explorer: a toolbar with
+    the run buttons and result counts, the tests as a tree, and the selected test's result beside it (or dotnet's
+    output, with the Output toggle).
+    -->
+    <UserControl.Styles>
+        <Style Selector="TextBlock.heading">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,10,0,2" />
+        </Style>
+        <Style Selector="PathIcon.count">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Margin" Value="8,0,3,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <DockPanel Grid.Row="0" Margin="4,0">
+            <StackPanel Orientation="Horizontal" Spacing="2">
+                <Button
+                    AutomationProperties.Name="Run All Tests"
+                    Classes="icon"
+                    Command="{Binding RunAllCommand}"
+                    ToolTip.Tip="Run All Tests">
+                    <PathIcon Data="{StaticResource Icon.Play}" Foreground="{DynamicResource DebugStartBrush}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="Run Failed Tests"
+                    Classes="icon"
+                    Command="{Binding RunFailedCommand}"
+                    ToolTip.Tip="Run Failed Tests">
+                    <PathIcon Data="{StaticResource Icon.Play}" Foreground="{DynamicResource TestFailedBrush}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="Run Selected"
+                    Classes="icon"
+                    Command="{Binding RunSelectedCommand}"
+                    ToolTip.Tip="Run the selected test, class or project">
+                    <PathIcon Data="{StaticResource Icon.PlayOutline}" Foreground="{DynamicResource DebugStartBrush}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="Cancel"
+                    Classes="icon"
+                    Command="{Binding CancelCommand}"
+                    ToolTip.Tip="Cancel">
+                    <PathIcon Data="{StaticResource Icon.Stop}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="Refresh"
+                    Classes="icon"
+                    Command="{Binding DiscoverCommand}"
+                    ToolTip.Tip="Find the tests again (builds the test projects)">
+                    <PathIcon Data="{StaticResource Icon.Sync}" />
+                </Button>
+                <Button
+                    AutomationProperties.Name="New Test Project"
+                    Classes="icon"
+                    Command="{Binding NewTestProjectCommand}"
+                    ToolTip.Tip="New Test Project...">
+                    <PathIcon Data="{StaticResource Icon.FlaskEmptyOutline}" />
+                </Button>
+                <ToggleButton
+                    AutomationProperties.Name="Show output"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    IsChecked="{Binding ShowLog}"
+                    Padding="3"
+                    ToolTip.Tip="Show what dotnet printed (build errors show here)"
+                    VerticalAlignment="Center">
+                    <PathIcon
+                        Data="{StaticResource Icon.FormatListBulleted}"
+                        Height="14"
+                        Width="14" />
+                </ToggleButton>
+
+                <PathIcon
+                    Classes="count"
+                    Data="{StaticResource Icon.CheckCircle}"
+                    Foreground="{DynamicResource TestPassedBrush}"
+                    ToolTip.Tip="Passed" />
+                <TextBlock Text="{Binding PassedCount}" VerticalAlignment="Center" />
+                <PathIcon
+                    Classes="count"
+                    Data="{StaticResource Icon.CloseCircle}"
+                    Foreground="{DynamicResource TestFailedBrush}"
+                    ToolTip.Tip="Failed" />
+                <TextBlock Text="{Binding FailedCount}" VerticalAlignment="Center" />
+                <PathIcon
+                    Classes="count"
+                    Data="{StaticResource Icon.MinusCircle}"
+                    Foreground="{DynamicResource TestSkippedBrush}"
+                    ToolTip.Tip="Skipped" />
+                <TextBlock Text="{Binding SkippedCount}" VerticalAlignment="Center" />
+                <PathIcon
+                    Classes="count"
+                    Data="{StaticResource Icon.CircleOutline}"
+                    ToolTip.Tip="Not run" />
+                <TextBlock Text="{Binding NotRunCount}" VerticalAlignment="Center" />
+            </StackPanel>
+            <TextBlock
+                Margin="12,0,0,0"
+                Opacity="0.8"
+                Text="{Binding Status}"
+                TextTrimming="CharacterEllipsis"
+                VerticalAlignment="Center" />
+        </DockPanel>
+
+        <Grid ColumnDefinitions="3*,4,2*" Grid.Row="1">
+            <TreeView
+                Classes="compact"
+                ContextRequested="OnTreeContextRequested"
+                DoubleTapped="OnTreeDoubleTapped"
+                ItemsSource="{Binding Roots}"
+                Name="TestTree"
+                SelectedItem="{Binding SelectedNode, Mode=TwoWay}">
+                <TreeView.Styles>
+                    <Style Selector="TreeViewItem" x:DataType="vm:TestNode">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                    </Style>
+                </TreeView.Styles>
+                <TreeView.ItemTemplate>
+                    <TreeDataTemplate ItemsSource="{Binding Children}" x:DataType="vm:TestNode">
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <PathIcon
+                                Data="{Binding Outcome, Converter={x:Static views:TestConverters.Icon}}"
+                                Foreground="{Binding Outcome, Converter={x:Static views:TestConverters.Brush}}"
+                                Height="12"
+                                Width="12" />
+                            <TextBlock Text="{Binding Name}" />
+                            <TextBlock Opacity="0.6" Text="{Binding CountText}" />
+                            <TextBlock Opacity="0.6" Text="{Binding DurationText}" />
+                        </StackPanel>
+                    </TreeDataTemplate>
+                </TreeView.ItemTemplate>
+                <!--  Right-click selects the row under the pointer first (code-behind), then these act on it.  -->
+                <TreeView.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Command="{Binding RunSelectedCommand}" Header="_Run" />
+                        <MenuItem Command="{Binding GoToTestCommand}" Header="_Go to Test" />
+                    </ContextMenu>
+                </TreeView.ContextMenu>
+            </TreeView>
+
+            <GridSplitter
+                Grid.Column="1"
+                ResizeDirection="Columns" />
+
+            <!--  The selected test's result (Visual Studio's Test Detail Summary)  -->
+            <ScrollViewer
+                Grid.Column="2"
+                HorizontalScrollBarVisibility="Disabled"
+                IsVisible="{Binding !ShowLog}"
+                Padding="8,4">
+                <Panel>
+                    <TextBlock
+                        IsVisible="{Binding !HasSelectedTest}"
+                        Opacity="0.7"
+                        Text="Select a test to see its result. Double-click it to open its code."
+                        TextWrapping="Wrap" />
+                    <StackPanel DataContext="{Binding SelectedNode}" IsVisible="{Binding $parent[UserControl].((vm:TestExplorerViewModel)DataContext).HasSelectedTest, FallbackValue=False}" x:DataType="vm:TestNode">
+                        <SelectableTextBlock
+                            FontWeight="SemiBold"
+                            Text="{Binding Test.FullName, FallbackValue=''}"
+                            TextWrapping="Wrap" />
+                        <StackPanel
+                            Margin="0,4,0,0"
+                            Orientation="Horizontal"
+                            Spacing="6">
+                            <PathIcon
+                                Data="{Binding Outcome, Converter={x:Static views:TestConverters.Icon}}"
+                                Foreground="{Binding Outcome, Converter={x:Static views:TestConverters.Brush}}"
+                                Height="12"
+                                Width="12" />
+                            <TextBlock Text="{Binding OutcomeText}" />
+                            <TextBlock Opacity="0.7" Text="{Binding DurationText}" />
+                        </StackPanel>
+                        <TextBlock
+                            Classes="heading"
+                            IsVisible="{Binding Result.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}"
+                            Text="Message" />
+                        <SelectableTextBlock
+                            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                            FontSize="11"
+                            Text="{Binding Result.ErrorMessage, FallbackValue=''}"
+                            TextWrapping="Wrap" />
+                        <TextBlock
+                            Classes="heading"
+                            IsVisible="{Binding Result.StackTrace, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}"
+                            Text="Stack trace" />
+                        <ItemsControl ItemsSource="{Binding StackFrames}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="testing:StackFrameLine">
+                                    <Panel>
+                                        <Button
+                                            Classes="link"
+                                            Command="{Binding $parent[UserControl].((vm:TestExplorerViewModel)DataContext).OpenFrameCommand}"
+                                            CommandParameter="{Binding}"
+                                            IsVisible="{Binding Path, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                            ToolTip.Tip="{Binding Path}">
+                                            <TextBlock
+                                                FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                                                FontSize="11"
+                                                Text="{Binding Text}"
+                                                TextWrapping="Wrap" />
+                                        </Button>
+                                        <SelectableTextBlock
+                                            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                                            FontSize="11"
+                                            IsVisible="{Binding Path, Converter={x:Static ObjectConverters.IsNull}}"
+                                            Opacity="0.7"
+                                            Text="{Binding Text}"
+                                            TextWrapping="Wrap" />
+                                    </Panel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock
+                            Classes="heading"
+                            IsVisible="{Binding Result.Output, Converter={x:Static ObjectConverters.IsNotNull}, FallbackValue=False}"
+                            Text="Output" />
+                        <SelectableTextBlock
+                            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                            FontSize="11"
+                            Text="{Binding Result.Output, FallbackValue=''}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </Panel>
+            </ScrollViewer>
+
+            <!--  What dotnet printed  -->
+            <ScrollViewer
+                Grid.Column="2"
+                HorizontalScrollBarVisibility="Auto"
+                IsVisible="{Binding ShowLog}"
+                VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Log}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <SelectableTextBlock
+                                FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
+                                FontSize="11"
+                                Text="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Interaction.Behaviors>
+                    <b:FollowEndBehavior />
+                </Interaction.Behaviors>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -18,6 +18,9 @@ public sealed record EditorSettings
     /// <summary>The editor helpers that can be switched off (inlay hints, code lens, auto-closing braces...).</summary>
     public EditorFeatureSettings Features { get; init; } = new();
 
+    /// <summary>The bottom panel as it was left: showing or hidden, and the optional tabs that are open.</summary>
+    public PanelSettings Panel { get; init; } = new();
+
     /// <summary>The keyboard mapping scheme (Services/Keymaps/&lt;id&gt;.json).</summary>
     public string KeymapId { get; init; } = KeymapLibrary.DefaultId;
 }

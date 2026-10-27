@@ -12,9 +12,12 @@ namespace AXamlIDE.ViewModels;
 /// Builds the starting dock layout and knows where each tool panel lives when it isn't moved:
 ///
 ///   [Explorer, Git]  | [ Documents (each AXAML tab has its own preview)  ]
-///   [Properties]     | [ Problems, Output, Console ]
+///   [Properties]     | [ Problems, Output, Debug Console (+ Terminal, Tests, Locals, Watch, Call Stack) ]
 ///
-/// (Properties only while it's open; the explorer column is mirrored to the right by the "explorer on right" setting). Search has no dock: it
+/// (Properties only while it's open; the explorer column is mirrored to the right by the "explorer on right" setting).
+/// The bottom row is VS Code's panel: it can be hidden and shown as a whole (<see cref="HideBottomPanel"/>). Problems,
+/// Output and the Debug Console are always in it; Terminal and Tests join it when opened and leave with their tab's X,
+/// as in Visual Studio, and Locals, Watch and Call Stack join it while debugging. Search has no dock: it
 /// opens in its own floating window (it can still be dragged into a dock).
 /// The user can then drag any tab anywhere, including out into its own window.
 /// To add a tool panel: add a <see cref="ToolTab"/> id, add it to a dock here, and give it a view
@@ -41,6 +44,13 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
 
     private bool _explorerOnRight;
 
+    /// <summary>The documents column: the document tabs over the bottom panel.</summary>
+    private IProportionalDock _centre = null!;
+
+    /// <summary>The bottom panel (Problems, Output, Terminal...), and whether the user has hidden it.</summary>
+    private IToolDock _bottomPanel = null!;
+    private bool _bottomPanelHidden;
+
     public IReadOnlyDictionary<string, ToolDockable> Tools { get; private set; } = new Dictionary<string, ToolDockable>();
 
     public override IRootDock CreateLayout() => CreateLayout(explorerOnRight: false);
@@ -56,11 +66,14 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         var problems = new ToolDockable(ToolTab.Problems, "Problems");
         var output = new ToolDockable(ToolTab.Output, "Output");
         var console = new ToolDockable(ToolTab.Console, "Debug Console");
+        var terminal = new ToolDockable(ToolTab.Terminal, "Terminal") { CanClose = true };
+        var tests = new ToolDockable(ToolTab.Tests, "Tests") { CanClose = true };
         var search = new ToolDockable(ToolTab.Search, "Search");
-        var locals = new ToolDockable(ToolTab.Locals, "Locals");
-        var watch = new ToolDockable(ToolTab.Watch, "Watch");
-        var callStack = new ToolDockable(ToolTab.CallStack, "Call Stack");
-        Tools = new[] { explorer, git, properties, problems, output, console, search, locals, watch, callStack }.ToDictionary(tool => tool.Id);
+        var locals = new ToolDockable(ToolTab.Locals, "Locals") { CanClose = true };
+        var watch = new ToolDockable(ToolTab.Watch, "Watch") { CanClose = true };
+        var callStack = new ToolDockable(ToolTab.CallStack, "Call Stack") { CanClose = true };
+        Tools = new[] { explorer, git, properties, problems, output, console, terminal, tests, search, locals, watch, callStack }
+            .ToDictionary(tool => tool.Id);
 
         MainDocuments = new DocumentDock
         {
@@ -77,10 +90,13 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         var propertiesDock = Locked(ToolDock("PropertiesTools", Alignment.Bottom, 0.25, properties));   // shown on demand
         ExplorerColumn = Row("ExplorerColumn", Orientation.Vertical, explorerDock);
         ExplorerColumn.Proportion = 0.2;
-        var bottomDock = ToolDock("BottomTools", Alignment.Bottom, 0.25, problems, output, console, locals, watch, callStack);
+        var bottomDock = ToolDock("BottomTools", Alignment.Bottom, 0.25, problems, output, console);
         bottomDock.ActiveDockable = output;
 
         var centre = Row("Centre", Orientation.Vertical, MainDocuments, new ProportionalDockSplitter(), bottomDock);
+        _centre = centre;
+        _bottomPanel = bottomDock;
+        _bottomPanelHidden = false;
         MainRow = explorerOnRight
             ? Row("MainRow", Orientation.Horizontal, centre, new ProportionalDockSplitter(), ExplorerColumn)
             : Row("MainRow", Orientation.Horizontal, ExplorerColumn, new ProportionalDockSplitter(), centre);
@@ -90,7 +106,7 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         _homes[explorer.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[git.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[properties.Id] = new ToolHome(propertiesDock, ExplorerColumn, AtStart: false);
-        foreach (var tool in new[] { problems, output, console, locals, watch, callStack })
+        foreach (var tool in new[] { problems, output, console, terminal, tests, locals, watch, callStack })
             _homes[tool.Id] = new ToolHome(bottomDock, centre, AtStart: false);
 
         var root = CreateRootDock();
@@ -172,11 +188,22 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
     /// </summary>
     public void PutBack(ToolDockable tool)
     {
+        // Still in the hidden bottom panel: show the panel, the tab stays where it was.
+        if (_bottomPanelHidden && ReferenceEquals(tool.Owner, _bottomPanel) && _bottomPanel.VisibleDockables?.Contains(tool) == true)
+        {
+            ShowBottomPanel();
+            return;
+        }
+
         if (IsInLayout(tool) || !_homes.TryGetValue(tool.Id, out var home))
             return;
         Detach(tool);
 
-        if (!IsInLayout(home.Dock))
+        if (ReferenceEquals(home.Dock, _bottomPanel) && _bottomPanelHidden)
+        {
+            ShowBottomPanel();
+        }
+        else if (!IsInLayout(home.Dock))
         {
             if (!IsInLayout(home.Container))
             {
@@ -192,6 +219,50 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         }
 
         AddDockable(home.Dock, tool);
+    }
+
+    // ------------------------------------------------------------- the bottom panel
+
+    /// <summary>The bottom panel is showing, with at least one tool in it.</summary>
+    public bool IsBottomPanelShown => IsInLayout(_bottomPanel) && _bottomPanel.VisibleDockables is { Count: > 0 };
+
+    /// <summary>The tool is open: showing, or a tab in the hidden bottom panel.</summary>
+    public bool IsOpen(ToolDockable tool)
+        => IsInLayout(tool) || (_bottomPanelHidden && _bottomPanel.VisibleDockables?.Contains(tool) == true);
+
+    /// <summary>The bottom panel has at least one tool in it (shown or not).</summary>
+    public bool BottomPanelHasTools => _bottomPanel.VisibleDockables is { Count: > 0 };
+
+    /// <summary>
+    /// Take the bottom panel (Problems, Output, Terminal... and whatever else is docked there) out of the documents
+    /// column: VS Code's Toggle Panel. It keeps its tabs, the selected one and its size, so
+    /// <see cref="ShowBottomPanel"/> brings it back as it was.
+    /// </summary>
+    public void HideBottomPanel()
+    {
+        if (_centre.VisibleDockables is not { } column)
+            return;
+        var index = column.IndexOf(_bottomPanel);
+        if (index < 0)
+            return;
+
+        column.RemoveAt(index);
+        // The splitter that was between it and the documents.
+        if (index > 0 && column[index - 1] is IProportionalDockSplitter)
+            column.RemoveAt(index - 1);
+        _bottomPanelHidden = true;
+    }
+
+    /// <summary>Put the bottom panel back under the documents (empty if every tool left it; see PutBack).</summary>
+    public void ShowBottomPanel()
+    {
+        _bottomPanelHidden = false;
+        if (IsInLayout(_bottomPanel) || _centre.VisibleDockables is not { } column)
+            return;
+
+        _bottomPanel.VisibleDockables ??= CreateList<IDockable>();
+        InsertDockable(_centre, new ProportionalDockSplitter(), column.Count);
+        InsertDockable(_centre, _bottomPanel, column.Count);
     }
 
     // ------------------------------------------------------------- the explorer column
@@ -288,6 +359,15 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         // The explorer's own dock fills what the Properties panel leaves (its width is the column's).
         foreach (var home in _homes.Values.Select(home => home.Dock).Distinct().Where(dock => dock.Id != "ExplorerTools"))
             yield return home;
+    }
+
+    /// <summary>Take a tool out of the layout, wherever it is (a dock left empty goes too). <see cref="PutBack"/> brings it back.</summary>
+    public void RemoveTool(ToolDockable tool)
+    {
+        if (IsInLayout(tool))
+            RemoveDockable(tool, collapse: true);
+        else
+            Detach(tool);
     }
 
     /// <summary>Take a dockable out of whatever (possibly dead) dock still lists it.</summary>

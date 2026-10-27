@@ -26,12 +26,20 @@ namespace AXamlIDE.ViewModels;
 ///   - closing a floating window moves its tabs back into the main window rather than losing them;
 ///   - <see cref="ShowToolTabMessage"/> brings a tool panel to the front (putting it back if needed);
 ///     Search opens in its own window, which remembers where it was;
+///   - the bottom panel comes back as it was left (showing or not, Terminal and Tests open or not: Settings.Panel),
+///     and the debugger windows join it while debugging;
 ///   - the layout's sizes can be captured and re-applied (WorkspaceSession keeps them per workspace).
 ///
 /// Nothing else talks to the dock model; the views (DockControl, DockViewCache) only show it.
 /// </summary>
-public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
+public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecipient<DebugSessionChangedMessage>
 {
+    /// <summary>The bottom panel's tabs that can be closed and are remembered (Settings.Panel.OpenTools).</summary>
+    private static readonly string[] OptionalTools = [ToolTab.Terminal, ToolTab.Tests];
+
+    /// <summary>VS's debugger windows: in the bottom panel only while debugging.</summary>
+    private static readonly string[] DebugTools = [ToolTab.Locals, ToolTab.Watch, ToolTab.CallStack];
+
     private readonly DockFactory _factory;
     private readonly DocumentManager _documents;
     private readonly DocumentCommands _commands;
@@ -44,6 +52,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
     private bool _previewFirst;
     private bool _syncing;
     private bool _shuttingDown;
+    private bool _debugging;
+    private bool _hidePanelAfterDebugging;
     private (double X, double Y, double Width, double Height)? _searchWindowBounds;
 
     public DockLayoutViewModel(
@@ -60,6 +70,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         _factory = new DockFactory(new WelcomeViewModel(workspace));
         Root = _factory.CreateLayout(settings.SolutionExplorerOnRight);
         _factory.InitLayout(Root);
+        RestorePanel(settings.Panel);
 
         _documents.Documents.CollectionChanged += OnDocumentsChanged;
         _documents.ActiveChanged += OnActiveDocumentChanged;
@@ -117,6 +128,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         _factory.SetActiveDockable(tool);
         if (_factory.FindRoot(tool, _ => true)?.Window is { } window)
             window.SetActive();   // bring its floating window to the front
+        SavePanel();
     }
 
     /// <summary>Whether a tool panel is showing (in a window that's open).</summary>
@@ -137,6 +149,74 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
         _factory.ShowExplorerColumn();
         if (!_factory.ExplorerColumnHasTools)
             ShowTool(ToolTab.Explorer);
+    }
+
+    /// <summary>
+    /// VS Code's Toggle Panel: hide or show the bottom panel (Problems, Output, Terminal...) as it was. If nothing is
+    /// left in it, showing it brings the Output back.
+    /// </summary>
+    public void TogglePanel()
+    {
+        if (_factory.IsBottomPanelShown)
+        {
+            _factory.HideBottomPanel();
+            _hidePanelAfterDebugging = false;   // hidden on purpose: no need to hide it again
+            SavePanel();
+            return;
+        }
+
+        _factory.ShowBottomPanel();
+        _hidePanelAfterDebugging = false;
+        if (!_factory.BottomPanelHasTools)
+            ShowTool(ToolTab.Output);
+        SavePanel();
+    }
+
+    /// <summary>
+    /// Debugging started: Locals, Watch and Call Stack join the bottom panel, which shows even if it was hidden (as
+    /// in Visual Studio). Debugging ended: they leave, and the panel is hidden again if it was before.
+    /// </summary>
+    public void Receive(DebugSessionChangedMessage message)
+    {
+        if (message.IsDebugging == _debugging)
+            return;
+        _debugging = message.IsDebugging;
+
+        if (_debugging)
+        {
+            _hidePanelAfterDebugging = !_factory.IsBottomPanelShown;
+            foreach (var id in DebugTools)
+                _factory.PutBack(_factory.Tools[id]);
+            _factory.ShowBottomPanel();
+            return;
+        }
+
+        foreach (var id in DebugTools)
+            _factory.RemoveTool(_factory.Tools[id]);
+        if (_hidePanelAfterDebugging)
+            _factory.HideBottomPanel();
+        _hidePanelAfterDebugging = false;
+    }
+
+    /// <summary>Open the remembered optional tabs, then hide the panel if it was left hidden.</summary>
+    private void RestorePanel(PanelSettings panel)
+    {
+        foreach (var id in panel.OpenTools.Intersect(OptionalTools))
+            _factory.PutBack(_factory.Tools[id]);
+        if (!panel.Visible)
+            _factory.HideBottomPanel();
+    }
+
+    /// <summary>Remember the bottom panel as the user left it (not while debugging, which changes it for a while).</summary>
+    private void SavePanel()
+    {
+        if (_debugging || _shuttingDown)
+            return;
+        _settings.Panel = new PanelSettings
+        {
+            Visible = _factory.IsBottomPanelShown,
+            OpenTools = [.. OptionalTools.Where(id => _factory.IsOpen(_factory.Tools[id]))]
+        };
     }
 
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e)
@@ -297,6 +377,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>
     {
         if (e.Dockable is PageDockable page)
             ForgetPage(page);
+        else if (e.Dockable is ToolDockable)
+            SavePanel();   // a tab's X (Terminal, Tests)
     }
 
     private void ForgetPage(PageDockable page)

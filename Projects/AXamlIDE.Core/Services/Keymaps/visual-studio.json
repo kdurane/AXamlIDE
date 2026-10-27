@@ -33,6 +33,9 @@
     "View.Problems": "Ctrl+Shift+M",
     "View.Output": "Ctrl+Alt+O",
     "View.DebugConsole": "Ctrl+Shift+Y",
+    "View.Terminal": "Ctrl+`",
+    "View.TestExplorer": "Ctrl+E, T",
+    "View.TogglePanel": "Ctrl+Shift+F12",   // Rider's Hide All Tool Windows; VS has none, and Ctrl+J is Insert Snippet here
 
     // ---- Navigate
     "Navigate.GoToFile": "Ctrl+P",
@@ -58,6 +61,10 @@
     "Debug.Watch": "Alt+3",
     "Debug.Locals": "Alt+4",
     "Debug.CallStack": "Alt+7",
+
+    // ---- Test (VS's Ctrl+R, A clashes with Rename's Ctrl+R here, so VS Code's keys)
+    "Test.RunAll": "Ctrl+;, A",
+    "Test.RunFailed": "Ctrl+;, E",
 
     // ---- Tools
     "Tools.Settings": "Ctrl+,"

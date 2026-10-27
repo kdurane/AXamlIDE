@@ -94,7 +94,7 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
             return;
         }
 
-        if (GetRootPath() is not { } rootPath)
+        if (GetSearchRoots() is not { Count: > 0 } roots)
         {
             SearchStatus = "Open a folder or solution before searching.";
             return;
@@ -106,8 +106,8 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
         SearchStatus = "Searching...";
         try
         {
-            var summary = await _search.SearchAsync(rootPath, query, openDocuments);
-            var groups = SearchResultGroup.Build(rootPath, summary.Results, query);
+            var summary = await _search.SearchAsync(roots, query, openDocuments);
+            var groups = SearchResultGroup.Build(roots[0], summary.Results, query);
             foreach (var group in groups)
                 SearchResults.Add(group);
 
@@ -166,7 +166,7 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
             return null;
         }
 
-        if (GetRootPath() is not { } rootPath)
+        if (GetSearchRoots() is not { Count: > 0 } roots)
         {
             SearchStatus = "Open a folder or solution before replacing.";
             return null;
@@ -178,7 +178,7 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
         SearchStatus = "Preparing replace...";
         try
         {
-            var plan = await _search.PrepareReplaceAsync(rootPath, query, ReplaceText, openDocuments);
+            var plan = await _search.PrepareReplaceAsync(roots, query, ReplaceText, openDocuments);
             SearchStatus = plan.LimitReached
                 ? "More than 5,000 matches found. Narrow the search before replacing."
                 : $"{plan.MatchCount} match(es) in {plan.Files.Count} file(s) ready to replace.";
@@ -204,7 +204,7 @@ public sealed partial class SearchViewModel : ObservableObject, IRecipient<Focus
         return _search.ApplyReplacePlan(plan, openDocuments);
     }
 
-    private string? GetRootPath() => _workspace.RootDirectory;
+    private IReadOnlyList<string> GetSearchRoots() => _workspace.SearchRoots;
 
     private Dictionary<string, string> SnapshotOpenTexts()
         => OpenDocuments.ToDictionary(

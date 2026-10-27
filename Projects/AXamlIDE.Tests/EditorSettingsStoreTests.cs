@@ -48,6 +48,26 @@ public sealed class EditorSettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void The_bottom_panel_loads_back_as_it_was_left()
+    {
+        var store = new EditorSettingsStore(SettingsPath);
+        var settings = new EditorSettings { Panel = new PanelSettings { Visible = false, OpenTools = ["terminal"] } };
+
+        store.Save(settings);
+
+        Assert.Equal(settings, new EditorSettingsStore(SettingsPath).Load().Settings);
+    }
+
+    [Fact]
+    public void A_file_without_the_panel_shows_it_with_no_optional_tabs()
+    {
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(SettingsPath, """{ "SchemaVersion": 3, "Panel": { "OpenTools": null } }""");
+
+        Assert.Equal(new PanelSettings(), new EditorSettingsStore(SettingsPath).Load().Settings.Panel);
+    }
+
+    [Fact]
     public void Features_missing_from_the_file_keep_their_defaults()
     {
         Directory.CreateDirectory(_directory);

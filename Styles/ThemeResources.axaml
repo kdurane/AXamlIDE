@@ -18,7 +18,7 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ResourceDictionary.ThemeDictionaries>
         <!--  The base looks: what a theme falls back to.  -->
-        <!--  Also VS Code's defaults for the Git graph colours, which no theme here sets (a theme file can override them).  -->
+        <!--  Also VS Code's defaults for the Git graph and test result colours, which no theme here sets (a theme file can override them).  -->
         <ResourceDictionary x:Key="Dark">
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Dock.Avalonia.Themes.Fluent/Presets/Ide/VsCodeDark.axaml" />
@@ -32,6 +32,9 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="scmGraph.historyItemRemoteRefColor">#B180D7</Color>
             <Color x:Key="app.scmGraph.tagColor">#D18616</Color>   <!-- ours: VS Code's chart orange -->
             <Color x:Key="app.scmGraph.labelForeground">#FFFFFF</Color>
+            <Color x:Key="testing.iconPassed">#73C991</Color>
+            <Color x:Key="testing.iconFailed">#F14C4C</Color>
+            <Color x:Key="testing.iconSkipped">#848484</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
             <ResourceDictionary.MergedDictionaries>
@@ -46,6 +49,9 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="scmGraph.historyItemRemoteRefColor">#652D90</Color>
             <Color x:Key="app.scmGraph.tagColor">#D18616</Color>
             <Color x:Key="app.scmGraph.labelForeground">#FFFFFF</Color>
+            <Color x:Key="testing.iconPassed">#388A34</Color>
+            <Color x:Key="testing.iconFailed">#F14C4C</Color>
+            <Color x:Key="testing.iconSkipped">#848484</Color>
         </ResourceDictionary>
 
         <!--  The themes in Settings.  -->
@@ -161,6 +167,11 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource scmGraph.historyItemRemoteRefColor}" x:Key="GitGraphRemoteBranchBrush" />
     <SolidColorBrush Color="{DynamicResource app.scmGraph.tagColor}" x:Key="GitGraphTagBrush" />
     <SolidColorBrush Color="{DynamicResource app.scmGraph.labelForeground}" x:Key="GitGraphLabelForegroundBrush" />
+
+    <!--  Test Explorer: a test's result  -->
+    <SolidColorBrush Color="{DynamicResource testing.iconPassed}" x:Key="TestPassedBrush" />
+    <SolidColorBrush Color="{DynamicResource testing.iconFailed}" x:Key="TestFailedBrush" />
+    <SolidColorBrush Color="{DynamicResource testing.iconSkipped}" x:Key="TestSkippedBrush" />
 
     <!--  Diff view (Editor/Diff/DiffLineRenderer)  -->
     <SolidColorBrush Color="{DynamicResource diffEditor.insertedLineBackground}" x:Key="DiffInsertedLineBrush" />

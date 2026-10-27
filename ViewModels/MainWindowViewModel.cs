@@ -48,6 +48,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         SearchViewModel search,
         ProblemsViewModel problems,
         RunViewModel run,
+        TerminalViewModel terminal,
+        TestExplorerViewModel tests,
         PropertiesViewModel properties,
         GitViewModel git,
         NuGetManager nuGet,
@@ -76,6 +78,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Search = search;
         Problems = problems;
         Run = run;
+        Terminal = terminal;
+        Tests = tests;
         Properties = properties;
         Git = git;
         NuGet = nuGet;
@@ -108,6 +112,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public ExplorerViewModel Explorer { get; }
     public ProblemsViewModel Problems { get; }
     public RunViewModel Run { get; }
+    public TerminalViewModel Terminal { get; }
+    public TestExplorerViewModel Tests { get; }
     public PropertiesViewModel Properties { get; }
     public GitViewModel Git { get; }
     public NuGetManager NuGet { get; }
@@ -175,6 +181,18 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     [RelayCommand]
     private void ToggleExplorer() => Docking.ToggleExplorer();
+
+    /// <summary>VS Code's Toggle Panel (Ctrl+J): hide or show the bottom panel (Problems, Output, Terminal...).</summary>
+    [RelayCommand]
+    private void TogglePanel() => Docking.TogglePanel();
+
+    /// <summary>View > Terminal (Ctrl+`): show the Terminal and put the cursor on its command line.</summary>
+    [RelayCommand]
+    private void ShowTerminal()
+    {
+        Docking.ShowTool(ToolTab.Terminal);
+        Terminal.RequestFocus();
+    }
 
     /// <summary>The View menu: bring a tool panel (a <see cref="ToolTab"/> id) to the front, putting it back if closed.</summary>
     [RelayCommand]

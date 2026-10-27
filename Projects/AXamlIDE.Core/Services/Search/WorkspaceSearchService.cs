@@ -20,35 +20,27 @@ public sealed class WorkspaceSearchService
           };
 
     public Task<WorkspaceSearchSummary> SearchAsync(
-        string rootPath,
+        IReadOnlyList<string> roots,
         string query,
         IReadOnlyDictionary<string, string> openDocumentTexts,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(rootPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(query);
+        var existing = ExistingRoots(roots);
 
-        var root = Path.GetFullPath(rootPath);
-        if (!Directory.Exists(root))
-            throw new DirectoryNotFoundException($"Workspace directory '{root}' does not exist.");
-
-        return Task.Run(() => Search(root, query, openDocumentTexts, cancellationToken), cancellationToken);
+        return Task.Run(() => Search(existing, query, openDocumentTexts, cancellationToken), cancellationToken);
     }
 
     public Task<IReadOnlyList<string>> ListWorkspaceFilesAsync(
-        string rootPath,
+        IReadOnlyList<string> roots,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(rootPath);
-        var root = Path.GetFullPath(rootPath);
-        if (!Directory.Exists(root))
-            throw new DirectoryNotFoundException($"Workspace directory '{root}' does not exist.");
+        var existing = ExistingRoots(roots);
 
         return Task.Run<IReadOnlyList<string>>(() =>
         {
             var files = new List<string>();
-            var directories = new Stack<string>();
-            directories.Push(root);
+            var directories = PushRoots(existing);
             while (directories.TryPop(out var directory) && files.Count < 20000)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -70,23 +62,41 @@ public sealed class WorkspaceSearchService
     }
 
     public Task<WorkspaceReplacePlan> PrepareReplaceAsync(
-        string rootPath,
+        IReadOnlyList<string> roots,
         string query,
         string replacement,
         IReadOnlyDictionary<string, string> openDocumentTexts,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(rootPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(query);
         ArgumentNullException.ThrowIfNull(replacement);
-
-        var root = Path.GetFullPath(rootPath);
-        if (!Directory.Exists(root))
-            throw new DirectoryNotFoundException($"Workspace directory '{root}' does not exist.");
+        var existing = ExistingRoots(roots);
 
         return Task.Run(
-            () => PrepareReplace(root, query, replacement, openDocumentTexts, cancellationToken),
+            () => PrepareReplace(existing, query, replacement, openDocumentTexts, cancellationToken),
             cancellationToken);
+    }
+
+    /// <summary>The roots that exist: a referenced project that was moved or deleted is skipped, not an error.</summary>
+    private static List<string> ExistingRoots(IReadOnlyList<string> roots)
+    {
+        ArgumentNullException.ThrowIfNull(roots);
+        var existing = roots.Select(Path.GetFullPath).Where(Directory.Exists).ToList();
+        if (existing.Count == 0)
+            throw new DirectoryNotFoundException("None of the workspace folders exist.");
+        return existing;
+    }
+
+    /// <summary>
+    /// The walk's starting stack. A stack pops the last one pushed, so the roots go in backwards: the workspace
+    /// folder is searched first and its matches aren't crowded out of the result limit by referenced projects.
+    /// </summary>
+    private static Stack<string> PushRoots(IReadOnlyList<string> roots)
+    {
+        var directories = new Stack<string>();
+        for (var i = roots.Count - 1; i >= 0; i--)
+            directories.Push(roots[i]);
+        return directories;
     }
 
     public WorkspaceReplaceSummary ApplyReplacePlan(
@@ -154,7 +164,7 @@ public sealed class WorkspaceSearchService
     }
 
     private static WorkspaceReplacePlan PrepareReplace(
-        string root,
+        IReadOnlyList<string> roots,
         string query,
         string replacement,
         IReadOnlyDictionary<string, string> openDocumentTexts,
@@ -165,8 +175,7 @@ public sealed class WorkspaceSearchService
             pair => pair.Value,
             StringComparer.OrdinalIgnoreCase);
         var changes = new List<WorkspaceFileReplacement>();
-        var directories = new Stack<string>();
-        directories.Push(root);
+        var directories = PushRoots(roots);
         var matchCount = 0;
 
         while (directories.TryPop(out var directory))
@@ -273,7 +282,7 @@ public sealed class WorkspaceSearchService
     }
 
     private static WorkspaceSearchSummary Search(
-        string root,
+        IReadOnlyList<string> roots,
         string query,
         IReadOnlyDictionary<string, string> openDocumentTexts,
         CancellationToken cancellationToken)
@@ -283,8 +292,7 @@ public sealed class WorkspaceSearchService
             pair => pair.Value,
             StringComparer.OrdinalIgnoreCase);
         var results = new List<WorkspaceSearchResult>();
-        var directories = new Stack<string>();
-        directories.Push(root);
+        var directories = PushRoots(roots);
         var skippedLargeFiles = 0;
         var unreadableFiles = 0;
         var resultLimitReached = false;

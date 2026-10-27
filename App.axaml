@@ -23,6 +23,7 @@
         <StyleInclude Source="/Styles/TextBlockStyles.axaml" />
         <StyleInclude Source="/Styles/TreeViewStyles.axaml" />
         <StyleInclude Source="/Styles/PaneStyles.axaml" />
+        <StyleInclude Source="/Styles/DockStyles.axaml" />
     </Application.Styles>
 
     <Application.Resources>

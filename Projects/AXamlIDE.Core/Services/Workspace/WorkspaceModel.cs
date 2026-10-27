@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using AXamlIDE.Models;
 
@@ -70,7 +71,33 @@ public sealed class WorkspaceModel : IDisposable
     /// <summary>The directory files live under: the open folder, or the solution file's folder.</summary>
     public string? RootDirectory => WorkspaceRoots.FirstOrDefault() is not { } root
         ? null
-        : root.Kind == NodeKind.Solution ? System.IO.Path.GetDirectoryName(root.FullPath) : root.FullPath;
+        : root.Kind == NodeKind.Solution ? Path.GetDirectoryName(root.FullPath) : root.FullPath;
+
+    /// <summary>
+    /// The folders search walks: the workspace folder, plus the folder of each solution project that
+    /// lives outside it (a solution can list ..\Other\Other.csproj).
+    /// </summary>
+    public IReadOnlyList<string> SearchRoots
+    {
+        get
+        {
+            if (RootDirectory is not { } root)
+                return [];
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var roots = new List<string> { Path.GetFullPath(root) };
+            // Shortest first, so a parent folder is added before anything inside it (no folder walked twice).
+            foreach (var folder in SolutionProjects
+                         .Select(project => Path.GetDirectoryName(Path.GetFullPath(project))!)
+                         .OrderBy(folder => folder.Length))
+            {
+                if (!roots.Any(existing => string.Equals(folder, existing, comparison)
+                                           || folder.StartsWith(existing + Path.DirectorySeparatorChar, comparison)))
+                    roots.Add(folder);
+            }
+
+            return roots;
+        }
+    }
 
     public MsBuildHostClient Host
     {
@@ -104,10 +131,10 @@ public sealed class WorkspaceModel : IDisposable
             : "AXamlIDE.msbuildhost";
 
         var overridePath = Environment.GetEnvironmentVariable("AXAMLIDE_HOST");
-        if (!string.IsNullOrEmpty(overridePath) && System.IO.File.Exists(overridePath))
+        if (!string.IsNullOrEmpty(overridePath) && File.Exists(overridePath))
             return overridePath;
 
-        return System.IO.Path.Combine(AppContext.BaseDirectory, "msbuildhost", executable);
+        return Path.Combine(AppContext.BaseDirectory, "msbuildhost", executable);
     }
 
     public void Dispose()

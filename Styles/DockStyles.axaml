@@ -1,11 +1,83 @@
-<Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Design.PreviewWith>
-        <Border Padding="20">
-            <!-- Add Controls for Previewer Here -->
-        </Border>
-    </Design.PreviewWith>
+<!--
+The bottom panel (Problems, Output, Debug Console, Terminal...), made to look like VS Code's: the tabs along the top,
+with an X on the right that hides the whole panel (View.TogglePanel), and an X on the tabs that can be closed
+(Terminal, Tests, the debugger windows). Only the dock with Id "BottomTools" (ViewModels/DockFactory) gets this;
+Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the selectors match.
+-->
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:core="using:Dock.Model.Core"
+    xmlns:shell="using:AXamlIDE.Shell"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!--  No title bar: the content (the tabs and the selected tool), with the panel's own buttons over the tab row's right end.  -->
+    <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolChromeControl">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <ContentPresenter
+                        Background="{TemplateBinding Background}"
+                        Content="{TemplateBinding Content}"
+                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                        Name="PART_ContentPresenter" />
+                    <Button
+                        AutomationProperties.Name="Hide Panel"
+                        Classes="icon panelHide"
+                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}"
+                        Name="HidePanelButton"
+                        shell:KeyMap.ShortcutTip="Hide Panel">
+                        <PathIcon Data="{StaticResource Icon.Close}" />
+                    </Button>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
 
+    <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolControl">
+        <Setter Property="HeaderTemplate">
+            <DataTemplate x:DataType="core:IDockable">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        Padding="{DynamicResource DockHeaderContentPadding}"
+                        Text="{Binding Title}"
+                        VerticalAlignment="Center" />
+                    <Button
+                        AutomationProperties.Name="Close"
+                        Classes="icon panelTabClose"
+                        Command="{Binding Owner.Factory.CloseDockable, FallbackValue={x:Null}}"
+                        CommandParameter="{Binding}"
+                        IsVisible="{Binding CanClose}"
+                        ToolTip.Tip="Close">
+                        <PathIcon Data="{StaticResource Icon.Close}" />
+                    </Button>
+                </StackPanel>
+            </DataTemplate>
+        </Setter>
+    </Style>
 
+    <!--  The tabs on top, kept clear of the Hide Panel button; shown even when there's only one.  -->
+    <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolControl /template/ ToolTabStrip#PART_TabStrip">
+        <Setter Property="DockPanel.Dock" Value="Top" />
+        <Setter Property="Padding" Value="0,0,32,0" />
+    </Style>
+    <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolTabStrip:singleitem /template/ ItemsPresenter#PART_ItemsPresenter">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <!--  Set here, not in the template: a template's own values lose to Button.icon's.  -->
+    <Style Selector="Button.panelHide">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="0,3,6,0" />
+    </Style>
+
+    <Style Selector="Button.panelTabClose">
+        <Setter Property="Margin" Value="4,0,-4,0" />
+        <Setter Property="Padding" Value="2" />
+    </Style>
+    <Style Selector="Button.panelTabClose PathIcon">
+        <Setter Property="Width" Value="10" />
+        <Setter Property="Height" Value="10" />
+    </Style>
 </Styles>
