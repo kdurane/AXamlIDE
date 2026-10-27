@@ -227,8 +227,13 @@ public sealed partial class GitViewModel : ObservableObject
     private async Task<bool> RunRemoteAsync(Func<string, Task> action, string starting, string? done)
     {
         var error = await TryRunAsync(action, starting, done);
-        if (error is { Length: > 0 } && IsSignInProblem(error) && await OfferSignInSetupAsync())
-            error = await TryRunAsync(action, starting + " Sign in if a window or your browser opens.", done);
+        if (error is { Length: > 0 } && IsSignInProblem(error) && _tracker.RepositoryRoot is { } root)
+        {
+            if (await _credentials.FindBrokenHelperAsync(root) is { } broken)
+                error = "Git Credential Manager won't start: " + broken;
+            else if (await OfferSignInSetupAsync())
+                error = await TryRunAsync(action, starting + " Sign in if a window or your browser opens.", done);
+        }
         if (error is { Length: > 0 })
             Report(error);
         return error is null;

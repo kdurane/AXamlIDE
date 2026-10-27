@@ -1,4 +1,4 @@
-# AXamlIDE
+﻿# AXamlIDE
 
 A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 
@@ -25,6 +25,7 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 - Roslyn language server, for C# features:
   `dotnet tool install --global roslyn-language-server --prerelease`
 - `git` on `PATH`, for the Git features
+- Git credential manager `dotnet tool update -g git-credential-manager --version 3.0.1`
 
 The netcoredbg debugger is bundled in `Projects/netcoredbg/`.
 

@@ -32,6 +32,16 @@ public sealed class GitCredentialSetup
         return exitCode == 0 && output.Trim().Length > 0 ? output.Trim() : null;
     }
 
+    /// <summary>Null if git's credential helper starts (or isn't a program we can try), else its first error line.</summary>
+    public async Task<string?> FindBrokenHelperAsync(string directory)
+    {
+        if (await GetHelperAsync(directory) is not { } helper || !File.Exists(helper))
+            return null;   // none, or "store"/"cache"/a shell snippet: git runs those itself
+        var (exitCode, _, error) = await RunAsync(helper, ["--version"], null);
+        return exitCode == 0 ? null : FirstLine(error);
+    }
+
+
     /// <summary>GCM's executable: on PATH, or where <c>dotnet tool install -g</c> puts it. Null if not installed.</summary>
     public static string? FindManager()
     {
