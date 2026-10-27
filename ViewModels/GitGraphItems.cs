@@ -21,12 +21,13 @@ public sealed partial class GitGraphCommitItem(GitCommit commit, GitGraphRow row
 
     public string Subject => Commit.Subject;
     public IReadOnlyList<GitRef> Refs => Commit.Refs;
+    public bool HasRefs => Commit.Refs.Count > 0;
 
-    /// <summary>"Ann, 2 hours ago".</summary>
-    public string AuthorAndDate => $"{Commit.AuthorName}, {GitDates.Ago(Commit.Date)}";
+    /// <summary>For the hover card: "2 hours ago (Tuesday, 27 October 2026 09:08)".</summary>
+    public string DateText => $"{GitDates.Ago(Commit.Date)} ({Commit.Date.LocalDateTime:f})";
 
-    public string ToolTip => $"{Commit.Subject}\n\n{Commit.AuthorName} <{Commit.AuthorEmail}>\n"
-                             + $"{Commit.Date.LocalDateTime:f} ({GitDates.Ago(Commit.Date)})\n{Commit.Hash}";
+    /// <summary>For the hover card: the whole message, subject and body.</summary>
+    public string Message => Commit.Body.Length > 0 ? Commit.Subject + "\n\n" + Commit.Body : Commit.Subject;
 
     /// <summary>Its changed files are listed under it.</summary>
     [ObservableProperty]

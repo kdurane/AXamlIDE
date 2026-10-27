@@ -136,6 +136,12 @@ public sealed partial class GitViewModel
             await _clipboard.SetTextAsync(item.Commit.Subject);
     }
 
+    /// <summary>The current branch's line is drawn in its label's colour from its label down, and so is its upstream's (VS Code).</summary>
+    private static int? LabelColor(GitCommit commit, string? upstream)
+        => commit.Refs.Any(label => label.Kind is GitRefKind.CurrentBranch or GitRefKind.DetachedHead) ? GitGraphLayout.CurrentBranchColor
+            : commit.Refs.Any(label => label.Kind == GitRefKind.RemoteBranch && label.Name == upstream) ? GitGraphLayout.UpstreamColor
+            : null;
+
     /// <summary>
     /// Read the graph again if anything it shows has moved (or it's forced by clearing <see cref="_graphSnapshot"/>).
     /// Opened commits stay open.
@@ -172,7 +178,7 @@ public sealed partial class GitViewModel
 
         var open = GraphItems.OfType<GitGraphCommitItem>().Where(item => item.IsExpanded)
             .ToDictionary(item => item.Commit.Hash, item => item.Files);
-        var rows = GitGraphLayout.Layout(commits);
+        var rows = GitGraphLayout.Layout(commits, commit => LabelColor(commit, status?.Upstream));
         var items = commits.Select((commit, i) => new GitGraphCommitItem(commit, rows[i], commit.Hash == status?.HeadCommit)).ToList();
 
         GraphItems.Clear();

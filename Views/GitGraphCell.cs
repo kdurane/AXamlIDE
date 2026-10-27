@@ -8,7 +8,8 @@ namespace AXamlIDE.Views;
 /// <summary>
 /// Draws one row of the Git graph (a <see cref="GitGraphRow"/> from GitGraphLayout): the lines coming in at the top,
 /// the lines going out at the bottom, and the commit's dot, like VS Code's Source Control Graph. The rows sit with no
-/// gap between them, so the lines join up. A lane's colour is GitGraphLane1Brush..5 in turn (Styles/ThemeResources).
+/// gap between them, so the lines join up. A lane's colour is GitGraphLane1Brush..5 in turn (Styles/ThemeResources),
+/// or the label colours for the current branch's line and its upstream's (GitGraphBranchBrush, GitGraphRemoteBranchBrush).
 /// The dot is hollow for a merge and has a ring round it for the checked-out commit (HEAD).
 /// </summary>
 public class GitGraphCell : Control
@@ -109,13 +110,15 @@ public class GitGraphCell : Control
 
     private static double X(int lane) => lane * LaneWidth + LaneWidth / 2 + 2;
 
-    private IBrush LaneBrush(int color)
-        => this.TryFindResource(LaneBrushKeys[color % LaneBrushKeys.Length], ActualThemeVariant, out var brush) && brush is IBrush found
-            ? found
-            : Brushes.Gray;
+    private IBrush LaneBrush(int color) => FindBrush(color switch
+    {
+        GitGraphLayout.CurrentBranchColor => "GitGraphBranchBrush",
+        GitGraphLayout.UpstreamColor => "GitGraphRemoteBranchBrush",
+        _ => LaneBrushKeys[color % LaneBrushKeys.Length]
+    }) ?? Brushes.Gray;
 
-    private IBrush Background()
-        => this.TryFindResource("ThemeBackgroundBrush", ActualThemeVariant, out var brush) && brush is IBrush found
-            ? found
-            : Brushes.Transparent;
+    private IBrush Background() => FindBrush("ThemeBackgroundBrush") ?? Brushes.Transparent;
+
+    private IBrush? FindBrush(string key)
+        => this.TryFindResource(key, ActualThemeVariant, out var brush) ? brush as IBrush : null;
 }

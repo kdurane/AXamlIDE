@@ -74,16 +74,55 @@
                 </Button>
             </Grid>
         </DataTemplate>
+
+        <!--  A branch or tag label in the graph (on a commit's row and in its hover card), coloured like VS Code's.  -->
+        <DataTemplate x:DataType="models:GitRef" x:Key="GitRefLabelTemplate">
+            <Border
+                Background="{Binding Kind, Converter={x:Static views:GitRefConverters.Brush}}"
+                CornerRadius="3"
+                Margin="4,0,0,0"
+                MaxWidth="120"
+                Padding="4,0">
+                <TextBlock
+                    FontSize="10"
+                    Foreground="{DynamicResource GitGraphLabelForegroundBrush}"
+                    Text="{Binding Name}"
+                    TextTrimming="CharacterEllipsis" />
+            </Border>
+        </DataTemplate>
     </UserControl.Resources>
 
     <!--  The Git graph's rows (GraphItems holds all three kinds).  -->
     <UserControl.DataTemplates>
-        <!--  A commit in the graph: its part of the graph, subject, and branch/tag labels. Clicking it lists its files.  -->
+        <!--
+            A commit in the graph: its part of the graph, subject, and branch/tag labels. Clicking it lists its files.
+            Hovering anywhere on it (labels too) shows VS Code's card: author, date, the whole message, labels, hash.
+        -->
         <DataTemplate x:DataType="vm:GitGraphCommitItem">
-            <Grid
-                Background="Transparent"
-                ColumnDefinitions="Auto,*,Auto"
-                ToolTip.Tip="{Binding ToolTip}">
+            <Grid Background="Transparent" ColumnDefinitions="Auto,*,Auto">
+                <ToolTip.Tip>
+                    <StackPanel MaxWidth="420" Spacing="8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontWeight="Bold" Text="{Binding Commit.AuthorName}" />
+                            <TextBlock Text="{Binding DateText, StringFormat=', {0}'}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Message}" TextWrapping="Wrap" />
+                        <ItemsControl
+                            IsVisible="{Binding HasRefs}"
+                            ItemTemplate="{StaticResource GitRefLabelTemplate}"
+                            ItemsSource="{Binding Refs}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <TextBlock
+                            FontFamily="monospace"
+                            Opacity="0.7"
+                            Text="{Binding Commit.Hash}" />
+                    </StackPanel>
+                </ToolTip.Tip>
                 <Grid.ContextMenu>
                     <ContextMenu>
                         <MenuItem
@@ -108,6 +147,7 @@
                     VerticalAlignment="Center" />
                 <ItemsControl
                     Grid.Column="2"
+                    ItemTemplate="{StaticResource GitRefLabelTemplate}"
                     ItemsSource="{Binding Refs}"
                     VerticalAlignment="Center">
                     <ItemsControl.ItemsPanel>
@@ -115,23 +155,6 @@
                             <StackPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:GitRef">
-                            <Border
-                                Background="{Binding Kind, Converter={x:Static views:GitRefConverters.Brush}}"
-                                CornerRadius="3"
-                                Margin="4,0,0,0"
-                                MaxWidth="120"
-                                Padding="4,0">
-                                <TextBlock
-                                    FontSize="10"
-                                    Foreground="{DynamicResource GitGraphLabelForegroundBrush}"
-                                    Text="{Binding Name}"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTip.Tip="{Binding Name}" />
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Grid>
         </DataTemplate>

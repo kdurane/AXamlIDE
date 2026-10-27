@@ -14,10 +14,10 @@ public static class GitLogParser
     private const char RecordSeparator = '\x1e';   // %x1e: ends each commit
 
     /// <summary>
-    /// The <c>--format</c> for <see cref="ParseLog"/>: hash, parents, author, email, date, refs, subject. Use it
+    /// The <c>--format</c> for <see cref="ParseLog"/>: hash, parents, author, email, date, refs, subject, body. Use it
     /// with <c>--decorate=full</c>, so the refs say what they are ("refs/remotes/origin/main", not "origin/main").
     /// </summary>
-    public const string Format = "%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%D%x1f%s%x1e";
+    public const string Format = "%H%x1f%P%x1f%an%x1f%ae%x1f%aI%x1f%D%x1f%s%x1f%b%x1e";
 
     public static IReadOnlyList<GitCommit> ParseLog(string output)
     {
@@ -35,7 +35,8 @@ public static class GitLogParser
                 AuthorEmail: fields[3],
                 Date: DateTimeOffset.TryParse(fields[4], CultureInfo.InvariantCulture, DateTimeStyles.None, out var date) ? date : default,
                 Subject: fields[6],
-                Refs: ParseRefs(fields[5])));
+                Refs: ParseRefs(fields[5]),
+                Body: fields.Length > 7 ? fields[7].Trim() : ""));
         }
         return commits;
     }

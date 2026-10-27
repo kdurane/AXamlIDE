@@ -20,6 +20,7 @@ public sealed record GitRef(string Name, GitRefKind Kind);
 
 /// <summary>One commit from <c>git log</c>.</summary>
 /// <param name="Parents">The parent hashes: none for the first commit, two (or more) for a merge.</param>
+/// <param name="Body">The rest of the message after the subject line ("" when there's only a subject).</param>
 public sealed record GitCommit(
     string Hash,
     IReadOnlyList<string> Parents,
@@ -27,7 +28,8 @@ public sealed record GitCommit(
     string AuthorEmail,
     DateTimeOffset Date,
     string Subject,
-    IReadOnlyList<GitRef> Refs)
+    IReadOnlyList<GitRef> Refs,
+    string Body = "")
 {
     public string ShortHash => Hash.Length > 7 ? Hash[..7] : Hash;
     public bool IsMerge => Parents.Count > 1;

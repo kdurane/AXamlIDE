@@ -145,6 +145,7 @@ public partial class EditorPaneView : UserControl,
 
         Editor.Options.EnableTextDragDrop = true;
         Editor.Options.CompletionAcceptAction = CompletionAcceptAction.DoubleTapped;
+        Editor.Options.AllowScrollBelowDocument = false;   // stop at the last line, as VS and Rider do
 
         // Tunnel: seen before the editor's ScrollViewer, so Ctrl+wheel zooms without scrolling too.
         Editor.AddHandler(PointerWheelChangedEvent, OnPointerWheelChanged, RoutingStrategies.Tunnel);

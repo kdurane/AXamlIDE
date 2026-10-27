@@ -169,6 +169,10 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
 
     <!--  Hover card and diagnostics (Editor/Hover/HoverCard)  -->
     <SolidColorBrush Color="{DynamicResource editorHoverWidget.background}" x:Key="HoverBackgroundBrush" />
+    <!--  Tooltips (Fluent's keys) look like VS Code's hovers: the Git graph's commit card, and every other tooltip  -->
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.background}" x:Key="ToolTipBackground" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.foreground}" x:Key="ToolTipForeground" />
+    <SolidColorBrush Color="{DynamicResource editorHoverWidget.border}" x:Key="ToolTipBorderBrush" />
     <SolidColorBrush Color="{DynamicResource editorHoverWidget.foreground}" x:Key="HoverForegroundBrush" />
     <SolidColorBrush Color="{DynamicResource editorHoverWidget.border}" x:Key="HoverBorderBrush" />
     <SolidColorBrush Color="{DynamicResource editorError.foreground}" x:Key="DiagnosticErrorBrush" />

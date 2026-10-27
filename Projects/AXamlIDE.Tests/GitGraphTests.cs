@@ -12,8 +12,9 @@ public sealed class GitGraphTests
     public void Parses_log_records_and_their_refs()
     {
         var output = "aaa\u001fbbb ccc\u001fAnn\u001fann@example.com\u001f2026-10-27T09:08:57+01:00\u001f"
-                     + "HEAD -> refs/heads/main, refs/remotes/origin/main, refs/remotes/origin/HEAD, tag: refs/tags/v1\u001fMerge it\u001e\n"
-                     + "bbb\u001f\u001fBob\u001fbob@example.com\u001f2026-10-26T10:00:00Z\u001f\u001fFirst\u001e\n";
+                     + "HEAD -> refs/heads/main, refs/remotes/origin/main, refs/remotes/origin/HEAD, tag: refs/tags/v1\u001fMerge it\u001f"
+                     + "Why it was merged.\n\nSecond paragraph.\n\u001e\n"
+                     + "bbb\u001f\u001fBob\u001fbob@example.com\u001f2026-10-26T10:00:00Z\u001f\u001fFirst\u001f\u001e\n";
 
         var commits = GitLogParser.ParseLog(output);
 
@@ -25,6 +26,8 @@ public sealed class GitGraphTests
         Assert.Equal(
             [new GitRef("main", GitRefKind.CurrentBranch), new GitRef("origin/main", GitRefKind.RemoteBranch), new GitRef("v1", GitRefKind.Tag)],
             commits[0].Refs);
+        Assert.Equal("Why it was merged.\n\nSecond paragraph.", commits[0].Body);
+        Assert.Equal("", commits[1].Body);
         Assert.Empty(commits[1].Parents);
         Assert.Empty(commits[1].Refs);
     }
@@ -110,6 +113,35 @@ public sealed class GitGraphTests
         Assert.Equal(-1, below.Lane);
         Assert.Equal([new GitGraphLine(0, 0, 0), new GitGraphLine(1, 1, 1)], below.Top);
         Assert.Equal(below.Top, below.Bottom);
+    }
+
+    [Fact]
+    public void A_branch_label_colours_its_line_from_there_down()
+    {
+        //   x        a feature tip, above main's tip
+        //   |
+        //   m        main (checked out): from here down the line is main's colour
+        //   |
+        //   base
+        var commits = new[] { Commit("x", "m"), Commit("m", "base"), Commit("base") };
+
+        var rows = GitGraphLayout.Layout(commits, commit => commit.Hash == "m" ? GitGraphLayout.CurrentBranchColor : null);
+
+        Assert.Equal(0, rows[0].Color);                                                    // above main: a colour in turn
+        Assert.Equal([new GitGraphLine(0, 0, 0)], rows[1].Top);                            // the line into main keeps it
+        Assert.Equal(GitGraphLayout.CurrentBranchColor, rows[1].Color);
+        Assert.Equal([new GitGraphLine(0, 0, GitGraphLayout.CurrentBranchColor)], rows[1].Bottom);
+        Assert.Equal(GitGraphLayout.CurrentBranchColor, rows[2].Color);
+    }
+
+    [Fact]
+    public void A_labelled_tip_starts_in_its_colour_without_using_one_in_turn()
+    {
+        var rows = GitGraphLayout.Layout([Commit("m", "base"), Commit("y", "base"), Commit("base")],
+            commit => commit.Hash == "m" ? GitGraphLayout.UpstreamColor : null);
+
+        Assert.Equal(GitGraphLayout.UpstreamColor, rows[0].Color);
+        Assert.Equal(0, rows[1].Color);   // the next lane still gets the first colour
     }
 
     private static GitCommit Commit(string hash, params string[] parents)

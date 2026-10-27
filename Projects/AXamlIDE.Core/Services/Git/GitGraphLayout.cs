@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using AXamlIDE.Models;
@@ -7,7 +8,8 @@ namespace AXamlIDE.Services.Git;
 /// <summary>
 /// A line drawn through half a row of the Git graph, from one lane to another (the same lane for a straight line).
 /// In <see cref="GitGraphRow.Top"/> it runs from the row's top edge to its middle; in <see cref="GitGraphRow.Bottom"/>
-/// from the middle to the bottom edge. <see cref="Color"/> counts up from 0; the view picks a colour from it.
+/// from the middle to the bottom edge. <see cref="Color"/> counts up from 0 and the view picks a colour from it in
+/// turn, except for <see cref="GitGraphLayout.CurrentBranchColor"/> and <see cref="GitGraphLayout.UpstreamColor"/>.
 /// </summary>
 public sealed record GitGraphLine(int FromLane, int ToLane, int Color);
 
@@ -17,7 +19,7 @@ public sealed record GitGraphLine(int FromLane, int ToLane, int Color);
 public sealed record GitGraphRow(int Lane, int Color, IReadOnlyList<GitGraphLine> Top, IReadOnlyList<GitGraphLine> Bottom)
 {
     /// <summary>How many lanes wide the row is.</summary>
-    public int Width => Top.Concat(Bottom).Select(line => System.Math.Max(line.FromLane, line.ToLane))
+    public int Width => Top.Concat(Bottom).Select(line => Math.Max(line.FromLane, line.ToLane))
         .Append(Lane).DefaultIfEmpty(-1).Max() + 1;
 
     /// <summary>
@@ -46,10 +48,25 @@ public sealed record GitGraphRow(int Lane, int Color, IReadOnlyList<GitGraphLine
 ///      for that parent, or a new one;
 ///   4. every other lane carries straight on.
 /// A new lane takes the first free column, so the graph stays narrow, and a new colour.
+///
+/// Like VS Code, the current branch's line is drawn in its label's colour, and so is its upstream's: at the commit the
+/// label is on, the lane switches to <paramref name="labelColor"/>'s colour from there down (the line above keeps the
+/// colour it had).
 /// </summary>
 public static class GitGraphLayout
 {
-    public static IReadOnlyList<GitGraphRow> Layout(IReadOnlyList<GitCommit> commits)
+    /// <summary>The colour of the current branch's line (its label's colour), not one of the colours in turn.</summary>
+    public const int CurrentBranchColor = -1;
+
+    /// <summary>The colour of the current branch's upstream's line ("origin/main").</summary>
+    public const int UpstreamColor = -2;
+
+    /// <param name="commits">Newest first, children before parents.</param>
+    /// <param name="labelColor">
+    /// For a commit with a label whose line has its own colour (<see cref="CurrentBranchColor"/>,
+    /// <see cref="UpstreamColor"/>), that colour; else null.
+    /// </param>
+    public static IReadOnlyList<GitGraphRow> Layout(IReadOnlyList<GitCommit> commits, Func<GitCommit, int?>? labelColor = null)
     {
         var lanes = new List<string?>();   // the commit each lane is waiting for; null for a free column
         var colors = new List<int>();
@@ -78,8 +95,11 @@ public static class GitGraphLayout
                     lanes[i] = null;   // this branch ends here
             }
 
+            var ownColor = labelColor?.Invoke(commit);
             if (lane < 0)   // nothing above leads here: a branch tip
-                lane = NewLane(lanes, colors, commit.Hash, nextColor++);
+                lane = NewLane(lanes, colors, commit.Hash, ownColor ?? nextColor++);
+            else if (ownColor is { } switched)
+                colors[lane] = switched;   // the line below a branch's label takes the label's colour
             var color = colors[lane];
 
             // 3: wait for the parents.
