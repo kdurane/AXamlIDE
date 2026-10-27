@@ -124,6 +124,59 @@ public sealed class GitService
     /// <summary>Bring back the latest stash.</summary>
     public Task PopStashAsync(string repositoryRoot) => RunAsync(repositoryRoot, ["stash", "pop"]);
 
+    // ------------------------------------------------------------- history (the Git graph)
+
+    /// <summary>
+    /// The newest <paramref name="maxCount"/> commits, children before parents (<c>--topo-order</c>, so each branch's
+    /// commits stay together): those on HEAD and <paramref name="upstream"/>, or with <paramref name="allBranches"/> on
+    /// every branch, remote branch and tag. Empty before the first commit.
+    /// </summary>
+    public async Task<IReadOnlyList<GitCommit>> GetLogAsync(string repositoryRoot, bool allBranches, string? upstream, int maxCount,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await HasCommitsAsync(repositoryRoot))
+            return [];
+
+        List<string> arguments = ["log", "--topo-order", "--decorate=full", "-n", maxCount.ToString(), "--format=" + GitLogParser.Format];
+        if (allBranches)
+            arguments.AddRange(["--branches", "--remotes", "--tags"]);
+        arguments.Add("HEAD");
+        if (!allBranches && upstream is not null)
+            arguments.Add(upstream);
+        arguments.Add("--");   // the names above are revisions, not files
+        return GitLogParser.ParseLog(await RunAsync(repositoryRoot, arguments, cancellationToken));
+    }
+
+    /// <summary>The files a commit changed, compared with its first parent (everything, for the first commit).</summary>
+    public async Task<IReadOnlyList<GitCommitFile>> GetCommitFilesAsync(string repositoryRoot, GitCommit commit)
+    {
+        var output = await RunAsync(repositoryRoot, commit.Parents.Count == 0
+            ? ["diff-tree", "--root", "--no-commit-id", "-r", "-M", "--name-status", "-z", commit.Hash]
+            : ["diff-tree", "-r", "-M", "--name-status", "-z", commit.Parents[0], commit.Hash]);
+        return GitLogParser.ParseNameStatus(output);
+    }
+
+    /// <summary>
+    /// What the branches, tags and HEAD point at, as one string: it changes when a commit, fetch, pull, reset or branch
+    /// switch moves any of them (the graph reloads only then).
+    /// </summary>
+    public async Task<string> GetRefsSnapshotAsync(string repositoryRoot)
+    {
+        try
+        {
+            var head = await RunAsync(repositoryRoot, ["rev-parse", "-q", "--verify", "HEAD"]);
+            return head + await RunAsync(repositoryRoot, ["for-each-ref", "--format=%(objectname) %(refname)", "refs/heads", "refs/remotes", "refs/tags"]);
+        }
+        catch (GitException)
+        {
+            return "";   // no commits yet
+        }
+    }
+
+    /// <summary>The file's text in a commit, or null if it isn't in it.</summary>
+    public Task<string?> ReadAtCommitAsync(string repositoryRoot, string commit, string relativePath)
+        => ReadObjectAsync(repositoryRoot, commit + ":" + relativePath);
+
     // ------------------------------------------------------------- .gitignore
 
     /// <summary>Ignore a file or folder: adds an anchored rule for it ("/path", "/folder/") to the root .gitignore.</summary>

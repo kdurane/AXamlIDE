@@ -199,6 +199,44 @@ public sealed class GitServiceTests : IDisposable
         Assert.Equal("1", GitOutput("rev-list", "--count", "HEAD").Trim());
     }
 
+    [Fact]
+    public async Task Log_lists_a_merge_with_its_branches_and_files()
+    {
+        Assert.Empty(await _git.GetLogAsync(_workspace.Root, allBranches: true, upstream: null, maxCount: 10));   // no commits yet
+
+        await CommitFileAsync("A.cs", "one");
+        await _git.CreateBranchAsync(_workspace.Root, "feature");
+        await CommitFileAsync("B.cs", "two");
+        await _git.SwitchBranchAsync(_workspace.Root, "main");
+        File.WriteAllText(Path.Combine(_workspace.Root, "A.cs"), "one, changed");
+        Git("commit", "-q", "-am", "Change A");
+        Git("tag", "v1");
+        Git("merge", "-q", "--no-ff", "-m", "Merge feature", "feature");
+
+        var log = await _git.GetLogAsync(_workspace.Root, allBranches: false, upstream: null, maxCount: 10);
+
+        Assert.Equal(4, log.Count);
+        var merge = log[0];
+        Assert.Equal("Merge feature", merge.Subject);
+        Assert.True(merge.IsMerge);
+        Assert.Contains(new GitRef("main", GitRefKind.CurrentBranch), merge.Refs);
+        Assert.Contains(log, commit => commit.Refs.Contains(new GitRef("feature", GitRefKind.Branch)));
+        Assert.Contains(log, commit => commit.Refs.Contains(new GitRef("v1", GitRefKind.Tag)));
+        Assert.Equal("Test", merge.AuthorName);
+
+        var first = log[^1];
+        Assert.Equal([new GitCommitFile("A.cs", GitFileState.Added)], await _git.GetCommitFilesAsync(_workspace.Root, first));
+        var changeA = log.Single(commit => commit.Subject == "Change A");
+        Assert.Equal([new GitCommitFile("A.cs", GitFileState.Modified)], await _git.GetCommitFilesAsync(_workspace.Root, changeA));
+        Assert.Equal("one", await _git.ReadAtCommitAsync(_workspace.Root, first.Hash, "A.cs"));
+        Assert.Null(await _git.ReadAtCommitAsync(_workspace.Root, first.Hash, "B.cs"));
+
+        var before = await _git.GetRefsSnapshotAsync(_workspace.Root);
+        Assert.Equal(before, await _git.GetRefsSnapshotAsync(_workspace.Root));
+        await CommitFileAsync("C.cs", "three");
+        Assert.NotEqual(before, await _git.GetRefsSnapshotAsync(_workspace.Root));
+    }
+
     private async Task<string> CommitFileAsync(string name, string text)
     {
         var file = _workspace.Write(name, text);
