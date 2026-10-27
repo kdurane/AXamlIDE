@@ -1,0 +1,68 @@
+<!--
+    The look of a CollapsiblePane (a section of a PaneStack), as VS Code draws its side bar sections: a line above
+    each header but the first, the chevron and an upper-case title, and the header's buttons on the right while it's open.
+-->
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <views:PaneStack Height="240" Width="220">
+            <views:CollapsiblePane Header="Changes">
+                <TextBlock Margin="8" Text="Content" />
+            </views:CollapsiblePane>
+            <views:CollapsiblePane Header="Graph" IsExpanded="False" />
+        </views:PaneStack>
+    </Design.PreviewWith>
+
+    <Style Selector="views|CollapsiblePane">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DockPanel>
+                    <Border
+                        Background="{DynamicResource DockSurfaceHeaderBrush}"
+                        BorderBrush="{DynamicResource DockSeparatorBrush}"
+                        BorderThickness="0,1,0,0"
+                        DockPanel.Dock="Top"
+                        Name="PART_HeaderBorder">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <ToggleButton
+                                Classes="row expander"
+                                IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                Padding="2,3">
+                                <StackPanel Orientation="Horizontal">
+                                    <PathIcon
+                                        Classes="chevron"
+                                        Data="{DynamicResource Icon.ChevronRight}"
+                                        Height="10"
+                                        Margin="2,0,4,0"
+                                        Width="10" />
+                                    <ContentPresenter
+                                        Content="{TemplateBinding Header}"
+                                        FontSize="11"
+                                        FontWeight="Bold"
+                                        VerticalAlignment="Center" />
+                                </StackPanel>
+                            </ToggleButton>
+                            <ContentPresenter
+                                Content="{TemplateBinding Actions}"
+                                Grid.Column="1"
+                                IsVisible="{TemplateBinding IsExpanded}"
+                                Margin="0,0,4,0"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <ContentPresenter
+                        Content="{TemplateBinding Content}"
+                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                        IsVisible="{TemplateBinding IsExpanded}"
+                        Name="PART_ContentPresenter" />
+                </DockPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!--  VS Code has no line above the first section.  -->
+    <Style Selector="views|PaneStack > views|CollapsiblePane:nth-child(1) /template/ Border#PART_HeaderBorder">
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+</Styles>

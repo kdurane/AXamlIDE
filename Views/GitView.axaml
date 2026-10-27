@@ -2,6 +2,7 @@
     x:Class="AXamlIDE.Views.GitView"
     x:DataType="vm:GitViewModel"
     xmlns="https://github.com/avaloniaui"
+    xmlns:models="using:AXamlIDE.Models"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -75,6 +76,104 @@
         </DataTemplate>
     </UserControl.Resources>
 
+    <!--  The Git graph's rows (GraphItems holds all three kinds).  -->
+    <UserControl.DataTemplates>
+        <!--  A commit in the graph: its part of the graph, subject, and branch/tag labels. Clicking it lists its files.  -->
+        <DataTemplate x:DataType="vm:GitGraphCommitItem">
+            <Grid
+                Background="Transparent"
+                ColumnDefinitions="Auto,*,Auto"
+                ToolTip.Tip="{Binding ToolTip}">
+                <Grid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CopyCommitHashCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Copy Commit Hash" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CopyCommitMessageCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Copy Commit Message" />
+                    </ContextMenu>
+                </Grid.ContextMenu>
+                <views:GitGraphCell
+                    IsHead="{Binding IsHead}"
+                    IsMerge="{Binding Commit.IsMerge}"
+                    Row="{Binding Row}" />
+                <TextBlock
+                    Grid.Column="1"
+                    Margin="2,0,0,0"
+                    Text="{Binding Subject}"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+                <ItemsControl
+                    Grid.Column="2"
+                    ItemsSource="{Binding Refs}"
+                    VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:GitRef">
+                            <Border
+                                Background="{Binding Kind, Converter={x:Static views:GitRefConverters.Brush}}"
+                                CornerRadius="3"
+                                Margin="4,0,0,0"
+                                MaxWidth="120"
+                                Padding="4,0">
+                                <TextBlock
+                                    FontSize="10"
+                                    Foreground="{DynamicResource GitGraphLabelForegroundBrush}"
+                                    Text="{Binding Name}"
+                                    TextTrimming="CharacterEllipsis"
+                                    ToolTip.Tip="{Binding Name}" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </DataTemplate>
+
+        <!--  A file under an open commit: the graph's lines carry on past it. Clicking it opens the commit's diff of it.  -->
+        <DataTemplate x:DataType="vm:GitGraphFileItem">
+            <Grid
+                Background="Transparent"
+                ColumnDefinitions="Auto,Auto,*,Auto"
+                ToolTip.Tip="{Binding ToolTip}">
+                <views:GitGraphCell Row="{Binding Row}" />
+                <TextBlock
+                    Foreground="{Binding State, Converter={x:Static views:GitStateConverters.Brush}}"
+                    Grid.Column="1"
+                    Margin="12,0,0,0"
+                    Text="{Binding FileName}"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    Grid.Column="2"
+                    Margin="6,0,0,0"
+                    Opacity="0.6"
+                    Text="{Binding Folder}"
+                    TextTrimming="CharacterEllipsis"
+                    VerticalAlignment="Center" />
+                <TextBlock
+                    FontSize="11"
+                    Foreground="{Binding State, Converter={x:Static views:GitStateConverters.Brush}}"
+                    Grid.Column="3"
+                    Margin="6,0,0,0"
+                    Text="{Binding State, Converter={x:Static views:GitStateConverters.Letter}}"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+        <DataTemplate x:DataType="vm:GitGraphLoadMoreItem">
+            <Button
+                Classes="link"
+                Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).LoadMoreCommitsCommand}"
+                Content="Load More Commits"
+                Margin="8,2" />
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
     <UserControl.Styles>
         <Style Selector="TextBlock.section">
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -82,7 +181,7 @@
         </Style>
     </UserControl.Styles>
 
-    <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,Auto,*">
+    <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">
 
         <!--  Branch, refresh, and "..." for everything else (kept in a menu so nothing is clicked by mistake)  -->
         <Grid
@@ -143,71 +242,111 @@
             </Button>
         </Grid>
 
-        <!--  Commit message + Commit  -->
-        <StackPanel
-            Grid.Row="1"
-            IsVisible="{Binding IsRepository}"
-            Margin="8,0,8,6"
-            Spacing="6">
-            <TextBox
-                AcceptsReturn="True"
-                MaxHeight="120"
-                MinHeight="48"
-                PlaceholderText="Commit message"
-                Text="{Binding CommitMessage}"
-                TextWrapping="Wrap">
-                <TextBox.KeyBindings>
-                    <KeyBinding Command="{Binding CommitCommand}" Gesture="Ctrl+Enter" />
-                </TextBox.KeyBindings>
-            </TextBox>
-            <Button
-                Command="{Binding CommitCommand}"
-                Content="{Binding CommitButtonText}"
-                HorizontalAlignment="Stretch"
-                HorizontalContentAlignment="Center"
-                ToolTip.Tip="{Binding CommitButtonToolTip}" />
-        </StackPanel>
+        <!--
+            The sections, as in VS Code's Source Control view: each opens and closes from its header, the open ones
+            share the height (drag the line between them), and a closed one shrinks to its header.
+        -->
+        <views:PaneStack Grid.Row="1" IsVisible="{Binding IsRepository}">
+            <views:CollapsiblePane Header="CHANGES" IsExpanded="{Binding IsChangesExpanded}">
+                <DockPanel>
+                    <!--  Commit message + Commit  -->
+                    <StackPanel
+                        DockPanel.Dock="Top"
+                        Margin="8,6,8,6"
+                        Spacing="6">
+                        <TextBox
+                            AcceptsReturn="True"
+                            MaxHeight="120"
+                            MinHeight="48"
+                            PlaceholderText="Commit message"
+                            Text="{Binding CommitMessage}"
+                            TextWrapping="Wrap">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Command="{Binding CommitCommand}" Gesture="Ctrl+Enter" />
+                            </TextBox.KeyBindings>
+                        </TextBox>
+                        <Button
+                            Command="{Binding CommitCommand}"
+                            Content="{Binding CommitButtonText}"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            ToolTip.Tip="{Binding CommitButtonToolTip}" />
+                    </StackPanel>
 
-        <!--  Staged and unstaged changes  -->
-        <ScrollViewer Grid.Row="2" IsVisible="{Binding IsRepository}">
-            <StackPanel>
-                <Grid ColumnDefinitions="*,Auto" Margin="8,4,4,2">
-                    <TextBlock Classes="section" Text="{Binding StagedHeader}" />
-                    <Button
-                        Classes="icon"
-                        Command="{Binding UnstageAllCommand}"
-                        Grid.Column="1"
-                        ToolTip.Tip="Unstage all">
-                        <PathIcon Data="{DynamicResource Icon.Minus}" />
-                    </Button>
-                </Grid>
-                <ListBox
-                    Classes="compact"
-                    DoubleTapped="OnChangeDoubleTapped"
-                    ItemTemplate="{StaticResource GitChangeTemplate}"
-                    ItemsSource="{Binding Staged}" />
+                    <!--  Staged and unstaged changes  -->
+                    <ScrollViewer>
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,Auto" Margin="8,4,4,2">
+                                <TextBlock Classes="section" Text="{Binding StagedHeader}" />
+                                <Button
+                                    Classes="icon"
+                                    Command="{Binding UnstageAllCommand}"
+                                    Grid.Column="1"
+                                    ToolTip.Tip="Unstage all">
+                                    <PathIcon Data="{DynamicResource Icon.Minus}" />
+                                </Button>
+                            </Grid>
+                            <ListBox
+                                Classes="compact"
+                                DoubleTapped="OnChangeDoubleTapped"
+                                ItemTemplate="{StaticResource GitChangeTemplate}"
+                                ItemsSource="{Binding Staged}" />
 
-                <Grid ColumnDefinitions="*,Auto" Margin="8,8,4,2">
-                    <TextBlock Classes="section" Text="{Binding ChangesHeader}" />
-                    <Button
-                        Classes="icon"
-                        Command="{Binding StageAllCommand}"
-                        Grid.Column="1"
-                        ToolTip.Tip="Stage all">
-                        <PathIcon Data="{DynamicResource Icon.Plus}" />
-                    </Button>
-                </Grid>
+                            <Grid ColumnDefinitions="*,Auto" Margin="8,8,4,2">
+                                <TextBlock Classes="section" Text="{Binding ChangesHeader}" />
+                                <Button
+                                    Classes="icon"
+                                    Command="{Binding StageAllCommand}"
+                                    Grid.Column="1"
+                                    ToolTip.Tip="Stage all">
+                                    <PathIcon Data="{DynamicResource Icon.Plus}" />
+                                </Button>
+                            </Grid>
+                            <ListBox
+                                Classes="compact"
+                                DoubleTapped="OnChangeDoubleTapped"
+                                ItemTemplate="{StaticResource GitChangeTemplate}"
+                                ItemsSource="{Binding Changes}" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </views:CollapsiblePane>
+
+            <views:CollapsiblePane Header="GRAPH" IsExpanded="{Binding IsGraphExpanded}">
+                <views:CollapsiblePane.Actions>
+                    <StackPanel Orientation="Horizontal">
+                        <Button
+                            Classes="icon"
+                            Command="{Binding RefreshGraphCommand}"
+                            ToolTip.Tip="Refresh graph">
+                            <PathIcon Data="{DynamicResource Icon.Sync}" />
+                        </Button>
+                        <Button Classes="icon" ToolTip.Tip="Graph options">
+                            <PathIcon Data="{DynamicResource Icon.DotsHorizontal}" />
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuItem
+                                        Header="Show All Branches"
+                                        IsChecked="{Binding ShowAllBranches}"
+                                        ToggleType="CheckBox" />
+                                    <MenuItem Command="{Binding RefreshGraphCommand}" Header="Refresh" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
+                    </StackPanel>
+                </views:CollapsiblePane.Actions>
                 <ListBox
-                    Classes="compact"
-                    DoubleTapped="OnChangeDoubleTapped"
-                    ItemTemplate="{StaticResource GitChangeTemplate}"
-                    ItemsSource="{Binding Changes}" />
-            </StackPanel>
-        </ScrollViewer>
+                    Classes="compact graph"
+                    ItemsSource="{Binding GraphItems}"
+                    KeyDown="OnGraphKeyDown"
+                    Tapped="OnGraphTapped">
+                </ListBox>
+            </views:CollapsiblePane>
+        </views:PaneStack>
 
         <TextBlock
             Grid.Row="0"
-            Grid.RowSpan="3"
+            Grid.RowSpan="2"
             IsVisible="{Binding !IsRepository}"
             Margin="12"
             Opacity="0.7"

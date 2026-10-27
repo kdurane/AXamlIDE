@@ -37,7 +37,7 @@ public sealed record GitChangeItem(GitChange Change, bool IsStagedSide)
 /// The Git tab: the branch, the staged and unstaged changes, staging, and committing. The status itself
 /// comes from <see cref="GitStatusTracker"/>, which keeps it current; this only shows it and acts on it.
 /// The "..." menu (remotes, branches, stashes, sign-in) is GitViewModel.Remote.cs; the explorer's Git
-/// submenu (by path) is GitViewModel.Paths.cs.
+/// submenu (by path) is GitViewModel.Paths.cs; the Graph section is GitViewModel.Graph.cs.
 /// </summary>
 public sealed partial class GitViewModel : ObservableObject
 {
@@ -47,6 +47,7 @@ public sealed partial class GitViewModel : ObservableObject
     private readonly IDocumentHost _documents;
     private readonly DockLayoutViewModel _docking;
     private readonly IDialogService _dialogs;
+    private readonly IClipboardService _clipboard;
     private readonly IMessenger _messenger;
 
     public GitViewModel(
@@ -56,6 +57,7 @@ public sealed partial class GitViewModel : ObservableObject
         IDocumentHost documents,
         DockLayoutViewModel docking,
         IDialogService dialogs,
+        IClipboardService clipboard,
         IMessenger messenger)
     {
         _tracker = tracker;
@@ -64,6 +66,7 @@ public sealed partial class GitViewModel : ObservableObject
         _documents = documents;
         _docking = docking;
         _dialogs = dialogs;
+        _clipboard = clipboard;
         _messenger = messenger;
         tracker.Changed += OnStatusChanged;
     }
@@ -115,6 +118,7 @@ public sealed partial class GitViewModel : ObservableObject
         OnPropertyChanged(nameof(CommitButtonText));
         OnPropertyChanged(nameof(CommitButtonToolTip));
         CommitCommand.NotifyCanExecuteChanged();
+        _ = LoadGraphAsync();
     }
 
     private static void Replace(ObservableCollection<GitChangeItem> list, IEnumerable<GitChangeItem>? items)

@@ -17,6 +17,11 @@
         <Setter Property="Padding" Value="6,1" />
         <Setter Property="MinHeight" Value="0" />
     </Style>
+    <!--  graph: the Git graph's rows touch (no padding above or below), so the lines drawn in them join up.  -->
+    <Style Selector="ListBox.graph ListBoxItem">
+        <Setter Property="Padding" Value="0,0,6,0" />
+        <Setter Property="MinHeight" Value="22" />
+    </Style>
     <!--  compact tree: the same dense rows (the references list under a code lens).  -->
     <Style Selector="TreeView.compact">
         <Setter Property="Background" Value="Transparent" />

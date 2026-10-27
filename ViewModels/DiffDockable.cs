@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Git;
 using CommunityToolkit.Mvvm.Input;
@@ -13,19 +14,22 @@ namespace AXamlIDE.ViewModels;
 ///
 ///   unstaged changes   staged version (or HEAD)  vs  the file on disk
 ///   staged changes     HEAD                      vs  the staged version
+///   a commit's change  its parent                vs  the commit (from the Git graph)
 ///
 /// It re-reads both sides when the Git status changes in a way that touches this file, so saving, staging or
-/// committing updates it.
-/// Opening the same file's diff again (same side) brings this tab back instead of making another.
+/// committing updates it (a commit's change never changes, so that's read once).
+/// Opening the same file's diff again (same side or commit) brings this tab back instead of making another.
 /// </summary>
 public sealed class DiffDockable : PageDockable
 {
     private readonly GitService _git;
-    private readonly GitStatusTracker _tracker;
+    private readonly GitStatusTracker? _tracker;   // null for a commit's change
     private readonly IDocumentHost _documents;
     private readonly string _repositoryRoot;
     private readonly string _relativePath;
     private readonly string? _originalRelativePath;
+    private readonly string? _commit;   // a commit's change: the commit, and its first parent (null for the first commit)
+    private readonly string? _parent;
     private int _loadVersion;
     private Sources? _loaded;   // what the shown diff was read from
 
@@ -55,6 +59,28 @@ public sealed class DiffDockable : PageDockable
 
         OpenFileCommand = new RelayCommand(OpenFile, () => File.Exists(FilePath));
         tracker.Changed += OnStatusChanged;
+        _ = ReloadAsync();
+    }
+
+    /// <summary>What <paramref name="commit"/> changed in <paramref name="file"/> (a file under a commit in the Git graph).</summary>
+    public DiffDockable(GitCommit commit, GitCommitFile file, string repositoryRoot, GitService git, IDocumentHost documents)
+    {
+        _git = git;
+        _documents = documents;
+        _repositoryRoot = repositoryRoot;
+        _relativePath = file.RelativePath;
+        _originalRelativePath = file.OriginalRelativePath;
+        _commit = commit.Hash;
+        _parent = commit.Parents.Count > 0 ? commit.Parents[0] : null;
+        FilePath = GitStatus.ToFullPath(repositoryRoot, file.RelativePath);
+
+        Id = $"diff:{commit.Hash}:{FilePath}";
+        Title = $"{Path.GetFileName(file.RelativePath)} ({commit.ShortHash})";
+        CanPin = false;
+        LeftTitle = _parent is null ? "(no parent)" : _parent[..Math.Min(7, _parent.Length)];
+        RightTitle = commit.ShortHash;
+
+        OpenFileCommand = new RelayCommand(OpenFile, () => File.Exists(FilePath));
         _ = ReloadAsync();
     }
 
@@ -114,7 +140,7 @@ public sealed class DiffDockable : PageDockable
     /// <summary>What the sides would be read from now; null when that can't be told (then always reload).</summary>
     private Sources? CurrentSources()
     {
-        if (_tracker.Current is not { } status)
+        if (_tracker?.Current is not { } status)
             return null;
         var change = status.ChangeFor(FilePath);
         if (change is not null && (change.HeadObject is null || change.IndexObject is null))
@@ -130,7 +156,12 @@ public sealed class DiffDockable : PageDockable
         var version = ++_loadVersion;
         var sources = CurrentSources();   // taken before reading, so a change made while reading still reloads
         string left, right;
-        if (IsStagedSide)
+        if (_commit is not null)
+        {
+            left = _parent is null ? "" : await _git.ReadAtCommitAsync(_repositoryRoot, _parent, _originalRelativePath ?? _relativePath) ?? "";
+            right = await _git.ReadAtCommitAsync(_repositoryRoot, _commit, _relativePath) ?? "";   // "" when it deleted the file
+        }
+        else if (IsStagedSide)
         {
             left = await _git.ReadCommittedAsync(_repositoryRoot, _originalRelativePath ?? _relativePath) ?? "";
             right = await _git.ReadStagedAsync(_repositoryRoot, _relativePath) ?? "";
@@ -179,5 +210,9 @@ public sealed class DiffDockable : PageDockable
             : starts.Cast<int?>().LastOrDefault(start => start < line) ?? starts.Cast<int?>().LastOrDefault();
     }
 
-    public override void Dispose() => _tracker.Changed -= OnStatusChanged;
+    public override void Dispose()
+    {
+        if (_tracker is not null)
+            _tracker.Changed -= OnStatusChanged;
+    }
 }

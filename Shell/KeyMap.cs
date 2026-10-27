@@ -95,6 +95,7 @@ public sealed class KeyMap
             ["View.ToggleSideBar"] = (shell.ToggleExplorerCommand, null),
             ["View.Explorer"] = (shell.ShowToolCommand, ToolTab.Explorer),
             ["View.Git"] = (shell.ShowToolCommand, ToolTab.Git),
+            ["View.GitGraph"] = (shell.Git.ShowGraphCommand, null),
             ["View.Properties"] = (properties.ShowCommand, null),
             ["View.Problems"] = (shell.ShowToolCommand, ToolTab.Problems),
             ["View.Output"] = (shell.ShowToolCommand, ToolTab.Output),

@@ -18,15 +18,34 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <ResourceDictionary.ThemeDictionaries>
         <!--  The base looks: what a theme falls back to.  -->
+        <!--  Also VS Code's defaults for the Git graph colours, which no theme here sets (a theme file can override them).  -->
         <ResourceDictionary x:Key="Dark">
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Dock.Avalonia.Themes.Fluent/Presets/Ide/VsCodeDark.axaml" />
             </ResourceDictionary.MergedDictionaries>
+            <Color x:Key="scmGraph.foreground1">#FFB000</Color>
+            <Color x:Key="scmGraph.foreground2">#DC267F</Color>
+            <Color x:Key="scmGraph.foreground3">#994F00</Color>
+            <Color x:Key="scmGraph.foreground4">#40A6FF</Color>
+            <Color x:Key="scmGraph.foreground5">#B66DFF</Color>
+            <Color x:Key="scmGraph.historyItemRefColor">#3794FF</Color>
+            <Color x:Key="scmGraph.historyItemRemoteRefColor">#B180D7</Color>
+            <Color x:Key="app.scmGraph.tagColor">#D18616</Color>   <!-- ours: VS Code's chart orange -->
+            <Color x:Key="app.scmGraph.labelForeground">#FFFFFF</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://Dock.Avalonia.Themes.Fluent/Presets/Ide/VsCodeLight.axaml" />
             </ResourceDictionary.MergedDictionaries>
+            <Color x:Key="scmGraph.foreground1">#FFB000</Color>
+            <Color x:Key="scmGraph.foreground2">#DC267F</Color>
+            <Color x:Key="scmGraph.foreground3">#994F00</Color>
+            <Color x:Key="scmGraph.foreground4">#40A6FF</Color>
+            <Color x:Key="scmGraph.foreground5">#B66DFF</Color>
+            <Color x:Key="scmGraph.historyItemRefColor">#1A85FF</Color>
+            <Color x:Key="scmGraph.historyItemRemoteRefColor">#652D90</Color>
+            <Color x:Key="app.scmGraph.tagColor">#D18616</Color>
+            <Color x:Key="app.scmGraph.labelForeground">#FFFFFF</Color>
         </ResourceDictionary>
 
         <!--  The themes in Settings.  -->
@@ -132,6 +151,16 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource gitDecoration.renamedResourceForeground}" x:Key="GitRenamedBrush" />
     <SolidColorBrush Color="{DynamicResource gitDecoration.conflictingResourceForeground}" x:Key="GitConflictedBrush" />
     <SolidColorBrush Color="{DynamicResource gitDecoration.ignoredResourceForeground}" x:Key="GitIgnoredBrush" />
+    <!--  Git graph: the lane colours in turn (Views/GitGraphCell), and the branch / tag labels  -->
+    <SolidColorBrush Color="{DynamicResource scmGraph.foreground1}" x:Key="GitGraphLane1Brush" />
+    <SolidColorBrush Color="{DynamicResource scmGraph.foreground2}" x:Key="GitGraphLane2Brush" />
+    <SolidColorBrush Color="{DynamicResource scmGraph.foreground3}" x:Key="GitGraphLane3Brush" />
+    <SolidColorBrush Color="{DynamicResource scmGraph.foreground4}" x:Key="GitGraphLane4Brush" />
+    <SolidColorBrush Color="{DynamicResource scmGraph.foreground5}" x:Key="GitGraphLane5Brush" />
+    <SolidColorBrush Color="{DynamicResource scmGraph.historyItemRefColor}" x:Key="GitGraphBranchBrush" />
+    <SolidColorBrush Color="{DynamicResource scmGraph.historyItemRemoteRefColor}" x:Key="GitGraphRemoteBranchBrush" />
+    <SolidColorBrush Color="{DynamicResource app.scmGraph.tagColor}" x:Key="GitGraphTagBrush" />
+    <SolidColorBrush Color="{DynamicResource app.scmGraph.labelForeground}" x:Key="GitGraphLabelForegroundBrush" />
 
     <!--  Diff view (Editor/Diff/DiffLineRenderer)  -->
     <SolidColorBrush Color="{DynamicResource diffEditor.insertedLineBackground}" x:Key="DiffInsertedLineBrush" />

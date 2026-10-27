@@ -49,6 +49,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         ProblemsViewModel problems,
         RunViewModel run,
         PropertiesViewModel properties,
+        GitViewModel git,
         NuGetManager nuGet,
         PublishManager publish,
         VisualizerManager visualizers,
@@ -76,6 +77,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Problems = problems;
         Run = run;
         Properties = properties;
+        Git = git;
         NuGet = nuGet;
         Publish = publish;
         Visualizers = visualizers;
@@ -107,6 +109,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public ProblemsViewModel Problems { get; }
     public RunViewModel Run { get; }
     public PropertiesViewModel Properties { get; }
+    public GitViewModel Git { get; }
     public NuGetManager NuGet { get; }
     public PublishManager Publish { get; }
 

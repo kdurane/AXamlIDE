@@ -59,6 +59,7 @@ public static class CommandCatalog
         new("View.ToggleSideBar", "Show/Hide Side Bar", "Show or hide the side bar."),
         new("View.Explorer", "Explorer", "Show the Explorer."),
         new("View.Git", "Git", "Show the Git panel."),
+        new("View.GitGraph", "Git Graph", "Show the Git panel's graph of commits and branches."),
         new("View.Properties", "Properties", "Show the properties of the item selected in the explorer."),
         new("View.Problems", "Problems", "Show the Problems list."),
         new("View.Output", "Output", "Show the Output panel."),

@@ -38,3 +38,15 @@ public static class GitStateConverters
         _ => "TreeViewItemForeground"
     };
 }
+
+/// <summary>The colour of a branch or tag label in the Git graph (the GitGraph*Brush resources), as in VS Code.</summary>
+public static class GitRefConverters
+{
+    public static readonly IValueConverter Brush = new FuncValueConverter<GitRefKind, object?>(kind =>
+        ThemeBrushes.Get(kind switch
+        {
+            GitRefKind.RemoteBranch => "GitGraphRemoteBranchBrush",
+            GitRefKind.Tag => "GitGraphTagBrush",
+            _ => "GitGraphBranchBrush"
+        }) ?? AvaloniaProperty.UnsetValue);
+}

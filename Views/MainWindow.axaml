@@ -90,6 +90,7 @@
                         Command="{Binding ShowToolCommand}"
                         CommandParameter="{x:Static msg:ToolTab.Git}"
                         Header="_Git" />
+                    <MenuItem Command="{Binding Git.ShowGraphCommand}" Header="Git Gra_ph" />
                     <MenuItem Command="{Binding Properties.ShowCommand}" Header="P_roperties" />
                     <Separator />
                     <MenuItem
