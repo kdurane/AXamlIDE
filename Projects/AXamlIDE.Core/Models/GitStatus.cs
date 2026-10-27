@@ -23,12 +23,17 @@ public enum GitFileState
 /// so it has a state for each side: <see cref="IndexState"/> (staged, compared with HEAD) and
 /// <see cref="WorkTreeState"/> (not staged, compared with the index).
 /// </summary>
+/// <param name="HeadObject">The object name (hash) of the file's text in HEAD, when git gives it (a tracked file).</param>
+/// <param name="IndexObject">The object name of its staged text. With <see cref="HeadObject"/>, this tells whether
+/// either version changed between two statuses without reading them (a diff tab uses it to skip needless reloads).</param>
 public sealed record GitChange(
     string RelativePath,
     string FullPath,
     GitFileState IndexState,
     GitFileState WorkTreeState,
-    string? OriginalRelativePath = null)
+    string? OriginalRelativePath = null,
+    string? HeadObject = null,
+    string? IndexObject = null)
 {
     public bool IsConflicted => IndexState == GitFileState.Conflicted;
     public bool IsStaged => IndexState is not (GitFileState.None or GitFileState.Conflicted);
@@ -60,6 +65,7 @@ public sealed class GitStatus
     public GitStatus(
         string repositoryRoot,
         string? branch,
+        string? headCommit,
         string? upstream,
         int ahead,
         int behind,
@@ -68,6 +74,7 @@ public sealed class GitStatus
     {
         RepositoryRoot = Path.TrimEndingDirectorySeparator(repositoryRoot);
         Branch = branch;
+        HeadCommit = headCommit;
         Upstream = upstream;
         Ahead = ahead;
         Behind = behind;
@@ -91,6 +98,9 @@ public sealed class GitStatus
 
     /// <summary>The checked-out branch, or null when HEAD is detached.</summary>
     public string? Branch { get; }
+
+    /// <summary>The commit HEAD points at, or null before the first commit. A clean file's text is this commit's.</summary>
+    public string? HeadCommit { get; }
 
     public string? Upstream { get; }
     public int Ahead { get; }

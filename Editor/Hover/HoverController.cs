@@ -243,20 +243,20 @@ public sealed class HoverController
         {
             if (document.LanguageId == LanguageIds.Axaml)
             {
-                // On a binding path: the bound view-model property's C# hover (as in a .cs file), when the C#
-                // server knows it; otherwise the XAML engine's (which also covers elements and attributes).
-                var source = document.Document.Text;
-                if (await _ctx.Xaml.GetBindingTargetAsync(document.Path, source, offset) is { } binding
+                // One lookup gives both the engine's hover and, on a binding path, the bound view-model property.
+                // That property's C# hover (as in a .cs file) is preferred when the C# server knows it; otherwise
+                // the engine's (which also covers elements and attributes).
+                var xamlHover = await _ctx.Xaml.GetHoverAsync(document.Path, document.Document.Text, offset);
+                if (xamlHover is null)
+                    return (null, null, null);
+                if (xamlHover.Binding is { } binding
                     && await BindingSymbols.HoverAsync(_ctx.Languages, binding, cancellationToken) is { } bound)
                 {
                     var (boundSignature, boundDocs) = bound.IsMarkdown ? HoverContent.FromMarkdown(bound.Text) : HoverContent.FromPlainText(bound.Text);
                     return (boundSignature, boundDocs, null);
                 }
 
-                var text = await _ctx.Xaml.GetHoverAsync(document.Path, source, offset);
-                if (text is null)
-                    return (null, null, null);
-                var (signature, documentation) = HoverContent.FromPlainText(text);
+                var (signature, documentation) = HoverContent.FromPlainText(xamlHover.Text);
                 return (signature, documentation, null);
             }
 

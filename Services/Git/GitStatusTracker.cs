@@ -50,6 +50,14 @@ public sealed class GitStatusTracker : IDisposable
 
     public event Action? Changed;
 
+    /// <summary>
+    /// A file in the working tree (not in .git, bin or obj) was written, added, removed or renamed, by anything; one
+    /// event per path and change, on the UI thread, not debounced. This watcher already covers the whole repository,
+    /// so others that want to hear about files changing (XamlCacheKeeper) listen here rather than each paying for a
+    /// recursive watcher of their own. Only raised inside a repository.
+    /// </summary>
+    public event Action<string>? FileChanged;
+
     /// <summary>Refresh soon (several requests close together become one refresh).</summary>
     public void RequestRefresh()
     {
@@ -144,10 +152,17 @@ public sealed class GitStatusTracker : IDisposable
         }
     }
 
+    // Raised on a thread-pool thread.
     private void OnFileEvent(object sender, FileSystemEventArgs e)
     {
         if (Matters(e.FullPath))
             Dispatcher.UIThread.Post(RequestRefresh);
+
+        // A rename removes the old path as well as adding the new one.
+        string[] paths = e is RenamedEventArgs renamed ? [renamed.OldFullPath, e.FullPath] : [e.FullPath];
+        foreach (var path in paths)
+            if (GitFolderPart(path) is null && !IsBuildOutput(path))
+                Dispatcher.UIThread.Post(() => FileChanged?.Invoke(path));
     }
 
     /// <summary>
@@ -156,18 +171,25 @@ public sealed class GitStatusTracker : IDisposable
     /// </summary>
     private static bool Matters(string path)
     {
-        var separator = Path.DirectorySeparatorChar;
-        var git = $"{separator}.git{separator}";
-        var inGit = path.IndexOf(git, StringComparison.Ordinal);
-        if (inGit >= 0)
-        {
-            var inside = path[(inGit + git.Length)..];
+        if (GitFolderPart(path) is { } inside)
             return !inside.EndsWith(".lock", StringComparison.Ordinal)
                    && (inside is "index" or "HEAD" or "MERGE_HEAD" || inside.StartsWith("refs", StringComparison.Ordinal));
-        }
+        return !IsBuildOutput(path);
+    }
 
-        return !path.Contains($"{separator}bin{separator}", StringComparison.Ordinal)
-               && !path.Contains($"{separator}obj{separator}", StringComparison.Ordinal);
+    /// <summary>The part of the path after ".git/" ("refs/heads/master"), or null when it isn't in a .git folder.</summary>
+    private static string? GitFolderPart(string path)
+    {
+        var git = $"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}";
+        var inGit = path.IndexOf(git, StringComparison.Ordinal);
+        return inGit >= 0 ? path[(inGit + git.Length)..] : null;
+    }
+
+    private static bool IsBuildOutput(string path)
+    {
+        var separator = Path.DirectorySeparatorChar;
+        return path.Contains($"{separator}bin{separator}", StringComparison.Ordinal)
+               || path.Contains($"{separator}obj{separator}", StringComparison.Ordinal);
     }
 
     private void StopWatching()

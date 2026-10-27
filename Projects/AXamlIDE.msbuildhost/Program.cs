@@ -99,12 +99,28 @@ static string HandleRequest(string projectPath, string? configuration)
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         return JsonSerializer.Serialize(new HostResponse(
             true, files, projectReferences, null, assemblyName, outputType, outputPath, projectAssetsFile,
-            Dependencies: Dependencies(project).ToArray(), Folders: folders, TargetFrameworks: targetFrameworks));
+            Dependencies: Dependencies(project).ToArray(), Folders: folders, TargetFrameworks: targetFrameworks,
+            Imports: LocalImports(project, pathComparer).ToArray()));
     }
     catch (Exception ex)
     {
         return JsonSerializer.Serialize(new HostResponse(false, [], [], ex.Message, null, null, null, null));
     }
+}
+
+/// <summary>
+/// The imported files that live in the project's folder (or below it, like obj/) or in a folder above it (like
+/// Directory.Build.props): the ones an edit or a restore can change. The client watches their write times.
+/// </summary>
+static IEnumerable<string> LocalImports(Project project, StringComparer pathComparer)
+{
+    var projectDirectory = Path.TrimEndingDirectorySeparator(project.DirectoryPath) + Path.DirectorySeparatorChar;
+    var comparison = pathComparer == StringComparer.Ordinal ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+    return project.Imports
+        .Select(import => import.ImportedProject.FullPath)
+        .Where(path => path.StartsWith(projectDirectory, comparison)
+                       || projectDirectory.StartsWith(Path.GetDirectoryName(path)! + Path.DirectorySeparatorChar, comparison))
+        .Distinct(pathComparer);
 }
 
 /// <summary>What the project declares under VS's Dependencies node; NuGet's restore output adds the rest.</summary>

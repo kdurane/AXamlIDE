@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
-using TextMateSharp.Registry;
 using TextMateSharp.Themes;
 
 namespace AXamlIDE.Editor.Highlighting;
@@ -22,17 +21,17 @@ public sealed class SemanticHighlightController : IDisposable
     private static readonly TimeSpan TypingDelay = TimeSpan.FromMilliseconds(300);
 
     private readonly EditorContext _ctx;
-    private readonly IRegistryOptions _registry;
+    private readonly EditorGrammars _grammars;
     private readonly SemanticColorizer _colorizer = new();
     private readonly VisibleLinesFetcher _fetcher;
     private SemanticTokenColors? _colors;
     private LspClient? _refreshSource;
 
     /// <summary>Construct after TextMate is installed: its colours have to be drawn first, so these go on top.</summary>
-    public SemanticHighlightController(EditorContext ctx, IRegistryOptions registry)
+    public SemanticHighlightController(EditorContext ctx, EditorGrammars grammars)
     {
         _ctx = ctx;
-        _registry = registry;
+        _grammars = grammars;
         ctx.Editor.TextArea.TextView.LineTransformers.Add(_colorizer);
         _fetcher = new VisibleLinesFetcher(ctx, TypingDelay,
             client => client.SupportsSemanticTokens && ctx.Settings.Features.SemanticHighlighting, FetchAsync);
@@ -54,7 +53,7 @@ public sealed class SemanticHighlightController : IDisposable
     /// <summary>The editor's theme changed: take the colours from the new one.</summary>
     public void SetTheme(IRawTheme theme)
     {
-        _colors = new SemanticTokenColors(theme, _registry);
+        _colors = _grammars.SemanticColorsFor(theme);
         _fetcher.Refresh();
     }
 

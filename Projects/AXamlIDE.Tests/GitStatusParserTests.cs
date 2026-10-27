@@ -22,6 +22,21 @@ public sealed class GitStatusParserTests
     }
 
     [Fact]
+    public void Reads_the_head_commit_and_each_files_object_names()
+    {
+        var status = Parse("# branch.oid abc", "# branch.head main", "1 MM N... 100644 100644 100644 aaa bbb Both.cs");
+
+        Assert.Equal("abc", status.HeadCommit);
+        var change = status.ChangeFor("/repo/Both.cs")!;
+        Assert.Equal("aaa", change.HeadObject);
+        Assert.Equal("bbb", change.IndexObject);
+    }
+
+    [Fact]
+    public void Before_the_first_commit_there_is_no_head_commit()
+        => Assert.Null(Parse("# branch.oid (initial)", "# branch.head main").HeadCommit);
+
+    [Fact]
     public void Detached_head_has_no_branch()
         => Assert.Null(Parse("# branch.oid abc", "# branch.head (detached)").Branch);
 

@@ -13,7 +13,7 @@ public static class GitStatusParser
 {
     public static GitStatus Parse(string output, string repositoryRoot)
     {
-        string? branch = null, upstream = null;
+        string? branch = null, headCommit = null, upstream = null;
         int ahead = 0, behind = 0;
         var changes = new List<GitChange>();
         var ignored = new List<string>();
@@ -25,14 +25,14 @@ public static class GitStatusParser
             switch (record[0])
             {
                 case '#':
-                    ReadHeader(record, ref branch, ref upstream, ref ahead, ref behind);
+                    ReadHeader(record, ref branch, ref headCommit, ref upstream, ref ahead, ref behind);
                     break;
 
                 // 1 XY sub mH mI mW hH hI path
                 case '1':
                 {
                     var fields = record.Split(' ', 9);
-                    changes.Add(Change(repositoryRoot, fields[8], fields[1], original: null));
+                    changes.Add(Change(repositoryRoot, fields[8], fields[1], original: null, fields[6], fields[7]));
                     break;
                 }
 
@@ -41,7 +41,7 @@ public static class GitStatusParser
                 {
                     var fields = record.Split(' ', 10);
                     var original = i + 1 < records.Length ? records[++i] : null;
-                    changes.Add(Change(repositoryRoot, fields[9], fields[1], original));
+                    changes.Add(Change(repositoryRoot, fields[9], fields[1], original, fields[6], fields[7]));
                     break;
                 }
 
@@ -65,14 +65,18 @@ public static class GitStatusParser
             }
         }
 
-        return new GitStatus(repositoryRoot, branch, upstream, ahead, behind, changes, ignored);
+        return new GitStatus(repositoryRoot, branch, headCommit, upstream, ahead, behind, changes, ignored);
     }
 
-    private static void ReadHeader(string record, ref string? branch, ref string? upstream, ref int ahead, ref int behind)
+    private static void ReadHeader(string record, ref string? branch, ref string? headCommit, ref string? upstream,
+        ref int ahead, ref int behind)
     {
         var fields = record.Split(' ');
         switch (fields[1])
         {
+            case "branch.oid":
+                headCommit = fields[2] == "(initial)" ? null : fields[2];
+                break;
             case "branch.head":
                 branch = fields[2] == "(detached)" ? null : fields[2];
                 break;
@@ -86,8 +90,10 @@ public static class GitStatusParser
         }
     }
 
-    private static GitChange Change(string repositoryRoot, string path, string xy, string? original)
-        => new(path, GitStatus.ToFullPath(repositoryRoot, path), StateOf(xy[0]), StateOf(xy[1]), original);
+    private static GitChange Change(string repositoryRoot, string path, string xy, string? original,
+        string headObject, string indexObject)
+        => new(path, GitStatus.ToFullPath(repositoryRoot, path), StateOf(xy[0]), StateOf(xy[1]), original,
+            headObject, indexObject);
 
     /// <summary>One side of the XY code ('.' means unchanged).</summary>
     private static GitFileState StateOf(char code) => code switch

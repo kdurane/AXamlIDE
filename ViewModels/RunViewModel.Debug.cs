@@ -157,8 +157,9 @@ public partial class RunViewModel
 
     private (string ProgramPath, string WorkingDirectory) ResolveDebugProgram(string projectPath, string configuration)
     {
-        var assemblyName = _workspace.Host.GetProjectAssemblyName(projectPath);
-        var outputPath = _workspace.Host.GetProjectOutputPath(projectPath, configuration);
+        var facts = _workspace.Host.GetProjectFacts(projectPath, configuration);
+        var assemblyName = facts.AssemblyName;
+        var outputPath = facts.OutputPath;
         var projectDirectory = Path.GetDirectoryName(projectPath)
             ?? throw new InvalidOperationException($"Project '{projectPath}' has no parent directory.");
         if (string.IsNullOrWhiteSpace(outputPath))

@@ -19,15 +19,16 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
     // Target-framework platforms whose builds can't run the desktop designer host.
     private static readonly string[] NonDesktopPlatforms = ["browser", "android", "ios", "maccatalyst", "tvos", "wasi"];
 
-    public XamlPreviewTarget Resolve(string xamlProjectPath, string[] solutionProjects, string? workspaceRoot)
+    /// <param name="workspaceProjects">The projects to look for an app among, in order of preference (the
+    /// solution's first). The workspace finds them once; walking the folder here would repeat that on every resolve.</param>
+    public XamlPreviewTarget Resolve(string xamlProjectPath, IEnumerable<string> workspaceProjects)
     {
         string? buildProblem = null;
         var skippedNonDesktop = false;
 
-        foreach (var executableProject in FindHostProjects(xamlProjectPath, solutionProjects, workspaceRoot))
+        foreach (var (executableProject, executable) in FindHostProjects(xamlProjectPath, workspaceProjects))
         {
-            var executableOutputPath = host.GetProjectOutputPath(executableProject);
-            if (!IsDesktopOutput(executableOutputPath))
+            if (!IsDesktopOutput(executable.OutputPath))
             {
                 skippedNonDesktop = true;
                 continue;
@@ -37,8 +38,7 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
             try
             {
                 executableAssembly = FindBuiltAssembly(
-                    executableProject, host.GetProjectAssemblyName(executableProject),
-                    requireRuntimeConfig: true, executableOutputPath);
+                    executableProject, executable.AssemblyName, requireRuntimeConfig: true, executable.OutputPath);
             }
             catch (FileNotFoundException ex)
             {
@@ -52,15 +52,15 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
                 continue;
             }
 
-            var xamlAssemblyName = host.GetProjectAssemblyName(xamlProjectPath);
+            var xamlProject = host.GetProjectFacts(xamlProjectPath);
             var xamlAssemblyInAppOutput = Path.Combine(
-                Path.GetDirectoryName(executableAssembly)!, xamlAssemblyName + ".dll");
+                Path.GetDirectoryName(executableAssembly)!, xamlProject.AssemblyName + ".dll");
             var xamlAssembly = File.Exists(xamlAssemblyInAppOutput)
                 ? xamlAssemblyInAppOutput
                 : FindBuiltAssembly(
-                    xamlProjectPath, xamlAssemblyName, requireRuntimeConfig: false,
-                    host.GetProjectOutputPath(xamlProjectPath), runtimeMajor);
-            var hostApp = FindDesignerHost(executableProject, runtimeMajor);
+                    xamlProjectPath, xamlProject.AssemblyName, requireRuntimeConfig: false,
+                    xamlProject.OutputPath, runtimeMajor);
+            var hostApp = FindDesignerHost(executableProject, executable.AssetsFile, runtimeMajor);
 
             return new XamlPreviewTarget(
                 xamlAssembly,
@@ -78,31 +78,18 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
             : $"no app project in the workspace references '{Path.GetFileName(xamlProjectPath)}'.");
     }
 
-    /// <summary>Executable projects that reference the AXAML project: the solution's first, then any under the workspace root.</summary>
-    private IEnumerable<string> FindHostProjects(string xamlProjectPath, string[] solutionProjects, string? workspaceRoot)
+    /// <summary>Executable projects that reference the AXAML project (or are it), with their evaluated properties.</summary>
+    private IEnumerable<(string Path, ProjectFacts Facts)> FindHostProjects(string xamlProjectPath, IEnumerable<string> workspaceProjects)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        IEnumerable<string> candidates = solutionProjects.Append(xamlProjectPath);
-        if (workspaceRoot is not null && Directory.Exists(workspaceRoot))
-        {
-            var options = new EnumerationOptions
-            {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true,
-                AttributesToSkip = FileAttributes.ReparsePoint
-            };
-            candidates = candidates.Concat(Directory.EnumerateFiles(workspaceRoot, "*.csproj", options)
-                .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
-                               && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")));
-        }
-
-        foreach (var candidate in candidates)
+        foreach (var candidate in workspaceProjects.Append(xamlProjectPath))
         {
             if (!seen.Add(Path.GetFullPath(candidate)))
                 continue;
-            if (IsExecutable(host.GetProjectOutputType(candidate))
+            var facts = host.GetProjectFacts(candidate);
+            if (IsExecutable(facts.OutputType)
                 && ReferencesProject(candidate, xamlProjectPath, new(StringComparer.OrdinalIgnoreCase)))
-                yield return candidate;
+                yield return (candidate, facts);
         }
     }
 
@@ -132,7 +119,7 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
         if (!visited.Add(projectPath))
             return false;
 
-        foreach (var reference in host.GetProjectReferences(projectPath))
+        foreach (var reference in host.GetProjectFacts(projectPath).References)
             if (ReferencesProject(reference, targetProjectPath, visited))
                 return true;
         return false;
@@ -148,50 +135,16 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
         bool requireRuntimeConfig,
         string? evaluatedOutputPath,
         int? requiredRuntimeMajor = null)
+        => BuiltAssemblies.FindNewest(projectPath, assemblyName, evaluatedOutputPath, file =>
+               (!requireRuntimeConfig || File.Exists(Path.ChangeExtension(file.FullName, ".runtimeconfig.json")))
+               && (requiredRuntimeMajor is null
+                   || GetTargetFrameworkMajor(file.Directory?.Name) is not { } major
+                   || major <= requiredRuntimeMajor))
+           ?? throw new FileNotFoundException($"Build '{Path.GetFileName(projectPath)}' first to enable the AXAML preview.");
+
+    private static string FindDesignerHost(string projectPath, string? assetsPath, int runtimeMajor)
     {
         var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectPath))!;
-        var pathComparer = OperatingSystem.IsWindows()
-            ? StringComparer.OrdinalIgnoreCase
-            : StringComparer.Ordinal;
-        var outputDirectories = new[]
-        {
-                  string.IsNullOrWhiteSpace(evaluatedOutputPath)
-                      ? null
-                      : Path.GetFullPath(evaluatedOutputPath, projectDirectory),
-                  Path.Combine(projectDirectory, "bin")
-              }.Where(path => path is not null && Directory.Exists(path))
-            .Distinct(pathComparer)
-            .Cast<string>()
-            .ToArray();
-        if (outputDirectories.Length <= 0)
-            throw new FileNotFoundException(
-                $"Build '{Path.GetFileName(projectPath)}' first to enable the AXAML preview.");
-        {
-            var assemblyFile = assemblyName + ".dll";
-            var candidates = outputDirectories
-                .SelectMany(directory => Directory.EnumerateFiles(directory, assemblyFile, SearchOption.AllDirectories))
-                .Distinct(pathComparer)
-                .Where(path => !path.Split(Path.DirectorySeparatorChar).Contains("ref", StringComparer.OrdinalIgnoreCase))
-                .Where(path => !requireRuntimeConfig
-                               || File.Exists(Path.ChangeExtension(path, ".runtimeconfig.json")))
-                .Select(path => new FileInfo(path))
-                .Where(file => requiredRuntimeMajor is null
-                               || GetTargetFrameworkMajor(file.Directory?.Name) is not { } major
-                               || major <= requiredRuntimeMajor)
-                .OrderByDescending(file => file.LastWriteTimeUtc);
-
-            if (candidates.FirstOrDefault() is { } target)
-                return target.FullName;
-        }
-
-        throw new FileNotFoundException(
-            $"Build '{Path.GetFileName(projectPath)}' first to enable the AXAML preview.");
-    }
-
-    private string FindDesignerHost(string projectPath, int runtimeMajor)
-    {
-        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectPath))!;
-        var assetsPath = host.GetProjectAssetsFile(projectPath);
         assetsPath = string.IsNullOrWhiteSpace(assetsPath) ? Path.Combine(projectDirectory, "obj", "project.assets.json") : Path.GetFullPath(assetsPath, projectDirectory);
         if (!File.Exists(assetsPath))
             throw new FileNotFoundException($"Restore '{Path.GetFileName(projectPath)}' before starting the preview.", assetsPath);

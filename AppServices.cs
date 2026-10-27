@@ -80,6 +80,7 @@ public static class AppServices
         services.AddSingleton<GitCredentialSetup>();
         services.AddSingleton<GitStatusTracker>();
         services.AddSingleton<LanguageSessionService>();
+        services.AddSingleton<XamlCacheKeeper>();          // tells XAML completion when its caches go stale
 
         // ---- view models
         services.AddSingleton<PreviewSessions>();          // each AXAML tab's preview and designer host

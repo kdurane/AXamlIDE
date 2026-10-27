@@ -52,6 +52,15 @@ public class XamlCompletionEngineTests(AvaloniaMetadataFixture fixture) : IClass
     }
 
     [Fact]
+    public void Enum_like_class_values_are_offered()
+    {
+        var items = Complete("<TextBlock TextTrimming=\"").Items;
+
+        Assert.Contains("CharacterEllipsis", items);
+        Assert.Contains("None", items);
+    }
+
+    [Fact]
     public void Attribute_after_a_single_quoted_value()
         => Assert.Contains("Width", Complete("<Button Content='Hi' Wi").Items);
 

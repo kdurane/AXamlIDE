@@ -5,6 +5,7 @@ using Avalonia.Controls.Templates;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Languages;
 using AXamlIDE.ViewModels;
 using AXamlIDE.Views;
 using Dock.Avalonia.Controls;
@@ -27,6 +28,7 @@ public partial class App : Application
             services.GetRequiredService<ThemeSwitcher>().Apply();
             services.GetRequiredService<GitTreeDecorator>();   // colours the explorer tree from then on (nothing else needs it)
             services.GetRequiredService<DocumentReloader>();   // keeps open tabs in step with the disk (nothing else needs it)
+            services.GetRequiredService<XamlCacheKeeper>();    // keeps XAML completion's caches current (nothing else needs it)
             UseDockViews(services);
             desktop.MainWindow = services.GetRequiredService<MainWindow>();
             desktop.Exit += (_, _) => services.Dispose();

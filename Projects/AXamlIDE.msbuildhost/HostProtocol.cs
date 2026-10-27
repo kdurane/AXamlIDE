@@ -35,6 +35,9 @@ internal sealed record HostRequest(
     string? Configuration = null,
     string? NewPath = null);
 
+/// <param name="Imports">Evaluate: the files the project imports from its own folder and the folders above it
+/// (Directory.Build.props, obj/*.nuget.g.props...), so the client knows when a cached evaluation is out of date.
+/// The SDK's and packages' own files are left out: they only change with an SDK or package update.</param>
 internal sealed record HostResponse(
     bool Success,
     string[] Files,
@@ -48,7 +51,8 @@ internal sealed record HostResponse(
     HostDependency[]? Dependencies = null,
     string[]? Folders = null,
     string[]? TargetFrameworks = null,
-    bool ProjectChanged = false);
+    bool ProjectChanged = false,
+    string[]? Imports = null);
 
 /// <summary>One entry under a project's Dependencies node, as the project file (evaluated) declares it.
 /// Transitive packages and package analyzers aren't here: they only exist after restore, in project.assets.json.</summary>

@@ -8,7 +8,9 @@ using AXamlIDE.Models;
 namespace AXamlIDE.Services.Lsp;
 
 /// <summary>What the IDE currently has open: a root folder, and the .sln if one was opened.</summary>
-public sealed record LspWorkspace(string RootPath, string? SolutionPath);
+/// <param name="Projects">For a plain folder, the project files the workspace found under it (WorkspaceModel), so
+/// a server given projects rather than a solution loads the same ones the rest of the IDE knows about.</param>
+public sealed record LspWorkspace(string RootPath, string? SolutionPath, IReadOnlyList<string>? Projects = null);
 
 /// <summary>How to find, launch and prepare one language server. Add a new server by adding one of these.</summary>
 /// <param name="Id">Shown in the status bar; also the log prefix.</param>
@@ -59,7 +61,7 @@ public static class LspServers
         LanguageIds: [LanguageIds.CSharp],
         ResolveCommand: () => FindTool("roslyn-language-server", "AXAMLIDE_ROSLYN"),
         InstallHint: "dotnet tool install -g roslyn-language-server --prerelease, or set AXAMLIDE_ROSLYN",
-        BuildArgs: _ => ["--stdio", "--logLevel", "Information"],
+        BuildArgs: _ => ["--stdio", "--logLevel", "Information", "--telemetryLevel", "off"],
         AfterInitialize: OpenRoslynWorkspace,
         WaitsForProjectInitialization: true);
 
@@ -87,9 +89,9 @@ public static class LspServers
             return Task.CompletedTask;
         }
 
-        // Plain folder with no solution: hand over the projects we can find instead.
-        var projects = FindProjects(workspace.RootPath);
-        if (projects.Length > 0)
+        // Plain folder with no solution: hand over its projects instead.
+        var projects = workspace.Projects ?? [];
+        if (projects.Count > 0)
             client.Notify("project/open", new { projects = projects.Select(p => new Uri(p).AbsoluteUri).ToArray() });
 
         return Task.CompletedTask;
@@ -106,30 +108,6 @@ public static class LspServers
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             return null;
-        }
-    }
-
-    private static string[] FindProjects(string root)
-    {
-        var options = new EnumerationOptions
-        {
-            RecurseSubdirectories = true,
-            IgnoreInaccessible = true,
-            AttributesToSkip = FileAttributes.ReparsePoint
-        };
-        var sep = Path.DirectorySeparatorChar;
-
-        try
-        {
-            return
-            [
-                .. Directory.EnumerateFiles(root, "*.csproj", options)
-                          .Where(p => !p.Contains($"{sep}obj{sep}") && !p.Contains($"{sep}bin{sep}"))
-            ];
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            return [];
         }
     }
 

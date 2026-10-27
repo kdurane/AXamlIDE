@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -19,6 +20,8 @@ public sealed class MsBuildHostClient : IDisposable
     private readonly string _hostPath;
     private readonly object _lock = new();
     private Process? _process;
+
+    private readonly ConcurrentDictionary<(string Path, string Configuration), CachedEvaluation> _evaluations = new();
 
     public MsBuildHostClient(string hostExecutablePath)
     {
@@ -66,9 +69,6 @@ public sealed class MsBuildHostClient : IDisposable
         Start();
     }
 
-    public string[] GetProjectFiles(string projectPath)
-        => GetProjectData(projectPath).Files;
-
     /// <summary>Everything the Solution Explorer shows under the project, from one evaluation.</summary>
     public ProjectContents GetProjectContents(string projectPath)
     {
@@ -79,26 +79,28 @@ public sealed class MsBuildHostClient : IDisposable
         return new ProjectContents(data.Files, data.Folders ?? [], dependencies, data.ProjectAssetsFile);
     }
 
-    public string[] GetProjectReferences(string projectPath)
-        => GetProjectData(projectPath).ProjectReferences;
+    /// <summary>The project's properties (assembly name, output path...), all from one evaluation.</summary>
+    /// <param name="configuration">"Debug", "Release"...; null for the project's default (Debug). Only OutputPath
+    /// usually differs between them.</param>
+    public ProjectFacts GetProjectFacts(string projectPath, string? configuration = null)
+    {
+        var data = GetProjectData(projectPath, configuration);
+        return new ProjectFacts(
+            data.AssemblyName
+                ?? throw new InvalidOperationException($"MSBuild did not provide an assembly name for '{projectPath}'."),
+            data.OutputType,
+            data.OutputPath?.Replace('\\', Path.DirectorySeparatorChar),
+            data.ProjectAssetsFile,
+            data.ProjectReferences,
+            data.TargetFrameworks ?? []);
+    }
 
-    public string GetProjectAssemblyName(string projectPath)
-        => GetProjectData(projectPath).AssemblyName
-           ?? throw new InvalidOperationException($"MSBuild did not provide an assembly name for '{projectPath}'.");
-
-    public string? GetProjectOutputType(string projectPath)
-        => GetProjectData(projectPath).OutputType;
-
-    /// <param name="configuration">"Debug", "Release"...; null for the project's default (Debug).</param>
-    public string? GetProjectOutputPath(string projectPath, string? configuration = null)
-      => GetProjectData(projectPath, configuration).OutputPath?.Replace('\\', Path.DirectorySeparatorChar);
-
-    /// <summary>The project's target frameworks (net10.0...), one or several; empty if it declares none.</summary>
-    public string[] GetProjectTargetFrameworks(string projectPath)
-        => GetProjectData(projectPath).TargetFrameworks ?? [];
-
-    public string? GetProjectAssetsFile(string projectPath)
-        => GetProjectData(projectPath).ProjectAssetsFile;
+    /// <summary>
+    /// Forget every remembered evaluation, so the next question evaluates again. For an explicit refresh: the
+    /// cache can't see a Directory.Build.props that was newly created above a project (it only watches the files
+    /// the project already imported).
+    /// </summary>
+    public void ClearCache() => _evaluations.Clear();
 
     // ---- one file's build action and metadata (the Properties panel)
 
@@ -107,26 +109,78 @@ public sealed class MsBuildHostClient : IDisposable
 
     /// <summary>Change the file's build action (item type); writes the project file.</summary>
     public ProjectItemProperties SetItemType(string projectPath, string filePath, string itemType)
-        => ToProperties(Send(new HostRequest(projectPath, HostCommands.SetItem, filePath, ItemType: itemType)));
+        => ToProperties(SendAndForget(new HostRequest(projectPath, HostCommands.SetItem, filePath, ItemType: itemType)));
 
     /// <summary>Change one metadata value of the file ("" clears it); writes the project file.</summary>
     public ProjectItemProperties SetItemMetadata(string projectPath, string filePath, string name, string value)
-        => ToProperties(Send(new HostRequest(projectPath, HostCommands.SetItem, filePath, MetadataName: name, MetadataValue: value)));
+        => ToProperties(SendAndForget(new HostRequest(projectPath, HostCommands.SetItem, filePath, MetadataName: name, MetadataValue: value)));
 
     /// <summary>
     /// A file or folder was moved or renamed (<paramref name="newPath"/>), or deleted (null): rewrite or drop the
     /// project file's explicit entries for it. Returns whether the project file changed.
     /// </summary>
     public bool MoveItem(string projectPath, string oldPath, string? newPath)
-        => Send(new HostRequest(projectPath, HostCommands.MoveItem, oldPath, NewPath: newPath)).ProjectChanged;
+        => SendAndForget(new HostRequest(projectPath, HostCommands.MoveItem, oldPath, NewPath: newPath)).ProjectChanged;
 
     private static ProjectItemProperties ToProperties(HostResponse response)
         => response.Item is { } item
             ? new ProjectItemProperties(item.ItemType, item.AvailableItemTypes, item.Metadata)
             : throw new InvalidOperationException("MSBuild host returned no item.");
 
+    /// <summary>
+    /// The project's evaluation, remembered per project and configuration. Opening a solution, expanding it in the
+    /// explorer, listing startup projects, completion and the preview all ask about the same projects, and each
+    /// evaluation takes a while (and holds up every other question to the host), so one is shared until the project
+    /// file or one of its local imports (<see cref="HostResponse.Imports"/>) is written.
+    /// </summary>
     private HostResponse GetProjectData(string projectPath, string? configuration = null)
-        => Send(new HostRequest(projectPath, Configuration: configuration));
+    {
+        var key = (Path.GetFullPath(projectPath), configuration ?? "");
+        if (_evaluations.TryGetValue(key, out var cached) && cached.IsCurrent())
+            return cached.Response;
+
+        lock (_lock)
+        {
+            // Another thread may have evaluated it while this one waited.
+            if (_evaluations.TryGetValue(key, out cached) && cached.IsCurrent())
+                return cached.Response;
+
+            // The project's own time is read before evaluating, so a save made during the evaluation still counts.
+            var projectStamp = FileStamp.Read(key.Item1);
+            var response = Send(new HostRequest(projectPath, Configuration: configuration));
+            _evaluations[key] = new CachedEvaluation(response,
+                [projectStamp, .. (response.Imports ?? []).Select(FileStamp.Read)]);
+            return response;
+        }
+    }
+
+    /// <summary>Send a request that writes the project file, and forget its remembered evaluations.</summary>
+    private HostResponse SendAndForget(HostRequest request)
+    {
+        var path = Path.GetFullPath(request.ProjectPath);
+        try
+        {
+            return Send(request);
+        }
+        finally
+        {
+            // The write time alone could miss it: a coarse file-system clock can give the same time twice.
+            foreach (var key in _evaluations.Keys.Where(key => key.Path == path))
+                _evaluations.TryRemove(key, out _);
+        }
+    }
+
+    private sealed record CachedEvaluation(HostResponse Response, FileStamp[] Files)
+    {
+        public bool IsCurrent() => Files.All(file => file.IsCurrent());
+    }
+
+    /// <summary>A file's write time when it was read (a missing file reads as the same fixed time).</summary>
+    private readonly record struct FileStamp(string Path, DateTime WriteUtc)
+    {
+        public static FileStamp Read(string path) => new(path, File.GetLastWriteTimeUtc(path));
+        public bool IsCurrent() => File.GetLastWriteTimeUtc(Path) == WriteUtc;
+    }
 
     private HostResponse Send(HostRequest request)
     {

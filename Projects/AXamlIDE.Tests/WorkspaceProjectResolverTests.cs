@@ -38,4 +38,19 @@ public sealed class WorkspaceProjectResolverTests : IDisposable
 
         Assert.Null(_resolver.FindProjectForDocument(file, [], _workspace.Root));
     }
+
+    [Fact]
+    public void FindProjectFiles_FindsNestedProjects_SkippingBuildOutputAndHiddenFolders()
+    {
+        var app = _workspace.Write("App/App.csproj", "<Project />");
+        var lib = _workspace.Write("src/Lib/Lib.csproj", "<Project />");
+        _workspace.Write("App/bin/Debug/Copy.csproj", "<Project />");
+        _workspace.Write("App/obj/Temp.csproj", "<Project />");
+        _workspace.Write(".git/Hidden.csproj", "<Project />");
+        _workspace.Write("node_modules/pkg/Pkg.csproj", "<Project />");
+
+        var found = WorkspaceProjectResolver.FindProjectFiles(_workspace.Root);
+
+        Assert.Equal([app, lib], found);
+    }
 }

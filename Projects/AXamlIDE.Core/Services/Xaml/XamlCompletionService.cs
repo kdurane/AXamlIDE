@@ -13,6 +13,7 @@ using AXamlIDE.CompletionEngine;
 using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.CompletionEngine.Completion;
 using AXamlIDE.CompletionEngine.Parsing;
+using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Services.Xaml;
 
@@ -31,9 +32,27 @@ public sealed class XamlCompletionService
     /// <param name="PropertyType">The property's type, for display ("ObservableCollection&lt;StartupProjectItem&gt;").</param>
     /// <param name="Compiled">Where the type is compiled, for showing decompiled source when it isn't in the workspace.</param>
     public sealed record BindingTarget(string Owner, string OwnerFullName, string Property, string? PropertyType, NavigationTarget? Compiled);
-    private sealed record ProjectXamlEntry(int FileCount, DateTime NewestWriteUtc, XamlProjectInfo Info);
+    /// <summary>What hovering in AXAML shows, from one lookup.</summary>
+    /// <param name="Binding">On a binding path: the bound property, so the caller can ask the C# server for its richer
+    /// hover first. Null elsewhere.</param>
+    /// <param name="Text">The engine's own hover: a signature line, then the summary.</param>
+    public sealed record XamlHover(BindingTarget? Binding, string Text);
+
+    /// <param name="CheckedAt">Environment.TickCount64 when the files were last listed.</param>
+    private sealed record ProjectXamlEntry(int FileCount, DateTime NewestWriteUtc, XamlProjectInfo Info, long CheckedAt);
+
+    /// <summary>
+    /// How long a scan of the project's .axaml files is trusted without listing them again. Saves and file changes
+    /// the IDE hears about (<see cref="ForgetProjectXaml"/>) count at once; this only bounds how stale a change made
+    /// outside the IDE (with nothing watching) can be. Listing them on every completion was a folder walk per key.
+    /// </summary>
+    private static readonly TimeSpan ProjectXamlRecheck = TimeSpan.FromSeconds(10);
     private readonly ConcurrentDictionary<string, MetadataEntry> _metadata = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, ProjectXamlEntry> _projectXaml = new(StringComparer.OrdinalIgnoreCase);
+
+    // Project path -> the built DLL its metadata is read from. Finding it walks bin/, so it's looked for once and then
+    // only checked to still exist; a build can put a newer one elsewhere, so ForgetBuiltAssemblies runs after builds.
+    private readonly ConcurrentDictionary<string, string> _builtAssemblies = new(StringComparer.OrdinalIgnoreCase);
     private readonly MetadataReader _reader = new(new DnlibMetadataProvider());
     private readonly CompletionEngine.Completion.CompletionEngine _engine = new();
     private readonly object _engineGate = new();
@@ -47,6 +66,21 @@ public sealed class XamlCompletionService
                 bundle.Metadata, text, caretOffset, Path.GetFileNameWithoutExtension(targetAssembly), projectXaml);
     }
 
+    /// <summary>A build finished: look for each project's DLL again (it may now be in another output folder).</summary>
+    public void ForgetBuiltAssemblies() => _builtAssemblies.Clear();
+
+    /// <summary>
+    /// An .axaml file was saved, added or removed: the next completion in its project lists the files again rather
+    /// than trusting the last scan for up to <see cref="ProjectXamlRecheck"/>.
+    /// </summary>
+    public void ForgetProjectXaml(string changedPath)
+    {
+        var path = Path.GetFullPath(changedPath);
+        foreach (var directory in _projectXaml.Keys)
+            if (path.StartsWith(directory + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                _projectXaml.TryRemove(directory, out _);
+    }
+
     /// <summary>
     /// The x:Keys and selector style classes in the project's .axaml files, for {StaticResource ...} and Classes="...".
     /// Read again when a file is added, removed or saved (the open document's unsaved text is read by the engine itself).
@@ -57,6 +91,11 @@ public sealed class XamlCompletionService
         if (projectDirectory is null || !Directory.Exists(projectDirectory))
             return XamlProjectInfo.Empty;
 
+        var now = Environment.TickCount64;
+        if (_projectXaml.TryGetValue(projectDirectory, out var recent)
+            && now - recent.CheckedAt < (long)ProjectXamlRecheck.TotalMilliseconds)
+            return recent.Info;
+
         var files = Directory.EnumerateFiles(projectDirectory, "*.axaml",
                 new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
             .Where(path => !IsBuildOutput(Path.GetRelativePath(projectDirectory, path)))
@@ -64,9 +103,13 @@ public sealed class XamlCompletionService
             .ToList();
         var newest = files.Count == 0 ? DateTime.MinValue : files.Max(file => file.LastWriteTimeUtc);
 
+        // Listing them is cheap next to reading them all: only read again when a file was added, removed or written.
         if (_projectXaml.TryGetValue(projectDirectory, out var cached)
             && cached.FileCount == files.Count && cached.NewestWriteUtc == newest)
+        {
+            _projectXaml[projectDirectory] = cached with { CheckedAt = now };
             return cached.Info;
+        }
 
         var keys = new HashSet<string>(StringComparer.Ordinal);
         var classes = new HashSet<string>(StringComparer.Ordinal);
@@ -85,7 +128,7 @@ public sealed class XamlCompletionService
         }
 
         var info = new XamlProjectInfo(keys, classes);
-        _projectXaml[projectDirectory] = new ProjectXamlEntry(files.Count, newest, info);
+        _projectXaml[projectDirectory] = new ProjectXamlEntry(files.Count, newest, info, now);
         return info;
 
         static bool IsBuildOutput(string relativePath)
@@ -95,7 +138,11 @@ public sealed class XamlCompletionService
         }
     }
 
-    public async Task<string?> GetHoverAsync(string projectPath, string assemblyName, string text, int offset, string? outputPath = null, string? assetsPath = null)
+    /// <summary>
+    /// The hover at the offset, or null for nothing to show. On a binding path it carries the bound property too,
+    /// found in the same pass, so the caller needn't look the binding up again to try the C# server's hover.
+    /// </summary>
+    public async Task<XamlHover?> GetHoverAsync(string projectPath, string assemblyName, string text, int offset, string? outputPath = null, string? assetsPath = null)
     {
         var (targetAssembly, bundle) = await GetMetadataAsync(projectPath, assemblyName, outputPath, assetsPath);
         offset = Math.Clamp(offset, 0, text.Length);
@@ -109,9 +156,15 @@ public sealed class XamlCompletionService
             var bindingSignature = target.PropertyType is null
                 ? $"{target.Owner}.{target.Property}"
                 : $"{target.Owner}.{target.Property} : {target.PropertyType}";
-            return FormatHover(bindingSignature, bindingSummary);
+            return new XamlHover(target, FormatHover(bindingSignature, bindingSummary));
         }
 
+        return ElementHover(targetAssembly, bundle, text, offset) is { } hover ? new XamlHover(null, hover) : null;
+    }
+
+    /// <summary>The hover for the element or attribute name at the offset (not on a binding path).</summary>
+    private string? ElementHover(string targetAssembly, MetadataBundle bundle, string text, int offset)
+    {
         var tokenStart = offset;
         var tokenEnd = offset;
         while (tokenStart > 0 && IsXamlNameCharacter(text[tokenStart - 1]))
@@ -311,7 +364,12 @@ public sealed class XamlCompletionService
         string? outputPath,
         string? assetsPath)
     {
-        var targetAssembly = FindBuiltAssembly(projectPath, assemblyName, outputPath);
+        var projectKey = Path.GetFullPath(projectPath);
+        if (!_builtAssemblies.TryGetValue(projectKey, out var targetAssembly) || !File.Exists(targetAssembly))
+            _builtAssemblies[projectKey] = targetAssembly =
+                BuiltAssemblies.FindNewest(projectPath, assemblyName, outputPath)
+                ?? throw new FileNotFoundException(
+                    $"Build '{Path.GetFileName(projectPath)}' first to enable Avalonia XAML completion.");
         var assemblyLastWriteUtc = File.GetLastWriteTimeUtc(targetAssembly);
         var normalizedAssetsPath = string.IsNullOrWhiteSpace(assetsPath)
             ? null
@@ -347,32 +405,6 @@ public sealed class XamlCompletionService
                 var (summaries, documentationFiles) = ReadDocumentation(assemblies, projectAssetsPath: assetsPath);
                 return new MetadataBundle(metadata, summaries, assemblies, documentationFiles);
             }));
-
-    private static string FindBuiltAssembly(string projectPath, string assemblyName, string? outputPath)
-    {
-        var projectDirectory = Path.GetDirectoryName(Path.GetFullPath(projectPath))
-            ?? throw new InvalidOperationException($"Project path '{projectPath}' has no parent directory.");
-        var outputDirectories = new[]
-            {
-                      string.IsNullOrWhiteSpace(outputPath) ? null : Path.GetFullPath(outputPath, projectDirectory),
-                      Path.Combine(projectDirectory, "bin")
-                  }
-            .Where(path => path is not null && Directory.Exists(path))
-            .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
-            .Cast<string>();
-        var candidates = outputDirectories
-            .SelectMany(directory => Directory.EnumerateFiles(directory, assemblyName + ".dll", SearchOption.AllDirectories))
-            .Distinct(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
-            .Where(path => !path.Split(Path.DirectorySeparatorChar).Contains("ref", StringComparer.OrdinalIgnoreCase))
-            .Select(path => new FileInfo(path))
-            .OrderByDescending(file => file.LastWriteTimeUtc);
-
-        if (candidates.FirstOrDefault() is { } target)
-            return target.FullName;
-
-        throw new FileNotFoundException(
-            $"Build '{Path.GetFileName(projectPath)}' first to enable Avalonia XAML completion.");
-    }
 
     private static bool IsXamlNameCharacter(char c) => char.IsLetterOrDigit(c) || c is '_' or ':' or '.' or '-';
 

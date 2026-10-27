@@ -135,7 +135,7 @@ public sealed partial class PublishDockable : PageDockable
     {
         try
         {
-            _targetFrameworks = await Task.Run(() => _workspace.Host.GetProjectTargetFrameworks(ProjectPath));
+            _targetFrameworks = await Task.Run(() => _workspace.Host.GetProjectFacts(ProjectPath).TargetFrameworks);
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException)
         {

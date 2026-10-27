@@ -14,7 +14,8 @@ namespace AXamlIDE.ViewModels;
 ///   unstaged changes   staged version (or HEAD)  vs  the file on disk
 ///   staged changes     HEAD                      vs  the staged version
 ///
-/// It re-reads both sides whenever the Git status changes, so saving, staging or committing updates it.
+/// It re-reads both sides when the Git status changes in a way that touches this file, so saving, staging or
+/// committing updates it.
 /// Opening the same file's diff again (same side) brings this tab back instead of making another.
 /// </summary>
 public sealed class DiffDockable : PageDockable
@@ -26,6 +27,14 @@ public sealed class DiffDockable : PageDockable
     private readonly string _relativePath;
     private readonly string? _originalRelativePath;
     private int _loadVersion;
+    private Sources? _loaded;   // what the shown diff was read from
+
+    /// <summary>
+    /// Everything that decides what the two sides contain: the HEAD commit (a clean file's text), the file's own
+    /// HEAD and staged object names (when it has changes), and for the unstaged side the file on disk. When none of
+    /// it moved, a reload would read the same text again.
+    /// </summary>
+    private sealed record Sources(string? HeadCommit, string? HeadObject, string? IndexObject, DateTime DiskWriteUtc, long DiskLength);
 
     public DiffDockable(GitChangeItem item, string repositoryRoot, GitService git, GitStatusTracker tracker, IDocumentHost documents)
     {
@@ -91,11 +100,35 @@ public sealed class DiffDockable : PageDockable
         }
     }
 
-    private async void OnStatusChanged() => await ReloadAsync();
+    /// <summary>
+    /// The status changes whenever any file in the repository does (every save anywhere), and a reload costs two git
+    /// processes plus a diff, for each open diff tab. So only reload when something this tab shows has changed.
+    /// </summary>
+    private async void OnStatusChanged()
+    {
+        if (CurrentSources() is { } now && now == _loaded)
+            return;
+        await ReloadAsync();
+    }
+
+    /// <summary>What the sides would be read from now; null when that can't be told (then always reload).</summary>
+    private Sources? CurrentSources()
+    {
+        if (_tracker.Current is not { } status)
+            return null;
+        var change = status.ChangeFor(FilePath);
+        if (change is not null && (change.HeadObject is null || change.IndexObject is null))
+            return null;   // untracked or conflicted: git gives no object names to compare
+        var disk = IsStagedSide ? null : new FileInfo(FilePath);
+        return new Sources(status.HeadCommit, change?.HeadObject, change?.IndexObject,
+            disk is { Exists: true } ? disk.LastWriteTimeUtc : default,
+            disk is { Exists: true } ? disk.Length : -1);
+    }
 
     private async Task ReloadAsync()
     {
         var version = ++_loadVersion;
+        var sources = CurrentSources();   // taken before reading, so a change made while reading still reloads
         string left, right;
         if (IsStagedSide)
         {
@@ -115,6 +148,7 @@ public sealed class DiffDockable : PageDockable
             return;   // a newer reload started meanwhile
 
         Diff = diff;
+        _loaded = sources;
         OpenFileCommand.NotifyCanExecuteChanged();
     }
 

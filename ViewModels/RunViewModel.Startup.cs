@@ -98,9 +98,7 @@ public partial class RunViewModel
     private async Task LoadStartupProjectsAsync()
     {
         var generation = ++_startupProjectsGeneration;
-        var candidates = _workspace.SolutionProjects.Length > 0
-            ? _workspace.SolutionProjects
-            : _workspace.RootDirectory is { } folder ? StartupProjectFinder.FindProjectFiles(folder) : [];
+        var candidates = _workspace.Projects;
 
         var runnable = await Task.Run(() => candidates.Distinct().Where(IsRunnable).ToList());
         if (generation != _startupProjectsGeneration)
@@ -170,7 +168,7 @@ public partial class RunViewModel
     {
         try
         {
-            return StartupProjectFinder.IsRunnable(_workspace.Host.GetProjectOutputType(projectPath));
+            return StartupProjectFinder.IsRunnable(_workspace.Host.GetProjectFacts(projectPath).OutputType);
         }
         catch (InvalidOperationException)
         {

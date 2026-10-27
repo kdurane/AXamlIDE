@@ -115,6 +115,40 @@ public sealed class WorkspaceProjectResolver
         return null;
     }
 
+    /// <summary>
+    /// The project files in an opened folder (no solution): *.csproj below it, skipping build output, hidden
+    /// folders (.git, .axamlide...) and node_modules, which never hold a project of the workspace but can be huge.
+    /// Sorted by path. WorkspaceModel keeps the result, so the folder is walked once per workspace.
+    /// </summary>
+    public static IReadOnlyList<string> FindProjectFiles(string folder, int maxDepth = 6)
+    {
+        var found = new List<string>();
+        Walk(new DirectoryInfo(folder), 0);
+        found.Sort(StringComparer.Ordinal);
+        return found;
+
+        void Walk(DirectoryInfo directory, int depth)
+        {
+            try
+            {
+                found.AddRange(directory.EnumerateFiles("*.csproj").Select(file => file.FullName));
+                if (depth == maxDepth)
+                    return;
+
+                foreach (var child in directory.EnumerateDirectories())
+                    if (!IsSkipped(child.Name))
+                        Walk(child, depth + 1);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // unreadable folder: skip it
+            }
+        }
+
+        static bool IsSkipped(string name)
+            => name.StartsWith('.') || name is "bin" or "obj" or "node_modules";
+    }
+
     private static bool IsWithinDirectory(string path, string root)
     {
         var comparison = OperatingSystem.IsWindows()

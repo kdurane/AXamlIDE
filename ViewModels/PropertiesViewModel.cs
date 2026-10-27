@@ -181,8 +181,9 @@ public sealed partial class PropertiesViewModel : ObservableObject
         };
         try
         {
-            rows.Add(ReadOnly("Assembly Name", _model.Host.GetProjectAssemblyName(projectPath), "The name of the built assembly."));
-            rows.Add(ReadOnly("Output Type", _model.Host.GetProjectOutputType(projectPath) ?? "", "Exe, WinExe or Library."));
+            var facts = _model.Host.GetProjectFacts(projectPath);
+            rows.Add(ReadOnly("Assembly Name", facts.AssemblyName, "The name of the built assembly."));
+            rows.Add(ReadOnly("Output Type", facts.OutputType ?? "", "Exe, WinExe or Library."));
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException)
         {

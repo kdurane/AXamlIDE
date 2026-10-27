@@ -69,7 +69,7 @@ public static class SolutionLoader
             string[] references;
             try
             {
-                references = host.GetProjectReferences(projects[i].Path);
+                references = [.. host.GetProjectFacts(projects[i].Path).References];
             }
             catch (Exception ex) when (ex is InvalidOperationException or IOException)
             {

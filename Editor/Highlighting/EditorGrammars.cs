@@ -33,6 +33,12 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
     private IRawGrammar? _axamlGrammar;
     private readonly Dictionary<string, IRawTheme> _colorLayers = [];
 
+    // Every editor pane (one per open tab) asks for the theme when it opens and again when the theme changes, and
+    // builds its semantic colours from it. The themes are fixed assets, so one copy is loaded and shared rather than
+    // each pane parsing the same files again. Only the current one is kept: there's one theme at a time.
+    private (string Id, IRawTheme Theme)? _loadedTheme;
+    private (IRawTheme Theme, SemanticTokenColors Colors)? _semanticColors;
+
     /// <summary>The grammar scope for a file, or null when there's no grammar for it.</summary>
     public string? ScopeForFile(string? path)
     {
@@ -50,9 +56,24 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
     /// <summary>The theme for the editors: the chosen theme with the AXAML colours for its Dark/Light base on top.</summary>
     public IRawTheme LoadTheme(EditorTheme theme)
     {
+        if (_loadedTheme is { } loaded && loaded.Id == theme.Id)
+            return loaded.Theme;
+
         var baseTheme = theme.Load(builtIn);
         var variant = ThemeVariants.For(theme.Id).InheritVariant == ThemeVariant.Dark ? "dark" : "light";
-        return new LayeredTheme(baseTheme, under: ReadColorLayer(CSharpColorsUri, variant), over: ReadColorLayer(AxamlColorsUri, variant));
+        var layered = new LayeredTheme(baseTheme, under: ReadColorLayer(CSharpColorsUri, variant), over: ReadColorLayer(AxamlColorsUri, variant));
+        _loadedTheme = (theme.Id, layered);
+        return layered;
+    }
+
+    /// <summary>The semantic-token brushes for a theme from <see cref="LoadTheme"/>, built once and shared by the panes.</summary>
+    public SemanticTokenColors SemanticColorsFor(IRawTheme theme)
+    {
+        if (_semanticColors is { } built && ReferenceEquals(built.Theme, theme))
+            return built.Colors;
+        var colors = new SemanticTokenColors(theme, this);
+        _semanticColors = (theme, colors);
+        return colors;
     }
 
     // ---------------------------------------------------------------- IRegistryOptions

@@ -415,6 +415,8 @@ public static class MetadataConverter
             }
         }
 
+        AddStaticValueHints(types, typeDefs);
+
         PostProcessTypes(types, metadata, resourceUrls, avaresValues, pseudoclasses);
 
         return metadata;
@@ -450,6 +452,43 @@ public static class MetadataConverter
         }
 
         bool SkipRes(string res) => ignoredResExt.Any(r => res.EndsWith(r, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Enum-like classes (TextTrimming, GridLength...) get their own-type static values as hints, e.g.
+    /// TextTrimming.CharacterEllipsis -> "CharacterEllipsis". Only when the type parses from a string,
+    /// so the name is something XAML accepts.
+    /// </summary>
+    private static void AddStaticValueHints(Dictionary<string, MetadataType> types, Dictionary<MetadataType, ITypeInformation> typeDefs)
+    {
+        foreach (var type in types.Values)
+        {
+            if (type.HasHintValues || type.IsEnum || type.IsNullable || !typeDefs.TryGetValue(type, out var typeDef))
+                continue;
+            if (!typeDef.Methods.Any(m => m is { IsPublic: true, IsStatic: true, Name: "Parse" }))
+                continue;
+
+            var values = type.Properties
+                .Where(p => p is { IsStatic: true, HasGetter: true }
+                            && ReferenceEquals(p.Type, type) && ReferenceEquals(p.DeclaringType, type))
+                .Select(p => p.Name)
+                .ToArray();
+            if (values.Length == 0)
+                continue;
+
+            type.HasHintValues = true;
+            type.HintValues = values;
+        }
+
+        // Nullable<X> wrappers copied X's hints when they were made, before the above ran
+        foreach (var type in types.Values)
+        {
+            if (type is { IsNullable: true, UnderlyingType: { HasHintValues: true } underlying, HasHintValues: false })
+            {
+                type.HasHintValues = true;
+                type.HintValues = underlying.HintValues;
+            }
+        }
     }
 
     private static void ProcessAvaloniaResources(IAssemblyInformation asm, ITypeInformation[] asmTypes, List<AvaresInfo> avaresValues)

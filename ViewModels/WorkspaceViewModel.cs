@@ -85,19 +85,21 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
     private void OpenFolder(string path)
     {
         _workspace.SolutionProjects = [];
+        _workspace.ClearProjectCaches();
         _xaml.ClearProjectCaches();
         SelectedNode = null;
         var root = ProjectTreeNode.CreateDirectory(path);
         root.Populate();
         Roots.Clear();
         Roots.Add(root);
-        _languages.SetWorkspace(new LspWorkspace(path, SolutionPath: null));
+        _languages.SetWorkspace(new LspWorkspace(path, SolutionPath: null, _workspace.ProjectFilesUnderRoot));
         OnPropertyChanged(nameof(IsOpen));
         Opened?.Invoke();
     }
 
     private void OpenSolution(string path)
     {
+        _workspace.ClearProjectCaches();   // before loading: the loader evaluates every project
         var root = SolutionLoader.LoadSolution(path, _workspace.Host);
         _xaml.ClearProjectCaches();
         SelectedNode = null;
@@ -220,6 +222,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         Roots.Clear();
         SelectedNode = null;
         _workspace.SolutionProjects = [];
+        _workspace.ClearProjectCaches();
         _xaml.ClearProjectCaches();
         _languages.ClearWorkspace();
         OnPropertyChanged(nameof(IsOpen));
