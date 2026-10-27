@@ -42,6 +42,15 @@ public interface IDialogService
     // Windows
     Task ShowSettingsAsync();
 
+    /// <summary>The start window over the main window (File > Start Window); it closes when something is chosen.</summary>
+    Task ShowStartWindowAsync(ViewModels.StartViewModel start);
+
+    /// <summary>Visual Studio's "Clone a repository", starting in <paramref name="defaultLocation"/>: the cloned folder, or null if cancelled.</summary>
+    Task<string?> CloneRepositoryAsync(string defaultLocation);
+
+    /// <summary>Visual Studio's "Create a new project", starting in <paramref name="defaultLocation"/>: the new solution, or null if cancelled.</summary>
+    Task<string?> NewProjectAsync(string defaultLocation);
+
     /// <summary>
     /// Visual Studio's Add New Item for <paramref name="folder"/>, starting on <paramref name="templateName"/>
     /// (else Class): the files to write (checked: valid name, nothing there yet), or null if cancelled.

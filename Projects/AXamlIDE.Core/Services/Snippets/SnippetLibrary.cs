@@ -24,7 +24,7 @@ public sealed class SnippetLibrary(string userFolder)
 
     /// <summary>The default folder: snippets/ next to settings.json.</summary>
     public static string DefaultUserFolder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AXamlIDE", "snippets");
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "AXamlIDE", "snippets");
 
     public string UserFolder { get; } = userFolder;
 

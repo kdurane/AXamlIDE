@@ -29,6 +29,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
     private readonly LanguageSessionService _languages;
     private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
+    private bool _opening;   // a solution is loading (OpenAsync)
 
     public WorkspaceViewModel(WorkspaceModel workspace, XamlLanguageService xaml, LanguageSessionService languages,
         IDialogService dialogs, IMessenger messenger)
@@ -52,6 +53,9 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
     /// <summary>The open solution's .sln/.slnx, or null when a folder (or nothing) is open.</summary>
     public string? SolutionPath => Roots.FirstOrDefault(root => root.Kind == NodeKind.Solution)?.FullPath;
 
+    /// <summary>What was opened: the solution file, or the folder (null when nothing is open).</summary>
+    public string? WorkspacePath => SolutionPath ?? Roots.FirstOrDefault()?.FullPath;
+
     /// <summary>A folder or solution was opened (or re-opened by a refresh). See WorkspaceSession.</summary>
     public event Action? Opened;
 
@@ -60,25 +64,38 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
 
     // ------------------------------------------------------------- open
 
-    [RelayCommand]
-    private async Task OpenFolder()
+    /// <summary>
+    /// Open a solution (.sln/.slnx) or a folder, replacing what's open (the caller deals with unsaved changes first).
+    /// False, with the reason in the status bar, when it can't be opened. A solution is loaded off the UI thread
+    /// (every project is evaluated by the MSBuild host, which can take seconds), so windows keep drawing meanwhile.
+    /// </summary>
+    public async Task<bool> OpenAsync(string path)
     {
-        if (await _dialogs.PickFolderAsync() is not { } path) return;
-        OpenFolder(path);
-    }
-
-    [RelayCommand]
-    private async Task OpenSolution()
-    {
-        if (await _dialogs.PickSolutionAsync() is not { } path) return;
+        if (_opening)
+            return false;   // one at a time: a second click while a solution loads is ignored
+        _opening = true;
         try
         {
-            OpenSolution(path);
+            if (RecentWorkspace.IsSolutionPath(path) && File.Exists(path))
+                await OpenSolutionAsync(path);
+            else if (Directory.Exists(path))
+                OpenFolder(path);
+            else
+            {
+                _messenger.Send(new StatusMessage($"'{path}' no longer exists."));
+                return false;
+            }
+            return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException
                                        or InvalidOperationException or ArgumentException)
         {
-            _messenger.Send(new StatusMessage($"Couldn't open solution '{path}': {ex.Message}"));
+            _messenger.Send(new StatusMessage($"Couldn't open '{path}': {ex.Message}"));
+            return false;
+        }
+        finally
+        {
+            _opening = false;
         }
     }
 
@@ -97,13 +114,19 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         Opened?.Invoke();
     }
 
-    private void OpenSolution(string path)
+    private async Task OpenSolutionAsync(string path)
     {
         _workspace.ClearProjectCaches();   // before loading: the loader evaluates every project
-        var root = SolutionLoader.LoadSolution(path, _workspace.Host);
+        _messenger.Send(new StatusMessage($"Opening {Path.GetFileName(path)}..."));
+        // Off the UI thread: the tree isn't shown until it's in Roots, so filling it there is safe.
+        var root = await Task.Run(() =>
+        {
+            var loaded = SolutionLoader.LoadSolution(path, _workspace.Host);
+            loaded.Populate();
+            return loaded;
+        });
         _xaml.ClearProjectCaches();
         SelectedNode = null;
-        root.Populate();
         _workspace.SolutionProjects =
         [
             .. root.Children
@@ -115,6 +138,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         Roots.Add(root);
         _languages.SetWorkspace(new LspWorkspace(Path.GetDirectoryName(path)!, SolutionPath: path));
         OnPropertyChanged(nameof(IsOpen));
+        _messenger.Send(new StatusMessage(""));
         Opened?.Invoke();
     }
 
@@ -126,7 +150,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         if (node.Kind is NodeKind.Directory or NodeKind.Solution
             && ReferenceEquals(node, Roots.FirstOrDefault()))
         {
-            Reopen();
+            await ReopenAsync();
             return;
         }
 
@@ -200,13 +224,13 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         }
     }
 
-    private void Reopen()
+    private async Task ReopenAsync()
     {
         if (Roots.FirstOrDefault() is not { } root)
             return;
 
         if (root.Kind == NodeKind.Solution)
-            OpenSolution(root.FullPath);
+            await OpenSolutionAsync(root.FullPath);
         else
             OpenFolder(root.FullPath);
     }

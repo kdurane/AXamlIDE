@@ -8,7 +8,7 @@ namespace AXamlIDE.Views;
 
 /// <summary>
 /// The view of one document tab (DataContext: <see cref="DocumentDockable"/>): its own editor and, for
-/// AXAML files, a preview area laid out by the tab's <see cref="PreviewMode"/> and <see cref="PreviewSplit"/>.
+/// AXAML and Markdown files, a preview area laid out by the tab's <see cref="PreviewMode"/> and <see cref="PreviewSplit"/>.
 ///
 /// Each AXAML tab has its own preview (its own view model and designer host, from PreviewSessions), so it keeps
 /// showing whichever tab is selected, even dragged out to another window. There is one outline in the app,
@@ -28,8 +28,8 @@ public partial class DocumentView : UserControl
         InitializeComponent();
     }
 
-    /// <param name="preview">This tab's preview; null when it isn't an AXAML file.</param>
-    public DocumentView(DocumentDockable tab, EditorServices services, PreviewPaneViewModel? preview)
+    /// <param name="preview">This tab's preview (the AXAML designer, or the rendered Markdown); null when it has none.</param>
+    public DocumentView(DocumentDockable tab, EditorServices services, Control? preview)
     {
         InitializeComponent();
         _tab = tab;
@@ -40,8 +40,7 @@ public partial class DocumentView : UserControl
         Editor.SetDocument(tab.Document);
         EditorHost.Content = Editor;
 
-        if (preview is not null)
-            PreviewHost.Content = new PreviewPaneView { DataContext = preview };
+        PreviewHost.Content = preview;
 
         tab.PropertyChanged += OnTabPropertyChanged;
         ApplyLayout();
@@ -75,6 +74,7 @@ public partial class DocumentView : UserControl
     public void Shutdown()
     {
         _tab.PropertyChanged -= OnTabPropertyChanged;
+        (PreviewHost.Content as MarkdownPreviewView)?.Shutdown();
         Editor.Shutdown();
     }
 

@@ -8,6 +8,7 @@ using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Shell;
 using AXamlIDE.ViewModels;
+using CommunityToolkit.Mvvm.Messaging;
 using Dock.Model.Core;
 
 namespace AXamlIDE.Views;
@@ -30,6 +31,7 @@ public sealed class DockViewCache : IControlRecycling
     private readonly DocumentManager _documents;
     private readonly PreviewSessions _previews;
     private readonly OutlineViewModel _outlineViewModel;
+    private readonly IMessenger _messenger;
     private readonly ControlRecycling _dockControls = new();
     private readonly Dictionary<DocumentDockable, DocumentView> _documentViews = [];
     private readonly Dictionary<PageDockable, Control> _pageViews = [];
@@ -41,8 +43,10 @@ public sealed class DockViewCache : IControlRecycling
         DockLayoutViewModel docking,
         DocumentManager documents,
         PreviewSessions previews,
-        OutlineViewModel outline)
+        OutlineViewModel outline,
+        IMessenger messenger)
     {
+        _messenger = messenger;
         _editorServices = editorServices;
         _toolPanels = toolPanels;
         _documents = documents;
@@ -109,7 +113,10 @@ public sealed class DockViewCache : IControlRecycling
         if (_documentViews.TryGetValue(tab, out var view))
             return view;
 
-        view = new DocumentView(tab, _editorServices, tab.IsPreviewable ? _previews.For(tab.Document) : null);
+        Control? preview = tab.IsXaml ? new PreviewPaneView { DataContext = _previews.For(tab.Document) }
+            : tab.IsMarkdown ? new MarkdownPreviewView(tab.Document, _messenger)
+            : null;
+        view = new DocumentView(tab, _editorServices, preview);
         _documentViews[tab] = view;
         PlaceSharedViews();
         return view;

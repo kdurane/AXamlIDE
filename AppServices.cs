@@ -95,6 +95,8 @@ public static class AppServices
         services.AddSingleton<RunViewModel>();
         services.AddSingleton<TerminalViewModel>();       // the Terminal panel's shell
         services.AddSingleton<TestExplorerViewModel>();   // the Tests panel (Test Explorer)
+        services.AddSingleton(new RecentWorkspaces());      // recent.json: the start window's "Open recent"
+        services.AddSingleton<StartViewModel>();          // the start window, File > Recent / New Project / Clone
         services.AddSingleton<LocalsViewModel>();          // the debugger's windows (Locals, Watch, Call Stack, visualizers)
         services.AddSingleton<WatchViewModel>();
         services.AddSingleton<CallStackViewModel>();

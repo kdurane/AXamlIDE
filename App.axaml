@@ -24,6 +24,7 @@
         <StyleInclude Source="/Styles/TreeViewStyles.axaml" />
         <StyleInclude Source="/Styles/PaneStyles.axaml" />
         <StyleInclude Source="/Styles/DockStyles.axaml" />
+        <StyleInclude Source="/Styles/MarkdownStyles.axaml" />
     </Application.Styles>
 
     <Application.Resources>

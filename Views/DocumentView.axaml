@@ -37,7 +37,7 @@
                     <ToggleButton
                         Command="{Binding SetPreviewModeCommand}"
                         CommandParameter="{x:Static models:PreviewMode.Design}"
-                        Content="Design"
+                        Content="{Binding PreviewOnlyLabel}"
                         Name="DesignButton"
                         ToolTip.Tip="Preview only" />
                     <Button

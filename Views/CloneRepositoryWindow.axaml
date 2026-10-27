@@ -1,0 +1,78 @@
+<!--
+Clone a repository (DataContext: ViewModels/CloneRepositoryViewModel), as in Visual Studio: the repository location,
+the path to clone into (it follows the repository's name until edited), and git's progress while cloning.
+-->
+<Window
+    Background="{DynamicResource ThemeBackgroundBrush}"
+    CanResize="False"
+    SizeToContent="Height"
+    Title="Clone a Repository"
+    Width="620"
+    WindowStartupLocation="CenterOwner"
+    x:Class="AXamlIDE.Views.CloneRepositoryWindow"
+    x:DataType="vm:CloneRepositoryViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <StackPanel Margin="20" Spacing="6">
+        <TextBlock FontSize="18" Margin="0,0,0,8" Text="Clone a repository" />
+
+        <TextBlock Text="Repository location" />
+        <TextBox
+            AutomationProperties.Name="Repository location"
+            IsEnabled="{Binding !IsCloning}"
+            Name="UrlBox"
+            PlaceholderText="https://github.com/owner/repository.git"
+            Text="{Binding Url}" />
+
+        <TextBlock Margin="0,8,0,0" Text="Path" />
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBox
+                AutomationProperties.Name="Path"
+                IsEnabled="{Binding !IsCloning}"
+                Text="{Binding TargetPath}" />
+            <Button
+                AutomationProperties.Name="Browse for a folder"
+                Command="{Binding BrowseCommand}"
+                Content="..."
+                Grid.Column="1"
+                IsEnabled="{Binding !IsCloning}"
+                Margin="6,0,0,0"
+                ToolTip.Tip="Browse" />
+        </Grid>
+
+        <TextBlock
+            Classes.error="{Binding StatusIsError}"
+            Margin="0,8,0,0"
+            MinHeight="18"
+            Opacity="0.85"
+            Text="{Binding Status}"
+            TextTrimming="CharacterEllipsis"
+            TextWrapping="Wrap">
+            <TextBlock.Styles>
+                <Style Selector="TextBlock.error">
+                    <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+                </Style>
+            </TextBlock.Styles>
+        </TextBlock>
+
+        <StackPanel
+            HorizontalAlignment="Right"
+            Margin="0,8,0,0"
+            Orientation="Horizontal"
+            Spacing="8">
+            <Button
+                Classes="accent"
+                Command="{Binding CloneCommand}"
+                Content="Clone"
+                IsDefault="True"
+                MinWidth="80" />
+            <Button
+                Click="OnCancelClick"
+                Content="Cancel"
+                IsCancel="True"
+                MinWidth="80" />
+        </StackPanel>
+    </StackPanel>
+</Window>

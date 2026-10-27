@@ -69,6 +69,37 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
         <Setter Property="RenderTransform" Value="rotate(90deg)" />
     </Style>
 
+    <!--
+    startAction: one of the start window's "Get started" choices, Visual Studio style: a large tile with an icon, a
+    title and a line about it.
+    -->
+    <Style Selector="Button.startAction">
+        <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Padding" Value="14,12" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="Button.startAction:pointerover /template/ ContentPresenter">
+        <Setter Property="BorderBrush" Value="{DynamicResource LinkBrush}" />
+    </Style>
+    <Style Selector="Button.startAction PathIcon">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="Margin" Value="0,2,14,0" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <!--  pin: a recent entry's pin, shown while the row is under the pointer, and always once it's pinned.  -->
+    <Style Selector="Button.pin">
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Button.row:pointerover Button.pin, Button.pin.pinned">
+        <Setter Property="Opacity" Value="0.85" />
+    </Style>
+
     <!--  clear: the small x that empties a box (TextBox.SearchBox shows it once there's text).  -->
     <Style Selector="Button.clear">
         <Setter Property="Background" Value="Transparent" />

@@ -6,6 +6,7 @@
   "bindings": {
     // ---- File
     "File.OpenSolution": "Ctrl+Shift+O",
+    "File.NewProject": "Ctrl+Shift+N",
     "File.Save": "Ctrl+S",
     "File.Close": ["Ctrl+W", "Ctrl+F4"],
     "File.NewItem": "Ctrl+Shift+A",

@@ -37,6 +37,9 @@ public static class CommandCatalog
         // ---- File
         new("File.OpenFolder", "Open Folder", "Open a folder as the workspace."),
         new("File.OpenSolution", "Open Solution", "Open a .sln or .slnx solution."),
+        new("File.NewProject", "New Project", "Create a new project and solution from a template."),
+        new("File.CloneRepository", "Clone Repository", "Clone a Git repository and open it."),
+        new("File.StartWindow", "Start Window", "Show the start window: recent solutions and folders, clone, open or create."),
         new("File.Save", "Save", "Save the current document."),
         new("File.Close", "Close Tab", "Close the current document."),
         new("File.NewItem", "New Item", "Add a new file from a template to the folder selected in the explorer."),

@@ -91,8 +91,11 @@ public sealed class KeyMap
         var run = shell.Run;
         return new Dictionary<string, (ICommand, object?)>
         {
-            ["File.OpenFolder"] = (shell.Workspace.OpenFolderCommand, null),
-            ["File.OpenSolution"] = (shell.Workspace.OpenSolutionCommand, null),
+            ["File.OpenFolder"] = (shell.Start.OpenFolderCommand, null),
+            ["File.OpenSolution"] = (shell.Start.OpenSolutionCommand, null),
+            ["File.NewProject"] = (shell.Start.NewProjectCommand, null),
+            ["File.CloneRepository"] = (shell.Start.CloneRepositoryCommand, null),
+            ["File.StartWindow"] = (shell.ShowStartWindowCommand, null),
             ["File.Save"] = (documents.SaveDocumentCommand, null),     // null parameter = the selected tab
             ["File.Close"] = (documents.CloseDocumentCommand, null),
             ["File.NewItem"] = (shell.Explorer.NewItemCommand, null),   // into the explorer selection

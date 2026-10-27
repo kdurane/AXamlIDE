@@ -1,0 +1,16 @@
+<!--
+A Markdown tab's preview, beside or instead of its text (the tab's Code / Split / Preview buttons, as for AXAML).
+Built by MarkdownRenderer from the document's text, a moment after typing stops; the look is Styles/MarkdownStyles.axaml.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.MarkdownPreviewView"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer
+        Classes="md-preview"
+        HorizontalScrollBarVisibility="Disabled"
+        Name="Scroller"
+        VerticalScrollBarVisibility="Auto">
+        <ContentControl Name="Body" />
+    </ScrollViewer>
+</UserControl>

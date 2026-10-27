@@ -545,6 +545,33 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         return added ? viewModel.Files : null;
     }
 
+    public async Task ShowStartWindowAsync(StartViewModel start)
+    {
+        var window = new StartWindow { DataContext = start, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+        void Close() => window.Close();
+        start.Finished += Close;
+        try
+        {
+            await window.ShowDialog(Owner);
+        }
+        finally
+        {
+            start.Finished -= Close;
+        }
+    }
+
+    public async Task<string?> CloneRepositoryAsync(string defaultLocation)
+    {
+        var viewModel = new CloneRepositoryViewModel(defaultLocation, this);
+        return await new CloneRepositoryWindow { DataContext = viewModel }.ShowDialog<string?>(Owner);
+    }
+
+    public async Task<string?> NewProjectAsync(string defaultLocation)
+    {
+        var viewModel = new NewProjectViewModel(defaultLocation, this);
+        return await new NewProjectWindow { DataContext = viewModel }.ShowDialog<string?>(Owner);
+    }
+
     public async Task<PublishWizardResult?> ShowPublishWizardAsync(string projectPath, string? targetFramework)
     {
         var viewModel = new PublishWizardViewModel(projectPath, targetFramework);

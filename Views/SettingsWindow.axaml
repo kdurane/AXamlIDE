@@ -128,6 +128,20 @@
                 <StackPanel Margin="20,12" Spacing="16">
                     <TextBlock Classes="SettingsHeading" Text="Window layout" />
                     <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
+                    <TextBlock Classes="SettingsHeading" Text="Startup" />
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="On startup, open" />
+                        <ComboBox
+                            ItemsSource="{Binding StartupChoices}"
+                            MinWidth="220"
+                            SelectedItem="{Binding SelectedStartup, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:StartupChoice">
+                                    <TextBlock Text="{Binding Text}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
                 </StackPanel>
             </TabItem>
             <!--

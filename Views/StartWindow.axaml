@@ -1,0 +1,211 @@
+<!--
+The start window (DataContext: ViewModels/StartViewModel), laid out like Visual Studio 2022's: "Open recent" on the
+left (a search box, then the pinned entries and the rest by when they were last opened), "Get started" on the right
+(clone, open a solution, open a folder, create a project), and "Continue without code" under them.
+-->
+<Window
+    Background="{DynamicResource AppWindowBackgroundBrush}"
+    Foreground="{DynamicResource AppForegroundBrush}"
+    Height="640"
+    MinHeight="440"
+    MinWidth="760"
+    Title="AXamlIDE"
+    Width="1000"
+    WindowStartupLocation="CenterScreen"
+    x:Class="AXamlIDE.Views.StartWindow"
+    x:DataType="vm:StartViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Window.KeyBindings>
+        <KeyBinding Command="{Binding ContinueWithoutCodeCommand}" Gesture="Escape" />
+    </Window.KeyBindings>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.startHeading">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+        <Style Selector="TextBlock.dim">
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+    </Window.Styles>
+
+    <Grid
+        ColumnDefinitions="*,48,340"
+        Margin="40,28,40,24"
+        RowDefinitions="Auto,*">
+        <TextBlock
+            FontSize="28"
+            Grid.ColumnSpan="3"
+            Margin="0,0,0,24"
+            Text="AXamlIDE" />
+
+        <!--  Open recent  -->
+        <DockPanel Grid.Row="1">
+            <TextBlock
+                Classes="startHeading"
+                DockPanel.Dock="Top"
+                Text="Open recent" />
+            <TextBox
+                AutomationProperties.Name="Search recent"
+                Classes="SearchBox"
+                DockPanel.Dock="Top"
+                IsVisible="{Binding HasRecent}"
+                Margin="0,0,0,10"
+                Name="SearchBox"
+                PlaceholderText="Search recent (Alt+S)"
+                Text="{Binding Search}" />
+            <TextBlock
+                Classes="dim"
+                DockPanel.Dock="Top"
+                IsVisible="{Binding !HasRecent}"
+                Text="Solutions and folders you open will be listed here, so you can go straight back to them."
+                TextWrapping="Wrap" />
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Groups}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RecentGroupViewModel">
+                            <StackPanel Margin="0,0,0,10">
+                                <TextBlock
+                                    Classes="dim"
+                                    FontWeight="SemiBold"
+                                    Margin="6,0,0,4"
+                                    Text="{Binding Title}" />
+                                <ItemsControl ItemsSource="{Binding Items}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:RecentItemViewModel">
+                                            <Button
+                                                AutomationProperties.Name="{Binding Name}"
+                                                Classes="row"
+                                                Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).OpenRecentCommand, FallbackValue={x:Null}}"
+                                                CommandParameter="{Binding}"
+                                                Padding="6,5"
+                                                ToolTip.Tip="{Binding ToolTip}">
+                                                <Button.ContextMenu>
+                                                    <ContextMenu>
+                                                        <MenuItem
+                                                            Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).OpenRecentCommand, FallbackValue={x:Null}}"
+                                                            CommandParameter="{Binding}"
+                                                            Header="_Open" />
+                                                        <MenuItem
+                                                            Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).TogglePinCommand, FallbackValue={x:Null}}"
+                                                            CommandParameter="{Binding}"
+                                                            Header="{Binding PinToolTip}" />
+                                                        <MenuItem
+                                                            Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).RemoveRecentCommand, FallbackValue={x:Null}}"
+                                                            CommandParameter="{Binding}"
+                                                            Header="_Remove From List" />
+                                                    </ContextMenu>
+                                                </Button.ContextMenu>
+                                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" Opacity="{Binding IsMissing, Converter={x:Static views:StartConverters.MissingOpacity}}">
+                                                    <PathIcon
+                                                        Data="{Binding IsSolution, Converter={x:Static views:StartConverters.Icon}}"
+                                                        Height="18"
+                                                        Margin="0,0,12,0"
+                                                        VerticalAlignment="Center"
+                                                        Width="18" />
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock
+                                                            FontWeight="SemiBold"
+                                                            Text="{Binding Name}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock
+                                                            Classes="dim"
+                                                            Text="{Binding Location}"
+                                                            TextTrimming="CharacterEllipsis" />
+                                                    </StackPanel>
+                                                    <TextBlock
+                                                        Classes="dim"
+                                                        Grid.Column="2"
+                                                        Margin="12,0,4,0"
+                                                        Text="{Binding When}"
+                                                        VerticalAlignment="Top" />
+                                                    <Button
+                                                        AutomationProperties.Name="{Binding PinToolTip}"
+                                                        Classes="icon pin"
+                                                        Classes.pinned="{Binding IsPinned}"
+                                                        Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).TogglePinCommand, FallbackValue={x:Null}}"
+                                                        CommandParameter="{Binding}"
+                                                        Grid.Column="3"
+                                                        ToolTip.Tip="{Binding PinToolTip}"
+                                                        VerticalAlignment="Top">
+                                                        <PathIcon Data="{Binding IsPinned, Converter={x:Static views:StartConverters.PinIcon}}" />
+                                                    </Button>
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
+
+        <!--  Get started  -->
+        <StackPanel
+            Grid.Column="2"
+            Grid.Row="1"
+            Spacing="8">
+            <TextBlock Classes="startHeading" Text="Get started" />
+            <Button Classes="startAction" Command="{Binding CloneRepositoryCommand}">
+                <DockPanel>
+                    <PathIcon Data="{StaticResource Icon.SourceBranch}" />
+                    <StackPanel Spacing="2">
+                        <TextBlock FontSize="15" Text="Clone a repository" />
+                        <TextBlock
+                            Classes="dim"
+                            Text="Get code from an online repository like GitHub or Azure DevOps"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+            <Button Classes="startAction" Command="{Binding OpenSolutionCommand}">
+                <DockPanel>
+                    <PathIcon Data="{StaticResource Icon.Solution}" />
+                    <StackPanel Spacing="2">
+                        <TextBlock FontSize="15" Text="Open a solution" />
+                        <TextBlock
+                            Classes="dim"
+                            Text="Open a .sln or .slnx solution file"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+            <Button Classes="startAction" Command="{Binding OpenFolderCommand}">
+                <DockPanel>
+                    <PathIcon Data="{StaticResource Icon.FolderOutline}" />
+                    <StackPanel Spacing="2">
+                        <TextBlock FontSize="15" Text="Open a local folder" />
+                        <TextBlock
+                            Classes="dim"
+                            Text="Navigate and edit code within any folder"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+            <Button Classes="startAction" Command="{Binding NewProjectCommand}">
+                <DockPanel>
+                    <PathIcon Data="{StaticResource Icon.FilePlus}" />
+                    <StackPanel Spacing="2">
+                        <TextBlock FontSize="15" Text="Create a new project" />
+                        <TextBlock
+                            Classes="dim"
+                            Text="Choose a project template, Avalonia or any other installed for dotnet new"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </DockPanel>
+            </Button>
+            <Button
+                Classes="link"
+                Command="{Binding ContinueWithoutCodeCommand}"
+                Content="Continue without code →"
+                HorizontalAlignment="Right"
+                Margin="0,4,0,0" />
+        </StackPanel>
+    </Grid>
+</Window>

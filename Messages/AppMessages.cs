@@ -16,3 +16,9 @@ public sealed record FilesCreatedMessage(IReadOnlyList<string> Paths);
 public sealed record BuildStartedMessage;
 /// <summary>A build finished; <paramref name="Succeeded"/> is false if it failed or threw.</summary>
 public sealed record BuildFinishedMessage(bool Succeeded);
+
+/// <summary>
+/// Open this solution (.sln/.slnx) or folder, closing what's open first (asking about unsaved changes): from the start
+/// window, the recent list, a clone or a new project. Handled by MainWindowViewModel.
+/// </summary>
+public sealed record OpenWorkspaceMessage(string Path);

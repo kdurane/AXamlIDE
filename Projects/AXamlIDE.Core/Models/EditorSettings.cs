@@ -21,6 +21,9 @@ public sealed record EditorSettings
     /// <summary>The bottom panel as it was left: showing or hidden, and the optional tabs that are open.</summary>
     public PanelSettings Panel { get; init; } = new();
 
+    /// <summary>What shows when the IDE starts: the start window (the default, as in Visual Studio), the last workspace, or nothing.</summary>
+    public StartupAction Startup { get; init; } = StartupAction.StartWindow;
+
     /// <summary>The keyboard mapping scheme (Services/Keymaps/&lt;id&gt;.json).</summary>
     public string KeymapId { get; init; } = KeymapLibrary.DefaultId;
 }

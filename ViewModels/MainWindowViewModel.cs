@@ -26,7 +26,7 @@ namespace AXamlIDE.ViewModels;
 /// Handles <see cref="StatusMessage"/> and <see cref="EditorStateChangedMessage"/> from any area.
 /// </summary>
 public sealed partial class MainWindowViewModel : ObservableObject,
-    IRecipient<StatusMessage>, IRecipient<EditorStateChangedMessage>
+    IRecipient<StatusMessage>, IRecipient<EditorStateChangedMessage>, IRecipient<OpenWorkspaceMessage>
 {
     private readonly DocumentManager _documents;
     private readonly DocumentSaveService _saver;
@@ -50,6 +50,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         RunViewModel run,
         TerminalViewModel terminal,
         TestExplorerViewModel tests,
+        StartViewModel start,
         PropertiesViewModel properties,
         GitViewModel git,
         NuGetManager nuGet,
@@ -80,6 +81,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Run = run;
         Terminal = terminal;
         Tests = tests;
+        Start = start;
         Properties = properties;
         Git = git;
         NuGet = nuGet;
@@ -114,6 +116,9 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public RunViewModel Run { get; }
     public TerminalViewModel Terminal { get; }
     public TestExplorerViewModel Tests { get; }
+
+    /// <summary>The start window's actions and the recent list (File > New Project, Clone, Open, Recent).</summary>
+    public StartViewModel Start { get; }
     public PropertiesViewModel Properties { get; }
     public GitViewModel Git { get; }
     public NuGetManager NuGet { get; }
@@ -205,22 +210,40 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     /// <summary>Raised by <see cref="ExitCommand"/>; MainWindow closes itself.</summary>
     public event Action? ExitRequested;
 
+    /// <summary>File > Start Window: the start window over this one (it opens what's chosen in it).</summary>
+    [RelayCommand]
+    private Task ShowStartWindow() => _dialogs.ShowStartWindowAsync(Start);
+
     /// <summary>Ask about unsaved changes, then close every document and the workspace.</summary>
     [RelayCommand]
-    private async Task CloseSolution()
+    private Task CloseSolution() => CloseWorkspaceAsync();
+
+    /// <summary>Open a solution or folder from the start window, the recent list, a clone or a new project.</summary>
+    public async void Receive(OpenWorkspaceMessage message) => await OpenWorkspaceAsync(message.Path);
+
+    /// <summary>Close what's open (asking about unsaved changes; false if the user cancels), then open <paramref name="path"/>.</summary>
+    public async Task<bool> OpenWorkspaceAsync(string path)
+    {
+        if (Workspace.IsOpen && !await CloseWorkspaceAsync())
+            return false;
+        return await Workspace.OpenAsync(path);
+    }
+
+    /// <summary>Ask about unsaved changes, then close every document and the workspace. False if the user cancelled or a save failed.</summary>
+    private async Task<bool> CloseWorkspaceAsync()
     {
         var dirtyDocuments = _documents.Documents.Where(document => document.IsDirty).ToArray();
         var decisions = new List<(OpenDocument Document, SaveChoice Choice)>(dirtyDocuments.Length);
         foreach (var document in dirtyDocuments)
         {
             var choice = await _dialogs.AskSaveAsync(document);
-            if (choice == SaveChoice.Cancel) return;
+            if (choice == SaveChoice.Cancel) return false;
             decisions.Add((document, choice));
         }
 
         foreach (var (document, choice) in decisions)
             if (choice == SaveChoice.Save && !await _saver.SaveAsync(document))
-                return;   // a save failed: keep everything open
+                return false;   // a save failed: keep everything open
 
         if (Run.IsDebugging) Run.StopRunningProject();
 
@@ -230,6 +253,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
         _documents.Active = null;
         Workspace.Close();
+        return true;
     }
 
     [RelayCommand]

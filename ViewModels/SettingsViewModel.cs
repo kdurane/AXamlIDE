@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -150,6 +151,33 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         }
     }
 
+    /// <summary>The choices for <see cref="Startup"/>, worded as Visual Studio's Options > Environment > Startup.</summary>
+    public IReadOnlyList<StartupChoice> StartupChoices { get; } =
+    [
+        new(StartupAction.StartWindow, "Show start window"),
+        new(StartupAction.LastWorkspace, "Most recent solution"),
+        new(StartupAction.Empty, "Empty environment")
+    ];
+
+    public StartupAction Startup
+    {
+        get => _editorSettings.Startup;
+        set
+        {
+            if (_editorSettings.Startup == value)
+                return;
+            UpdateEditorSettings(_editorSettings with { Startup = value });
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SelectedStartup));
+        }
+    }
+
+    public StartupChoice SelectedStartup
+    {
+        get => StartupChoices.First(choice => choice.Value == Startup);
+        set => Startup = value.Value;
+    }
+
     // ---------------------------------------------------------------- the helpers that can be switched off
 
     public EditorFeatureSettings Features => _editorSettings.Features;
@@ -269,3 +297,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         }
     }
 }
+
+/// <summary>One "On startup, open" choice in Settings > Environment.</summary>
+public sealed record StartupChoice(StartupAction Value, string Text);

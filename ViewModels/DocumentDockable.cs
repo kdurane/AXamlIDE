@@ -1,3 +1,4 @@
+using System;
 ﻿using System.ComponentModel;
 using AXamlIDE.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -33,8 +34,18 @@ public sealed partial class DocumentDockable : Document
 
     public OpenDocument Document { get; }
 
-    /// <summary>Only AXAML files have a preview (and the mode/split buttons).</summary>
-    public bool IsPreviewable => PreviewPaneViewModel.IsPreviewable(Document);
+    /// <summary>AXAML files (the designer) and Markdown files have a preview, and the mode/split buttons.</summary>
+    public bool IsPreviewable => IsXaml || IsMarkdown;
+
+    /// <summary>An AXAML file: its preview is the designer (PreviewPaneView).</summary>
+    public bool IsXaml => PreviewPaneViewModel.IsPreviewable(Document);
+
+    /// <summary>A Markdown file: its preview is the rendered page (MarkdownPreviewView).</summary>
+    public bool IsMarkdown => Document.Path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)
+                              || Document.Path.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The preview-only button's name: the designer for AXAML, the rendered page for Markdown.</summary>
+    public string PreviewOnlyLabel => IsMarkdown ? "Preview" : "Design";
 
     /// <summary>Code only, split, or design only. Ignored (always code) when the file isn't previewable.</summary>
     [ObservableProperty]

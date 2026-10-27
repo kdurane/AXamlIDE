@@ -29,9 +29,26 @@
                 Padding="0"
                 x:Name="MainMenu">
                 <MenuItem Header="_File">
-                    <MenuItem Command="{Binding Workspace.OpenFolderCommand}" Header="Open _Folder..." />
-                    <MenuItem Command="{Binding Workspace.OpenSolutionCommand}" Header="Open _Solution..." />
+                    <MenuItem Command="{Binding ShowStartWindowCommand}" Header="Start _Window..." />
+                    <Separator />
+                    <MenuItem Command="{Binding Start.NewProjectCommand}" Header="_New Project..." />
+                    <MenuItem Command="{Binding Start.CloneRepositoryCommand}" Header="Clone _Repository..." />
+                    <MenuItem Command="{Binding Start.OpenSolutionCommand}" Header="Open _Solution..." />
+                    <MenuItem Command="{Binding Start.OpenFolderCommand}" Header="Open _Folder..." />
                     <MenuItem Command="{Binding CloseSolutionCommand}" Header="_Close Solution" />
+                    <Separator />
+                    <MenuItem
+                        Header="Recent Projects and Sol_utions"
+                        IsEnabled="{Binding Start.HasMenuItems}"
+                        ItemsSource="{Binding Start.MenuItems}">
+                        <MenuItem.Styles>
+                            <Style x:DataType="vm:RecentItemViewModel" Selector="MenuItem">
+                                <Setter Property="Header" Value="{Binding MenuHeader}" />
+                                <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Start.OpenRecentCommand, FallbackValue={x:Null}}" />
+                                <Setter Property="CommandParameter" Value="{Binding}" />
+                            </Style>
+                        </MenuItem.Styles>
+                    </MenuItem>
                     <Separator />
                     <MenuItem Command="{Binding Explorer.NewItemCommand}" Header="New _Item..." />
                     <MenuItem Command="{Binding Explorer.NewClassCommand}" Header="New C_lass..." />
