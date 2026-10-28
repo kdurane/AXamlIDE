@@ -229,9 +229,40 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         return await Workspace.OpenAsync(path);
     }
 
-    /// <summary>Ask about unsaved changes, then close every document and the workspace. False if the user cancelled or a save failed.</summary>
+    /// <summary>
+    /// The main window is closing (File > Exit or its X): offer to stop debugging, ask about unsaved changes. False if
+    /// the user cancelled or a save failed, and the window stays open.
+    /// </summary>
+    public Task<bool> ConfirmExitAsync() => ConfirmLeaveAsync();
+
+    /// <summary>Ask about debugging and unsaved changes, then close every document and the workspace. False if the user cancelled or a save failed.</summary>
     private async Task<bool> CloseWorkspaceAsync()
     {
+        if (!await ConfirmLeaveAsync())
+            return false;
+
+        Session.Close();   // remember what was open before closing it
+        foreach (var document in _documents.Documents.ToArray())
+            _documents.Close(document, force: true);
+        Docking.CloseAllPages();
+
+        _documents.Active = null;
+        Workspace.Close();
+        return true;
+    }
+
+    /// <summary>
+    /// Before the workspace or the app closes, as Visual Studio does: "Do you want to stop debugging?" while a debug
+    /// session is going, then a save prompt for each document with unsaved changes. Nothing is stopped or saved until
+    /// every question has been answered, so a Cancel leaves everything as it was. The debug session is ended cleanly
+    /// (the debugger is told to disconnect and end the program) before returning true.
+    /// </summary>
+    private async Task<bool> ConfirmLeaveAsync()
+    {
+        if (Run.IsDebugging
+            && !await _dialogs.ConfirmAsync("Stop Debugging", "Do you want to stop debugging?", "Stop Debugging"))
+            return false;
+
         var dirtyDocuments = _documents.Documents.Where(document => document.IsDirty).ToArray();
         var decisions = new List<(OpenDocument Document, SaveChoice Choice)>(dirtyDocuments.Length);
         foreach (var document in dirtyDocuments)
@@ -245,15 +276,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
             if (choice == SaveChoice.Save && !await _saver.SaveAsync(document))
                 return false;   // a save failed: keep everything open
 
-        if (Run.IsDebugging) Run.StopRunningProject();
-
-        Session.Close();   // remember what was open before closing it
-        foreach (var document in _documents.Documents.ToArray())
-            _documents.Close(document, force: true);
-        Docking.CloseAllPages();
-
-        _documents.Active = null;
-        Workspace.Close();
+        await Run.StopDebuggingAsync();
         return true;
     }
 

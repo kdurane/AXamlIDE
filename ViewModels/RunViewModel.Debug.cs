@@ -243,6 +243,9 @@ public partial class RunViewModel
         }
     }
 
+    /// <summary>Stop the debug session (if there is one) and wait until it has ended: before the workspace or the app closes.</summary>
+    public Task StopDebuggingAsync() => _debugSession is { } session ? StopDebugSessionAsync(session) : Task.CompletedTask;
+
     private async Task StopDebugSessionAsync(NetCoreDbgSession session)
     {
         DebugStatus = "Stopping debug session...";

@@ -128,7 +128,6 @@ public partial class RunViewModel : ObservableObject, IDisposable
             _ => ("Building", "Build")
         };
 
-        _messenger.Send(new BuildStartedMessage());
         BeginBuildOutput($"{doing} {Path.GetFileName(path)} ({configuration})");
         IsBusy = true;
         try
@@ -150,7 +149,6 @@ public partial class RunViewModel : ObservableObject, IDisposable
         finally
         {
             IsBusy = false;
-            _messenger.Send(new BuildFinishedMessage(true));
         }
     }
 
@@ -171,7 +169,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
         try
         {
-            var buildExitCode = await _projectRunner.BuildAsync(projectPath, configuration);
+            var buildExitCode = await BuildWithNoticeAsync(() => _projectRunner.BuildAsync(projectPath, configuration));
             if (buildExitCode != 0)
             {
                 AppendBuildOutput($"Run cancelled because the build failed with exit code {buildExitCode}.");

@@ -1,6 +1,5 @@
 using AXamlIDE.Models;
 using AXamlIDE.Services.Debugging;
-using AXamlIDE.Services.Lsp;
 
 namespace AXamlIDE.Messages;
 
@@ -13,7 +12,6 @@ public sealed record NavigateToProblemMessage(ProblemItem Problem);
 public sealed record NavigateToDebugLocationMessage(string Path, int Line);
 public sealed record NavigateToSearchResultMessage(WorkspaceSearchResult Result, string SearchQuery);
 public sealed record NavigateToOutlineItemMessage(DocumentOutlineItem Item);
-public sealed record NavigateToLocationMessage(LspLocation Location);
 
 // ---- Into the editor: state changes it reflects.
 

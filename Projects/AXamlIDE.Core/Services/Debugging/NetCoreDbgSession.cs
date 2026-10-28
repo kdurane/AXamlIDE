@@ -83,7 +83,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
             }
         };
         _process.StartInfo.ArgumentList.Add("--interpreter=vscode");
-        _process.StartInfo.ArgumentList.Add("--engineLogging=/tmp/netcoredbg.log");
+        _process.StartInfo.ArgumentList.Add("--engineLogging=" + Path.Combine(Path.GetTempPath(), "netcoredbg.log"));
         if (!_process.Start())
             throw new InvalidOperationException($"Could not start NetCoreDbg at '{executablePath}'.");
 

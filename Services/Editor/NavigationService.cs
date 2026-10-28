@@ -20,8 +20,7 @@ public sealed class NavigationService :
     IRecipient<NavigateToProblemMessage>,
     IRecipient<NavigateToDebugLocationMessage>,
     IRecipient<NavigateToSearchResultMessage>,
-    IRecipient<NavigateToOutlineItemMessage>,
-    IRecipient<NavigateToLocationMessage>
+    IRecipient<NavigateToOutlineItemMessage>
 {
     private readonly IDocumentHost _documents;
     private readonly IMessenger _messenger;
@@ -37,7 +36,6 @@ public sealed class NavigationService :
     public void Receive(NavigateToDebugLocationMessage m) => ToDebugLocation(m.Path, m.Line);
     public void Receive(NavigateToSearchResultMessage m) => ToSearchResult(m.Result, m.SearchQuery);
     public void Receive(NavigateToOutlineItemMessage m) => ToOutlineItem(m.Item);
-    public void Receive(NavigateToLocationMessage m) => ToLocation(m.Location);
 
     public void ToProblem(ProblemItem problem)
     {

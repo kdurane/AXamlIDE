@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Shell;
 using AXamlIDE.ViewModels;
@@ -18,6 +19,8 @@ public partial class MainWindow : Window
 {
     private readonly SettingsViewModel _settings = null!;
     private readonly KeyMap _keyMap = null!;
+    private bool _exitConfirmed;    // the exit questions were answered: the next close goes through
+    private bool _confirmingExit;   // they're being asked now
 
     /// <summary>
     /// For the XAML designer/previewer only: shows the layout with no services behind it.
@@ -53,8 +56,30 @@ public partial class MainWindow : Window
         PositionChanged += (_, _) => UpdateBoundsForDocking(docking);
         SizeChanged += (_, _) => UpdateBoundsForDocking(docking);
 
-        Closing += (_, _) =>
+        Closing += async (_, e) =>
         {
+            // The questions (stop debugging? save?) need awaiting, which a Closing handler can't do: cancel this
+            // close, ask, and close again once everything is answered.
+            if (!_exitConfirmed)
+            {
+                e.Cancel = true;
+                if (_confirmingExit)
+                    return;   // the X clicked again while the questions are open
+                _confirmingExit = true;
+                try
+                {
+                    _exitConfirmed = await viewModel.ConfirmExitAsync();
+                }
+                finally
+                {
+                    _confirmingExit = false;
+                }
+                // Posted: with nothing to ask, this runs before the cancelled close has finished.
+                if (_exitConfirmed)
+                    Dispatcher.UIThread.Post(Close);
+                return;
+            }
+
             viewModel.Session.Save();   // before the floating windows close (the Search window's place)
             docking.CloseFloatingWindows();
         };
