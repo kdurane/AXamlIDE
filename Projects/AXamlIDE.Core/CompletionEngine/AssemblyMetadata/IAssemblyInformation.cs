@@ -85,6 +85,12 @@ public interface IFieldInformation
     string ReturnTypeFullName { get; }
     string QualifiedTypeFullName { get; }
     bool IsRoutedEvent { get; }
+
+    /// <summary>
+    /// The field's type is, or derives from, Avalonia.AvaloniaProperty (StyledProperty, DirectProperty,
+    /// AttachedProperty, and any kind Avalonia adds later): found by walking base types, not by name.
+    /// </summary>
+    bool IsAvaloniaProperty { get; }
 }
 
 public interface IParameterInformation

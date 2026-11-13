@@ -303,7 +303,7 @@ public sealed class CodeLensController : IDisposable
     }
 
     private static string LocalPath(string uri)
-        => Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile ? parsed.LocalPath : uri;
+        => FileUris.ToPath(uri) ?? uri;
 
     public void Dispose()
     {

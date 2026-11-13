@@ -15,7 +15,8 @@ namespace AXamlIDE.Services.Documents;
 /// </summary>
 public sealed class DocumentManager
 {
-    private readonly Dictionary<string, OpenDocument> _byPath = [];
+    // Windows and macOS paths are case-insensitive: "c:src.cs" and "C:src.cs" are one open document.
+    private readonly Dictionary<string, OpenDocument> _byPath = new(GitStatus.PathComparer);
 
     public ObservableCollection<OpenDocument> Documents { get; } = [];
 
@@ -108,7 +109,9 @@ public sealed class DocumentManager
         Saved?.Invoke(doc);
     }
 
-    public OpenDocument? ByUri(string uri) => Documents.FirstOrDefault(d => d.Uri == uri);
+    /// <summary>The open document a server URI names, however the server spelled it (see FileUris).</summary>
+    public OpenDocument? ByUri(string uri)
+        => Documents.FirstOrDefault(d => d.Uri == uri) ?? (FileUris.ToPath(uri) is { } path ? _byPath.GetValueOrDefault(path) : null);
 
     private static string LanguageFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch
     {

@@ -44,13 +44,13 @@ public sealed class WorkspaceEditService
                 var start = document.OffsetOf(edit.Range.StartLine, edit.Range.StartChar);
                 var end = document.OffsetOf(edit.Range.EndLine, edit.Range.EndChar);
                 return end < start
-                    ? throw new InvalidOperationException($"Rename returned an invalid range for '{path}'.")
+                    ? throw new InvalidOperationException($"The edit has an invalid range for '{path}'.")
                     : (Start: start, End: end, Text: edit.NewText);
             }).OrderByDescending(edit => edit.Start).ToList();
 
             for (var index = 1; index < offsets.Count; index++)
                 if (offsets[index - 1].Start < offsets[index].End)
-                    throw new InvalidOperationException($"Rename returned overlapping edits for '{path}'.");
+                    throw new InvalidOperationException($"The edit has overlapping ranges for '{path}'.");
 
             prepared.Add((document, offsets));
         }

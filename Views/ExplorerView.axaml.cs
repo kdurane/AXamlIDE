@@ -46,6 +46,26 @@ public partial class ExplorerView : UserControl
 
     private ExplorerViewModel? ViewModel => DataContext as ExplorerViewModel;
 
+    // The tree follows the active document (ExplorerViewModel.TrackActiveAsync): scroll the selected row into view.
+    protected override void OnDataContextChanged(EventArgs e)
+    {
+        base.OnDataContextChanged(e);
+        if (ViewModel is { } vm)
+            vm.Workspace.PropertyChanged += OnWorkspacePropertyChanged;
+    }
+
+    private void OnWorkspacePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(WorkspaceViewModel.SelectedNode) || ViewModel?.Workspace.SelectedNode is not { } node)
+            return;
+        // The row may not exist yet (folders just expanded): look once the tree has laid out.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (ReferenceEquals(ViewModel?.Workspace.SelectedNode, node) && FileTree.TreeContainerFromItem(node) is Control row)
+                row.BringIntoView();
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
     // Children are loaded the first time a node is expanded.
     private async void OnNodeExpanded(object? sender, RoutedEventArgs e)
     {

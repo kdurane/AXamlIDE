@@ -1,3 +1,7 @@
+<!--
+    The Problems panel, like Visual Studio's Error List (DataContext: ProblemsViewModel): a toolbar of filter
+    buttons with counts and a search box, then the rows. Double-click or Enter opens the problem in the editor.
+-->
 <UserControl
     x:Class="AXamlIDE.Views.ProblemsView"
     x:DataType="vm:ProblemsViewModel"
@@ -5,32 +9,109 @@
     xmlns:models="using:AXamlIDE.Models"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,*">
+    <UserControl.Styles>
+        <Style Selector="ToggleButton.filter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style Selector="ToggleButton.filter:not(:checked)">
+            <Setter Property="Opacity" Value="0.5" />
+        </Style>
+        <Style Selector="ToggleButton.filter PathIcon">
+            <Setter Property="Width" Value="13" />
+            <Setter Property="Height" Value="13" />
+            <Setter Property="Margin" Value="0,0,5,0" />
+        </Style>
+        <Style Selector="TextBlock.heading">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Opacity" Value="0.8" />
+        </Style>
+        <Style Selector="TextBlock.cell">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
 
-        <!--  Header row  -->
+    <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto,*">
+
+        <!--  Toolbar: the three kinds (click one to hide it), and the search box.  -->
+        <DockPanel Margin="4,2" Grid.Row="0">
+            <TextBox
+                Classes="SearchBox"
+                DockPanel.Dock="Right"
+                FontSize="11"
+                MinHeight="0"
+                PlaceholderText="Filter"
+                Text="{Binding Filter}"
+                Width="200" />
+            <StackPanel Orientation="Horizontal" Spacing="2">
+                <ToggleButton
+                    Classes="filter"
+                    IsChecked="{Binding ShowErrors}"
+                    ToolTip.Tip="Show or hide errors">
+                    <StackPanel Orientation="Horizontal">
+                        <PathIcon Data="{StaticResource Icon.CloseCircleOutline}" Foreground="{DynamicResource DiagnosticErrorBrush}" />
+                        <TextBlock Text="{Binding ErrorsLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton
+                    Classes="filter"
+                    IsChecked="{Binding ShowWarnings}"
+                    ToolTip.Tip="Show or hide warnings">
+                    <StackPanel Orientation="Horizontal">
+                        <PathIcon Data="{StaticResource Icon.AlertOutline}" Foreground="{DynamicResource DiagnosticWarningBrush}" />
+                        <TextBlock Text="{Binding WarningsLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton
+                    Classes="filter"
+                    IsChecked="{Binding ShowInfos}"
+                    ToolTip.Tip="Show or hide messages">
+                    <StackPanel Orientation="Horizontal">
+                        <PathIcon Data="{StaticResource Icon.InformationOutline}" />
+                        <TextBlock Text="{Binding InfosLabel}" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
+            </StackPanel>
+        </DockPanel>
+
+        <!--  Header row (the columns share their widths with the rows).  -->
         <Grid
-            ColumnDefinitions="76,*,Auto,Auto"
-            Grid.Row="0"
-            Margin="6,0">
-            <TextBlock
-                FontWeight="SemiBold"
-                Grid.Column="0"
-                Text="Severity" />
-            <TextBlock
-                FontWeight="SemiBold"
-                Grid.Column="1"
-                Text="Message" />
-            <Grid Grid.Column="2" Margin="12,0,6,0">
+            ColumnDefinitions="22,Auto,*,Auto,Auto,Auto,Auto"
+            Grid.Row="1"
+            Margin="6,2">
+            <Grid Grid.Column="1" Margin="0,0,8,0">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition SharedSizeGroup="LineCol" />
+                    <ColumnDefinition SharedSizeGroup="CodeCol" />
                 </Grid.ColumnDefinitions>
-                <TextBlock FontWeight="SemiBold" Text="Line" />
+                <TextBlock Classes="heading" Text="Code" />
             </Grid>
-            <Grid Grid.Column="3" Margin="6,0,0,0">
+            <TextBlock Classes="heading" Grid.Column="2" Text="Description" />
+            <Grid Grid.Column="3" Margin="12,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="ProjectCol" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Classes="heading" Text="Project" />
+            </Grid>
+            <Grid Grid.Column="4" Margin="12,0,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition SharedSizeGroup="FileCol" />
                 </Grid.ColumnDefinitions>
-                <TextBlock FontWeight="SemiBold" Text="File" />
+                <TextBlock Classes="heading" Text="File" />
+            </Grid>
+            <Grid Grid.Column="5" Margin="12,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="LineCol" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Classes="heading" Text="Line" />
+            </Grid>
+            <Grid Grid.Column="6" Margin="12,0,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition SharedSizeGroup="SourceCol" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Classes="heading" Text="Source" />
             </Grid>
         </Grid>
 
@@ -38,28 +119,67 @@
             Classes="compact"
             Background="Transparent"
             DoubleTapped="OnProblemDoubleTapped"
-            Grid.Row="1"
+            Grid.Row="2"
             ItemsSource="{Binding Problems}"
+            KeyDown="OnListKeyDown"
+            Name="List"
             ScrollViewer.VerticalScrollBarVisibility="Auto">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="models:ProblemItem">
-                    <Grid ColumnDefinitions="76,*,Auto,Auto">
-                        <TextBlock Grid.Column="0" Text="{Binding SeverityText}" />
-                        <SelectableTextBlock
-                            Grid.Column="1"
-                            Text="{Binding Message}"
-                            TextTrimming="CharacterEllipsis" />
-                        <Grid Grid.Column="2" Margin="12,0,6,0">
+                    <Grid ColumnDefinitions="22,Auto,*,Auto,Auto,Auto,Auto" ToolTip.Tip="{Binding ToolTip}">
+                        <Panel Grid.Column="0" VerticalAlignment="Center">
+                            <PathIcon
+                                Data="{StaticResource Icon.CloseCircleOutline}"
+                                Foreground="{DynamicResource DiagnosticErrorBrush}"
+                                Height="13"
+                                IsVisible="{Binding IsError}"
+                                Width="13" />
+                            <PathIcon
+                                Data="{StaticResource Icon.AlertOutline}"
+                                Foreground="{DynamicResource DiagnosticWarningBrush}"
+                                Height="13"
+                                IsVisible="{Binding IsWarning}"
+                                Width="13" />
+                            <PathIcon
+                                Data="{StaticResource Icon.InformationOutline}"
+                                Height="13"
+                                IsVisible="{Binding IsInfo}"
+                                Width="13" />
+                        </Panel>
+                        <Grid Grid.Column="1" Margin="0,0,8,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition SharedSizeGroup="LineCol" />
+                                <ColumnDefinition SharedSizeGroup="CodeCol" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Line}" />
+                            <TextBlock Classes="cell" Opacity="0.8" Text="{Binding Code}" />
                         </Grid>
-                        <Grid Grid.Column="3" Margin="6,0,0,0">
+                        <SelectableTextBlock
+                            Grid.Column="2"
+                            Text="{Binding Message}"
+                            TextTrimming="CharacterEllipsis"
+                            VerticalAlignment="Center" />
+                        <Grid Grid.Column="3" Margin="12,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition SharedSizeGroup="ProjectCol" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Classes="cell" Text="{Binding ProjectName}" />
+                        </Grid>
+                        <Grid Grid.Column="4" Margin="12,0,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition SharedSizeGroup="FileCol" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Document.Title}" />
+                            <TextBlock Classes="cell" Text="{Binding FileName}" />
+                        </Grid>
+                        <Grid Grid.Column="5" Margin="12,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition SharedSizeGroup="LineCol" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Classes="cell" Text="{Binding LineText}" />
+                        </Grid>
+                        <Grid Grid.Column="6" Margin="12,0,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition SharedSizeGroup="SourceCol" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Classes="cell" Opacity="0.7" Text="{Binding Source}" />
                         </Grid>
                     </Grid>
                 </DataTemplate>

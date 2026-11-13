@@ -7,6 +7,7 @@ using Avalonia.Threading;
 using AXamlIDE.Commands;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using CommunityToolkit.Mvvm.Messaging;
 using Dock.Model.Controls;
@@ -44,6 +45,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private readonly DocumentManager _documents;
     private readonly DocumentCommands _commands;
     private readonly SettingsViewModel _settings;
+    private readonly TabActions _tabActions;
     private readonly Dictionary<OpenDocument, DocumentDockable> _tabs = [];
     private readonly Dictionary<string, PageDockable> _pages = [];
     private IDock? _lastActiveDock;
@@ -61,11 +63,14 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         DocumentCommands commands,
         SettingsViewModel settings,
         WorkspaceViewModel workspace,
+        IClipboardService clipboard,
+        IDialogService dialogs,
         IMessenger messenger)
     {
         _documents = documents;
         _commands = commands;
         _settings = settings;
+        _tabActions = new TabActions(commands, clipboard, dialogs);
 
         _factory = new DockFactory(new WelcomeViewModel(workspace));
         Root = _factory.CreateLayout(settings.SolutionExplorerOnRight);
@@ -231,7 +236,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     {
         foreach (var document in e.NewItems?.OfType<OpenDocument>() ?? [])
         {
-            var tab = new DocumentDockable(document, _previewMode, _previewSplit, _previewFirst);
+            var tab = new DocumentDockable(document, _tabActions, _previewMode, _previewSplit, _previewFirst);
             tab.PropertyChanged += OnTabPropertyChanged;
             _tabs[document] = tab;
             _factory.AddDockable(TargetDocumentDock(), tab);

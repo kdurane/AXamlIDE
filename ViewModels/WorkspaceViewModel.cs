@@ -180,6 +180,66 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         return target;
     }
 
+    /// <summary>
+    /// The node for a file or folder, loading and expanding the folders down to it (Visual Studio's Sync with Active
+    /// Document). Null when the path isn't in the workspace.
+    /// </summary>
+    public async Task<ProjectTreeNode?> FindOrLoadAsync(string path)
+    {
+        foreach (var root in Roots.ToList())
+            if (await FindOrLoadAsync(root, path) is { } found)
+                return found;
+        return null;
+    }
+
+    private static async Task<ProjectTreeNode?> FindOrLoadAsync(ProjectTreeNode node, string path)
+    {
+        if (node.Kind == NodeKind.Placeholder)
+            return null;
+        if (node.FullPath.Length > 0 && GitStatus.PathComparer.Equals(node.FullPath, path))
+            return node;
+        // A real folder: only worth descending when the path is inside it. A project, a solution or a virtual
+        // folder lists files from anywhere, so look through all of them.
+        if (node.Kind is NodeKind.Directory && !IsUnder(path, node.FullPath))
+            return null;
+        if (node.Kind == NodeKind.File)
+            return null;
+
+        if (node.NeedsPopulating)
+            await node.PopulateAsync();
+        foreach (var child in node.Children.ToList())
+        {
+            if (await FindOrLoadAsync(child, path) is not { } found)
+                continue;
+            node.IsExpanded = true;
+            return found;
+        }
+        return null;
+    }
+
+    private static bool IsUnder(string path, string folder)
+        => folder.Length > 0
+           && path.Length > folder.Length
+           && path.StartsWith(folder, GitStatus.PathComparer.Equals("a", "A") ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+           && (folder.EndsWith(Path.DirectorySeparatorChar) || path[folder.Length] == Path.DirectorySeparatorChar || path[folder.Length] == Path.AltDirectorySeparatorChar);
+
+    /// <summary>Collapse every folder (the explorer's Collapse All), leaving the root open.</summary>
+    public void CollapseAll()
+    {
+        foreach (var root in Roots)
+        {
+            foreach (var child in root.Children)
+                Collapse(child);
+        }
+
+        static void Collapse(ProjectTreeNode node)
+        {
+            node.IsExpanded = false;
+            foreach (var child in node.Children)
+                Collapse(child);
+        }
+    }
+
     /// <summary>The node that lists <paramref name="node"/> as a child, or null (a root, or not in the tree).</summary>
     public ProjectTreeNode? ParentOf(ProjectTreeNode node)
         => Roots.Select(root => FindParent(root, node)).FirstOrDefault(parent => parent is not null);

@@ -21,7 +21,11 @@ public enum EditorAction
     InsertSnippet,
     ToggleComment,
     CommentSelection,
-    UncommentSelection
+    UncommentSelection,
+    Find,
+    Replace,
+    GoToLine,
+    ToggleBreakpoint
 }
 
 /// <summary>Ask the editor pane to perform an action on the active document. Handled by EditorPaneView.</summary>

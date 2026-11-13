@@ -130,15 +130,63 @@ public sealed class BreakpointMargin : AbstractMargin
         base.OnPointerExited(e);
     }
 
+    /// <summary>The margin's Conditions... item: the editor asks for the condition and hit count (it has the dialogs).</summary>
+    public event Action<int>? ConditionsRequested;
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         int line = _pointerOverLine = GetLineNumber(e);
-
-        _document?.ToggleBreakpoint(line);
-        InvalidateVisual();
         e.Handled = true;
 
+        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        {
+            if (line > 0)
+                ShowMenu(line);
+        }
+        else
+        {
+            _document?.ToggleBreakpoint(line);
+            InvalidateVisual();
+        }
+
         base.OnPointerPressed(e);
+    }
+
+    /// <summary>Visual Studio's breakpoint menu: on a breakpoint, Delete / Disable / Conditions; else Insert.</summary>
+    private void ShowMenu(int line)
+    {
+        if (_document is not { } document)
+            return;
+
+        var menu = new Avalonia.Controls.ContextMenu();
+        Avalonia.Controls.MenuItem Item(string header, Action action)
+        {
+            var item = new Avalonia.Controls.MenuItem { Header = header };
+            item.Click += (_, _) => action();
+            return item;
+        }
+
+        if (document.BreakpointAt(line) is { } breakpoint)
+        {
+            menu.Items.Add(Item("_Delete Breakpoint", () => document.ToggleBreakpoint(line)));
+            menu.Items.Add(Item(breakpoint.IsEnabled ? "Disa_ble Breakpoint" : "Ena_ble Breakpoint",
+                () => document.SetBreakpointEnabled(line, !breakpoint.IsEnabled)));
+            menu.Items.Add(new Avalonia.Controls.Separator());
+            menu.Items.Add(Item("_Conditions...", () => ConditionsRequested?.Invoke(line)));
+            if (breakpoint.HasCondition)
+                menu.Items.Add(Item("Remove Co_nditions", () => document.SetBreakpointConditions(line, null, null)));
+        }
+        else
+        {
+            menu.Items.Add(Item("_Insert Breakpoint", () => document.ToggleBreakpoint(line)));
+            menu.Items.Add(Item("Insert _Conditional Breakpoint...", () =>
+            {
+                document.ToggleBreakpoint(line);
+                ConditionsRequested?.Invoke(line);
+            }));
+        }
+
+        menu.Open(this);
     }
 
     /// <summary>VS's statement arrow: a block arrow pointing right, over the breakpoint (if any).</summary>
@@ -166,13 +214,27 @@ public sealed class BreakpointMargin : AbstractMargin
 
         if (TextView?.VisualLinesValid == true)
         {
+            var breakpoints = _document?.Breakpoints;   // once per render, not per line
             foreach (var visualLine in TextView.VisualLines)
             {
                 double y = visualLine.VisualTop - TextView.VerticalOffset + visualLine.Height / 2;
 
-                if (_document?.BreakpointLines.Contains(visualLine.FirstDocumentLine.LineNumber) == true)
-                    context.DrawEllipse(_markerBrush, _markerPen, new Point(10, y), 8, 8);
-                else if (_pointerOverLine == visualLine.FirstDocumentLine.LineNumber)
+                var lineNumber = visualLine.FirstDocumentLine.LineNumber;
+                if (breakpoints?.FirstOrDefault(b => b.Line == lineNumber) is { } breakpoint)
+                {
+                    // VS: a filled dot; hollow when disabled; a white plus inside when it has Conditions.
+                    if (breakpoint.IsEnabled)
+                        context.DrawEllipse(_markerBrush, _markerPen, new Point(10, y), 8, 8);
+                    else
+                        context.DrawEllipse(null, new Pen(_markerPen.Brush, 1.5), new Point(10, y), 7, 7);
+                    if (breakpoint.HasCondition)
+                    {
+                        var plus = new Pen(breakpoint.IsEnabled ? Brushes.White : _markerPen.Brush, 2);
+                        context.DrawLine(plus, new Point(6, y), new Point(14, y));
+                        context.DrawLine(plus, new Point(10, y - 4), new Point(10, y + 4));
+                    }
+                }
+                else if (_pointerOverLine == lineNumber)
                     context.DrawEllipse(_pointerOverBrush, _pointerOverPen, new Point(10, y), 8, 8);
 
                 if (_statement is { } statement && statement.Line == visualLine.FirstDocumentLine.LineNumber)

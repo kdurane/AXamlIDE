@@ -409,6 +409,32 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         }
     }
 
+    public async Task ShowMessageAsync(string title, string message)
+    {
+        Window? dialog = null;
+        var ok = new Button { Content = "OK", MinWidth = 90, IsDefault = true, IsCancel = true };
+        ok.Click += (_, _) => dialog?.Close();
+        dialog = new Window
+        {
+            Title = title,
+            Width = 440,
+            SizeToContent = SizeToContent.Height,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new StackPanel
+            {
+                Margin = new Thickness(16),
+                Spacing = 16,
+                Children =
+                {
+                    new SelectableTextBlock { Text = message, TextWrapping = TextWrapping.Wrap },
+                    new StackPanel { HorizontalAlignment = HorizontalAlignment.Right, Children = { ok } }
+                }
+            }
+        };
+        await dialog.ShowDialog(Owner);
+    }
+
     public async Task<bool> ConfirmAsync(string title, string message, string confirmText)
     {
         var confirmed = false;
@@ -509,6 +535,38 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
     }
 
     // --------------------------------------------------------------- pickers
+
+    public async Task<string?> PickSaveFileAsync(string currentPath)
+    {
+        var folder = Path.GetDirectoryName(currentPath) is { Length: > 0 } directory
+            ? await Owner.StorageProvider.TryGetFolderFromPathAsync(directory)
+            : null;
+        var file = await Owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save File As",
+            SuggestedFileName = Path.GetFileName(currentPath),
+            SuggestedStartLocation = folder,
+            DefaultExtension = Path.GetExtension(currentPath).TrimStart('.'),
+            ShowOverwritePrompt = true
+        });
+        return file?.TryGetLocalPath();
+    }
+
+    public async Task OpenContainingFolderAsync(string path)
+    {
+        var isFolder = Directory.Exists(path);
+        if (OperatingSystem.IsWindows() && !isFolder && File.Exists(path))
+        {
+            // Explorer can open the folder with the file selected.
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+            return;
+        }
+
+        var folder = isFolder ? path : Path.GetDirectoryName(path);
+        if (folder is null || !Directory.Exists(folder))
+            return;
+        await Owner.Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(folder));
+    }
 
     public async Task<string?> PickFolderAsync()
     {

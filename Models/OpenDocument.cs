@@ -14,7 +14,16 @@ namespace AXamlIDE.Models;
 /// <summary>Everything the IDE knows about one open file.</summary>
 public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 {
-    private readonly List<ITextAnchor> _breakpoints = [];
+    /// <summary>A breakpoint: anchored to its line's start so it moves with edits, plus VS's Conditions and enabled state.</summary>
+    private sealed class BreakpointEntry(ITextAnchor anchor)
+    {
+        public ITextAnchor Anchor { get; } = anchor;
+        public string? Condition { get; set; }
+        public string? HitCondition { get; set; }
+        public bool IsEnabled { get; set; } = true;
+    }
+
+    private readonly List<BreakpointEntry> _breakpoints = [];
 
     public string Path { get; }
     public string Uri => new Uri(Path).AbsoluteUri;                 // file:///home/...
@@ -25,14 +34,62 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
     public bool IsReadOnly { get; }
 
     public TextDocument Document { get; }
-    public IReadOnlyList<int> BreakpointLines
+    /// <summary>The lines with an enabled breakpoint (what the debugger stops at).</summary>
+    public IReadOnlyList<int> BreakpointLines => [.. Breakpoints.Where(b => b.IsEnabled).Select(b => b.Line)];
+
+    /// <summary>Every breakpoint, one per line, in line order (the margin draws these; disabled ones hollow).</summary>
+    public IReadOnlyList<BreakpointInfo> Breakpoints
         =>
         [
-            .. _breakpoints.Where(anchor => !anchor.IsDeleted)
-                      .Select(anchor => Document.GetLineByOffset(anchor.Offset).LineNumber)
-                      .Distinct()
-                      .OrderBy(line => line)
+            .. _breakpoints.Where(entry => !entry.Anchor.IsDeleted)
+                .GroupBy(entry => LineOf(entry))
+                .Select(group =>
+                {
+                    var entry = group.First();
+                    return new BreakpointInfo(group.Key, entry.IsEnabled, entry.Condition, entry.HitCondition);
+                })
+                .OrderBy(info => info.Line)
         ];
+
+    /// <summary>The enabled breakpoints with their conditions, as the debugger is told them.</summary>
+    public IReadOnlyList<Services.Debugging.SourceBreakpoint> DebuggerBreakpoints
+        => [.. Breakpoints.Where(b => b.IsEnabled).Select(b => new Services.Debugging.SourceBreakpoint(b.Line, b.Condition, b.HitCondition))];
+
+    /// <summary>The breakpoint on a line, or null.</summary>
+    public BreakpointInfo? BreakpointAt(int lineNumber) => Breakpoints.FirstOrDefault(b => b.Line == lineNumber);
+
+    private int LineOf(BreakpointEntry entry) => Document.GetLineByOffset(entry.Anchor.Offset).LineNumber;
+
+    private BreakpointEntry? EntryAt(int lineNumber)
+        => _breakpoints.FirstOrDefault(entry => !entry.Anchor.IsDeleted && LineOf(entry) == lineNumber);
+
+    /// <summary>The breakpoint's Conditions (empty or null clears them).</summary>
+    public void SetBreakpointConditions(int lineNumber, string? condition, string? hitCondition)
+    {
+        if (EntryAt(lineNumber) is not { } entry)
+            return;
+        entry.Condition = string.IsNullOrWhiteSpace(condition) ? null : condition.Trim();
+        entry.HitCondition = string.IsNullOrWhiteSpace(hitCondition) ? null : hitCondition.Trim();
+        BreakpointsChanged?.Invoke();
+    }
+
+    /// <summary>VS's Disable / Enable Breakpoint: a disabled one stays in the margin but doesn't stop.</summary>
+    public void SetBreakpointEnabled(int lineNumber, bool enabled)
+    {
+        if (EntryAt(lineNumber) is not { } entry || entry.IsEnabled == enabled)
+            return;
+        entry.IsEnabled = enabled;
+        BreakpointsChanged?.Invoke();
+    }
+
+    /// <summary>Debug > Delete All Breakpoints (for this document).</summary>
+    public void ClearBreakpoints()
+    {
+        if (_breakpoints.Count == 0)
+            return;
+        _breakpoints.Clear();
+        BreakpointsChanged?.Invoke();
+    }
 
     // Per-document: a TextSegmentCollection is bound to its TextDocument.
     public TextSegmentCollection<DiagnosticSegment> Diagnostics { get; }
@@ -120,16 +177,11 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
             return;
 
         var lineOffset = Document.GetLineByNumber(lineNumber).Offset;
-        var existing = _breakpoints.FindIndex(anchor =>
-            !anchor.IsDeleted && Document.GetLineByOffset(anchor.Offset).LineNumber == lineNumber);
-
-        if (existing >= 0)
-            _breakpoints.RemoveAt(existing);
-        else
+        if (_breakpoints.RemoveAll(entry => !entry.Anchor.IsDeleted && LineOf(entry) == lineNumber) == 0)
         {
             var anchor = Document.CreateAnchor(lineOffset);
             anchor.SurviveDeletion = true;
-            _breakpoints.Add(anchor);
+            _breakpoints.Add(new BreakpointEntry(anchor));
         }
 
         BreakpointsChanged?.Invoke();
@@ -244,4 +296,10 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 
     public void MarkChangedOnDisk() => ChangedOnDisk = true;
     public void MarkDeletedOnDisk() => DeletedOnDisk = true;
+}
+
+/// <summary>One breakpoint as the margin and menus see it: its line, whether it's on, and its Conditions.</summary>
+public sealed record BreakpointInfo(int Line, bool IsEnabled, string? Condition, string? HitCondition)
+{
+    public bool HasCondition => Condition is not null || HitCondition is not null;
 }

@@ -152,6 +152,7 @@ public partial class EditorPaneView : UserControl,
 
 
         _breakpointMargin = new BreakpointMargin();
+        _breakpointMargin.ConditionsRequested += line => _ = EditBreakpointConditionsAsync(line);
         Editor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
@@ -376,7 +377,64 @@ public partial class EditorPaneView : UserControl,
             case EditorAction.ToggleComment: _comments.Run(CommentMode.Toggle); break;
             case EditorAction.CommentSelection: _comments.Run(CommentMode.Comment); break;
             case EditorAction.UncommentSelection: _comments.Run(CommentMode.Uncomment); break;
+            case EditorAction.Find: OpenSearchPanel(replace: false); break;
+            case EditorAction.Replace: OpenSearchPanel(replace: true); break;
+            case EditorAction.GoToLine: _ = GoToLineAsync(); break;
+            case EditorAction.ToggleBreakpoint:
+                if (_ctx.Active is { } breakpointDocument)
+                    breakpointDocument.ToggleBreakpoint(Editor.TextArea.Caret.Line);
+                break;
         }
+    }
+
+    /// <summary>
+    /// The margin's Conditions...: Visual Studio's breakpoint settings, as two prompts: a C# expression that must
+    /// be true, then a hit count. An empty answer clears that part; Cancel on either keeps the old settings.
+    /// </summary>
+    private async System.Threading.Tasks.Task EditBreakpointConditionsAsync(int line)
+    {
+        if (_ctx.Active is not { } document || document.BreakpointAt(line) is not { } breakpoint)
+            return;
+        var condition = await _services.Dialogs.PromptForTextAsync(
+            $"Breakpoint Conditions (line {line})", "Condition, e.g. count > 5 (empty for none)", "Next", breakpoint.Condition ?? "");
+        if (condition is null)
+            return;
+        var hitCount = await _services.Dialogs.PromptForTextAsync(
+            $"Breakpoint Conditions (line {line})", "Hit count: break on this hit, e.g. 10 (empty for every hit)", "OK", breakpoint.HitCondition ?? "");
+        if (hitCount is null)
+            return;
+        document.SetBreakpointConditions(line, condition, hitCount);
+    }
+
+    /// <summary>Ctrl+F / Ctrl+H: AvaloniaEdit's search panel, searching for the selected text when there is some.</summary>
+    private void OpenSearchPanel(bool replace)
+    {
+        var panel = Editor.SearchPanel;
+        if (panel is null)
+            return;
+        if (Editor.SelectionLength > 0 && !Editor.SelectedText.Contains('\n'))
+            panel.SearchPattern = Editor.SelectedText;
+        panel.IsReplaceMode = replace && !Editor.IsReadOnly;
+        panel.Open();
+        panel.Reactivate();
+    }
+
+    /// <summary>Ctrl+G: Visual Studio's Go To Line box.</summary>
+    private async System.Threading.Tasks.Task GoToLineAsync()
+    {
+        if (_ctx.Active is not { } document)
+            return;
+        var count = document.Document.LineCount;
+        var current = document.Document.GetLineByOffset(Math.Min(document.CaretOffset, document.Document.TextLength)).LineNumber;
+        var answer = await _services.Dialogs.PromptForTextAsync("Go To Line", $"Line number (1 - {count})", "Go", current.ToString());
+        if (answer is null)
+            return;
+        if (!int.TryParse(answer.Trim(), out var line) || line < 1 || line > count)
+        {
+            _ctx.Status($"Enter a line number between 1 and {count}.");
+            return;
+        }
+        _services.Navigation.ToLine(line);
     }
 
     // -------------------------------------------------------------- handlers

@@ -321,22 +321,31 @@ namespace AXamlIDE.CompletionEngine;
                 ? f.FieldType.FullName
                 : $"{f.FieldType.FullName}, {f.FieldType.DefinitionAssembly.Name}";
             // Only asked about static fields of the type itself, so worked out on first use
-            _isRoutedEvent = new Lazy<bool>(() =>
+            _isRoutedEvent = new Lazy<bool>(() => DerivesFrom(f, session, "Avalonia.Interactivity", "RoutedEvent"));
+            _isAvaloniaProperty = new Lazy<bool>(() => DerivesFrom(f, session, "Avalonia", "AvaloniaProperty"));
+        }
+
+        /// <summary>The field's type is the named type or derives from it (a generic instance counts as its definition).</summary>
+        private static bool DerivesFrom(FieldDef f, DnlibMetadataProviderSession session, string @namespace, string name)
+        {
+            ITypeDefOrRef? t = f.FieldType.ToTypeDefOrRef();
+            for (var depth = 0; t != null && depth < 32; depth++)
             {
-                ITypeDefOrRef t = f.FieldType.ToTypeDefOrRef();
-                while (t != null)
-                {
-                    if (t.Name == "RoutedEvent" && t.Namespace == "Avalonia.Interactivity")
-                        return true;
-                    t = session.GetBaseType(t);
-                }
-                return false;
-            });
+                // A generic instance (StyledProperty<double>) is a TypeSpec: compare its definition's name.
+                var named = t is TypeSpec { TypeSig: GenericInstSig generic } ? generic.GenericType.TypeDefOrRef : t;
+                if (named.Name == name && named.Namespace == @namespace)
+                    return true;
+                t = session.GetBaseType(t);
+            }
+            return false;
         }
 
         private readonly Lazy<bool> _isRoutedEvent;
+        private readonly Lazy<bool> _isAvaloniaProperty;
 
         public bool IsRoutedEvent => _isRoutedEvent.Value;
+
+        public bool IsAvaloniaProperty => _isAvaloniaProperty.Value;
 
         public bool IsStatic { get; }
 

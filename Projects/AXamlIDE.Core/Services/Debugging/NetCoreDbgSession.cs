@@ -95,7 +95,8 @@ public sealed partial class NetCoreDbgSession : IDisposable
     public async Task StartAsync(
         string programPath,
         string workingDirectory,
-        IReadOnlyDictionary<string, IReadOnlyList<int>> breakpoints,
+        IReadOnlyDictionary<string, IReadOnlyList<SourceBreakpoint>> breakpoints,
+        IReadOnlyList<string> exceptionFilters,
         CancellationToken cancellationToken = default)
     {
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -135,6 +136,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
         await _initialized.Task.WaitAsync(token);
         foreach (var pair in breakpoints)
             await SetBreakpointsAsync(pair.Key, pair.Value, token);
+        await SetExceptionBreakpointsAsync(exceptionFilters, token);
 
         using (await RequestAsync("configurationDone", new { }, token))
         {
@@ -145,15 +147,34 @@ public sealed partial class NetCoreDbgSession : IDisposable
         }
     }
 
-    public async Task<string> SetBreakpointsAsync(string sourcePath, IReadOnlyList<int> lines, CancellationToken cancellationToken = default)
+    /// <summary>Replace every breakpoint in one source file (DAP's setBreakpoints), with their conditions.</summary>
+    public async Task<string> SetBreakpointsAsync(string sourcePath, IReadOnlyList<SourceBreakpoint> breakpoints, CancellationToken cancellationToken = default)
     {
+        var distinct = breakpoints.GroupBy(b => b.Line).Select(g => g.First()).OrderBy(b => b.Line).ToArray();
         using var response = await RequestAsync("setBreakpoints", new
         {
             source = new { name = Path.GetFileName(sourcePath), path = sourcePath },
-            breakpoints = lines.Distinct().Order().Select(line => new { line }).ToArray(),
-            lines
+            // Only the fields that are set: an empty condition must not reach the adapter as "".
+            breakpoints = distinct.Select(ToDap).ToArray(),
+            lines = distinct.Select(b => b.Line).ToArray()
         }, cancellationToken);
         return response.RootElement.GetRawText();
+
+        static Dictionary<string, object> ToDap(SourceBreakpoint breakpoint)
+        {
+            var dap = new Dictionary<string, object> { ["line"] = breakpoint.Line };
+            if (!string.IsNullOrWhiteSpace(breakpoint.Condition))
+                dap["condition"] = breakpoint.Condition.Trim();
+            if (!string.IsNullOrWhiteSpace(breakpoint.HitCondition))
+                dap["hitCondition"] = breakpoint.HitCondition.Trim();
+            return dap;
+        }
+    }
+
+    /// <summary>When to break on exceptions (DAP's setExceptionBreakpoints): <see cref="ExceptionFilters"/> values.</summary>
+    public async Task SetExceptionBreakpointsAsync(IReadOnlyList<string> filters, CancellationToken cancellationToken = default)
+    {
+        using var response = await RequestAsync("setExceptionBreakpoints", new { filters }, cancellationToken);
     }
 
     public async Task ContinueAsync(int threadId, CancellationToken cancellationToken = default)

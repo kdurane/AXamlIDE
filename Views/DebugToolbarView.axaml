@@ -50,16 +50,6 @@
             ToolTip.Tip="Restart (Ctrl+Shift+F5)">
             <PathIcon Data="{StaticResource Icon.Restart}" Foreground="{DynamicResource DebugRestartBrush}" />
         </Button>
-
-        <!-- <Button
-        Classes="dbg"
-        Command="{Binding StopRunningProjectCommand}"
-        IsEnabled="{Binding IsDebugging}"
-        ToolTip.Tip="Stop (Shift+F5)">
-        <PathIcon
-        Data="{StaticResource Icon.SquareOutline}"
-        Foreground="{DynamicResource DebugStopBrush}"
-        Width="14" />
-        </Button> -->
+        <!--  Stop is the toolbar's play button, which turns into a stop square while running (MainWindow.axaml).  -->
     </StackPanel>
 </UserControl>

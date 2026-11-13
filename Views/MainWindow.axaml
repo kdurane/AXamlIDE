@@ -15,7 +15,7 @@
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid RowDefinitions="auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <Grid ColumnDefinitions="Auto,*,Auto,Auto" Grid.Row="0">
             <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="4" />
@@ -56,7 +56,11 @@
                     <MenuItem Command="{Binding Explorer.NewFolderCommand}" Header="New Fol_der..." />
                     <Separator />
                     <MenuItem Command="{Binding DocumentCommands.SaveDocumentCommand}" Header="_Save" />
+                    <MenuItem Command="{Binding DocumentCommands.SaveDocumentAsCommand}" Header="Save _As..." />
+                    <MenuItem Command="{Binding DocumentCommands.SaveAllCommand}" Header="Save A_ll" />
+                    <Separator />
                     <MenuItem Command="{Binding DocumentCommands.CloseDocumentCommand}" Header="Close _Tab" />
+                    <MenuItem Command="{Binding DocumentCommands.CloseAllCommand}" Header="Close All Documents" />
                     <Separator />
                     <MenuItem Command="{Binding ExitCommand}" Header="E_xit" />
                 </MenuItem>
@@ -91,7 +95,10 @@
                     <MenuItem Command="{Binding EditorCommands.CommentSelection}" Header="Comment _Selection" />
                     <MenuItem Command="{Binding EditorCommands.UncommentSelection}" Header="Uncomm_ent Selection" />
                     <Separator />
+                    <MenuItem Command="{Binding EditorCommands.Find}" Header="_Find..." />
+                    <MenuItem Command="{Binding EditorCommands.Replace}" Header="Rep_lace..." />
                     <MenuItem Command="{Binding ShowFindInFilesCommand}" Header="Find in _Files..." />
+                    <MenuItem Command="{Binding EditorCommands.GoToLine}" Header="Go To _Line..." />
                     <Separator />
                     <MenuItem Command="{Binding EditorCommands.RenameSymbol}" Header="Re_name Symbol..." />
                     <MenuItem Command="{Binding EditorCommands.QuickActions}" Header="_Quick Actions..." />
@@ -136,6 +143,9 @@
                     <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="Move Side Bar to Other Side" />
                 </MenuItem>
                 <MenuItem Header="_Navigate">
+                    <MenuItem Command="{Binding NavigateBackCommand}" Header="Navigate _Backward" />
+                    <MenuItem Command="{Binding NavigateForwardCommand}" Header="Navigate For_ward" />
+                    <Separator />
                     <MenuItem Command="{Binding EditorCommands.QuickOpen}" Header="Go to _File..." />
                     <MenuItem Command="{Binding EditorCommands.WorkspaceSymbols}" Header="Go to _Symbol..." />
                     <Separator />
@@ -193,6 +203,19 @@
                     <MenuItem Command="{Binding Run.StepIntoCommand}" Header="Step _Into" />
                     <MenuItem Command="{Binding Run.StepOutCommand}" Header="Step O_ut" />
                     <Separator />
+                    <MenuItem Command="{Binding EditorCommands.ToggleBreakpoint}" Header="Toggle _Breakpoint" />
+                    <MenuItem Command="{Binding DeleteAllBreakpointsCommand}" Header="_Delete All Breakpoints" />
+                    <MenuItem
+                        Command="{Binding SetAllBreakpointsEnabledCommand}"
+                        CommandParameter="{x:False}"
+                        Header="Disa_ble All Breakpoints" />
+                    <MenuItem
+                        Command="{Binding SetAllBreakpointsEnabledCommand}"
+                        CommandParameter="{x:True}"
+                        Header="E_nable All Breakpoints" />
+                    <Separator />
+                    <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Exception Settings..." />
+                    <Separator />
                     <MenuItem Command="{Binding EditorCommands.AddWatch}" Header="Add _Watch" />
                     <MenuItem Header="Win_dows">
                         <MenuItem
@@ -232,6 +255,34 @@
                     <MenuItem Command="{Binding EditSnippetsCommand}" Header="Edit S_nippets..." />
                     <Separator />
                     <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Settings..." />
+                </MenuItem>
+                <!--  Visual Studio's Window menu: layout commands, then every open document.  -->
+                <MenuItem Header="_Window">
+                    <MenuItem Command="{Binding DocumentCommands.CloseAllCommand}" Header="C_lose All Documents" />
+                    <Separator />
+                    <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
+                    <MenuItem Command="{Binding TogglePanelCommand}" Header="Show/Hide _Panel" />
+                    <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="_Move Side Bar to Other Side" />
+                    <Separator />
+                    <MenuItem
+                        Classes="openDocuments"
+                        Header="_Documents"
+                        ItemsSource="{Binding OpenDocuments}">
+                        <MenuItem.Styles>
+                            <Style x:DataType="models:OpenDocument" Selector="MenuItem.openDocuments > MenuItem">
+                                <Setter Property="Header" Value="{Binding DisplayTitle}" />
+                                <Setter Property="ToolTip.Tip" Value="{Binding Path}" />
+                                <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ActivateDocumentCommand, FallbackValue={x:Null}}" />
+                                <Setter Property="CommandParameter" Value="{Binding}" />
+                            </Style>
+                        </MenuItem.Styles>
+                    </MenuItem>
+                </MenuItem>
+                <MenuItem Header="_Help">
+                    <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Keyboard Shortcuts..." />
+                    <MenuItem Command="{Binding ViewCrashLogCommand}" Header="View _Crash Log" />
+                    <Separator />
+                    <MenuItem Command="{Binding ShowAboutCommand}" Header="_About AXamlIDE" />
                 </MenuItem>
             </Menu>
             <!--
@@ -360,109 +411,175 @@
             </Button>
         </Grid>
 
-        <!--  Activity bar beside the dock area (mirrored with the explorer setting).  -->
-        <Grid
-            ColumnDefinitions="30,*"
+        <!--
+        Visual Studio's Standard toolbar: Navigate Backward / Forward, Save / Save All, Undo / Redo, then (on the right)
+        the window buttons that used to be a VS Code style activity bar: side bar, search, tests, terminal, panel.
+        -->
+        <Border
+            Background="{DynamicResource AppTitleBarBackgroundBrush}"
+            BorderBrush="{DynamicResource AppActivityBarBackgroundBrush}"
+            BorderThickness="0,1,0,0"
             Grid.Row="1"
-            Name="ContentGrid">
-
-            <Border
-                Background="{DynamicResource AppActivityBarBackgroundBrush}"
-                Grid.Column="0"
-                MinWidth="0"
-                Name="ActivityBar"
-                Padding="0">
-                <StackPanel Margin="0" Spacing="4">
+            Padding="4,1">
+            <Border.Styles>
+                <Style Selector="Button.toolbar">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="Padding" Value="5,3" />
+                    <Setter Property="MinHeight" Value="0" />
+                </Style>
+                <Style Selector="Button.toolbar PathIcon">
+                    <Setter Property="Width" Value="15" />
+                    <Setter Property="Height" Value="15" />
+                </Style>
+                <Style Selector="Button.toolbar:disabled PathIcon">
+                    <Setter Property="Opacity" Value="0.4" />
+                </Style>
+                <Style Selector="Border.toolbarSeparator">
+                    <Setter Property="Width" Value="1" />
+                    <Setter Property="Margin" Value="4,3" />
+                    <Setter Property="Background" Value="{DynamicResource AppActivityBarBackgroundBrush}" />
+                </Style>
+            </Border.Styles>
+            <DockPanel>
+                <StackPanel
+                    DockPanel.Dock="Right"
+                    Orientation="Horizontal"
+                    Spacing="1">
                     <Button
-                        AutomationProperties.Name="Move explorer to other side"
-                        Background="Transparent"
-                        Command="{Binding ToggleSolutionExplorerSideCommand}"
-                        Padding="8"
-                        ToolTip.Tip="Move explorer to the other side">
-                        <PathIcon
-                            Data="{DynamicResource Icon.Transfer}"
-                            Height="16"
-                            Width="16" />
-                    </Button>
-                    <Button
-                        AutomationProperties.Name="Explorer"
-                        Background="Transparent"
+                        AutomationProperties.Name="Show or hide the side bar"
+                        Classes="toolbar"
                         Command="{Binding ToggleExplorerCommand}"
-                        Padding="8"
-                        shell:KeyMap.ShortcutTip="Explorer">
-                        <PathIcon
-                            Data="{DynamicResource Icon.FolderMultipleOutline}"
-                            Height="16"
-                            Width="16" />
+                        shell:KeyMap.ShortcutTip="Show/Hide Side Bar">
+                        <PathIcon Data="{DynamicResource Icon.FolderMultipleOutline}" />
                     </Button>
+                    <Button
+                        AutomationProperties.Name="Move the side bar to the other side"
+                        Classes="toolbar"
+                        Command="{Binding ToggleSolutionExplorerSideCommand}"
+                        ToolTip.Tip="Move Side Bar to Other Side">
+                        <PathIcon Data="{DynamicResource Icon.Transfer}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
                     <Button
                         AutomationProperties.Name="Search in files"
-                        Background="Transparent"
+                        Classes="toolbar"
                         Command="{Binding ShowFindInFilesCommand}"
-                        Padding="8"
-                        shell:KeyMap.ShortcutTip="Search in files">
-                        <PathIcon
-                            Data="{DynamicResource Icon.Search}"
-                            Height="16"
-                            Width="16" />
+                        shell:KeyMap.ShortcutTip="Find in Files">
+                        <PathIcon Data="{DynamicResource Icon.Search}" />
                     </Button>
                     <Button
                         AutomationProperties.Name="Test Explorer"
-                        Background="Transparent"
+                        Classes="toolbar"
                         Command="{Binding ShowToolCommand}"
                         CommandParameter="{x:Static msg:ToolTab.Tests}"
-                        Padding="8"
                         shell:KeyMap.ShortcutTip="Test Explorer">
-                        <PathIcon
-                            Data="{DynamicResource Icon.FlaskEmptyOutline}"
-                            Height="16"
-                            Width="16" />
+                        <PathIcon Data="{DynamicResource Icon.FlaskEmptyOutline}" />
                     </Button>
                     <Button
                         AutomationProperties.Name="Terminal"
-                        Background="Transparent"
+                        Classes="toolbar"
                         Command="{Binding ShowTerminalCommand}"
-                        Padding="8"
                         shell:KeyMap.ShortcutTip="Terminal">
-                        <PathIcon
-                            Data="{DynamicResource Icon.Console}"
-                            Height="16"
-                            Width="16" />
+                        <PathIcon Data="{DynamicResource Icon.Console}" />
                     </Button>
                     <Button
                         AutomationProperties.Name="Show or hide the panel"
-                        Background="Transparent"
+                        Classes="toolbar"
                         Command="{Binding TogglePanelCommand}"
-                        Padding="8"
                         shell:KeyMap.ShortcutTip="Show/Hide Panel">
-                        <PathIcon
-                            Data="{DynamicResource Icon.PanelBottom}"
-                            Height="16"
-                            Width="16" />
+                        <PathIcon Data="{DynamicResource Icon.PanelBottom}" />
                     </Button>
                 </StackPanel>
-            </Border>
+                <StackPanel Orientation="Horizontal" Spacing="1">
+                    <Button
+                        AutomationProperties.Name="Navigate Backward"
+                        Classes="toolbar"
+                        Command="{Binding NavigateBackCommand}"
+                        shell:KeyMap.ShortcutTip="Navigate Backward">
+                        <PathIcon Data="{DynamicResource Icon.ArrowLeft}" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Navigate Forward"
+                        Classes="toolbar"
+                        Command="{Binding NavigateForwardCommand}"
+                        shell:KeyMap.ShortcutTip="Navigate Forward">
+                        <PathIcon Data="{DynamicResource Icon.ArrowRight}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
+                    <Button
+                        AutomationProperties.Name="Save"
+                        Classes="toolbar"
+                        Command="{Binding DocumentCommands.SaveDocumentCommand}"
+                        shell:KeyMap.ShortcutTip="Save">
+                        <PathIcon Data="{DynamicResource Icon.ContentSave}" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Save All"
+                        Classes="toolbar"
+                        Command="{Binding DocumentCommands.SaveAllCommand}"
+                        shell:KeyMap.ShortcutTip="Save All">
+                        <PathIcon Data="{DynamicResource Icon.ContentSaveAll}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
+                    <Button
+                        AutomationProperties.Name="Undo"
+                        Classes="toolbar"
+                        Command="{Binding EditorCommands.Undo}"
+                        ToolTip.Tip="Undo (Ctrl+Z)">
+                        <PathIcon Data="{DynamicResource Icon.Undo}" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Redo"
+                        Classes="toolbar"
+                        Command="{Binding EditorCommands.Redo}"
+                        ToolTip.Tip="Redo (Ctrl+Y)">
+                        <PathIcon Data="{DynamicResource Icon.Redo}" />
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
 
-            <!--  Document tabs and tool panels. Any tab can be dragged to another strip or out into its own window.  -->
-            <DockControl
-                Grid.Column="1"
-                Layout="{Binding Docking.Root}"
-                Name="DockArea" />
-        </Grid>
+        <!--  Document tabs and tool panels. Any tab can be dragged to another strip or out into its own window.  -->
+        <DockControl
+            Grid.Row="2"
+            Layout="{Binding Docking.Root}"
+            Name="DockArea" />
 
         <Border
             Background="{DynamicResource AppStatusBarBackgroundBrush}"
-            Grid.Row="2"
+            Grid.Row="3"
             Padding="8,2"
             TextElement.Foreground="{DynamicResource AppStatusBarForegroundBrush}"
             x:Name="StatusBar">
-            <Grid ColumnDefinitions="*,Auto,Auto">
-                <TextBlock Grid.Column="0" Text="{Binding StatusText}" />
+            <!--  Visual Studio's status bar: the message, then errors/warnings, Ln/Col, and the Git branch on the right.  -->
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+                <TextBlock
+                    Grid.Column="0"
+                    Text="{Binding StatusText}"
+                    TextTrimming="CharacterEllipsis" />
                 <TextBlock
                     Grid.Column="1"
-                    Margin="0,0,16,0"
+                    Margin="16,0,0,0"
                     Text="{Binding DiagnosticsText}" />
-                <TextBlock Grid.Column="2" Text="{Binding CaretText}" />
+                <TextBlock
+                    Grid.Column="2"
+                    Margin="16,0,0,0"
+                    Text="{Binding CaretText}" />
+                <StackPanel
+                    Grid.Column="3"
+                    IsVisible="{Binding Git.IsRepository}"
+                    Margin="16,0,0,0"
+                    Orientation="Horizontal"
+                    Spacing="4"
+                    ToolTip.Tip="Current Git branch">
+                    <PathIcon
+                        Data="{StaticResource Icon.SourceBranch}"
+                        Foreground="{DynamicResource AppStatusBarForegroundBrush}"
+                        Height="12"
+                        Width="12" />
+                    <TextBlock Text="{Binding Git.BranchText}" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

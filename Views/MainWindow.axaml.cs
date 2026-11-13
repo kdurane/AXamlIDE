@@ -12,12 +12,11 @@ namespace AXamlIDE.Views;
 
 /// <summary>
 /// The main window. It only places the panels (see MainWindow.axaml) and does what needs a window:
-/// keyboard shortcuts (here and in every floating tab window), the activity bar's side, and the
+/// keyboard shortcuts (here and in every floating tab window), and the
 /// floating debug toolbar. Its colours come from the theme (Styles/ThemeResources.axaml).
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly SettingsViewModel _settings = null!;
     private readonly KeyMap _keyMap = null!;
     private bool _exitConfirmed;    // the exit questions were answered: the next close goes through
     private bool _confirmingExit;   // they're being asked now
@@ -32,10 +31,9 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Created by the DI container (see AppServices).</summary>
-    public MainWindow(MainWindowViewModel viewModel, SettingsViewModel settings, KeyMap keyMap, FileChangeWatcher fileWatcher)
+    public MainWindow(MainWindowViewModel viewModel, KeyMap keyMap, FileChangeWatcher fileWatcher)
     {
         InitializeComponent();
-        _settings = settings;
         _keyMap = keyMap;
 
         // Tabs dragged out of the window get a window of ours, so the shortcuts work there too.
@@ -48,9 +46,6 @@ public partial class MainWindow : Window
 
         DataContext = viewModel;
         viewModel.ExitRequested += Close;
-
-        settings.PropertyChanged += OnSettingsPropertyChanged;
-        ApplyActivityBarSide();
 
         // Floating windows open relative to this one.
         PositionChanged += (_, _) => UpdateBoundsForDocking(docking);
@@ -100,25 +95,5 @@ public partial class MainWindow : Window
         window.Bind(BackgroundProperty, window.GetResourceObservable("AppWindowBackgroundBrush"));
         _keyMap.AttachTo(window);
         return window;
-    }
-
-    // ============================================================ activity bar
-
-    private void OnSettingsPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(SettingsViewModel.SolutionExplorerOnRight))
-            ApplyActivityBarSide();
-    }
-
-    /// <summary>The activity bar sits on the explorer's side (the explorer itself is moved by the dock layout).</summary>
-    private void ApplyActivityBarSide()
-    {
-        var onRight = _settings.SolutionExplorerOnRight;
-
-        ContentGrid.ColumnDefinitions.Clear();
-        ContentGrid.ColumnDefinitions.Add(onRight ? new ColumnDefinition(GridLength.Star) : new ColumnDefinition(30, GridUnitType.Pixel));
-        ContentGrid.ColumnDefinitions.Add(onRight ? new ColumnDefinition(30, GridUnitType.Pixel) : new ColumnDefinition(GridLength.Star));
-        Grid.SetColumn(ActivityBar, onRight ? 1 : 0);
-        Grid.SetColumn(DockArea, onRight ? 0 : 1);
     }
 }

@@ -13,9 +13,19 @@ public partial class ProblemsView : UserControl
         InitializeComponent();
     }
 
-    private void OnProblemDoubleTapped(object? sender, TappedEventArgs e)
+    private void OnProblemDoubleTapped(object? sender, TappedEventArgs e) => OpenSelected();
+
+    private void OnListKeyDown(object? sender, KeyEventArgs e)
     {
-        if (sender is ListBox { SelectedItem: ProblemItem problem } && DataContext is ProblemsViewModel viewModel)
+        if (e.Key != Key.Enter)
+            return;
+        e.Handled = true;
+        OpenSelected();
+    }
+
+    private void OpenSelected()
+    {
+        if (List.SelectedItem is ProblemItem problem && DataContext is ProblemsViewModel viewModel)
             viewModel.OpenProblemCommand.Execute(problem);
     }
 }

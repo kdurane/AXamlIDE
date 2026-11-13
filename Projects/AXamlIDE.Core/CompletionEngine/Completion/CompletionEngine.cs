@@ -544,22 +544,11 @@ public class CompletionEngine
                                 case "On" when (state.AttributeName?.Equals("Options") == true):
                                     {
                                         var parentTag = state.GetParentTagName(1);
-                                        if (parentTag?.Equals("OnPlatform") == true)
-                                        {
-                                            // Built in types from:
-                                            //https://github.com/AvaloniaUI/Avalonia/blob/master/src/Markup/Avalonia.Markup.Xaml/MarkupExtensions/OnPlatformExtension.cs
-                                            completions.Add(new Completion("Windows", CompletionKind.Enum));
-                                            completions.Add(new Completion("macOS", CompletionKind.Enum));
-                                            completions.Add(new Completion("Linux", CompletionKind.Enum));
-                                            completions.Add(new Completion("Android", CompletionKind.Enum));
-                                            completions.Add(new Completion("iOS", CompletionKind.Enum));
-                                            completions.Add(new Completion("Browser", CompletionKind.Enum));
-                                        }
-                                        else if (parentTag?.Equals("OnFormFactor") == true)
-                                        {
-                                            completions.Add(new Completion("Desktop", CompletionKind.Enum));
-                                            completions.Add(new Completion("Mobile", CompletionKind.Enum));
-                                        }
+                                        // The compiler's platform / form-factor names (XamlIntrinsics).
+                                        if (parentTag?.Equals(XamlIntrinsics.OnPlatform) == true)
+                                            completions.AddRange(XamlIntrinsics.Platforms.Select(p => new Completion(p, CompletionKind.Enum)));
+                                        else if (parentTag?.Equals(XamlIntrinsics.OnFormFactor) == true)
+                                            completions.AddRange(XamlIntrinsics.FormFactors.Select(f => new Completion(f, CompletionKind.Enum)));
 
                                         break;
                                     }
@@ -1092,10 +1081,7 @@ public class CompletionEngine
                     if (ext.State == MarkupExtensionParser.ParserStateType.InsideElement)
                         forcedStart = data.Length;
 
-                    var isOnPlatform = ext.ElementName?.Trim().Equals("OnPlatform");
-                    var isOnFormFactor = ext.ElementName?.Trim().Equals("OnFormFactor");
-
-                    if ((isOnPlatform == true) || (isOnFormFactor == true))
+                    if (XamlIntrinsics.IsOnPlatformOrFormFactor(ext.ElementName))
                     {
                         // If we type a comma after a previous attribute: // {Binding Path=MyProp,
                         // the parser shows that as InsideElement, though we really want that to
@@ -1117,20 +1103,8 @@ public class CompletionEngine
 
                         if (isActuallyStartAttribute || ext.State == MarkupExtensionParser.ParserStateType.StartAttribute)
                         {
-                            if (isOnPlatform == true)
-                            {
-                                completions.Add(new Completion("Windows", "Windows=", "Windows", CompletionKind.Enum));
-                                completions.Add(new Completion("macOS", "macOS=", "macOS", CompletionKind.Enum));
-                                completions.Add(new Completion("Linux", "Linux=", "Linux", CompletionKind.Enum));
-                                completions.Add(new Completion("Android", "Android=", "Android", CompletionKind.Enum));
-                                completions.Add(new Completion("iOS", "iOS=", "iOS", CompletionKind.Enum));
-                                completions.Add(new Completion("Browser", "Browser=", "Browser", CompletionKind.Enum));
-                            }
-                            else
-                            {
-                                completions.Add(new Completion("Desktop", "Desktop=", "Desktop", CompletionKind.Enum));
-                                completions.Add(new Completion("Mobile", "Mobile=", "Mobile", CompletionKind.Enum));
-                            }
+                            var names = ext.ElementName?.Trim() == XamlIntrinsics.OnPlatform ? XamlIntrinsics.Platforms : XamlIntrinsics.FormFactors;
+                            completions.AddRange(names.Select(n => new Completion(n, n + "=", n, CompletionKind.Enum)));
                         }
                         else
                         {
@@ -1220,8 +1194,7 @@ public class CompletionEngine
                 {
                     var elementName = ext.ElementName?.Trim();
                     MetadataProperty? prop;
-                    if (elementName?.Equals("OnPlatform") == true ||
-                        elementName?.Equals("OnFormFactor") == true)
+                    if (XamlIntrinsics.IsOnPlatformOrFormFactor(elementName))
                     {
                         prop = Helper.LookupProperty(state.TagName, state.AttributeName);
                     }

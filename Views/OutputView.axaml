@@ -1,17 +1,35 @@
+<!--
+    Build output (DataContext: RunViewModel). Errors and warnings are coloured; a line that names a file and line
+    opens it on double-click, as in Visual Studio's Output window.
+-->
 <UserControl
     x:Class="AXamlIDE.Views.OutputView"
     x:DataType="vm:RunViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:b="using:AXamlIDE.Behaviors"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <Style Selector="SelectableTextBlock.error">
+            <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+        </Style>
+        <Style Selector="SelectableTextBlock.warning">
+            <Setter Property="Foreground" Value="{DynamicResource DiagnosticWarningBrush}" />
+        </Style>
+        <Style Selector="SelectableTextBlock.link">
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </UserControl.Styles>
 
-    <!--  Build output (DataContext: RunViewModel)  -->
     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-        <ItemsControl ItemsSource="{Binding BuildOutput}">
+        <ItemsControl DoubleTapped="OnLineDoubleTapped" ItemsSource="{Binding BuildOutput}">
             <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock
+                <DataTemplate x:DataType="x:String">
+                    <SelectableTextBlock
+                        Classes.error="{Binding Converter={x:Static views:OutputConverters.IsError}}"
+                        Classes.link="{Binding Converter={x:Static views:OutputConverters.HasLocation}}"
+                        Classes.warning="{Binding Converter={x:Static views:OutputConverters.IsWarning}}"
                         FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
                         FontSize="11"
                         Text="{Binding}" />
@@ -19,7 +37,7 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Interaction.Behaviors>
-            <b:FollowEndBehavior/>
+            <b:FollowEndBehavior />
         </Interaction.Behaviors>
     </ScrollViewer>
 </UserControl>

@@ -7,6 +7,7 @@ using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Navigation;
 using AXamlIDE.Services.NuGet;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Workspace;
@@ -63,6 +64,7 @@ public static class AppServices
         services.AddSingleton<FileChangeWatcher>();     // tells open tabs when their file changes on disk
         services.AddSingleton<DocumentCommands>();
         services.AddSingleton<IDocumentHost, DocumentHost>();
+        services.AddSingleton<NavigationHistory>();     // Navigate Backward / Forward
         services.AddSingleton<NavigationService>();
         services.AddSingleton<WorkspaceEditService>();
         services.AddSingleton<DebugSnapshotTracker>();

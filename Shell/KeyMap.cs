@@ -97,7 +97,10 @@ public sealed class KeyMap
             ["File.CloneRepository"] = (shell.Start.CloneRepositoryCommand, null),
             ["File.StartWindow"] = (shell.ShowStartWindowCommand, null),
             ["File.Save"] = (documents.SaveDocumentCommand, null),     // null parameter = the selected tab
+            ["File.SaveAs"] = (documents.SaveDocumentAsCommand, null),
+            ["File.SaveAll"] = (documents.SaveAllCommand, null),
             ["File.Close"] = (documents.CloseDocumentCommand, null),
+            ["File.CloseAll"] = (documents.CloseAllCommand, null),
             ["File.NewItem"] = (shell.Explorer.NewItemCommand, null),   // into the explorer selection
             ["File.NewClass"] = (shell.Explorer.NewClassCommand, null),
             ["File.NewFolder"] = (shell.Explorer.NewFolderCommand, null),
@@ -106,6 +109,9 @@ public sealed class KeyMap
             ["Edit.CommentSelection"] = (editor.CommentSelection, null),
             ["Edit.UncommentSelection"] = (editor.UncommentSelection, null),
             ["Edit.FormatDocument"] = (documents.FormatDocumentCommand, null),
+            ["Edit.Find"] = (editor.Find, null),
+            ["Edit.Replace"] = (editor.Replace, null),
+            ["Edit.GoToLine"] = (editor.GoToLine, null),
             ["Edit.FindInFiles"] = (shell.ShowFindInFilesCommand, null),
             ["Edit.Rename"] = (editor.RenameSymbol, null),
             ["Edit.QuickActions"] = (editor.QuickActions, null),
@@ -129,6 +135,8 @@ public sealed class KeyMap
             ["Navigate.GoToSymbol"] = (editor.WorkspaceSymbols, null),
             ["Navigate.GoToDefinition"] = (editor.GoToDefinition, null),
             ["Navigate.FindAllReferences"] = (editor.FindReferences, null),
+            ["Navigate.Back"] = (shell.NavigateBackCommand, null),
+            ["Navigate.Forward"] = (shell.NavigateForwardCommand, null),
             ["Navigate.NextProblem"] = (shell.Problems.NavigateDiagnosticCommand, true),
             ["Navigate.PreviousProblem"] = (shell.Problems.NavigateDiagnosticCommand, false),
 
@@ -145,6 +153,8 @@ public sealed class KeyMap
             ["Debug.StepOver"] = (run.StepOverCommand, null),
             ["Debug.StepInto"] = (run.StepIntoCommand, null),
             ["Debug.StepOut"] = (run.StepOutCommand, null),
+            ["Debug.ToggleBreakpoint"] = (editor.ToggleBreakpoint, null),
+            ["Debug.DeleteAllBreakpoints"] = (shell.DeleteAllBreakpointsCommand, null),
             ["Debug.AddWatch"] = (editor.AddWatch, null),
             ["Debug.Watch"] = (shell.ShowToolCommand, ToolTab.Watch),
             ["Debug.Locals"] = (shell.ShowToolCommand, ToolTab.Locals),

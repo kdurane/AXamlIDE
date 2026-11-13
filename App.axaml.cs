@@ -5,8 +5,10 @@ using Avalonia.Controls.Recycling;
 using Avalonia.Controls.Templates;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Diagnostics;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.ViewModels;
@@ -29,6 +31,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var services = AppServices.Build();
+            ReportUnhandledExceptions(services.GetRequiredService<IMessenger>());
             services.GetRequiredService<ThemeSwitcher>().Apply();
             services.GetRequiredService<GitTreeDecorator>();   // colours the explorer tree from then on (nothing else needs it)
             services.GetRequiredService<DocumentReloader>();   // keeps open tabs in step with the disk (nothing else needs it)
@@ -39,6 +42,24 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// An exception nobody caught on the UI thread (an event handler, an async void method): as Visual Studio does,
+    /// log it and carry on, telling the user in the status bar where the details are. The app only dies for
+    /// exceptions off the UI thread (Program.cs logs those too).
+    /// </summary>
+    private static void ReportUnhandledExceptions(IMessenger messenger)
+    {
+        Dispatcher.UIThread.UnhandledException += (_, e) =>
+        {
+            var path = CrashLog.Write("UI thread", e.Exception);
+            e.Handled = true;
+            var summary = e.Exception.Message.Split('\n')[0].Trim();
+            messenger.Send(new StatusMessage(path is null
+                ? $"Something went wrong: {summary}"
+                : $"Something went wrong: {summary}  (details in {path})"));
+        };
     }
 
     /// <summary>

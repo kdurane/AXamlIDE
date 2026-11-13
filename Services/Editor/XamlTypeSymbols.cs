@@ -26,11 +26,11 @@ public static class XamlTypeSymbols
             // A type's container is its file ("MainViewModel.cs - MyApp (net10.0)"); members' start with "in ".
             var found = (await client.WorkspaceSymbolsAsync(type.Name))
                 .Where(symbol => symbol.Name == type.Name && symbol.ContainerName?.StartsWith("in ", StringComparison.Ordinal) != true)
-                .Where(symbol => !LspHelpers.IsSourceGenerated(symbol.Uri) && Uri.TryCreate(symbol.Uri, UriKind.Absolute, out var uri)
-                                 && uri.IsFile && Declares(uri.LocalPath, type.ClrNamespace))
+                .Where(symbol => !LspHelpers.IsSourceGenerated(symbol.Uri) && FileUris.ToPath(symbol.Uri) is { } path
+                                 && Declares(path, type.ClrNamespace))
                 .ToList();
             // A partial class: straight to its main file (NuGetDockable.cs, not NuGetDockable.Details.cs) when there is one.
-            var main = found.Where(symbol => IsMainFile(new Uri(symbol.Uri).LocalPath, type.Name)).ToList();
+            var main = found.Where(symbol => IsMainFile(FileUris.ToPath(symbol.Uri)!, type.Name)).ToList();
             if (found.Count > 0)
                 return (client, main.Count > 0 ? main : found);
         }

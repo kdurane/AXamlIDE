@@ -26,6 +26,52 @@ Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the sel
         </Border>
     </Design.PreviewWith>
 
+    <!--
+    A document tab's right-click menu, Visual Studio's. The tab's DataContext is its dockable: a DocumentDockable for
+    a file (every item), a PageDockable for NuGet, a diff or a visualizer (only Close and Float: the file items bind
+    by reflection and hide when the property isn't there).
+    -->
+    <Style Selector="DocumentTabStripItem">
+        <Setter Property="ContextMenu">
+            <ContextMenu x:DataType="core:IDockable">
+                <MenuItem
+                    Command="{Binding Owner.Factory.CloseDockable, FallbackValue={x:Null}}"
+                    CommandParameter="{Binding}"
+                    Header="_Close"
+                    shell:KeyMap.CommandId="File.Close" />
+                <MenuItem
+                    Command="{ReflectionBinding CloseOtherTabsCommand}"
+                    Header="Close All _But This"
+                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                <MenuItem
+                    Command="{ReflectionBinding CloseAllTabsCommand}"
+                    Header="Close _All Documents"
+                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}"
+                    shell:KeyMap.CommandId="File.CloseAll" />
+                <Separator IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                <MenuItem
+                    Command="{ReflectionBinding SaveTabCommand}"
+                    Header="_Save"
+                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}"
+                    shell:KeyMap.CommandId="File.Save" />
+                <MenuItem
+                    Command="{ReflectionBinding CopyFullPathCommand}"
+                    Header="Copy Full _Path"
+                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                <MenuItem
+                    Command="{ReflectionBinding OpenContainingFolderCommand}"
+                    Header="Open Containing _Folder"
+                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                <Separator />
+                <MenuItem
+                    Command="{Binding Owner.Factory.FloatDockable, FallbackValue={x:Null}}"
+                    CommandParameter="{Binding}"
+                    Header="F_loat"
+                    IsVisible="{Binding CanFloat}" />
+            </ContextMenu>
+        </Setter>
+    </Style>
+
     <!--  No title bar: the content (the tabs and the selected tool), with the panel's own buttons over the tab row's right end.  -->
     <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolChromeControl">
         <Setter Property="Template">

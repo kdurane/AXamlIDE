@@ -37,6 +37,14 @@ public sealed class EditorCommands(IMessenger messenger)
     public IRelayCommand CommentSelection { get; } = Make(messenger, EditorAction.CommentSelection);
     public IRelayCommand UncommentSelection { get; } = Make(messenger, EditorAction.UncommentSelection);
 
+    /// <summary>Edit > Find / Replace (Ctrl+F, Ctrl+H): the editor's search panel; Go To Line (Ctrl+G).</summary>
+    public IRelayCommand Find { get; } = Make(messenger, EditorAction.Find);
+    public IRelayCommand Replace { get; } = Make(messenger, EditorAction.Replace);
+    public IRelayCommand GoToLine { get; } = Make(messenger, EditorAction.GoToLine);
+
+    /// <summary>Debug > Toggle Breakpoint (F9): on the caret's line.</summary>
+    public IRelayCommand ToggleBreakpoint { get; } = Make(messenger, EditorAction.ToggleBreakpoint);
+
     private static RelayCommand Make(IMessenger messenger, EditorAction action)
         => new(() => messenger.Send(new EditorActionMessage(action)));
 }

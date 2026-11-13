@@ -19,13 +19,31 @@ public static class LspHelpers
             => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Character.CompareTo(b.Character);
     }
 
+    /// <summary>A diagnostic's code ("CS0103", "IDE0005", "AVLN2000"), or empty when it has none.</summary>
+    public static string DiagnosticCode(JsonElement? rawDiagnostic)
+    {
+        if (rawDiagnostic is not { } raw || raw.ValueKind != JsonValueKind.Object || !raw.TryGetProperty("code", out var code))
+            return "";
+        return code.ValueKind switch
+        {
+            JsonValueKind.String => code.GetString() ?? "",
+            JsonValueKind.Number => code.GetRawText(),
+            _ => ""
+        };
+    }
+
+    /// <summary>
+    /// A diagnostic's message without the "CODE: " the client puts in front (see LspClient.ParseDiagnostic), for
+    /// listing the code in its own column.
+    /// </summary>
+    public static string DiagnosticText(string message, string code)
+        => code.Length > 0 && message.StartsWith(code + ": ", StringComparison.Ordinal) ? message[(code.Length + 2)..] : message;
+
     public static string FormatLocation(LspLocation location)
     {
         if (IsSourceGenerated(location.Uri))
             return $"{SourceGeneratedName(location.Uri)}  (line {location.Range.StartLine + 1})  —  source generated";
-        var path = Uri.TryCreate(location.Uri, UriKind.Absolute, out var uri) && uri.IsFile
-            ? uri.LocalPath
-            : location.Uri;
+        var path = FileUris.ToPath(location.Uri) ?? location.Uri;
         return $"{Path.GetFileName(path)}  (line {location.Range.StartLine + 1})  —  {path}";
     }
 
@@ -76,12 +94,12 @@ public static class LspHelpers
 
         void AddEdits(string uriText, JsonElement edits)
         {
-            if (!Uri.TryCreate(uriText, UriKind.Absolute, out var uri) || !uri.IsFile)
-                throw new InvalidOperationException($"Rename returned a non-file URI: {uriText}");
+            if (FileUris.ToPath(uriText) is not { } localPath)
+                throw new InvalidOperationException($"The edit is for a non-file URI: {uriText}");
             if (edits.ValueKind != JsonValueKind.Array)
-                throw new InvalidOperationException("Rename returned an invalid edit list.");
+                throw new InvalidOperationException("The edit has an invalid edit list.");
 
-            var path = Path.GetFullPath(uri.LocalPath);
+            var path = Path.GetFullPath(localPath);
             if (!editsByPath.TryGetValue(path, out var pathEdits))
                 editsByPath[path] = pathEdits = [];
             foreach (var edit in edits.EnumerateArray())
@@ -110,8 +128,8 @@ public static class LspHelpers
         foreach (var change in documentChanges.EnumerateArray())
             if (change.TryGetProperty("kind", out var kind) && kind.GetString() == "create"
                 && change.TryGetProperty("uri", out var uriText)
-                && Uri.TryCreate(uriText.GetString(), UriKind.Absolute, out var uri) && uri.IsFile)
-                paths.Add(Path.GetFullPath(uri.LocalPath));
+                && FileUris.ToPath(uriText.GetString()) is { } path)
+                paths.Add(Path.GetFullPath(path));
         return paths;
     }
 

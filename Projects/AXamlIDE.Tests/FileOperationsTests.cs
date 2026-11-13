@@ -10,7 +10,7 @@ public sealed class FileOperationsTests : IDisposable
 
     public void Dispose() => _workspace.Dispose();
 
-    private string PathOf(string relative) => Path.Combine(_workspace.Root, relative);
+    private string PathOf(string relative) => _workspace.PathOf(relative);
 
     [Fact]
     public void Rename_a_file_and_a_folder()

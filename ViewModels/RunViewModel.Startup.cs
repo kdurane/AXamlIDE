@@ -88,6 +88,7 @@ public partial class RunViewModel
 
     private void OnWorkspaceClosed()
     {
+        ClearBuildProblems();
         _startupProjectsGeneration++;
         _rememberedStartupProject = null;
         StartupProject = null;

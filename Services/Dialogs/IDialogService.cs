@@ -20,6 +20,9 @@ public interface IDialogService
     /// <summary>A one-line text box; null if cancelled.</summary>
     Task<string?> PromptForTextAsync(string title, string placeholder, string acceptText = "OK", string initialText = "");
 
+    /// <summary>A message with one OK button (Help > About).</summary>
+    Task ShowMessageAsync(string title, string message);
+
     /// <summary>A yes/no question; true if the user chose <paramref name="confirmText"/>.</summary>
     Task<bool> ConfirmAsync(string title, string message, string confirmText);
     /// <summary>
@@ -38,6 +41,11 @@ public interface IDialogService
     Task<string?> PickAsync(string title, string prompt, IReadOnlyList<string> items);
     Task<string?> PickFolderAsync();
     Task<string?> PickSolutionAsync();
+    /// <summary>Save As: a file name to write to, starting in the current file's folder; null if cancelled.</summary>
+    Task<string?> PickSaveFileAsync(string currentPath);
+
+    /// <summary>Visual Studio's Open Containing Folder: the system file manager on the file's folder (selecting the file where it can).</summary>
+    Task OpenContainingFolderAsync(string path);
 
     // Windows
     Task ShowSettingsAsync();

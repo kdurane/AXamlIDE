@@ -7,6 +7,7 @@ using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Snippets;
@@ -34,6 +35,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     private readonly SettingsViewModel _settings;
     private readonly IDialogService _dialogs;
     private readonly SnippetLibrary _snippets;
+    private readonly NavigationService _navigation;
     private readonly IMessenger _messenger;
 
     public MainWindowViewModel(
@@ -57,6 +59,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         PublishManager publish,
         VisualizerManager visualizers,
         EditorCommands editorCommands,
+        NavigationService navigation,
         SettingsViewModel settings,
         EditorSettingsLoadResult settingsLoad,
         SnippetLibrary snippets,
@@ -64,6 +67,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         IMessenger messenger)
     {
         _snippets = snippets;
+        _navigation = navigation;
         _documents = documents;
         _saver = saver;
         _languages = languages;
@@ -184,6 +188,13 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Search.SearchWorkspaceCommand.Execute(null);
     }
 
+    /// <summary>Navigate Backward / Forward (Ctrl+-, Ctrl+Shift+-), as in Visual Studio.</summary>
+    [RelayCommand]
+    private void NavigateBack() => _navigation.Back();
+
+    [RelayCommand]
+    private void NavigateForward() => _navigation.Forward();
+
     [RelayCommand]
     private void ToggleExplorer() => Docking.ToggleExplorer();
 
@@ -278,6 +289,77 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
         await Run.StopDebuggingAsync();
         return true;
+    }
+
+    /// <summary>Debug > Delete All Breakpoints (Ctrl+Shift+F9), asking first as Visual Studio does.</summary>
+    [RelayCommand]
+    private async Task DeleteAllBreakpoints()
+    {
+        var withBreakpoints = _documents.Documents.Where(d => d.Breakpoints.Count > 0).ToArray();
+        if (withBreakpoints.Length == 0)
+        {
+            ShowStatusMessage("There are no breakpoints.");
+            return;
+        }
+        if (!await _dialogs.ConfirmAsync("Delete All Breakpoints", "Do you want to delete all breakpoints?", "Delete"))
+            return;
+        foreach (var document in withBreakpoints)
+            document.ClearBreakpoints();
+    }
+
+    /// <summary>Debug > Disable All Breakpoints / Enable All Breakpoints.</summary>
+    [RelayCommand]
+    private void SetAllBreakpointsEnabled(bool enabled)
+    {
+        foreach (var document in _documents.Documents)
+            foreach (var breakpoint in document.Breakpoints)
+                document.SetBreakpointEnabled(breakpoint.Line, enabled);
+    }
+
+    // ---------------------------------------------------------------- Window and Help menus
+
+    /// <summary>The Window menu's list of open documents (Visual Studio lists them at the bottom of the menu).</summary>
+    public System.Collections.ObjectModel.ObservableCollection<OpenDocument> OpenDocuments => _documents.Documents;
+
+    [RelayCommand]
+    private void ActivateDocument(OpenDocument? document)
+    {
+        if (document is not null)
+            _documents.BringToFront(document);
+    }
+
+    /// <summary>Help > About AXamlIDE.</summary>
+    [RelayCommand]
+    private Task ShowAbout()
+    {
+        var assembly = typeof(MainWindowViewModel).Assembly;
+        var version = (System.Reflection.CustomAttributeExtensions
+                           .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion
+                       ?? assembly.GetName().Version?.ToString() ?? "").Split('+')[0];
+        return _dialogs.ShowMessageAsync("About AXamlIDE",
+            $"AXamlIDE {version}\n\nAn IDE for Avalonia and .NET, built with Avalonia.\n\n"
+            + $".NET {Environment.Version}\n{System.Runtime.InteropServices.RuntimeInformation.OSDescription}\n\n"
+            + $"Settings and logs: {System.IO.Path.GetDirectoryName(Services.Diagnostics.CrashLog.Folder)}");
+    }
+
+    /// <summary>Help > View Crash Log: the log of unhandled exceptions (Program.cs, App.axaml.cs), in a tab.</summary>
+    [RelayCommand]
+    private void ViewCrashLog()
+    {
+        var path = Services.Diagnostics.CrashLog.FilePath;
+        if (!System.IO.File.Exists(path))
+        {
+            ShowStatusMessage("No crashes have been logged.");
+            return;
+        }
+        try
+        {
+            _documents.Active = _documents.Open(path);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            ShowStatusMessage($"Couldn't open the crash log: {ex.Message}");
+        }
     }
 
     [RelayCommand]

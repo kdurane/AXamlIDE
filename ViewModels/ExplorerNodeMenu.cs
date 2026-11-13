@@ -42,7 +42,13 @@ public sealed class ExplorerNodeMenu
         CanIgnore = ignorable && !CanUnignore;
         ShowGit = CanShowDiff || CanStage || CanUnstage || CanIgnore || CanUnignore;
         IsProjectNode = node.Kind == NodeKind.Project && HasPath;
+        // Open Containing Folder / Open in Terminal: anything on disk (a virtual solution folder has no path).
+        CanOpenFolder = HasPath && node.Kind is NodeKind.File or NodeKind.Directory or NodeKind.Project or NodeKind.Solution or NodeKind.Folder
+                        && (File.Exists(node.FullPath) || Directory.Exists(node.FullPath));
     }
+
+    /// <summary>The node is a real file or folder: Open Containing Folder and Open in Terminal apply.</summary>
+    public bool CanOpenFolder { get; }
 
     public ProjectTreeNode Node { get; }
     public ExplorerViewModel Explorer { get; }

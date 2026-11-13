@@ -121,6 +121,10 @@
                         <TextBlock Classes="SettingsHeading" Text="While paused" />
                         <CheckBox Content="Show inline values" IsChecked="{Binding InlineDebugValues, Mode=TwoWay}" />
                         <TextBlock Classes="SettingHint" Text="name = value at the end of the lines around the current statement." />
+
+                        <TextBlock Classes="SettingsHeading" Text="Exceptions" />
+                        <CheckBox Content="Break when any exception is thrown" IsChecked="{Binding BreakOnAllExceptions, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Off: break only when an exception isn't handled by your code, as Visual Studio does by default. Applies at once, even while debugging." />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

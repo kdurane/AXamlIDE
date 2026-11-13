@@ -18,6 +18,12 @@ public sealed record BuildStartedMessage;
 public sealed record BuildFinishedMessage(bool Succeeded);
 
 /// <summary>
+/// The errors and warnings of the last build (empty after a clean build, a Clean, or closing the workspace).
+/// Sent by RunViewModel; the Problems list shows them until the next build.
+/// </summary>
+public sealed record BuildProblemsMessage(IReadOnlyList<Services.Running.BuildDiagnostic> Diagnostics);
+
+/// <summary>
 /// Open this solution (.sln/.slnx) or folder, closing what's open first (asking about unsaved changes): from the start
 /// window, the recent list, a clone or a new project. Handled by MainWindowViewModel.
 /// </summary>

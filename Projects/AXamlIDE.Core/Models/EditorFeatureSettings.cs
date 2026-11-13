@@ -57,4 +57,7 @@ public sealed record EditorFeatureSettings
 
     /// <summary>"name = value" at the end of the lines around the current statement while paused.</summary>
     public bool InlineDebugValues { get; init; } = true;
+
+    /// <summary>Break as soon as any exception is thrown; off: only when user code doesn't handle it (VS's default).</summary>
+    public bool BreakOnAllExceptions { get; init; }
 }

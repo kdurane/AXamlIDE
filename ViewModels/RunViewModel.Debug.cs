@@ -134,10 +134,11 @@ public partial class RunViewModel
                 .Where(document => document is { LanguageId: LanguageIds.CSharp, BreakpointLines.Count: > 0 })
                 .ToDictionary(
                     document => document.Path,
-                    document => document.BreakpointLines,
+                    document => document.DebuggerBreakpoints,
                     PathComparer);
 
-            await session.StartAsync(programPath, workingDirectory, breakpoints);
+            _sentExceptionFilters = ExceptionFilterList();
+            await session.StartAsync(programPath, workingDirectory, breakpoints, _sentExceptionFilters);
             if (ReferenceEquals(_debugSession, session))
                 DebugStatus = "Debugging. Execution will pause at enabled breakpoints.";
         }
@@ -337,19 +338,51 @@ public partial class RunViewModel
     {
         if (_debugSession is not { } session || document.LanguageId != LanguageIds.CSharp)
             return;
-        _ = UpdateDebugBreakpointsAsync(session, document.Path, document.BreakpointLines);
+        _ = UpdateDebugBreakpointsAsync(session, document.Path, document.DebuggerBreakpoints);
     }
 
-    private async Task UpdateDebugBreakpointsAsync(NetCoreDbgSession session, string path, IReadOnlyList<int> lines)
+    private async Task UpdateDebugBreakpointsAsync(NetCoreDbgSession session, string path, IReadOnlyList<SourceBreakpoint> breakpoints)
     {
         try
         {
-            await session.SetBreakpointsAsync(path, lines);
+            await session.SetBreakpointsAsync(path, breakpoints);
         }
         catch (Exception ex)
         {
             Dispatcher.UIThread.Post(() => ShowStatus(
                 $"Couldn't update breakpoints for '{Path.GetFileName(path)}': {ex.Message}"));
+        }
+    }
+
+    // ---------------------------------------------------------------- exceptions
+
+    /// <summary>Settings > Debugging > Exceptions, as the adapter's filters.</summary>
+    private string[] ExceptionFilterList()
+        => [_settings.Features.BreakOnAllExceptions ? ExceptionFilters.All : ExceptionFilters.UserUnhandled];
+
+    /// <summary>The exceptions setting changed: tell a running session at once.</summary>
+    private void OnSettingsChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(Services.Settings.IEditorSettings.Features) || _debugSession is not { } session)
+            return;
+        var filters = ExceptionFilterList();
+        if (filters.SequenceEqual(_sentExceptionFilters))
+            return;
+        _sentExceptionFilters = filters;
+        _ = UpdateExceptionFiltersAsync(session, filters);
+    }
+
+    private string[] _sentExceptionFilters = [];
+
+    private async Task UpdateExceptionFiltersAsync(NetCoreDbgSession session, string[] filters)
+    {
+        try
+        {
+            await session.SetExceptionBreakpointsAsync(filters);
+        }
+        catch (Exception ex)
+        {
+            Dispatcher.UIThread.Post(() => ShowStatus($"Couldn't change the exception settings: {ex.Message}"));
         }
     }
 

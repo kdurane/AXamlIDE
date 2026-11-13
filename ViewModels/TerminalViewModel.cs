@@ -148,6 +148,16 @@ public sealed partial class TerminalViewModel : ObservableObject, IDisposable
         StartShell(StartFolder());
     }
 
+    /// <summary>The explorer's Open in Terminal: a new shell in <paramref name="folder"/> (what was running is stopped).</summary>
+    public void StartIn(string folder)
+    {
+        if (_shell is { HasExited: false } && !_commandsRun
+            && string.Equals(Path.GetFullPath(folder), Path.GetFullPath(_shell.WorkingDirectory), StringComparison.OrdinalIgnoreCase))
+            return;   // already there, nothing typed yet
+        Clear();
+        StartShell(folder);
+    }
+
     /// <summary>Up arrow: the previous command typed.</summary>
     [RelayCommand]
     private void HistoryPrevious()

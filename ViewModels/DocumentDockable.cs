@@ -1,21 +1,32 @@
 using System;
-﻿using System.ComponentModel;
+using System.ComponentModel;
+using System.Threading.Tasks;
+using AXamlIDE.Commands;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Dock.Model.Mvvm.Controls;
 
 namespace AXamlIDE.ViewModels;
 
+/// <summary>What a document tab's right-click menu needs (shared by every tab; made by DockLayoutViewModel).</summary>
+public sealed record TabActions(DocumentCommands Documents, IClipboardService Clipboard, IDialogService Dialogs);
+
 /// <summary>
 /// One document tab in the dock layout, for one <see cref="OpenDocument"/>. Its view (Views/DocumentView:
 /// the editor, and the preview for AXAML) is made by Views/DockViewCache and moves with the tab between
-/// tab strips and windows. Each AXAML tab has its own preview mode and split
+/// tab strips and windows. Each AXAML tab has its own preview mode and split. The tab's right-click menu
+/// (Styles/DockStyles.axaml, Visual Studio's) binds to the commands here.
+/// </summary>
 public sealed partial class DocumentDockable : Document
 {
-    public DocumentDockable(OpenDocument document, PreviewMode mode, PreviewSplit split, bool previewFirst)
+    private readonly TabActions _actions;
+
+    public DocumentDockable(OpenDocument document, TabActions actions, PreviewMode mode, PreviewSplit split, bool previewFirst)
     {
         Document = document;
+        _actions = actions;
         Id = document.Path;
         Title = document.DisplayTitle;
         CanPin = false;
@@ -33,6 +44,9 @@ public sealed partial class DocumentDockable : Document
     }
 
     public OpenDocument Document { get; }
+
+    /// <summary>For the tab menu's bindings: a file tab (a page tab, like NuGet or a diff, isn't one).</summary>
+    public bool IsFileTab => true;
 
     /// <summary>AXAML files (the designer) and Markdown files have a preview, and the mode/split buttons.</summary>
     public bool IsPreviewable => IsXaml || IsMarkdown;
@@ -65,6 +79,15 @@ public sealed partial class DocumentDockable : Document
     /// <summary>The "changed on disk" bar: take the disk's text (Ctrl+Z gets the edits back), or keep the edits.</summary>
     public RelayCommand ReloadFromDiskCommand { get; }
     public RelayCommand KeepMineCommand { get; }
+
+    // ---------------------------------------------------------------- the tab's menu (Visual Studio's)
+
+    [RelayCommand] private Task CloseTab() => _actions.Documents.CloseDocumentCommand.ExecuteAsync(Document);
+    [RelayCommand] private Task CloseOtherTabs() => _actions.Documents.CloseOthersCommand.ExecuteAsync(Document);
+    [RelayCommand] private Task CloseAllTabs() => _actions.Documents.CloseAllCommand.ExecuteAsync(null);
+    [RelayCommand] private Task SaveTab() => _actions.Documents.SaveDocumentCommand.ExecuteAsync(Document);
+    [RelayCommand] private Task CopyFullPath() => _actions.Clipboard.SetTextAsync(Document.Path);
+    [RelayCommand] private Task OpenContainingFolder() => _actions.Dialogs.OpenContainingFolderAsync(Document.Path);
 
     private void OnDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

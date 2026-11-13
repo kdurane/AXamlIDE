@@ -6,7 +6,9 @@ namespace AXamlIDE.Tests;
 
 public sealed class GitStatusParserTests
 {
-    private const string Root = "/repo";
+    // A real rooted folder on every OS (a bare "/repo" is not rooted on Windows); P() writes paths under it with /.
+    private static readonly string Root = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "repo"));
+    private static string P(string relative) => Path.Combine(Root, relative.Replace('/', Path.DirectorySeparatorChar));
 
     private static GitStatus Parse(params string[] records) => GitStatusParser.Parse(string.Join('\0', records) + '\0', Root);
 
@@ -27,7 +29,7 @@ public sealed class GitStatusParserTests
         var status = Parse("# branch.oid abc", "# branch.head main", "1 MM N... 100644 100644 100644 aaa bbb Both.cs");
 
         Assert.Equal("abc", status.HeadCommit);
-        var change = status.ChangeFor("/repo/Both.cs")!;
+        var change = status.ChangeFor(P("Both.cs"))!;
         Assert.Equal("aaa", change.HeadObject);
         Assert.Equal("bbb", change.IndexObject);
     }
@@ -50,17 +52,17 @@ public sealed class GitStatusParserTests
             "1 A. N... 000000 100644 100644 000 bbb New.cs",
             "1 .D N... 100644 100644 000000 aaa bbb Gone.cs");
 
-        var staged = status.ChangeFor("/repo/src/Staged File.cs")!;
+        var staged = status.ChangeFor(P("src/Staged File.cs"))!;
         Assert.True(staged.IsStaged);
         Assert.False(staged.HasUnstagedChanges);
 
-        var both = status.ChangeFor("/repo/Both.cs")!;
+        var both = status.ChangeFor(P("Both.cs"))!;
         Assert.True(both.IsStaged);
         Assert.True(both.HasUnstagedChanges);
 
-        Assert.Equal(GitFileState.Added, status.StateOfFile("/repo/New.cs"));
-        Assert.Equal(GitFileState.Deleted, status.StateOfFile("/repo/Gone.cs"));
-        Assert.Equal(GitFileState.Modified, status.StateOfFile("/repo/src/Changed.cs"));
+        Assert.Equal(GitFileState.Added, status.StateOfFile(P("New.cs")));
+        Assert.Equal(GitFileState.Deleted, status.StateOfFile(P("Gone.cs")));
+        Assert.Equal(GitFileState.Modified, status.StateOfFile(P("src/Changed.cs")));
         Assert.Equal(3, System.Linq.Enumerable.Count(status.Staged));
     }
 
@@ -69,10 +71,10 @@ public sealed class GitStatusParserTests
     {
         var status = Parse("1 .M N... 100644 100644 100644 a b x.cs", "2 R. N... 100644 100644 100644 a b R100 New Name.cs", "Old Name.cs", "? after.txt");
 
-        var rename = status.ChangeFor("/repo/New Name.cs")!;
+        var rename = status.ChangeFor(P("New Name.cs"))!;
         Assert.Equal(GitFileState.Renamed, rename.State);
         Assert.Equal("Old Name.cs", rename.OriginalRelativePath);
-        Assert.Equal(GitFileState.Untracked, status.StateOfFile("/repo/after.txt"));   // the record after the rename is still read
+        Assert.Equal(GitFileState.Untracked, status.StateOfFile(P("after.txt")));   // the record after the rename is still read
     }
 
     [Fact]
@@ -83,11 +85,11 @@ public sealed class GitStatusParserTests
             "? src/Untracked.cs",
             "1 .M N... 100644 100644 100644 a b src/Edit.cs");
 
-        var conflict = status.ChangeFor("/repo/src/Merge.cs")!;
+        var conflict = status.ChangeFor(P("src/Merge.cs"))!;
         Assert.True(conflict.IsConflicted);
         Assert.False(conflict.IsStaged);
         Assert.True(conflict.HasUnstagedChanges);
-        Assert.Equal(GitFileState.Conflicted, status.StateOfFolder("/repo/src"));
+        Assert.Equal(GitFileState.Conflicted, status.StateOfFolder(P("src")));
     }
 
     [Fact]
@@ -95,9 +97,9 @@ public sealed class GitStatusParserTests
     {
         var status = Parse("? a/b/New.cs", "1 .M N... 100644 100644 100644 a b a/Edit.cs");
 
-        Assert.Equal(GitFileState.Untracked, status.StateOfFolder("/repo/a/b"));
-        Assert.Equal(GitFileState.Modified, status.StateOfFolder("/repo/a"));
-        Assert.Equal(GitFileState.None, status.StateOfFolder("/repo/other"));
+        Assert.Equal(GitFileState.Untracked, status.StateOfFolder(P("a/b")));
+        Assert.Equal(GitFileState.Modified, status.StateOfFolder(P("a")));
+        Assert.Equal(GitFileState.None, status.StateOfFolder(P("other")));
     }
 
     [Fact]
@@ -105,9 +107,9 @@ public sealed class GitStatusParserTests
     {
         var status = Parse("! bin/", "! secret.txt");
 
-        Assert.Equal(GitFileState.Ignored, status.StateOfFolder("/repo/bin"));
-        Assert.Equal(GitFileState.Ignored, status.StateOfFile("/repo/bin/Debug/app.dll"));
-        Assert.Equal(GitFileState.Ignored, status.StateOfFile("/repo/secret.txt"));
-        Assert.Equal(GitFileState.None, status.StateOfFile("/repo/binary.cs"));
+        Assert.Equal(GitFileState.Ignored, status.StateOfFolder(P("bin")));
+        Assert.Equal(GitFileState.Ignored, status.StateOfFile(P("bin/Debug/app.dll")));
+        Assert.Equal(GitFileState.Ignored, status.StateOfFile(P("secret.txt")));
+        Assert.Equal(GitFileState.None, status.StateOfFile(P("binary.cs")));
     }
 }

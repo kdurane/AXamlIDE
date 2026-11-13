@@ -266,6 +266,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { InlineDebugValues = value });
     }
 
+    public bool BreakOnAllExceptions
+    {
+        get => Features.BreakOnAllExceptions;
+        set => SetFeatures(Features with { BreakOnAllExceptions = value });
+    }
+
     /// <summary>Change the features; PropertyChanged names the property set (for its checkbox) and <c>Features</c> (for the editor).</summary>
     private void SetFeatures(EditorFeatureSettings features, [CallerMemberName] string? propertyName = null)
     {

@@ -13,23 +13,8 @@ public static class MetadataConverter
     private const int LegacyXmlResourceIndex = 1;
     private const int CurrentResourceIndex = 2;
 
-    private static readonly string[] SAvaloniaBaseType =
-    [
-        "Avalonia.Markup.Xaml.MarkupExtensions.BindingExtension,",
-                  "Avalonia.Markup.Xaml.MarkupExtensions.CompiledBindingExtension,",
-                  "Avalonia.Data.Binding,",
-                  "Avalonia.Controls.Control,",
-                  "Avalonia.Data.TemplateBinding,",
-                  "Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension,",
-                  "Avalonia.Markup.Xaml.MarkupExtensions.StaticResourceExtension,",
-                  "Avalonia.Media.Brushes",
-                  "Avalonia.Styling.Selector,",
-                  "Avalonia.Media.Imaging.IBitmap",
-                  "Avalonia.Media.IImage",
-                  "Avalonia.Controls.WindowIcon,",
-                  "Avalonia.Markup.Xaml.Styling.StyleIncludeExtension,",
-                  "Avalonia.Markup.Xaml.Styling.StyleInclude,",
-              ];
+    // The Avalonia types that get special completions: one list for the whole engine, checked by a test.
+    private static readonly string[] SAvaloniaBaseType = XamlIntrinsics.KnownTypeKeyPrefixes;
 
     private const string NullablePrefix = "System.Nullable`1";
 
@@ -57,15 +42,20 @@ public static class MetadataConverter
     /// &lt;On Options="Windows, macOS"&gt; adds each platform. Treated as settable so they're offered as attributes.
     /// </summary>
     private static bool IsSettableFromXaml(string declaringType, string property)
-        => (declaringType, property) is ("Avalonia.StyledElement", "Classes") or ("Avalonia.Markup.Xaml.MarkupExtensions.On`1", "Options");
+        => XamlIntrinsics.IsSettableFromString(declaringType, property);
 
+    /// <summary>
+    /// A "FooProperty" field registering an Avalonia property. The known kinds are matched by name first (cheap);
+    /// anything else deriving from AvaloniaProperty is found by its base types, so a new kind needs no change here.
+    /// </summary>
     private static bool IsAvaloniaPropertyField(IFieldInformation field)
         => field.IsStatic
            && field.Name.EndsWith("Property", StringComparison.Ordinal)
            && (field.ReturnTypeFullName.StartsWith("Avalonia.StyledProperty`1", StringComparison.Ordinal)
                || field.ReturnTypeFullName.StartsWith("Avalonia.DirectProperty`2", StringComparison.Ordinal)
                || field.ReturnTypeFullName.StartsWith("Avalonia.AttachedProperty`1", StringComparison.Ordinal)
-               || field.ReturnTypeFullName == "Avalonia.AvaloniaProperty");
+               || field.ReturnTypeFullName == "Avalonia.AvaloniaProperty"
+               || field.IsAvaloniaProperty);
 
     private static bool IsMarkupExtension(ITypeInformation type)
     {
@@ -83,7 +73,7 @@ public static class MetadataConverter
         {
             return true;
         }
-        else if (type.Name.Equals("OnPlatformExtension") || type.Name.Equals("OnFormFactorExtension"))
+        else if (XamlIntrinsics.CompilerMarkupExtensions.Contains(type.Name))
         {
             // Special case for this, as it the type info can't find the ProvideValue method
             return true;
@@ -931,6 +921,17 @@ public static class MetadataConverter
             iImageType.HasHintValues = true;
             iImageType.HintValues = [.. allresourceUrls.Where(Isbitmaptype)];
             iImageType.XamlContextHintValuesFunc = (a, _, _) => FilterLocalRes(iImageType, a);
+        }
+
+        // Every concrete bitmap type (Bitmap, WriteableBitmap, and any Avalonia adds) also takes an image file, as
+        // the XAML loader's bitmap converter does: found by what it's assignable to, not by name.
+        foreach (var bitmapType in types.Values.Where(t => !t.HasHintValues && !t.IsEnum
+                                                           && XamlIntrinsics.ImageTypes.Any(t.AssignableTo.Contains)))
+        {
+            bitmapType.HasHintValues = true;
+            bitmapType.HintValues = [.. allresourceUrls.Where(Isbitmaptype)];
+            var captured = bitmapType;
+            bitmapType.XamlContextHintValuesFunc = (a, _, _) => FilterLocalRes(captured, a);
         }
 
         if (avaloniaBaseType.TryGetValue("Avalonia.Controls.WindowIcon", out var winIcon))

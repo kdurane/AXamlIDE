@@ -201,10 +201,15 @@ public sealed class GitService
                     && File.Exists(sourcePath);
         if (exact)
         {
-            var lines = (await File.ReadAllLinesAsync(sourcePath)).ToList();
+            // Keep the file's own line endings (WriteAllLines would use the OS's: \r\n on Windows).
+            var text = await File.ReadAllTextAsync(sourcePath);
+            var newline = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            var lines = text.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+            if (lines.Count > 0 && lines[^1].Length == 0)
+                lines.RemoveAt(lines.Count - 1);   // the final newline, not a line
             if (line - 1 < lines.Count)
                 lines.RemoveAt(line - 1);
-            await File.WriteAllLinesAsync(sourcePath, lines);
+            await File.WriteAllTextAsync(sourcePath, lines.Count == 0 ? "" : string.Join(newline, lines) + newline);
         }
         else
         {

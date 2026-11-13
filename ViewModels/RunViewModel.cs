@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Messages;
@@ -35,6 +37,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
     private readonly DocumentManager _documents;
     private readonly DocumentSaveService _saver;
     private readonly IDialogService _dialogs;
+    private readonly Services.Settings.IEditorSettings _settings;
     private readonly IMessenger _messenger;
     private bool _runStopRequested;
 
@@ -44,8 +47,11 @@ public partial class RunViewModel : ObservableObject, IDisposable
         DocumentManager documents,
         DocumentSaveService saver,
         IDialogService dialogs,
+        Services.Settings.IEditorSettings settings,
         IMessenger messenger)
     {
+        _settings = settings;
+        settings.PropertyChanged += OnSettingsChanged;
         _workspace = workspace;
         _explorer = explorer;
         _documents = documents;
@@ -137,7 +143,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
                 BuildKind.Rebuild => _projectRunner.RebuildAsync(path, configuration),
                 BuildKind.Clean => _projectRunner.CleanAsync(path, configuration),
                 _ => _projectRunner.BuildAsync(path, configuration)
-            });
+            }, done);
             AppendBuildOutput(exitCode == 0
                 ? $"{done} succeeded."
                 : $"{done} failed with exit code {exitCode}.");
@@ -198,8 +204,11 @@ public partial class RunViewModel : ObservableObject, IDisposable
     }
 
 
-    /// <summary>Runs a build, telling the rest of the app (the previews) when it starts and finishes.</summary>
-    private async Task<int> BuildWithNoticeAsync(Func<Task<int>> build)
+    /// <summary>
+    /// Runs a build, telling the rest of the app (the previews) when it starts and finishes, and putting its errors
+    /// and warnings in the Problems list (shown when the build failed, as Visual Studio shows the Error List).
+    /// </summary>
+    private async Task<int> BuildWithNoticeAsync(Func<Task<int>> build, string what = "Build")
     {
         _messenger.Send(new BuildStartedMessage());
         var exitCode = -1;
@@ -211,7 +220,41 @@ public partial class RunViewModel : ObservableObject, IDisposable
         finally
         {
             _messenger.Send(new BuildFinishedMessage(exitCode == 0));
+            PublishBuildProblems(exitCode, what);
         }
+    }
+
+    /// <summary>The raw lines of the build going on (every thread), for the parser once it's done.</summary>
+    private readonly List<string> _buildLines = [];
+
+    private void PublishBuildProblems(int exitCode, string what)
+    {
+        string[] lines;
+        lock (_buildLines)
+            lines = [.. _buildLines];
+        var diagnostics = BuildOutputParser.Parse(lines);
+        _messenger.Send(new BuildProblemsMessage(diagnostics));
+
+        var errors = diagnostics.Count(d => d.IsError);
+        var warnings = diagnostics.Count - errors;
+        ShowStatus(exitCode == 0
+            ? warnings > 0 ? $"{what} succeeded with {warnings} warning{(warnings == 1 ? "" : "s")}." : $"{what} succeeded."
+            : errors > 0 ? $"{what} failed: {errors} error{(errors == 1 ? "" : "s")}, {warnings} warning{(warnings == 1 ? "" : "s")}." : $"{what} failed.");
+        if (errors > 0)
+            _messenger.Send(new ShowToolTabMessage(ToolTab.Problems));
+    }
+
+    /// <summary>Nothing built any more (a Clean, or the workspace closed): no build problems either.</summary>
+    private void ClearBuildProblems() => _messenger.Send(new BuildProblemsMessage([]));
+
+    /// <summary>Double-click on an Output line that is an error or warning: open the file at its line, as in VS.</summary>
+    [RelayCommand]
+    private void OpenOutputLine(string? line)
+    {
+        if (line is null || BuildOutputParser.TryParseLine(line) is not { HasLocation: true } diagnostic)
+            return;
+        _messenger.Send(new NavigateToProblemMessage(new ProblemItem(diagnostic.Path, diagnostic.Severity, diagnostic.Line,
+            diagnostic.Column, diagnostic.Message, ProblemSource.Build, diagnostic.Code, diagnostic.Project)));
     }
 
     /// <summary>Stops the debug session if there is one, otherwise the running process.</summary>
@@ -237,6 +280,8 @@ public partial class RunViewModel : ObservableObject, IDisposable
     private void BeginBuildOutput(string message)
     {
         BuildOutput.Clear();
+        lock (_buildLines)
+            _buildLines.Clear();
         _messenger.Send(new ShowToolTabMessage(ToolTab.Output));
         AppendBuildOutput(message);
     }
@@ -269,9 +314,14 @@ public partial class RunViewModel : ObservableObject, IDisposable
     private void AppendProcessOutput(string message, bool isRun)
     {
         if (isRun)
+        {
             AppendConsoleOutput(message);
-        else
-            AppendBuildOutput(message);
+            return;
+        }
+
+        lock (_buildLines)
+            _buildLines.Add(message);
+        AppendBuildOutput(message);
     }
 
     public void Dispose()

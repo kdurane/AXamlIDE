@@ -47,7 +47,7 @@ public sealed partial class ExplorerViewModel
             Status("Open a folder or solution first.");
             return;
         }
-        if (await dialogs.AddNewItemAsync(folder, Workspace.Roots.FirstOrDefault()?.FullPath is { } root ? FolderOf(root) : null, templateName)
+        if (await _dialogs.AddNewItemAsync(folder, Workspace.Roots.FirstOrDefault()?.FullPath is { } root ? FolderOf(root) : null, templateName)
             is not [var main, ..] files)
             return;
 
@@ -62,7 +62,7 @@ public sealed partial class ExplorerViewModel
         }
 
         await ReloadAsync(folderNode, select: main.Path);
-        documents.OpenAndActivate(main.Path);
+        _documents.OpenAndActivate(main.Path);
         Status(files.Count == 1 ? $"Added {Path.GetFileName(main.Path)}." : $"Added {string.Join(", ", files.Select(file => Path.GetFileName(file.Path)))}.");
     }
 
@@ -75,7 +75,7 @@ public sealed partial class ExplorerViewModel
             Status("Open a folder or solution first.");
             return;
         }
-        if (await dialogs.PromptForTextAsync("New Folder", "Folder name", "Add", "NewFolder") is not { } name || name.Trim().Length == 0)
+        if (await _dialogs.PromptForTextAsync("New Folder", "Folder name", "Add", "NewFolder") is not { } name || name.Trim().Length == 0)
             return;
         name = name.Trim();
         if (FileOperations.InvalidNameReason(name) is { } reason)
@@ -208,7 +208,7 @@ public sealed partial class ExplorerViewModel
     private async Task<string?> MoveWithNamespacesAsync(string source, ProjectTreeNode targetNode, string folder, bool alwaysAsk)
     {
         var root = Workspace.Roots.FirstOrDefault()?.FullPath is { } workspace ? FolderOf(workspace) : folder;
-        var openTexts = openDocuments.Documents.ToDictionary(
+        var openTexts = _openDocuments.Documents.ToDictionary(
             document => Path.GetFullPath(document.Path), document => document.Document.Text, StringComparer.Ordinal);
         IReadOnlyList<NamespaceFileUpdate> updates;
         try
@@ -228,7 +228,7 @@ public sealed partial class ExplorerViewModel
             var changes = updates   // each file, then what changes in it
                 .SelectMany(update => update.Changes.Select(change => "    " + change).Prepend(Path.GetRelativePath(root, update.Path)))
                 .ToList();
-            choice = await dialogs.ConfirmMoveAsync(
+            choice = await _dialogs.ConfirmMoveAsync(
                 $"Move '{Path.GetFileName(source)}'{codeBehind} from '{from}' to '{Path.GetFileName(folder)}'?", changes);
             if (choice == MoveChoice.Cancel)
                 return null;
@@ -249,7 +249,7 @@ public sealed partial class ExplorerViewModel
     private void ApplyNamespaceUpdates(IReadOnlyList<NamespaceFileUpdate> updates)
     {
         var paths = updates.Select(update => update.Path).ToHashSet(StringComparer.Ordinal);
-        var cleanBefore = openDocuments.Documents
+        var cleanBefore = _openDocuments.Documents
             .Where(document => !document.IsDirty && !document.IsReadOnly && paths.Contains(Path.GetFullPath(document.Path)))
             .ToList();
 
@@ -257,14 +257,14 @@ public sealed partial class ExplorerViewModel
             [.. updates.Select(update => new WorkspaceFileReplacement(update.Path, update.OriginalText, update.UpdatedText, update.Changes.Count))],
             updates.Sum(update => update.Changes.Count),
             LimitReached: false);
-        var open = openDocuments.Documents.ToDictionary(
+        var open = _openDocuments.Documents.ToDictionary(
             document => Path.GetFullPath(document.Path), document => (ITextBuffer)document, StringComparer.Ordinal);
         var summary = new WorkspaceSearchService().ApplyReplacePlan(plan, open);
         foreach (var document in cleanBefore.Where(document => document.IsDirty))
         {
             try
             {
-                openDocuments.Save(document);
+                _openDocuments.Save(document);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -282,7 +282,7 @@ public sealed partial class ExplorerViewModel
     {
         if (!CanChange(node))
             return;
-        if (await dialogs.PromptForTextAsync($"Rename '{node!.Name}'", "New name", "Rename", node.Name) is not { } name
+        if (await _dialogs.PromptForTextAsync($"Rename '{node!.Name}'", "New name", "Rename", node.Name) is not { } name
             || name.Trim() == node.Name)
             return;
         if (FileOperations.InvalidNameReason(name.Trim()) is { } reason)
@@ -319,18 +319,18 @@ public sealed partial class ExplorerViewModel
         var open = DocumentsUnder(node!.FullPath);
         var unsaved = open.Any(document => document.IsDirty);
         var what = Directory.Exists(node.FullPath) ? $"the folder '{node.Name}' and everything in it" : $"'{node.Name}'";
-        if (!await dialogs.ConfirmAsync("Delete",
+        if (!await _dialogs.ConfirmAsync("Delete",
                 $"Move {what} to the trash?" + (unsaved ? " It has unsaved changes, which will be lost." : ""), "Delete"))
             return;
 
         foreach (var document in open)
-            openDocuments.Close(document, force: true);
+            _openDocuments.Close(document, force: true);
 
         try
         {
             if (!await Task.Run(() => FileOperations.TryMoveToTrash(node.FullPath)))
             {
-                if (!await dialogs.ConfirmAsync("Delete Permanently",
+                if (!await _dialogs.ConfirmAsync("Delete Permanently",
                         $"There's no trash available here. Delete {what} permanently? This can't be undone.", "Delete Permanently"))
                     return;
                 await Task.Run(() => FileOperations.DeletePermanently(node.FullPath));
@@ -362,11 +362,11 @@ public sealed partial class ExplorerViewModel
     /// </summary>
     private async Task UpdateProjectPathsAsync(string oldPath, string? newPath)
     {
-        if (model.FindProjectForDocument(oldPath) is not { } project)
+        if (_model.FindProjectForDocument(oldPath) is not { } project)
             return;   // not in a project
         try
         {
-            await Task.Run(() => model.Host.MoveItem(project, oldPath, newPath));
+            await Task.Run(() => _model.Host.MoveItem(project, oldPath, newPath));
         }
         catch (Exception ex) when (ex is InvalidOperationException or IOException)
         {
@@ -375,7 +375,7 @@ public sealed partial class ExplorerViewModel
     }
 
     private List<OpenDocument> DocumentsUnder(string path)
-        => [.. openDocuments.Documents.Where(document => FileOperations.IsSameOrInside(document.Path, path))];
+        => [.. _openDocuments.Documents.Where(document => FileOperations.IsSameOrInside(document.Path, path))];
 
     /// <summary>
     /// Close the open documents at or under <paramref name="path"/> before it moves; false (and a message) when one
@@ -386,14 +386,14 @@ public sealed partial class ExplorerViewModel
         var open = DocumentsUnder(path);
         if (FileOperations.CodeBehindOf(path) is { } codeBehind)
             open.AddRange(DocumentsUnder(codeBehind));   // it moves with the .axaml (Reopen maps it to the new place)
-        reopen = (open.Select(document => document.Path).ToList(), open.Contains(openDocuments.Active!) ? openDocuments.Active!.Path : null);
+        reopen = (open.Select(document => document.Path).ToList(), open.Contains(_openDocuments.Active!) ? _openDocuments.Active!.Path : null);
         if (open.FirstOrDefault(document => document.IsDirty) is { } unsaved)
         {
             Status($"Save or close '{unsaved.Title}' first: it has unsaved changes.");
             return false;
         }
         foreach (var document in open)
-            openDocuments.Close(document, force: true);
+            _openDocuments.Close(document, force: true);
         return true;
     }
 
@@ -405,9 +405,9 @@ public sealed partial class ExplorerViewModel
             var moved = newPath + path[oldPath.Length..];
             try
             {
-                var document = openDocuments.Open(moved);
+                var document = _openDocuments.Open(moved);
                 if (path == closed.Active)
-                    openDocuments.Active = document;
+                    _openDocuments.Active = document;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

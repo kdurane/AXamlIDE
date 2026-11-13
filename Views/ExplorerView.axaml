@@ -3,6 +3,7 @@
     x:DataType="vm:ExplorerViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
+    xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:stylefolder="using:AXamlIDE.Styles"
     xmlns:vm="using:AXamlIDE.ViewModels"
@@ -13,7 +14,7 @@
     </UserControl.Resources>
 
     <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*">
-        <!--  VS Code's explorer header buttons: new item / new folder in the selected folder.  -->
+        <!--  Visual Studio's Solution Explorer toolbar: sync with the active document, refresh, collapse all, new item / folder.  -->
         <StackPanel
             HorizontalAlignment="Right"
             Margin="6,2"
@@ -21,14 +22,33 @@
             Spacing="2">
             <Button
                 Classes="icon"
+                Command="{Binding SyncWithActiveDocumentCommand}"
+                ToolTip.Tip="Sync with Active Document">
+                <PathIcon Data="{DynamicResource Icon.SyncDocument}" />
+            </Button>
+            <Button
+                Classes="icon"
+                Command="{Binding RefreshCommand}"
+                CommandParameter="{Binding Workspace.SelectedNode}"
+                ToolTip.Tip="Refresh">
+                <PathIcon Data="{DynamicResource Icon.Refresh}" />
+            </Button>
+            <Button
+                Classes="icon"
+                Command="{Binding CollapseAllCommand}"
+                ToolTip.Tip="Collapse All">
+                <PathIcon Data="{DynamicResource Icon.CollapseAll}" />
+            </Button>
+            <Button
+                Classes="icon"
                 Command="{Binding NewItemCommand}"
-                ToolTip.Tip="New Item... (Ctrl+Shift+A)">
+                shell:KeyMap.ShortcutTip="New Item...">
                 <PathIcon Data="{DynamicResource Icon.FilePlus}" />
             </Button>
             <Button
                 Classes="icon"
                 Command="{Binding NewFolderCommand}"
-                ToolTip.Tip="New Folder... (Shift+Alt+N)">
+                shell:KeyMap.ShortcutTip="New Folder...">
                 <PathIcon Data="{DynamicResource Icon.FolderPlus}" />
             </Button>
         </StackPanel>
@@ -94,18 +114,18 @@
                             Command="{Binding Explorer.NewItemCommand}"
                             CommandParameter="{Binding Node}"
                             Header="New Item..."
-                            InputGesture="Ctrl+Shift+A" />
+                            shell:KeyMap.CommandId="File.NewItem" />
                         <MenuItem
                             Command="{Binding Explorer.NewFolderCommand}"
                             CommandParameter="{Binding Node}"
                             Header="New Folder..."
-                            InputGesture="Shift+Alt+N" />
+                            shell:KeyMap.CommandId="File.NewFolder" />
                         <Separator />
                         <MenuItem
                             Command="{Binding Explorer.NewClassCommand}"
                             CommandParameter="{Binding Node}"
                             Header="Class..."
-                            InputGesture="Shift+Alt+C" />
+                            shell:KeyMap.CommandId="File.NewClass" />
                     </MenuItem>
                     <Separator IsVisible="{Binding CanAdd}" />
                     <MenuItem
@@ -156,8 +176,18 @@
 
                     <MenuItem
                         Click="OnCopyPathClick"
-                        Header="Copy Path"
+                        Header="Copy Full Path"
                         IsVisible="{Binding HasPath}" />
+                    <MenuItem
+                        Command="{Binding Explorer.OpenContainingFolderCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Open Containing Folder"
+                        IsVisible="{Binding CanOpenFolder}" />
+                    <MenuItem
+                        Command="{Binding Explorer.OpenInTerminalCommand}"
+                        CommandParameter="{Binding Node}"
+                        Header="Open in Terminal"
+                        IsVisible="{Binding CanOpenFolder}" />
                     <MenuItem
                         Command="{Binding Explorer.RefreshCommand}"
                         CommandParameter="{Binding Node}"
@@ -179,13 +209,12 @@
                         Command="{Binding Explorer.Publish.PublishProjectCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Publish..."
-                        InputGesture="Shift+Alt+P"
-                        IsVisible="{Binding IsProject}" />
+                        IsVisible="{Binding IsProject}"
+                        shell:KeyMap.CommandId="Build.Publish" />
                     <MenuItem
                         Command="{Binding Explorer.Run.BuildProjectCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Build"
-                        InputGesture="Ctrl+Shift+B"
                         IsVisible="{Binding CanBuild}" />
                     <MenuItem
                         Command="{Binding Explorer.Run.RebuildProjectCommand}"
@@ -201,14 +230,14 @@
                         Command="{Binding Explorer.Run.RunProjectCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Run"
-                        InputGesture="Ctrl+F5"
-                        IsVisible="{Binding CanBuild}" />
+                        IsVisible="{Binding CanBuild}"
+                        shell:KeyMap.CommandId="Debug.StartWithoutDebugging" />
                     <MenuItem
                         Command="{Binding Explorer.Run.StartDebuggingCommand}"
                         CommandParameter="{Binding Node}"
                         Header="Start Debugging"
-                        InputGesture="F5"
-                        IsVisible="{Binding CanBuild}" />
+                        IsVisible="{Binding CanBuild}"
+                        shell:KeyMap.CommandId="Debug.StartOrContinue" />
 
                     <Separator IsVisible="{Binding ShowGit}" />
                     <MenuItem Header="Git" IsVisible="{Binding ShowGit}">
@@ -244,7 +273,7 @@
                     <MenuItem
                         Command="{Binding Explorer.Properties.ShowCommand}"
                         Header="Properties"
-                        InputGesture="F4" />
+                        shell:KeyMap.CommandId="View.Properties" />
                 </ContextMenu>
             </TreeView.ContextMenu>
             <TreeView.Resources>
