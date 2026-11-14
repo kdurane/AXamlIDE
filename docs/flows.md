@@ -156,12 +156,15 @@ Starting from **File > Open Solution** or the start window's button.
      `LspManager` → `LanguageSessionService.OnDiagnosticsPublished` → `Dispatcher.UIThread.Post`.
 8. `LanguageSessionService.ApplyDiagnostics`: drops the result if the user has typed since (pending changes, or a
    version mismatch). Otherwise `OpenDocument.ApplyDiagnostics(list)` (rebuilds the `TextSegmentCollection`; hints
-   are skipped) and sends `DiagnosticsChangedMessage`.
+   are skipped unless tagged Unnecessary, like an unused using, which become `IsUnnecessary` segments) and sends
+   `DiagnosticsChangedMessage`.
 9. Reactions:
    - `EditorPaneView.Receive(DiagnosticsChangedMessage)` (only the pane showing that document):
-     `CodeActionController.RefreshMargin`, `TextView.InvalidateLayer(KnownLayer.Selection)`,
+     `CodeActionController.RefreshMargin`, `TextView.InvalidateLayer(KnownLayer.Selection)` (squiggles),
+     `UnnecessaryCodeColorizer.Refresh` (fades unnecessary code; redraws only if any was or is faded),
      `OverviewRuler.Refresh`, `EditorStateChangedMessage`.
-   - `ProblemsViewModel.Receive(DiagnosticsChangedMessage)` rebuilds the Problems list.
+   - `ProblemsViewModel.Receive(DiagnosticsChangedMessage)` rebuilds the Problems list (unnecessary code is listed
+     under Messages), then filters it by the scope box, the kind buttons and the text filter.
 
 ## 5. Completion (C# and AXAML)
 

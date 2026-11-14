@@ -89,6 +89,7 @@ public static class SolutionLoader
             }
         }
 
+        projects.Sort((a, b) => StringComparer.InvariantCultureIgnoreCase.Compare(a.Name, b.Name));
         return ProjectTreeNode.CreateSolution(solutionPath, projects, host);
     }
 

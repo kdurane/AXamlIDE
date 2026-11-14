@@ -1,3 +1,4 @@
+using System.IO;
 using AXamlIDE.Services.Running;
 
 namespace AXamlIDE.Tests;
@@ -42,9 +43,14 @@ public class BuildOutputParserTests
     [Fact]
     public void Makes_a_relative_path_absolute_from_the_project()
     {
-        var d = BuildOutputParser.TryParseLine(@"Views\MainWindow.axaml(10,2): error AVLN2000: bad [C:\src\App\App.csproj]");
+        var projectDir = Path.Combine(Path.GetTempPath(), "App");
+        var project = Path.Combine(projectDir, "App.csproj");
+        var relative = Path.Combine("Views", "MainWindow.axaml");
+
+        var d = BuildOutputParser.TryParseLine($"{relative}(10,2): error AVLN2000: bad [{project}]");
+
         Assert.NotNull(d);
-        Assert.Equal(System.IO.Path.GetFullPath(@"C:\src\App\Views\MainWindow.axaml"), d.Path);
+        Assert.Equal(Path.GetFullPath(Path.Combine(projectDir, relative)), d.Path);
     }
 
     [Fact]

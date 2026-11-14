@@ -4,6 +4,7 @@
     Title="AXamlIDE"
     d:DesignHeight="800"
     d:DesignWidth="1600"
+    MinWidth="800"
     x:Class="AXamlIDE.Views.MainWindow"
     x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
@@ -512,14 +513,14 @@
                         Classes="toolbar"
                         Command="{Binding DocumentCommands.SaveDocumentCommand}"
                         shell:KeyMap.ShortcutTip="Save">
-                        <PathIcon Data="{DynamicResource Icon.ContentSave}" />
+                        <PathIcon Data="{DynamicResource Icon.ContentSaveOutline}" />
                     </Button>
                     <Button
                         AutomationProperties.Name="Save All"
                         Classes="toolbar"
                         Command="{Binding DocumentCommands.SaveAllCommand}"
                         shell:KeyMap.ShortcutTip="Save All">
-                        <PathIcon Data="{DynamicResource Icon.ContentSaveAll}" />
+                        <PathIcon Data="{DynamicResource Icon.ContentSaveAllOutline}" />
                     </Button>
                     <Border Classes="toolbarSeparator" />
                     <Button

@@ -116,22 +116,22 @@
     </Target>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.4" />
-        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.1.4" />
+        <PackageReference Include="Avalonia" Version="12.1.6" />
+        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.1.6" />
         <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.6" />
         <PackageReference Include="AvaloniaEdit.TextMate" Version="12.0.0" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-        <PackageReference Include="Dock.Avalonia" Version="12.1.0.12" />
-        <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.1.0.12" />
-        <PackageReference Include="Dock.Model.Mvvm" Version="12.1.0.12" />
-        <PackageReference Include="Markdig" Version="1.5.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
-        <PackageReference Include="TextMateSharp" Version="2.0.4" />
-        <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.0.7" />
+        <PackageReference Include="Dock.Avalonia" Version="12.1.5" />
+        <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.1.5" />
+        <PackageReference Include="Dock.Model.Mvvm" Version="12.1.5" />
+        <PackageReference Include="Markdig" Version="1.6.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
+        <PackageReference Include="TextMateSharp" Version="2.0.5" />
+        <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.1.5" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
-        <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
+        <PackageReference Include="TextMateSharp.Grammars" Version="2.0.5" />
         <PackageReference Include="ClosedXML" Version="0.105.1" />
         <PackageReference Include="Avalonia.AvaloniaEdit" Version="12.0.0" />
     </ItemGroup>

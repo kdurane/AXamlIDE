@@ -15,6 +15,30 @@ public class LspHelpersTests
         => Assert.False(LspHelpers.RangesOverlap(new LspRange(1, 0, 1, 5), new LspRange(2, 0, 2, 5)));
 
     [Fact]
+    public void An_unused_using_from_Roslyn_is_tagged_unnecessary()
+    {
+        // As roslyn-language-server sends IDE0005: Visual Studio's own tags, then the LSP Unnecessary tag (1).
+        using var json = JsonDocument.Parse("""
+            { "severity": 4, "code": "IDE0005", "message": "Using directive is unnecessary.",
+              "tags": [2147483641, 2147483643, 2147483640, 2147483645, 1] }
+            """);
+
+        Assert.True(LspHelpers.HasDiagnosticTag(json.RootElement, LspDiagnosticTag.Unnecessary));
+    }
+
+    [Fact]
+    public void A_diagnostic_without_the_tag_is_not_unnecessary()
+    {
+        // CA1822 ("can be marked as static") carries only Visual Studio's tags.
+        using var tagged = JsonDocument.Parse("""{ "severity": 3, "tags": [2147483642, 2147483645] }""");
+        using var untagged = JsonDocument.Parse("""{ "severity": 3 }""");
+
+        Assert.False(LspHelpers.HasDiagnosticTag(tagged.RootElement, LspDiagnosticTag.Unnecessary));
+        Assert.False(LspHelpers.HasDiagnosticTag(untagged.RootElement, LspDiagnosticTag.Unnecessary));
+        Assert.False(LspHelpers.HasDiagnosticTag(null, LspDiagnosticTag.Unnecessary));
+    }
+
+    [Fact]
     public void ParseWorkspaceEdit_reads_changes_keyed_by_uri()
     {
         var path = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "a.cs"));

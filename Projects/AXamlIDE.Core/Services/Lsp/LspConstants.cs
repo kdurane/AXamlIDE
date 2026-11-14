@@ -9,6 +9,13 @@ public static class LspDiagnosticSeverity
     public const int Hint = 4;
 }
 
+/// <summary>LSP <c>DiagnosticTag</c> values: how the editor should draw a diagnostic's range.</summary>
+public static class LspDiagnosticTag
+{
+    /// <summary>Code that isn't needed (an unused using, an unused private member): drawn faded.</summary>
+    public const int Unnecessary = 1;
+}
+
 /// <summary>The LSP <c>SymbolKind</c> values the IDE cares about.</summary>
 public static class LspSymbolKind
 {

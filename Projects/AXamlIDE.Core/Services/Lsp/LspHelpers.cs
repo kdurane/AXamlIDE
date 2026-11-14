@@ -19,6 +19,23 @@ public static class LspHelpers
             => a.Line != b.Line ? a.Line.CompareTo(b.Line) : a.Character.CompareTo(b.Character);
     }
 
+    /// <summary>
+    /// The diagnostic carries this <see cref="LspDiagnosticTag"/>. Roslyn also puts Visual Studio's own tags in the
+    /// same array (large numbers near int.MaxValue); they're simply never asked about.
+    /// </summary>
+    public static bool HasDiagnosticTag(JsonElement? rawDiagnostic, int tag)
+    {
+        if (rawDiagnostic is not { ValueKind: JsonValueKind.Object } raw
+            || !raw.TryGetProperty("tags", out var tags)
+            || tags.ValueKind != JsonValueKind.Array)
+            return false;
+
+        foreach (var item in tags.EnumerateArray())
+            if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var value) && value == tag)
+                return true;
+        return false;
+    }
+
     /// <summary>A diagnostic's code ("CS0103", "IDE0005", "AVLN2000"), or empty when it has none.</summary>
     public static string DiagnosticCode(JsonElement? rawDiagnostic)
     {

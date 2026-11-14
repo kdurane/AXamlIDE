@@ -198,7 +198,10 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 
         foreach (var d in list)
         {
-            if (d.Severity >= LspDiagnosticSeverity.Hint) continue;   // hints (unused usings, style suggestions) aren't drawn
+            // Hints are left out (Visual Studio's "hidden" severity), except unnecessary code: an unused using or
+            // private member is faded in the editor and listed under Messages, as Visual Studio and Rider do.
+            var unnecessary = LspHelpers.HasDiagnosticTag(d.Raw, LspDiagnosticTag.Unnecessary);
+            if (d.Severity >= LspDiagnosticSeverity.Hint && !unnecessary) continue;
 
             var start = ToOffset(d.StartLine, d.StartChar);
             var end = ToOffset(d.EndLine, d.EndChar);
@@ -213,7 +216,8 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
                 EndOffset = end,
                 Message = d.Message,
                 Severity = d.Severity,
-                RawDiagnostic = d.Raw
+                RawDiagnostic = d.Raw,
+                IsUnnecessary = unnecessary
             });
 
             if (d.Severity == LspDiagnosticSeverity.Error) errors++;

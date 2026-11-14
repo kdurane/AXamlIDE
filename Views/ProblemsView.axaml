@@ -1,5 +1,5 @@
 <!--
-    The Problems panel, like Visual Studio's Error List (DataContext: ProblemsViewModel): a toolbar of filter
+    The Problems panel, like Visual Studio's Error List (DataContext: ProblemsViewModel): a toolbar with the scope box, filter
     buttons with counts and a search box, then the rows. Double-click or Enter opens the problem in the editor.
 -->
 <UserControl
@@ -36,8 +36,20 @@
 
     <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto,*">
 
-        <!--  Toolbar: the three kinds (click one to hide it), and the search box.  -->
+        <!--  Toolbar: the scope, the three kinds (click one to hide it), and the search box.  -->
         <DockPanel Margin="4,2" Grid.Row="0">
+            <ComboBox
+                AutomationProperties.Name="Problems scope"
+                DockPanel.Dock="Left"
+                FontSize="12"
+                ItemsSource="{Binding Scopes}"
+                Margin="0,0,6,0"
+                MinHeight="0"
+                MinWidth="140"
+                Padding="6,2"
+                SelectedItem="{Binding Scope}"
+                ToolTip.Tip="Which problems to list: the whole solution, the open documents, the active document's project, or the active document"
+                VerticalAlignment="Center" />
             <TextBox
                 Classes="SearchBox"
                 DockPanel.Dock="Right"

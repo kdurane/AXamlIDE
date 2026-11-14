@@ -181,7 +181,7 @@ parts subscribe to its events and are never called by it directly:
 | `Closing` | `LanguageSessionService.OnDocumentClosing` (sends didClose), `RunViewModel.UntrackDocument`, `PreviewSessions.OnDocumentClosing`, `DocumentReloader` |
 | `Saving` | `LanguageSessionService.OnDocumentSaving` (flushes pending edits) |
 | `Saved` | `LanguageSessionService.OnDocumentSaved` (sends didSave), `XamlCacheKeeper`, `GitStatusTracker` (refreshes status), `FileChangeWatcher` (marks the write as ours) |
-| `ActiveChanged` | `DockLayoutViewModel.OnActiveDocumentChanged`, `DockViewCache.PlaceSharedViews`, `MainWindowViewModel.UpdateEditorStatus`, `OutlineViewModel` |
+| `ActiveChanged` | `DockLayoutViewModel.OnActiveDocumentChanged`, `DockViewCache.PlaceSharedViews`, `MainWindowViewModel.UpdateEditorStatus`, `OutlineViewModel`, `ProblemsViewModel` (Current Document / Project scope) |
 | `Documents.CollectionChanged` | `DockLayoutViewModel.OnDocumentsChanged` (adds and removes tabs), `ProblemsViewModel` |
 | `FrontRequested` | `DockLayoutViewModel.OnActiveDocumentChanged` |
 

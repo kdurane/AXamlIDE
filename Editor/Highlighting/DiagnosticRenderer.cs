@@ -28,6 +28,9 @@ public sealed class DiagnosticRenderer : IBackgroundRenderer
 
         foreach (var seg in Segments.FindOverlappingSegments(viewStart, viewEnd - viewStart))
         {
+            if (!seg.IsSquiggled)
+                continue;   // unnecessary code is faded instead (UnnecessaryCodeColorizer)
+
             // The theme's error / warning / info colour (the same as in the hover card).
             var pen = new Pen(HoverCard.DiagnosticBrush(seg.Severity) ?? Brushes.Red);
 

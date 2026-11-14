@@ -87,7 +87,8 @@ public sealed class OverviewRuler : Control
                 context.FillRectangle(occurrence, MarkRect(textView, document.Document, segment.StartOffset, 1, half, scale));
 
         // Diagnostics: right half, least severe first so errors end up on top.
-        foreach (var diagnostic in document.Diagnostics.OrderByDescending(d => d.Severity))
+        // Faded-only code (an unused using) gets no mark, as in Visual Studio: it isn't a problem to go looking for.
+        foreach (var diagnostic in document.Diagnostics.Where(d => d.IsSquiggled).OrderByDescending(d => d.Severity))
             if (MarkBrush(diagnostic.Severity) is { } brush)
                 context.FillRectangle(brush, MarkRect(textView, document.Document, diagnostic.StartOffset, 1 + half, half, scale));
 
@@ -217,6 +218,7 @@ public sealed class OverviewRuler : Control
         var textView = ctx.Editor.TextArea.TextView;
         var scale = Bounds.Height / height;
         var messages = document.Diagnostics
+            .Where(d => d.IsSquiggled)
             .Where(d => MarkRect(textView, document.Document, d.StartOffset, 0, 1, scale).Inflate(new Thickness(0, MarkHitSlop)) is var r
                         && y >= r.Top && y <= r.Bottom)
             .OrderBy(d => d.Severity)

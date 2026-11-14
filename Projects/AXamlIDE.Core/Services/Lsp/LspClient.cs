@@ -212,6 +212,8 @@ public sealed partial class LspClient : ILspSender, IDisposable
 
     private readonly string[] _supports = ["edit", "command"];
 
+    private readonly object _diagnosticTags = new { valueSet = new[] { LspDiagnosticTag.Unnecessary } };
+
     // What may be left out of completion items until they're resolved: the server fills it in for the one picked.
     private readonly string[] _completionResolve = ["documentation", "detail", "additionalTextEdits", "command", "textEdit"];
 
@@ -253,8 +255,9 @@ public sealed partial class LspClient : ILspSender, IDisposable
                 textDocument = new
                 {
                     synchronization = new { dynamicRegistration = false, didSave = true },
-                    publishDiagnostics = new { versionSupport = true },
-                    diagnostic = new { dynamicRegistration = true, relatedDocumentSupport = false },
+                    // tagSupport: we draw Unnecessary code faded (an unused using), see UnnecessaryCodeColorizer.
+                    publishDiagnostics = new { versionSupport = true, tagSupport = _diagnosticTags },
+                    diagnostic = new { dynamicRegistration = true, relatedDocumentSupport = false, tagSupport = _diagnosticTags },
                     codeAction = new
                     {
                         dynamicRegistration = true,

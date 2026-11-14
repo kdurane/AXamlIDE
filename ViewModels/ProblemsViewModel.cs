@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
@@ -10,6 +11,7 @@ using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Problems;
 using AXamlIDE.Services.Running;
+using AXamlIDE.Services.Workspace;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -18,27 +20,34 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The Problems tool tab, like Visual Studio's Error List: every diagnostic in every open document, the errors and
-/// warnings of the last build (in any file, open or not), and the preview's error for an AXAML file. The three
-/// filter buttons (Errors / Warnings / Messages) show counts and hide a kind; F8 / Shift+F8 step through the
-/// problems in open documents. Rebuilds itself whenever diagnostics change, a build finishes, the preview reports,
-/// or a document opens or closes.
+/// warnings of the last build (in any file, open or not), and the preview's error for an AXAML file. The scope box
+/// narrows the list to the open documents, the active document's project, or the active document; the three
+/// filter buttons (Errors / Warnings / Messages) show the counts within that scope and hide a kind; F8 / Shift+F8
+/// step through the problems in open documents. Rebuilds itself whenever diagnostics change, a build finishes, the
+/// preview reports, or a document opens or closes.
 /// </summary>
 public sealed partial class ProblemsViewModel : ObservableObject,
     IRecipient<DiagnosticsChangedMessage>, IRecipient<PreviewProblemMessage>, IRecipient<BuildProblemsMessage>
 {
     private readonly DocumentManager _documents;
+    private readonly WorkspaceModel _workspace;
     private readonly IMessenger _messenger;
     private readonly ProblemNavigationService _navigation = new();
     private readonly Dictionary<OpenDocument, PreviewError> _previewErrors = [];
     private readonly List<ProblemItem> _all = [];
     private IReadOnlyList<BuildDiagnostic> _buildDiagnostics = [];
 
-    public ProblemsViewModel(DocumentManager documents, IMessenger messenger)
+    // The project that owns each file, found once per rebuild (the solution can change between rebuilds).
+    private readonly Dictionary<string, string?> _projectOfFile = new(GitStatus.PathComparer);
+
+    public ProblemsViewModel(DocumentManager documents, WorkspaceModel workspace, IMessenger messenger)
     {
         _documents = documents;
+        _workspace = workspace;
         _messenger = messenger;
 
         _documents.Documents.CollectionChanged += OnDocumentsChanged;
+        _documents.ActiveChanged += OnActiveDocumentChanged;
         _messenger.RegisterAll(this);
     }
 
@@ -64,6 +73,14 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     partial void OnShowErrorsChanged(bool value) => Refilter();
     partial void OnShowWarningsChanged(bool value) => Refilter();
     partial void OnShowInfosChanged(bool value) => Refilter();
+
+    /// <summary>The choices in the scope box (<see cref="ProblemScope"/>).</summary>
+    public IReadOnlyList<string> Scopes { get; } = ProblemScope.All;
+
+    /// <summary>Which problems are listed and counted: one of <see cref="ProblemScope"/>.</summary>
+    [ObservableProperty] public partial string Scope { get; set; } = ProblemScope.EntireSolution;
+
+    partial void OnScopeChanged(string value) => Refilter();
 
     /// <summary>Only rows whose message, code, file or project contains this.</summary>
     [ObservableProperty] public partial string Filter { get; set; } = "";
@@ -96,6 +113,13 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     }
 
     private void OnDocumentsChanged(object? sender, NotifyCollectionChangedEventArgs e) => Rebuild();
+
+    /// <summary>Another tab became active: the current document (or project) scopes now mean something else.</summary>
+    private void OnActiveDocumentChanged(OpenDocument? document)
+    {
+        if (Scope is ProblemScope.CurrentDocument or ProblemScope.CurrentProject)
+            Refilter();
+    }
 
     /// <summary>Show this problem in the editor (double-click or Enter in the list).</summary>
     [RelayCommand]
@@ -133,12 +157,14 @@ public sealed partial class ProblemsViewModel : ObservableObject,
             _previewErrors.Remove(closed);
 
         _all.Clear();
+        _projectOfFile.Clear();
         foreach (var document in _documents.Documents)
             foreach (var diagnostic in document.Diagnostics)
             {
                 var code = LspHelpers.DiagnosticCode(diagnostic.RawDiagnostic);
                 _all.Add(ProblemItem.InDocument(document, diagnostic.Severity, diagnostic.StartOffset,
-                    LspHelpers.DiagnosticText(diagnostic.Message, code), ProblemSource.IntelliSense, code));
+                    LspHelpers.DiagnosticText(diagnostic.Message, code), ProblemSource.IntelliSense, code,
+                    ProjectOf(document.Path)));
             }
 
         // Build problems: in a file that's open, the same thing is usually already listed by its language server
@@ -154,7 +180,7 @@ public sealed partial class ProblemsViewModel : ObservableObject,
                 continue;
 
             _all.Add(new ProblemItem(diagnostic.Path, diagnostic.Severity, diagnostic.Line, diagnostic.Column,
-                diagnostic.Message, ProblemSource.Build, diagnostic.Code, diagnostic.Project,
+                diagnostic.Message, ProblemSource.Build, diagnostic.Code, diagnostic.Project ?? ProjectOf(diagnostic.Path),
                 document, document is not null ? OffsetIn(document, diagnostic.Line, diagnostic.Column) : -1));
         }
 
@@ -162,20 +188,26 @@ public sealed partial class ProblemsViewModel : ObservableObject,
         {
             var line = Math.Clamp(error.Line ?? 1, 1, document.Document.LineCount);
             _all.Add(ProblemItem.InDocument(document, LspDiagnosticSeverity.Error, OffsetIn(document, line, error.Column ?? 1),
-                error.Message, ProblemSource.Preview));
+                error.Message, ProblemSource.Preview, project: ProjectOf(document.Path)));
         }
 
-        ErrorCount = _all.Count(problem => problem.IsError);
-        WarningCount = _all.Count(problem => problem.IsWarning);
-        InfoCount = _all.Count(problem => problem.IsInfo);
         Refilter();
     }
 
+    /// <summary>
+    /// Shows the rows that pass the scope, the three kind buttons and the text filter. The counts on the buttons
+    /// are of the rows in scope, so hiding a kind doesn't zero its own count (as in Visual Studio).
+    /// </summary>
     private void Refilter()
     {
+        var inScope = _all.Where(InScope()).ToList();
+        ErrorCount = inScope.Count(problem => problem.IsError);
+        WarningCount = inScope.Count(problem => problem.IsWarning);
+        InfoCount = inScope.Count(problem => problem.IsInfo);
+
         var filter = Filter.Trim();
         Problems.Clear();
-        foreach (var problem in _all)
+        foreach (var problem in inScope)
         {
             var shown = problem.IsError ? ShowErrors : problem.IsWarning ? ShowWarnings : ShowInfos;
             if (!shown)
@@ -186,6 +218,51 @@ public sealed partial class ProblemsViewModel : ObservableObject,
                 continue;
             Problems.Add(problem);
         }
+    }
+
+    /// <summary>The test for "is this problem in the chosen scope?".</summary>
+    private Func<ProblemItem, bool> InScope()
+    {
+        var active = _documents.Active;
+        switch (Scope)
+        {
+            case ProblemScope.OpenDocuments:
+                return problem => problem.Document is not null;
+
+            case ProblemScope.CurrentDocument:
+                return problem => active is not null && ReferenceEquals(problem.Document, active);
+
+            case ProblemScope.CurrentProject:
+                // A file outside every project (or no file open): nothing is listed, as in Visual Studio.
+                if (active is null || ProjectOf(active.Path) is not { } project)
+                    return _ => false;
+                return problem => problem.Project is { } owner && GitStatus.PathComparer.Equals(owner, project);
+
+            default:
+                return _ => true;
+        }
+    }
+
+    /// <summary>The .csproj that owns a file (the innermost one), or null.</summary>
+    private string? ProjectOf(string path)
+    {
+        if (path.Length == 0)
+            return null;
+        if (_projectOfFile.TryGetValue(path, out var known))
+            return known;
+
+        string? project;
+        try
+        {
+            project = _workspace.FindProjectForDocument(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            project = null;   // its folder is gone (deleted outside the IDE) or can't be read
+        }
+
+        _projectOfFile[path] = project;
+        return project;
     }
 
     private static int OffsetIn(OpenDocument document, int line, int column)

@@ -59,6 +59,7 @@ public partial class EditorPaneView : UserControl,
     private EditorServices _services = null!;
     private EditorGrammars _grammars = null!;
     private readonly DiagnosticRenderer _diagnosticRenderer = new();
+    private readonly UnnecessaryCodeColorizer _unnecessaryCode = new();
     private readonly CurrentLineRenderer _currentLineRenderer = new();
     private BreakpointMargin? _breakpointMargin;
     private TextMateController _textMateController = null!;
@@ -174,6 +175,7 @@ public partial class EditorPaneView : UserControl,
         _textMate = Editor.InstallTextMate(_grammars);
         _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin, _selectionRenderer, _currentLineRenderer);
         _semanticHighlighting = new SemanticHighlightController(_ctx, _grammars);   // after TextMate: drawn over its colours
+        Editor.TextArea.TextView.LineTransformers.Add(_unnecessaryCode);   // last: fades the colours both of those chose
         _inlayHints = new InlayHintController(_ctx);
 
         // Settings are observed here, so nobody has to call ApplyEditorSettings from outside.
@@ -227,6 +229,7 @@ public partial class EditorPaneView : UserControl,
             Editor.Document = new TextDocument();
             Editor.IsReadOnly = false;
             _diagnosticRenderer.Segments = null;
+            _unnecessaryCode.Document = null;
             _ctx.Attach(null);
             _textMateController.SetGrammarForFile("");
             return;
@@ -236,6 +239,7 @@ public partial class EditorPaneView : UserControl,
         Editor.IsReadOnly = doc.IsReadOnly;
         _ctx.Attach(doc);
         _diagnosticRenderer.Segments = doc.Diagnostics;
+        _unnecessaryCode.Document = doc;
         _textMateController.SetGrammarForFile(doc.Path);
         Editor.CaretOffset = Math.Min(doc.CaretOffset, doc.Document.TextLength);
         doc.RevealRequested += OnRevealRequested;
@@ -333,13 +337,14 @@ public partial class EditorPaneView : UserControl,
         Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Background);   // so toggling the setting shows at once
     }
 
-    /// <summary>The active document's diagnostics changed: redraw squiggles, lightbulbs and the overview ruler.</summary>
+    /// <summary>The active document's diagnostics changed: redraw squiggles, faded code, lightbulbs and the overview ruler.</summary>
     public void Receive(DiagnosticsChangedMessage message)
     {
         var document = message.Document;
         if (!ReferenceEquals(document, _ctx.Active)) return;
         _codeActions.RefreshMargin(document);
         Editor.TextArea.TextView.InvalidateLayer(KnownLayer.Selection);
+        _unnecessaryCode.Refresh(Editor.TextArea.TextView);
         OverviewRuler.Refresh();
         _ctx.Messenger.Send(new EditorStateChangedMessage());
     }
