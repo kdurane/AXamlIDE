@@ -9,6 +9,7 @@ third-party code and assets below, each under its own licence.
 |---|---|---|---|
 | AXAML completion engine, forked from the Avalonia Visual Studio extension (AvaloniaVS), © 2014 Steven Kirk and contributors | `Projects/AXamlIDE.Core/CompletionEngine/` | MIT | [LICENSE.md](Projects/AXamlIDE.Core/CompletionEngine/LICENSE.md) |
 | XAML Styler formatting engine (Xavalon/XamlStyler), © Xavalon. Modified: see [UPSTREAM.md](Projects/AXamlIDE.Core/XamlStyler/UPSTREAM.md) | `Projects/AXamlIDE.Core/XamlStyler/` | Apache-2.0 | [LICENSE.txt](Projects/AXamlIDE.Core/XamlStyler/LICENSE.txt) |
+| Material Design Icons (the icon paths), © Pictogrammers | `Styles/IconResources.axaml` | Apache-2.0 | [pictogrammers.com/docs/general/license](https://pictogrammers.com/docs/general/license/) |
 | JetBrains Mono font, © 2020 The JetBrains Mono Project Authors | `Assets/Fonts/` | SIL Open Font License 1.1 | [JetBrainsMono-OFL.txt](Assets/Fonts/JetBrainsMono-OFL.txt) |
 | netcoredbg debugger (Windows build), © 2017 Samsung Electronics Co., Ltd. Includes Microsoft's dbgshim and Roslyn assemblies (MIT, .NET Foundation) | `Projects/netcoredbg/` | MIT | [LICENSE](Projects/netcoredbg/LICENSE) |
 

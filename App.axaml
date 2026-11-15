@@ -32,6 +32,8 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="/Styles/ThemeResources.axaml" />
                 <ResourceInclude Source="/Styles/IconResources.axaml" />
+                <!--  The editor's Find/Replace panel, replacing AvaloniaEdit's own look.  -->
+                <ResourceInclude Source="/Styles/SearchPanelTheme.axaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!--  Dock tab sizing: a little roomier than Dock's compact density.  -->

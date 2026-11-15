@@ -260,6 +260,15 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource editorHoverWidget.border}" x:Key="OverloadViewerBorderBrush" />
     <SolidColorBrush Color="{DynamicResource editorWidget.background}" x:Key="SearchPanelBackgroundBrush" />
     <SolidColorBrush Color="{DynamicResource editorWidget.border}" x:Key="SearchPanelBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWidget.foreground}" x:Key="SearchPanelForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWidget.foreground}" Opacity="0.75" x:Key="SearchPanelMessageBrush" />
+    <!--  The find panel's buttons and options (Styles/SearchPanelTheme.axaml): a translucent grey hover that shows on
+          light and dark themes alike, and the accent colour for an option that's on (no theme sets VS Code's
+          inputOption.* keys).  -->
+    <SolidColorBrush Color="#33808080" x:Key="SearchPanelButtonHoverBrush" />
+    <SolidColorBrush Color="#55808080" x:Key="SearchPanelButtonPressedBrush" />
+    <SolidColorBrush Color="{DynamicResource SystemAccentColor}" Opacity="0.3" x:Key="SearchPanelOptionCheckedBrush" />
+    <SolidColorBrush Color="{DynamicResource SystemAccentColor}" x:Key="SearchPanelOptionCheckedBorderBrush" />
 
     <!--  Preview design grid (Views/PreviewGridLines)  -->
     <SolidColorBrush Color="{DynamicResource app.preview.gridLine}" x:Key="PreviewGridLineBrush" />

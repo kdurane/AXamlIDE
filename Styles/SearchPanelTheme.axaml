@@ -1,0 +1,266 @@
+<!--
+The editor's Find/Replace panel (Ctrl+F, Ctrl+H), laid out like Visual Studio 2022's Quick Find:
+
+›  [Find...              ]  ↑  ↓  ✕
+[Replace...           ]  ⇄  ⇉          (Replace mode only)
+Aa  ab  .*        3 of 12
+
+It replaces AvaloniaEdit's own template (AvaloniaEdit/Search/SearchPanel.xaml), keyed by type so every editor's
+panel uses it. AvaloniaEdit's code needs the PART_ names below: PART_Border, PART_searchTextBox,
+PART_replaceTextBox, PART_MessageView (a Panel) and PART_MessageContent (a TextBlock, where it writes
+"No matches found" / "12 matches" / "3 of 12"). The buttons call the panel's own methods (FindNext, ReplaceAll...) rather than AvaloniaEdit's
+SearchCommands: those decide whether they can run once, from whatever had focus then, and never again, so a
+panel whose template loaded with focus elsewhere had dead buttons. The keys still go through SearchCommands:
+Enter / Shift+Enter or F3 / Shift+F3, Esc, Alt+R, Alt+A.
+Colours: Styles/ThemeResources.axaml (SearchPanel*). Icons: Styles/IconResources.axaml (Material Design Icons).
+-->
+<ResourceDictionary
+    xmlns="https://github.com/avaloniaui"
+    xmlns:search="using:AvaloniaEdit.Search"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--  A flat 22x22 icon button: no chrome until the pointer is over it, like VS's find buttons.  -->
+    <ControlTheme TargetType="Button" x:Key="SearchPanelButton">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="3" />
+        <Setter Property="Margin" Value="2,0,0,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource SearchPanelForegroundBrush}" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Content="{TemplateBinding Content}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SearchPanelButtonHoverBrush}" />
+        </Style>
+        <Style Selector="^:pressed">
+            <Setter Property="Background" Value="{DynamicResource SearchPanelButtonPressedBrush}" />
+        </Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+        </Style>
+    </ControlTheme>
+
+    <!--  An option (Aa, ab, .*): the same flat button, outlined and tinted with the accent colour while it's on.  -->
+    <ControlTheme TargetType="ToggleButton" x:Key="SearchPanelOption">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="3" />
+        <Setter Property="Margin" Value="0,0,2,0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource SearchPanelForegroundBrush}" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Content="{TemplateBinding Content}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SearchPanelButtonHoverBrush}" />
+        </Style>
+        <Style Selector="^:checked">
+            <Setter Property="Background" Value="{DynamicResource SearchPanelOptionCheckedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SearchPanelOptionCheckedBorderBrush}" />
+        </Style>
+    </ControlTheme>
+
+    <!--  The Find/Replace chevron: an option button, but with no "on" tint (its pointing down says it's open).  -->
+    <ControlTheme
+        BasedOn="{StaticResource SearchPanelOption}"
+        TargetType="ToggleButton"
+        x:Key="SearchPanelExpander">
+        <Style Selector="^:checked">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="^:checked:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SearchPanelButtonHoverBrush}" />
+        </Style>
+    </ControlTheme>
+
+    <!--  The find and replace boxes: 24px high, the panel's font, wide enough for a typical search.  -->
+    <ControlTheme
+        BasedOn="{StaticResource {x:Type TextBox}}"
+        TargetType="TextBox"
+        x:Key="SearchPanelTextBox">
+        <Setter Property="Width" Value="240" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="6,2" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </ControlTheme>
+
+    <ControlTheme TargetType="search:SearchPanel" x:Key="{x:Type search:SearchPanel}">
+        <Setter Property="Background" Value="{DynamicResource SearchPanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource SearchPanelBorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource SearchPanelForegroundBrush}" />
+        <Setter Property="BorderThickness" Value="1,0,1,1" />
+        <Setter Property="CornerRadius" Value="0,0,4,4" />
+        <!--  Clear of the editor's vertical scroll bar.  -->
+        <Setter Property="Margin" Value="0,0,18,0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    HorizontalAlignment="Right"
+                    Name="PART_Border"
+                    Padding="4"
+                    VerticalAlignment="Top">
+                    <Grid ColumnDefinitions="Auto,Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+
+                        <!--  › / ⌄ : switches between Find and Replace (hidden in read-only documents).  -->
+                        <ToggleButton
+                            Grid.Column="0"
+                            Grid.Row="0"
+                            IsChecked="{Binding IsReplaceMode, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                            IsVisible="{Binding !TextEditor.IsReadOnly, RelativeSource={RelativeSource TemplatedParent}}"
+                            Margin="0,0,2,0"
+                            Name="Expander"
+                            Theme="{StaticResource SearchPanelExpander}"
+                            ToolTip.Tip="Toggle between Find and Replace">
+                            <PathIcon Data="{DynamicResource Icon.ChevronRight}" Name="ExpanderIcon" />
+                        </ToggleButton>
+
+                        <!--  Row 0: what to find, then previous / next / close.  -->
+                        <TextBox
+                            Grid.Column="1"
+                            Grid.Row="0"
+                            Name="PART_searchTextBox"
+                            PlaceholderText="Find..."
+                            Text="{Binding SearchPattern, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                            Theme="{StaticResource SearchPanelTextBox}" />
+                        <StackPanel
+                            Grid.Column="2"
+                            Grid.Row="0"
+                            Margin="2,0,0,0"
+                            Orientation="Horizontal">
+                            <Button
+                                Command="{Binding FindPrevious, RelativeSource={RelativeSource TemplatedParent}}"
+                                Theme="{StaticResource SearchPanelButton}"
+                                ToolTip.Tip="Find previous (Shift+F3)">
+                                <PathIcon Data="{DynamicResource Icon.ArrowUp}" />
+                            </Button>
+                            <Button
+                                Command="{Binding FindNext, RelativeSource={RelativeSource TemplatedParent}}"
+                                Theme="{StaticResource SearchPanelButton}"
+                                ToolTip.Tip="Find next (F3)">
+                                <!--  FindNext(int startOffset): -1 means from the caret.  -->
+                                <Button.CommandParameter>
+                                    <x:Int32>-1</x:Int32>
+                                </Button.CommandParameter>
+                                <PathIcon Data="{DynamicResource Icon.ArrowDown}"/>
+                            </Button>
+                            <Button
+                                Command="{Binding Close, RelativeSource={RelativeSource TemplatedParent}}"
+                                Margin="6,0,0,0"
+                                Theme="{StaticResource SearchPanelButton}"
+                                ToolTip.Tip="Close (Esc)">
+                                <PathIcon Data="{DynamicResource Icon.Close}" />
+                            </Button>
+                        </StackPanel>
+
+                        <!--  Row 1 (Replace mode): the replacement, then replace next / replace all.  -->
+                        <TextBox
+                            Grid.Column="1"
+                            Grid.Row="1"
+                            IsVisible="{Binding IsReplaceMode, RelativeSource={RelativeSource TemplatedParent}}"
+                            Margin="0,4,0,0"
+                            Name="PART_replaceTextBox"
+                            PlaceholderText="Replace..."
+                            Text="{Binding ReplacePattern, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                            Theme="{StaticResource SearchPanelTextBox}" />
+                        <StackPanel
+                            Grid.Column="2"
+                            Grid.Row="1"
+                            IsVisible="{Binding IsReplaceMode, RelativeSource={RelativeSource TemplatedParent}}"
+                            Margin="2,4,0,0"
+                            Orientation="Horizontal">
+                            <Button
+                                Command="{Binding ReplaceNext, RelativeSource={RelativeSource TemplatedParent}}"
+                                Theme="{StaticResource SearchPanelButton}"
+                                ToolTip.Tip="Replace next (Alt+R)">
+                                <PathIcon Data="{DynamicResource Icon.FindReplace}"/>
+                            </Button>
+                            <Button
+                                Command="{Binding ReplaceAll, RelativeSource={RelativeSource TemplatedParent}}"
+                                Theme="{StaticResource SearchPanelButton}"
+                                ToolTip.Tip="Replace all (Alt+A)">
+                                <PathIcon Data="{DynamicResource Icon.FileReplaceOutline}"/>
+                            </Button>
+                        </StackPanel>
+
+                        <!--  Row 2: the options, and the match count on the right.  -->
+                        <DockPanel
+                            Grid.Column="1"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="2"
+                            Margin="0,4,0,0">
+                            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                <ToggleButton
+                                    IsChecked="{Binding MatchCase, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Theme="{StaticResource SearchPanelOption}"
+                                    ToolTip.Tip="Match case">
+                                    <PathIcon Data="{DynamicResource Icon.FormatLetterCase}"/>
+                                </ToggleButton>
+                                <ToggleButton
+                                    IsChecked="{Binding WholeWords, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Theme="{StaticResource SearchPanelOption}"
+                                    ToolTip.Tip="Match whole word">
+                                    <PathIcon Data="{DynamicResource Icon.FormatLetterMatches}"/>
+                                </ToggleButton>
+                                <ToggleButton
+                                    IsChecked="{Binding UseRegex, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                    Theme="{StaticResource SearchPanelOption}"
+                                    ToolTip.Tip="Use regular expressions">
+                                    <PathIcon Data="{DynamicResource Icon.Regex}"/>
+                                </ToggleButton>
+                            </StackPanel>
+                            <StackPanel
+                                HorizontalAlignment="Right"
+                                IsVisible="False"
+                                Margin="8,0,2,0"
+                                Name="PART_MessageView"
+                                VerticalAlignment="Center">
+                                <TextBlock Foreground="{DynamicResource SearchPanelMessageBrush}" Name="PART_MessageContent" />
+                            </StackPanel>
+                        </DockPanel>
+                    </Grid>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+
+        <!--  The expander's chevron points down while the Replace row is showing.  -->
+        <Style Selector="^ /template/ ToggleButton#Expander:checked PathIcon#ExpanderIcon">
+            <Setter Property="RenderTransform" Value="rotate(90deg)" />
+        </Style>
+        <Style Selector="^ /template/ PathIcon">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+        </Style>
+    </ControlTheme>
+</ResourceDictionary>

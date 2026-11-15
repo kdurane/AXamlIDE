@@ -1,8 +1,8 @@
 <!--
     AvaloniaEdit's links (URLs in the text; its default is a hard-coded Blue) use the editorLink.activeForeground theme key.
     Its completion list is coloured like VS Code's suggest widget (editorSuggestWidget.* theme keys,
-    brushes in Styles/ThemeResources.axaml). Its description tip, the overload viewer and the find panel read
-    their own resource keys (CompletionToolTip*, OverloadViewer*, SearchPanel*), set in ThemeResources.axaml.
+    brushes in Styles/ThemeResources.axaml). Its description tip and the overload viewer read their own resource keys (CompletionToolTip*,
+    OverloadViewer*), set in ThemeResources.axaml. The find panel has its own template: Styles/SearchPanelTheme.axaml.
 -->
 <Styles
     xmlns="https://github.com/avaloniaui"
