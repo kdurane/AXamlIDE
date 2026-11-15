@@ -156,6 +156,10 @@
                 <StackPanel Margin="20,12" Spacing="16">
                     <TextBlock Classes="SettingsHeading" Text="Window layout" />
                     <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
+                    <StackPanel Spacing="4">
+                        <CheckBox Content="Track active item in Solution Explorer" IsChecked="{Binding TrackActiveItem, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Switching tabs selects that file in the explorer. Off: the explorer's Sync with Active Document button does it when you ask." />
+                    </StackPanel>
                     <TextBlock Classes="SettingsHeading" Text="Startup" />
                     <StackPanel Spacing="6">
                         <TextBlock Text="On startup, open" />

@@ -70,6 +70,14 @@ public sealed record EditorFeatureSettings
     /// </summary>
     public bool SolutionWideAnalysis { get; init; }
 
+    // ---- Solution Explorer
+
+    /// <summary>
+    /// The explorer selects the file of the tab being edited, opening folders to show it. VS: "Track Active Item in
+    /// Solution Explorer", off by default there too. Off, the header's Sync with Active Document does it on demand.
+    /// </summary>
+    public bool TrackActiveItem { get; init; }
+
     // ---- Debugging
 
     /// <summary>"name = value" at the end of the lines around the current statement while paused.</summary>

@@ -4,7 +4,7 @@ The third-party types and methods the code calls: what each one does, and where 
 package, in the order the packages appear in the `.csproj` files. Paths without a folder prefix are in the app project
 (the repo root). `Core/` stands for `Projects/AXamlIDE.Core/` and `Host/` for `Projects/AXamlIDE.msbuildhost/`.
 
-**What's covered.** Every call to the smaller libraries (dnlib, ICSharpCode.Decompiler, ClrMD, DiffPlex, ClosedXML,
+**What's covered.** Every call to the smaller libraries (dnlib, ICSharpCode.Decompiler, ClrMD, DiffPlex, Irony, ClosedXML,
 Markdig, SkiaSharp, Microsoft.Build) is listed. **Avalonia** and **AvaloniaEdit** are used in hundreds of places, mostly
 for ordinary control properties (`IsVisible`, `Text`, `Grid.SetRow`...). For those two, this page lists the calls
 that do real work or are easy to miss, not every property set. Calls made only from XAML (bindings, styles) are left
@@ -209,6 +209,7 @@ Called from `ViewModels/VisualizerDockable.cs` (the debugger table visualizer's 
 | `SideBySideDiffBuilder.Diff(left, right, ignoreWhiteSpace: false)` → `SideBySideDiffModel` | A line diff laid out as two columns | `Core/Services/Git/SideBySideDiff.cs` (`Compare`), called from `ViewModels/DiffDockable.cs` |
 | `SideBySideDiffModel.OldText` / `NewText` → `DiffPiece` (`Position`, `Text`, `Type`) | Each column's lines | `SideBySideDiff.Lines` |
 | `ChangeType` (`Unchanged`, `Modified`, `Imaginary`; anything else is treated as the side's own change) | What each line is | `SideBySideDiff.Lines` (mapped to our `DiffLineKind`; `Imaginary` → `Filler`) |
+| `Differ.Instance.CreateDiffs(old, new, ignoreWhiteSpace: false, ignoreCase: false, new LineEndingsPreservingChunker())` → `DiffResult` (`PiecesOld`, `PiecesNew`, `DiffBlocks`: `DeleteStartA`/`DeleteCountA`/`InsertStartB`/`InsertCountB`) | A line diff whose lines keep their line endings, so they add up to the original text | `Core/Services/Xaml/XamlFormatter.LineEdits` (turns formatted AXAML into small edits), called from `Services/Languages/LanguageSessionService.FormatXaml` |
 
 ## dnlib — Core
 
@@ -250,6 +251,19 @@ debugger request per row.
 | `ClrObject.Type`, `AsArray()`, `ReadField<T>`, `ReadObjectField`, `ReadValueTypeField`; `ClrValueType` (same); `ClrType.GetFieldByName`; `ClrArray.Rank`, `GetObjectValue`, `GetStructValue` | Read fields and array elements | `HeapTables` (`Matches`, `InnerList`, `Count`, `Read`, `Items`, the `Slot` helpers) |
 
 Called from `Core/Services/Debugging/DebugValueProvider.Table.cs` (`Task.Run(() => HeapTables.TryRead(...))`).
+
+## Irony — Core (vendored XAML Styler only)
+
+A parser toolkit: the grammar is C# classes, and Irony builds the parser from them. Only the vendored XAML Styler
+calls it, to parse markup extensions (`{Binding Path=X, Converter={StaticResource Y}}`) so the formatter can lay them
+out. Our own code never calls it directly.
+
+| API | What it does | Where we call it |
+|---|---|---|
+| `Grammar` (`ToTerm`, `MarkTransient`), `NonTerminal`, `Terminal` subclasses | The markup extension grammar | `Core/XamlStyler/MarkupExtensions/Parser/XamlMarkupExtensionGrammar.cs` and the `*Terminal.cs` files beside it |
+| `new Parser(new LanguageData(grammar)).Parse(text)` → `ParseTree` (`Status == ParseTreeStatus.Parsed`, `Root`), `ParseTreeNode` | Parses one attribute value | `Core/XamlStyler/MarkupExtensions/Parser/MarkupExtensionParser.cs` |
+
+Reached through `XamlFormatter.Format` → `StylerService.StyleDocument`.
 
 ---
 

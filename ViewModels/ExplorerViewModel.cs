@@ -5,6 +5,7 @@ using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Workspace;
 using AXamlIDE.Views;
 using CommunityToolkit.Mvvm.Input;
@@ -16,7 +17,7 @@ namespace AXamlIDE.ViewModels;
 /// The Explorer panel: the workspace tree plus what you can do to a node (open, refresh, build,
 /// run, debug; cut/copy/paste, rename and delete are in ExplorerViewModel.Files.cs).
 /// The workspace itself (open/close, selection) is <see cref="WorkspaceViewModel"/>.
-/// Like Visual Studio's Solution Explorer, it follows the document being edited (Track Active Item).
+/// Like Visual Studio's Solution Explorer, it can follow the document being edited (Track Active Item, a setting).
 /// </summary>
 public sealed partial class ExplorerViewModel
 {
@@ -41,7 +42,8 @@ public sealed partial class ExplorerViewModel
         DocumentManager openDocuments,
         IDialogService dialogs,
         IMessenger messenger,
-        ImageViewerManager images)
+        ImageViewerManager images,
+        IEditorSettings settings)
     {
         Workspace = workspace;
         _model = model;
@@ -57,7 +59,11 @@ public sealed partial class ExplorerViewModel
         _messenger = messenger;
         _images = images;
 
-        openDocuments.ActiveChanged += document => _ = TrackActiveAsync(document);
+        openDocuments.ActiveChanged += document =>
+        {
+            if (settings.Features.TrackActiveItem)
+                _ = TrackActiveAsync(document);
+        };
     }
 
     public WorkspaceViewModel Workspace { get; }
