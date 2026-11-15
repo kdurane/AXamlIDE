@@ -11,6 +11,7 @@ using AvaloniaEdit.TextMate;
 using AXamlIDE.Editor;
 using AXamlIDE.Editor.Diff;
 using AXamlIDE.Editor.Highlighting;
+using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Settings;
@@ -78,7 +79,7 @@ public partial class DiffView : UserControl
         var theme = _grammars.LoadTheme(_settings.SelectedTheme);
         foreach (var side in new[] { _left, _right })
         {
-            side.Editor.FontFamily = new FontFamily(_settings.EditorFontFamily);
+            side.Editor.FontFamily = new FontFamily(EditorSettings.ResolveFontFamily(_settings.EditorFontFamily, _settings.FontLigatures));
             side.Editor.FontSize = _settings.EditorFontSize;
             side.TextMate.SetTheme(theme);
         }

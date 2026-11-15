@@ -53,6 +53,15 @@ public sealed record EditorFeatureSettings
     /// <summary>A swatch beside colour values, which opens a colour picker.</summary>
     public bool ColorSwatches { get; init; } = true;
 
+    // ---- Code analysis
+
+    /// <summary>
+    /// Every file in the solution is analysed, not just the open ones: the Problems list and the status bar show the
+    /// errors in closed files too. Off by default, as in Visual Studio and Rider ("solution-wide analysis"): on a big
+    /// solution it keeps the language server busy and uses a lot of memory.
+    /// </summary>
+    public bool SolutionWideAnalysis { get; init; }
+
     // ---- Debugging
 
     /// <summary>"name = value" at the end of the lines around the current statement while paused.</summary>

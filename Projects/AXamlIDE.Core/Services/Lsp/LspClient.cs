@@ -83,6 +83,8 @@ public sealed partial class LspClient : ILspSender, IDisposable
     // Pull-diagnostic identifiers: the one in the static capability plus any registered dynamically.
     // Locked on itself; usually empty or one entry.
     private readonly List<string> _diagnosticIdentifiers = [];
+    // The ones that also answer workspace/diagnostic (Roslyn: "WorkspaceDocumentsAndProject"...). Locked on _diagnosticIdentifiers.
+    private readonly List<string> _workspaceDiagnosticIdentifiers = [];
     private readonly HashSet<string> _dynamicCapabilities = new(StringComparer.Ordinal);
     private bool _staticDefinition;
     private bool _staticReferences;
@@ -383,7 +385,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
             {
                 SupportsPullDiagnostics = true;
                 if (diag.ValueKind == JsonValueKind.Object)
-                    AddDiagnosticIdentifier(Str(diag, "identifier"));
+                    AddDiagnosticIdentifier(diag);
             }
         }
 

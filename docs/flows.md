@@ -121,7 +121,7 @@ Starting from **File > Open Solution** or the start window's button.
    - `Opened` → `RunViewModel.TrackDocument` (breakpoint changes), and `DocumentReloader` (changes on disk).
 5. `DocumentHost.Activate` → `DocumentManager.BringToFront(document)` → sets `Active` → `ActiveChanged`:
    - `DockLayoutViewModel.OnActiveDocumentChanged` → `_factory.SetActiveDockable(tab)` + `SetFocusedDockable`.
-   - `MainWindowViewModel.UpdateEditorStatus`, `OutlineViewModel`, `DockViewCache.PlaceSharedViews`.
+   - `StatusBarViewModel.OnActiveDocumentChanged`, `OutlineViewModel`, `DockViewCache.PlaceSharedViews`.
 6. Dock now shows the tab. It asks the control cache for the content: `DockViewCache.Build(DocumentDockable)` →
    `DocumentViewFor(tab)`. The first time, it creates:
    - a preview control for AXAML (`PreviewPaneView` with `PreviewSessions.For(document)`, see
@@ -145,7 +145,7 @@ Starting from **File > Open Solution** or the start window's button.
 4. `TextArea.TextEntered` → `TypingController.OnTextEntered`: auto-close `{`, file-scoped namespace on `;`, and
    whether to open completion ([flow 5](#5-completion-c-and-axaml)) or signature help.
 5. Caret moves → `EditorPaneView` (in `Initialize`) stores `active.CaretOffset` and sends `EditorStateChangedMessage`
-   → `MainWindowViewModel.UpdateEditorStatus` ("Ln x, Col y").
+   → `StatusBarViewModel.UpdateDocument` ("Ln x, Col y", line endings, encoding).
 6. When the timer fires, `DocumentSync.Flush()` increments `Version`, then calls `LspClient.DidChange(uri, version,
    changes)`, or `DidChangeFull` if the server doesn't do incremental sync. It then raises `Flushed`.
    `LspClient.Enqueue` frames the JSON with `Content-Length` and puts it on a `Channel`. `WriteLoopAsync` writes the

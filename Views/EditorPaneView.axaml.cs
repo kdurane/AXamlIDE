@@ -329,7 +329,7 @@ public partial class EditorPaneView : UserControl,
 
     private void ApplyEditorSettings()
     {
-        Editor.FontFamily = new FontFamily(_settings.EditorFontFamily);
+        Editor.FontFamily = new FontFamily(EditorSettings.ResolveFontFamily(_settings.EditorFontFamily, _settings.FontLigatures));
         Editor.FontSize = _settings.EditorFontSize;
         Editor.ShowLineNumbers = _settings.ShowLineNumbers;
         Editor.Options.HighlightCurrentLine = false;   // AvaloniaEdit's own; ours (CurrentLineRenderer) skips code lenses

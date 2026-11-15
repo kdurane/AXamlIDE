@@ -181,7 +181,7 @@ parts subscribe to its events and are never called by it directly:
 | `Closing` | `LanguageSessionService.OnDocumentClosing` (sends didClose), `RunViewModel.UntrackDocument`, `PreviewSessions.OnDocumentClosing`, `DocumentReloader` |
 | `Saving` | `LanguageSessionService.OnDocumentSaving` (flushes pending edits) |
 | `Saved` | `LanguageSessionService.OnDocumentSaved` (sends didSave), `XamlCacheKeeper`, `GitStatusTracker` (refreshes status), `FileChangeWatcher` (marks the write as ours) |
-| `ActiveChanged` | `DockLayoutViewModel.OnActiveDocumentChanged`, `DockViewCache.PlaceSharedViews`, `MainWindowViewModel.UpdateEditorStatus`, `OutlineViewModel`, `ProblemsViewModel` (Current Document / Project scope) |
+| `ActiveChanged` | `DockLayoutViewModel.OnActiveDocumentChanged`, `DockViewCache.PlaceSharedViews`, `StatusBarViewModel.OnActiveDocumentChanged`, `OutlineViewModel`, `ProblemsViewModel` (Current Document / Project scope) |
 | `Documents.CollectionChanged` | `DockLayoutViewModel.OnDocumentsChanged` (adds and removes tabs), `ProblemsViewModel` |
 | `FrontRequested` | `DockLayoutViewModel.OnActiveDocumentChanged` |
 
@@ -195,11 +195,12 @@ handler, search for `IRecipient<ThatMessage>` or `Register<..., ThatMessage>`.
 
 | Message | Sent by | Handled by |
 |---|---|---|
-| `StatusMessage` | many | `MainWindowViewModel` (status bar) |
+| `StatusMessage` | many | `StatusBarViewModel` (back to "Ready" after 10 s; tooltip keeps the last 15) |
 | `OpenWorkspaceMessage` | `StartViewModel.Choose`, `App.Start` (reopen last) | `MainWindowViewModel` |
 | `ShowToolTabMessage` | `RunViewModel`, `ProblemsViewModel`, `WatchViewModel`, `TestExplorerViewModel` | `DockLayoutViewModel` |
 | `EditorActionMessage` | `EditorCommands` (menus and key bindings) | `EditorPaneView` (only the pane showing the active document acts) |
-| `DiagnosticsChangedMessage` | `LanguageSessionService` | `EditorPaneView`, `ProblemsViewModel` |
+| `DiagnosticsChangedMessage` | `LanguageSessionService` | `EditorPaneView`, `ProblemsViewModel`, `StatusBarViewModel` |
+| `SolutionDiagnosticsChangedMessage` | `SolutionAnalysisService` | `ProblemsViewModel`, `StatusBarViewModel` |
 | `EditorStateChangedMessage` | `EditorPaneView` (caret moved, diagnostics redrawn) | `MainWindowViewModel` |
 | `NavigateToSearchResultMessage` | `SearchViewModel.OpenResult` | `NavigationService` |
 | `NavigateToProblemMessage` | `ProblemsViewModel` | `NavigationService` |

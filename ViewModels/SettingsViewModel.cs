@@ -128,6 +128,17 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         }
     }
 
+    public bool FontLigatures
+    {
+        get => _editorSettings.FontLigatures;
+        set
+        {
+            if (_editorSettings.FontLigatures == value)
+                return;
+            UpdateEditorSettings(_editorSettings with { FontLigatures = value });
+        }
+    }
+
     public bool SolutionExplorerOnRight
     {
         get => _editorSettings.SolutionExplorerOnRight;
@@ -260,6 +271,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { ColorSwatches = value });
     }
 
+    public bool SolutionWideAnalysis
+    {
+        get => Features.SolutionWideAnalysis;
+        set => SetFeatures(Features with { SolutionWideAnalysis = value });
+    }
+
     public bool InlineDebugValues
     {
         get => Features.InlineDebugValues;
@@ -279,6 +296,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
             return;
         UpdateEditorSettings(_editorSettings with { Features = features });
         OnPropertyChanged(propertyName);
+        OnPropertyChanged(nameof(FontLigatures));
     }
 
     private void UpdateEditorSettings(EditorSettings settings)

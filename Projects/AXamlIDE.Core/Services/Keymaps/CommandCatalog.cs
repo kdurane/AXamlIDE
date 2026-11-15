@@ -114,6 +114,7 @@ public static class CommandCatalog
         new("Test.RunFailed", "Run Failed Tests", "Run the tests that failed last time."),
 
         // ---- Tools
+        new("Tools.SolutionWideAnalysis", "Solution-Wide Analysis", "Turn checking every file in the solution (not just the open ones) on or off."),
         new("Tools.Settings", "Settings", "Open the settings window."),
     ];
 

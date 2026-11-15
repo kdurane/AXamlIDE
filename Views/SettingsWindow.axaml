@@ -48,6 +48,8 @@
                                 ItemsSource="{Binding AvailableEditorFontFamilies}"
                                 MinWidth="260"
                                 SelectedItem="{Binding EditorFontFamily, Mode=TwoWay}" />
+                            <CheckBox Content="Enable font ligatures" IsChecked="{Binding FontLigatures, Mode=TwoWay}" />
+
                         </StackPanel>
 
                         <StackPanel Spacing="6">
@@ -95,6 +97,10 @@
                         <TextBlock Classes="SettingHint" Text="On ( and , in a call. Off: Ctrl+Shift+Space shows it." />
                         <CheckBox Content="Show Quick Info on hover" IsChecked="{Binding QuickInfoOnHover, Mode=TwoWay}" />
                         <TextBlock Classes="SettingHint" Text="What the name under the pointer is, and its documentation. Errors and warnings under the pointer always show." />
+
+                        <TextBlock Classes="SettingsHeading" Text="Code analysis (C#)" />
+                        <CheckBox Content="Analyse the entire solution" IsChecked="{Binding SolutionWideAnalysis, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Errors in files that aren't open show in the Problems list and the status bar. Uses more memory and CPU on a big solution." />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -149,8 +155,8 @@
                 </StackPanel>
             </TabItem>
             <!--
-                Visual Studio's Tools > Options > Environment > Keyboard: the mapping scheme, then every command
-                with its keys. The schemes are Services/Keymaps/*.json in AXamlIDE.Core.
+            Visual Studio's Tools > Options > Environment > Keyboard: the mapping scheme, then every command
+            with its keys. The schemes are Services/Keymaps/*.json in AXamlIDE.Core.
             -->
             <TabItem FontSize="16" Header="Keyboard">
                 <DockPanel Margin="20,12">

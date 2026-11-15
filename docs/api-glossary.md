@@ -74,7 +74,7 @@ The text editor. Most of it is used under `Editor/`.
 | `TextDocument.Changing` / `Changed` | Raised before or after each edit, with offset and removed/inserted text | `DocumentSync.OnChanging` (before: the LSP range must be in pre-edit coordinates), `EditorContext.OnDocumentChanged`, `PreviewPaneViewModel.OnDocumentChanged` |
 | `TextDocument.Insert` / `Replace` | Edits the text | `TypingController` (auto-close), `LanguageSessionService.ApplyTextEdits`, `OpenDocument.ReloadFrom`, completion data classes |
 | `TextDocument.RunUpdate()` | Groups several edits into one undo step | `TypingController.TryMakeNamespaceFileScoped`, `Editor/Commenting/CommentController.cs`, `Editor/Indentation/IndentationStrategies.cs`, `Editor/CodeCompletion/LspCompletionData.cs`, `ViewModels/TerminalViewModel.cs` |
-| `TextDocument.GetLocation(offset)` | Offset → 1-based line and column | `DocumentSync`, `CompletionController`, `MainWindowViewModel.UpdateEditorStatus`, hover, signature help, code actions, navigation |
+| `TextDocument.GetLocation(offset)` | Offset → 1-based line and column | `DocumentSync`, `CompletionController`, `StatusBarViewModel.UpdateDocument`, hover, signature help, code actions, navigation |
 | `GetLineByNumber` / `GetLineByOffset` | A `DocumentLine` (offset, length) | `OpenDocument.ToOffset`, `ToggleBreakpoint`, `NavigationService.ToDebugLocation` / `ToSearchResult` |
 | `UndoStack.MarkAsOriginalFile()` / `IsOriginalFile` | Marks "this is what's saved"; dirty = not at that point | `OpenDocument` (constructor, `Save`, `ReloadFrom`, `IsDirty`) |
 | `TextDocument.CreateAnchor(offset)` (+ `SurviveDeletion`) | A position that moves with edits | `OpenDocument.ToggleBreakpoint`, code lens, colour swatches, snippet fields |
@@ -124,7 +124,7 @@ The text editor. Most of it is used under `Editor/`.
 | API | What it does | Where we use it |
 |---|---|---|
 | `ObservableObject` | Base class that raises `PropertyChanged` | Most view models (`MainWindowViewModel`, `WorkspaceViewModel`, `RunViewModel`...) |
-| `[ObservableProperty] public partial T Name { get; set; }` | Source-generates a property that raises `PropertyChanged`, plus `OnNameChanged` hooks | e.g. `MainWindowViewModel.StatusText`, `RunViewModel.IsRunning`, `DocumentDockable.PreviewMode` |
+| `[ObservableProperty] public partial T Name { get; set; }` | Source-generates a property that raises `PropertyChanged`, plus `OnNameChanged` hooks | e.g. `StatusBarViewModel.MessageText`, `RunViewModel.IsRunning`, `DocumentDockable.PreviewMode` |
 | `[NotifyCanExecuteChangedFor(nameof(XCommand))]` | Re-checks a command's `CanExecute` when the property changes | `RunViewModel.IsDebugStopped` |
 | `[RelayCommand]` (and `CanExecute = nameof(...)`) | Source-generates an `XCommand` property from method `X` (async methods give an `IAsyncRelayCommand`) | Every view model and `Commands/DocumentCommands.cs` |
 | `RelayCommand` / `RelayCommand<T>` / `IRelayCommand` (made by hand) | A command from a lambda | `Commands/EditorCommands.cs` (`Make`), `ViewModels/DocumentDockable.cs` |

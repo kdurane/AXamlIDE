@@ -268,6 +268,7 @@ public sealed class CodeActionController
     {
         try
         {
+            _ctx.Status($"Applying '{title}' ({scope})…");
             var response = await client.ResolveFixAllAsync(data, scope);
             var applied = response.TryGetProperty("edit", out var edit) && _edits.Apply(edit);
             _ctx.Status(applied

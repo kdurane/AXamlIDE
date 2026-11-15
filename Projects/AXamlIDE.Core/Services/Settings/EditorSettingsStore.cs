@@ -71,7 +71,9 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
         var fontFamily = defaults.FontFamily;
         if (persisted.FontFamily is not null)
         {
-            if (IsValidFontFamily(persisted.FontFamily))
+            if (persisted.FontFamily.Trim() == EditorSettings.LegacyDefaultFontFamily)
+                fontFamily = EditorSettings.DefaultFontFamily;
+            else if (IsValidFontFamily(persisted.FontFamily))
                 fontFamily = persisted.FontFamily.Trim();
             else
                 warnings.Add("The saved editor font family is invalid; the default is being used.");
@@ -102,6 +104,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             FontSize = fontSize,
             ShowLineNumbers = persisted.ShowLineNumbers ?? defaults.ShowLineNumbers,
             HighlightCurrentLine = persisted.HighlightCurrentLine ?? defaults.HighlightCurrentLine,
+            FontLigatures = persisted.FontLigatures ?? defaults.FontLigatures,
             SolutionExplorerOnRight = persisted.SolutionExplorerOnRight ?? defaults.SolutionExplorerOnRight,
             FormatOnSave = persisted.FormatOnSave ?? defaults.FormatOnSave,
             Features = persisted.Features ?? defaults.Features,
@@ -133,6 +136,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
             FontSize = settings.FontSize,
             ShowLineNumbers = settings.ShowLineNumbers,
             HighlightCurrentLine = settings.HighlightCurrentLine,
+            FontLigatures = settings.FontLigatures,
             SolutionExplorerOnRight = settings.SolutionExplorerOnRight,
             FormatOnSave = settings.FormatOnSave,
             Features = settings.Features,
@@ -158,6 +162,7 @@ public sealed class EditorSettingsStore(string? settingsPath = null)
         public double? FontSize { get; init; }
         public bool? ShowLineNumbers { get; init; }
         public bool? HighlightCurrentLine { get; init; }
+        public bool? FontLigatures { get; init; }
         public bool? SolutionExplorerOnRight { get; init; }
         public bool? FormatOnSave { get; init; }
 

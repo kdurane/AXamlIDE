@@ -255,6 +255,12 @@
                     <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
                     <MenuItem Command="{Binding EditSnippetsCommand}" Header="Edit S_nippets..." />
                     <Separator />
+                    <MenuItem
+                        Command="{Binding StatusBar.ToggleSolutionAnalysisCommand}"
+                        Header="Solution-Wide _Analysis"
+                        IsChecked="{Binding StatusBar.IsSolutionAnalysisOn, Mode=OneWay}"
+                        ToggleType="CheckBox" />
+                    <Separator />
                     <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Settings..." />
                 </MenuItem>
                 <!--  Visual Studio's Window menu: layout commands, then every open document.  -->
@@ -553,27 +559,98 @@
             Padding="8,2"
             TextElement.Foreground="{DynamicResource AppStatusBarForegroundBrush}"
             x:Name="StatusBar">
-            <!--  Visual Studio's status bar: the message, then errors/warnings, Ln/Col, and the Git branch on the right.  -->
-            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
-                <TextBlock
-                    Grid.Column="0"
-                    Text="{Binding StatusText}"
-                    TextTrimming="CharacterEllipsis" />
-                <TextBlock
-                    Grid.Column="1"
-                    Margin="16,0,0,0"
-                    Text="{Binding DiagnosticsText}" />
-                <TextBlock
-                    Grid.Column="2"
-                    Margin="16,0,0,0"
-                    Text="{Binding CaretText}" />
+            <!--
+                The status bar (StatusBarViewModel), laid out like Rider's: the message on the left; on the right
+                solution-wide analysis, the active document's errors, Ln/Col, line endings, encoding and indentation,
+                the language server, and the Git branch.
+            -->
+            <Grid ColumnDefinitions="*,Auto">
+                <DockPanel DataContext="{Binding StatusBar}" LastChildFill="True">
+                    <DockPanel.Styles>
+                        <Style Selector="DockPanel > :is(Control)">
+                            <Setter Property="DockPanel.Dock" Value="Right" />
+                            <Setter Property="Margin" Value="8,0,0,0" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                        </Style>
+                        <Style Selector="Button.statusBarItem.off PathIcon">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Style>
+                    </DockPanel.Styles>
+
+                    <!--  Docked right, so the first one here is the rightmost.  -->
+                    <!--  The language server: an icon while it runs; what it's doing while busy; why, if it stopped.  -->
+                    <StackPanel
+                        IsVisible="{Binding ShowLanguageServer}"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        ToolTip.Tip="{Binding LanguageServerTip}">
+                        <PathIcon
+                            Data="{StaticResource Icon.CSharp}"
+                            Foreground="{DynamicResource AppStatusBarForegroundBrush}"
+                            Height="14"
+                            Width="14" />
+                        <TextBlock
+                            MaxWidth="360"
+                            Text="{Binding LanguageServerText}"
+                            TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+
+                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding IndentText}" ToolTip.Tip="Indentation" />
+                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding EncodingText}" ToolTip.Tip="File encoding" />
+                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding LineEndingText}" ToolTip.Tip="Line endings" />
+                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding CaretText}" />
+                    <TextBlock
+                        IsVisible="{Binding HasDocument}"
+                        Text="{Binding DocumentProblemsText}"
+                        ToolTip.Tip="Errors and warnings in this file" />
+
+                    <!--  Solution-wide analysis (Rider's "4 errors in 3 files"): click for its menu.  -->
+                    <Button
+                        AutomationProperties.Name="Solution-wide analysis"
+                        Classes="statusBarItem"
+                        Classes.off="{Binding !IsSolutionAnalysisOn}"
+                        ToolTip.Tip="{Binding SolutionAnalysisTip}"
+                        VerticalAlignment="Stretch">
+                        <Button.Flyout>
+                            <MenuFlyout Placement="TopEdgeAlignedRight">
+                                <MenuItem
+                                    Command="{Binding ShowSolutionErrorsCommand}"
+                                    Header="Show _Errors in Problems"
+                                    IsEnabled="{Binding IsSolutionAnalysisOn}" />
+                                <Separator />
+                                <MenuItem
+                                    Command="{Binding ToggleSolutionAnalysisCommand}"
+                                    Header="Solution-Wide _Analysis"
+                                    IsChecked="{Binding IsSolutionAnalysisOn, Mode=OneWay}"
+                                    ToggleType="CheckBox" />
+                            </MenuFlyout>
+                        </Button.Flyout>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Panel>
+                                <PathIcon Data="{StaticResource Icon.CloseCircleOutline}" IsVisible="{Binding SolutionHasErrors}" />
+                                <PathIcon Data="{StaticResource Icon.CheckCircle}" IsVisible="{Binding SolutionIsClean}" />
+                                <PathIcon Data="{StaticResource Icon.CircleOutline}" IsVisible="{Binding SolutionIsPending}" />
+                            </Panel>
+                            <TextBlock Text="{Binding SolutionAnalysisText}" />
+                        </StackPanel>
+                    </Button>
+
+                    <!--  The message fills what's left. Its tooltip lists the recent ones.  -->
+                    <TextBlock
+                        Margin="0"
+                        Text="{Binding MessageText}"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip.Tip="{Binding MessageHistory}" />
+                </DockPanel>
+
                 <StackPanel
-                    Grid.Column="3"
+                    Grid.Column="1"
                     IsVisible="{Binding Git.IsRepository}"
-                    Margin="16,0,0,0"
+                    Margin="8,0,0,0"
                     Orientation="Horizontal"
                     Spacing="4"
-                    ToolTip.Tip="Current Git branch">
+                    ToolTip.Tip="Current Git branch"
+                    VerticalAlignment="Center">
                     <PathIcon
                         Data="{StaticResource Icon.SourceBranch}"
                         Foreground="{DynamicResource AppStatusBarForegroundBrush}"

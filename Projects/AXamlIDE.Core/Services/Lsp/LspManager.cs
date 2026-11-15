@@ -9,6 +9,16 @@ using System.Threading.Tasks;
 namespace AXamlIDE.Services.Lsp;
 
 /// <summary>
+/// The language servers at a glance, for the status bar's indicator (like Rider's and VS Code's): an icon while one
+/// is running, its progress text while it's busy, and why it isn't working when it isn't.
+/// </summary>
+/// <param name="AnyStarted">Some server has been started for this workspace (the indicator is shown).</param>
+/// <param name="BusyText">What a server is doing ("Loading projects..."), or null when they're all idle.</param>
+/// <param name="ProblemText">"roslyn: not found - ..." when a server couldn't start or stopped, else null.</param>
+/// <param name="Details">Every started server's state, one per line: the indicator's tooltip.</param>
+public sealed record LanguageServerSummary(bool AnyStarted, string? BusyText, string? ProblemText, string Details);
+
+/// <summary>
 /// Owns one LspClient per configured server. Servers start lazily the first time a document
 /// of one of their languages is attached, once per workspace. Everything here runs on the
 /// UI thread except the DiagnosticsPublished forwarding, which comes from the clients'
@@ -72,10 +82,24 @@ public sealed class LspManager : IDisposable
 
     public bool Handles(string languageId) => _byLanguage.ContainsKey(languageId);
 
-    /// <summary>"axsg-lsp: running  ·  csharp-ls: starting…" - only servers that have been touched.</summary>
-    public string StatusSummary => string.Join("  \u00b7  ",
-        _servers.Values.Where(s => s.Status != "idle").Select(s =>
-            s.Progress is null ? $"{s.Config.Id}: {s.Status}" : $"{s.Config.Id}: {s.Status} ({s.Progress})"));
+    /// <summary>The state of the servers that have been started (see <see cref="LanguageServerSummary"/>).</summary>
+    public LanguageServerSummary Summary
+    {
+        get
+        {
+            var started = _servers.Values.Where(s => s.Status != "idle").ToList();
+            var busy = started.FirstOrDefault(s => s.Progress is not null || s.Status.EndsWith('\u2026'));
+            var broken = started.FirstOrDefault(s => s.Status == "stopped"
+                                                     || s.Status.StartsWith("not found", StringComparison.Ordinal)
+                                                     || s.Status.StartsWith("failed", StringComparison.Ordinal));
+            return new LanguageServerSummary(
+                started.Count > 0,
+                busy?.Progress ?? busy?.Status,
+                broken is null ? null : $"{broken.Config.Id}: {broken.Status}",
+                string.Join(Environment.NewLine, started.Select(s =>
+                    s.Progress is null ? $"{s.Config.Id}: {s.Status}" : $"{s.Config.Id}: {s.Status} ({s.Progress})")));
+        }
+    }
 
     /// <summary>New workspace: drop every server. Callers should then re-attach their open documents.</summary>
     public void SetWorkspace(LspWorkspace workspace)

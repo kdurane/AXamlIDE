@@ -10,6 +10,7 @@ public interface IEditorSettings : INotifyPropertyChanged
     double EditorFontSize { get; set; }   // settable: Ctrl+wheel in the editor changes it
     bool ShowLineNumbers { get; }
     bool HighlightCurrentLine { get; }
+    bool FontLigatures { get; }
     EditorTheme SelectedTheme { get; }
     bool FormatOnSave { get; }
 

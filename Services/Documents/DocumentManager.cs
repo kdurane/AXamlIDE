@@ -58,13 +58,16 @@ public sealed class DocumentManager
         }
     }
 
+    private static readonly Encoding Utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
     public OpenDocument Open(string path)
     {
         if (_byPath.TryGetValue(path, out var existing))
             return existing;                       // already open: just activate it
 
-        // StreamReader detects BOMs so we can write back in the same encoding.
-        using var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        // StreamReader detects BOMs so we can write back in the same encoding. With none, it's UTF-8 without a BOM
+        // (Encoding.UTF8 here would add a BOM to the file on its next save).
+        using var reader = new StreamReader(path, Utf8WithoutBom, detectEncodingFromByteOrderMarks: true);
         var text = reader.ReadToEnd();
         var doc = new OpenDocument(path, text, reader.CurrentEncoding, LanguageFor(path));
 

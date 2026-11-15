@@ -16,6 +16,13 @@ public sealed record LspDiagnostic(
     string Message,
     JsonElement? Raw = null);
 
+/// <summary>
+/// One file's part of a workspace/diagnostic answer. <paramref name="Unchanged"/>: same as last time (the diagnostics
+/// are then empty: keep the old ones). <paramref name="ResultId"/> is sent back next time to say what we have.
+/// </summary>
+public sealed record LspWorkspaceDiagnosticReport(
+    string Uri, string? ResultId, bool Unchanged, IReadOnlyList<LspDiagnostic> Diagnostics);
+
 public sealed record LspRange(int StartLine, int StartChar, int EndLine, int EndChar);
 public sealed record LspLocation(string Uri, LspRange Range, string? Name = null, string? ContainerName = null);
 public sealed record LspDocumentSymbol(string Name, int Kind, LspRange Range, LspRange SelectionRange, string? ContainerName = null);

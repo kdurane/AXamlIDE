@@ -142,7 +142,7 @@ public sealed partial class LspClient
 
             if (registration.TryGetProperty("registerOptions", out var options)
                 && options.ValueKind == JsonValueKind.Object)
-                AddDiagnosticIdentifier(Str(options, "identifier"));
+                AddDiagnosticIdentifier(options);
         }
 
         // Documents attached before this arrived have not been pulled yet.
@@ -180,13 +180,20 @@ public sealed partial class LspClient
         SupportsCodeLens = _staticCodeLens || _dynamicCapabilities.Contains("textDocument/codeLens");
     }
 
-    private void AddDiagnosticIdentifier(string? identifier)
+    /// <summary>Remembers a DiagnosticOptions' identifier, and whether it also does workspace diagnostics.</summary>
+    private void AddDiagnosticIdentifier(JsonElement options)
     {
+        var identifier = Str(options, "identifier");
         if (string.IsNullOrEmpty(identifier)) return;
+        var workspace = options.TryGetProperty("workspaceDiagnostics", out var flag) && flag.ValueKind == JsonValueKind.True;
 
         lock (_diagnosticIdentifiers)
+        {
             if (!_diagnosticIdentifiers.Contains(identifier))
                 _diagnosticIdentifiers.Add(identifier);
+            if (workspace && !_workspaceDiagnosticIdentifiers.Contains(identifier))
+                _workspaceDiagnosticIdentifiers.Add(identifier);
+        }
     }
 
     private void HandleNotification(string method, JsonElement root)

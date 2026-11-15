@@ -82,6 +82,7 @@ public static class AppServices
         services.AddSingleton<GitCredentialSetup>();
         services.AddSingleton<GitStatusTracker>();
         services.AddSingleton<LanguageSessionService>();
+        services.AddSingleton<SolutionAnalysisService>();   // errors in closed files, when solution-wide analysis is on
         services.AddSingleton<XamlCacheKeeper>();          // tells XAML completion when its caches go stale
 
         // ---- view models
@@ -92,6 +93,7 @@ public static class AppServices
         services.AddSingleton<GitViewModel>();
         services.AddSingleton<PropertiesViewModel>();
         services.AddSingleton<ProblemsViewModel>();
+        services.AddSingleton<StatusBarViewModel>();        // messages, Ln/Col, encoding, solution analysis, language server
         services.AddSingleton<OutlineViewModel>();
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<RunViewModel>();

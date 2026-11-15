@@ -22,12 +22,12 @@ namespace AXamlIDE.ViewModels;
 /// The main window's view model: the one main UI (menus, top bar, activity bar, status bar), which acts
 /// on the selected tab wherever it is (main window or a floating one). The tabs and tool panels are in
 /// <see cref="Docking"/>; each panel has its own view model. This class owns what belongs to the app as a
-/// whole: the status bar text and workspace-wide commands.
+/// whole: workspace-wide commands; the status bar is <see cref="StatusBar"/>.
 ///
-/// Handles <see cref="StatusMessage"/> and <see cref="EditorStateChangedMessage"/> from any area.
+/// <see cref="StatusMessage"/>s from any area are shown by <see cref="StatusBar"/>.
 /// </summary>
 public sealed partial class MainWindowViewModel : ObservableObject,
-    IRecipient<StatusMessage>, IRecipient<EditorStateChangedMessage>, IRecipient<OpenWorkspaceMessage>
+    IRecipient<OpenWorkspaceMessage>
 {
     private readonly DocumentManager _documents;
     private readonly DocumentSaveService _saver;
@@ -58,6 +58,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         NuGetManager nuGet,
         PublishManager publish,
         VisualizerManager visualizers,
+        StatusBarViewModel statusBar,
         EditorCommands editorCommands,
         NavigationService navigation,
         SettingsViewModel settings,
@@ -91,8 +92,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         NuGet = nuGet;
         Publish = publish;
         Visualizers = visualizers;
+        StatusBar = statusBar;
 
-        _documents.ActiveChanged += _ => UpdateEditorStatus();
         messenger.RegisterAll(this);
 
         if (settingsLoad.Warnings.Count > 0)
@@ -139,29 +140,10 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     // ---------------------------------------------------------------- window state
 
-    [ObservableProperty] public partial string StatusText { get; set; } = "language servers: idle";
-    [ObservableProperty] public partial string CaretText { get; set; } = "";
-    [ObservableProperty] public partial string DiagnosticsText { get; set; } = "";
+    /// <summary>The status bar: messages, the active document's details, solution-wide analysis, the language server.</summary>
+    public StatusBarViewModel StatusBar { get; }
 
-    public void ShowStatusMessage(string message) => StatusText = message;
-
-    public void Receive(StatusMessage message) => ShowStatusMessage(message.Text);
-
-    /// <summary>Caret moved or diagnostics changed in the editor.</summary>
-    public void Receive(EditorStateChangedMessage message) => UpdateEditorStatus();
-
-    private void UpdateEditorStatus()
-    {
-        if (_documents.Active is not { } document)
-        {
-            CaretText = DiagnosticsText = "";
-            return;
-        }
-
-        var caret = document.Document.GetLocation(Math.Min(document.CaretOffset, document.Document.TextLength));
-        CaretText = $"Ln {caret.Line}, Col {caret.Column}";
-        DiagnosticsText = $"{document.ErrorCount} errors, {document.WarningCount} warnings";
-    }
+    public void ShowStatusMessage(string message) => StatusBar.Show(message);
 
     // ---------------------------------------------------------------- commands
 

@@ -40,6 +40,49 @@ public sealed partial class LspClient
         return [.. items.EnumerateArray().Select(ParseDiagnostic)];
     }
 
+    /// <summary>The identifiers that answer workspace/diagnostic (empty if the server can't analyse the whole workspace).</summary>
+    public IReadOnlyList<string> WorkspaceDiagnosticIdentifiers
+    {
+        get
+        {
+            lock (_diagnosticIdentifiers)
+                return [.. _workspaceDiagnosticIdentifiers];
+        }
+    }
+
+    /// <summary>
+    /// Every file's diagnostics (workspace/diagnostic), for one identifier. Pass back the result ids of the last
+    /// answer: files that haven't changed then come back as unchanged. The server may hold the request open until
+    /// something does change (a "long poll"), so this can take minutes; cancel it to stop waiting.
+    /// </summary>
+    public async Task<IReadOnlyList<LspWorkspaceDiagnosticReport>> WorkspaceDiagnosticsAsync(
+        string identifier, IReadOnlyDictionary<string, string> previousResultIds, CancellationToken ct)
+    {
+        var result = await RequestAsync("workspace/diagnostic", new
+        {
+            identifier,
+            previousResultIds = previousResultIds.Select(pair => new { uri = pair.Key, value = pair.Value }).ToArray()
+        }, ct);
+
+        if (result.ValueKind != JsonValueKind.Object
+            || !result.TryGetProperty("items", out var items)
+            || items.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var reports = new List<LspWorkspaceDiagnosticReport>();
+        foreach (var item in items.EnumerateArray())
+        {
+            if (Str(item, "uri") is not { } uri)
+                continue;
+            var unchanged = Str(item, "kind") == "unchanged";
+            var diagnostics = !unchanged && item.TryGetProperty("items", out var list) && list.ValueKind == JsonValueKind.Array
+                ? list.EnumerateArray().Select(ParseDiagnostic).ToList()
+                : [];
+            reports.Add(new LspWorkspaceDiagnosticReport(uri, Str(item, "resultId"), unchanged, diagnostics));
+        }
+        return reports;
+    }
+
     // ------------------------------------------------------- hover / completion
 
     public async Task<LspHover?> HoverAsync(string uri, int line, int character, CancellationToken ct = default)

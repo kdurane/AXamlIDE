@@ -21,12 +21,11 @@ namespace AXamlIDE.Services.Languages;
 ///
 /// It watches <see cref="DocumentManager"/> by itself, so nobody has to tell it when a file
 /// opens or closes. Results go out as messages: <see cref="DiagnosticsChangedMessage"/> and
-/// <see cref="StatusMessage"/> (server status, formatting results).
+/// <see cref="StatusMessage"/> (formatting results). The servers' own state is shown by the status bar, which reads
+/// <see cref="LspManager.Summary"/>.
 /// </summary>
 public sealed class LanguageSessionService
 {
-    private const string IdleStatus = "language servers: idle";
-
     private readonly DocumentManager _documents;
     private readonly LspManager _servers;
     private readonly IMessenger _messenger;
@@ -50,7 +49,6 @@ public sealed class LanguageSessionService
         _documents.Saving += OnDocumentSaving;
         _documents.Saved += OnDocumentSaved;
 
-        _servers.StatusChanged += OnServerStatusChanged;
         _servers.DiagnosticsPublished += OnDiagnosticsPublished;
         _servers.DiagnosticsRefreshNeeded += OnDiagnosticsRefreshNeeded;
         _servers.WorkspaceEditHandler = edit => WorkspaceEditRequested?.Invoke(edit) ?? Task.FromResult(false);
@@ -203,12 +201,6 @@ public sealed class LanguageSessionService
 
         document.ApplyDiagnostics(diagnostics);
         _messenger.Send(new DiagnosticsChangedMessage(document));
-    }
-
-    private void OnServerStatusChanged()
-    {
-        var summary = _servers.StatusSummary;
-        Status(summary.Length > 0 ? summary : IdleStatus);
     }
 
     // ---------------------------------------------------------------- formatting

@@ -139,6 +139,7 @@
     <ItemGroup>
       <AvaloniaResource Include="Assets/*.json" />
       <AvaloniaResource Include="Assets/Grammars/*.json" />
+      <AvaloniaResource Include="Assets/Fonts/*.ttf" />
     </ItemGroup>
 
     <ItemGroup>

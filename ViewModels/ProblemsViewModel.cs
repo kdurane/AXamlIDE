@@ -7,6 +7,7 @@ using System.Linq;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Problems;
@@ -20,17 +21,20 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The Problems tool tab, like Visual Studio's Error List: every diagnostic in every open document, the errors and
-/// warnings of the last build (in any file, open or not), and the preview's error for an AXAML file. The scope box
+/// warnings of the last build (in any file, open or not), with solution-wide analysis on the live errors of every
+/// file in the solution, and the preview's error for an AXAML file. The scope box
 /// narrows the list to the open documents, the active document's project, or the active document; the three
 /// filter buttons (Errors / Warnings / Messages) show the counts within that scope and hide a kind; F8 / Shift+F8
 /// step through the problems in open documents. Rebuilds itself whenever diagnostics change, a build finishes, the
 /// preview reports, or a document opens or closes.
 /// </summary>
 public sealed partial class ProblemsViewModel : ObservableObject,
-    IRecipient<DiagnosticsChangedMessage>, IRecipient<PreviewProblemMessage>, IRecipient<BuildProblemsMessage>
+    IRecipient<DiagnosticsChangedMessage>, IRecipient<SolutionDiagnosticsChangedMessage>,
+    IRecipient<PreviewProblemMessage>, IRecipient<BuildProblemsMessage>
 {
     private readonly DocumentManager _documents;
     private readonly WorkspaceModel _workspace;
+    private readonly SolutionAnalysisService _solutionAnalysis;
     private readonly IMessenger _messenger;
     private readonly ProblemNavigationService _navigation = new();
     private readonly Dictionary<OpenDocument, PreviewError> _previewErrors = [];
@@ -40,8 +44,10 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     // The project that owns each file, found once per rebuild (the solution can change between rebuilds).
     private readonly Dictionary<string, string?> _projectOfFile = new(GitStatus.PathComparer);
 
-    public ProblemsViewModel(DocumentManager documents, WorkspaceModel workspace, IMessenger messenger)
+    public ProblemsViewModel(DocumentManager documents, WorkspaceModel workspace, SolutionAnalysisService solutionAnalysis,
+        IMessenger messenger)
     {
+        _solutionAnalysis = solutionAnalysis;
         _documents = documents;
         _workspace = workspace;
         _messenger = messenger;
@@ -88,6 +94,8 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     partial void OnFilterChanged(string value) => Refilter();
 
     public void Receive(DiagnosticsChangedMessage message) => Rebuild();
+
+    public void Receive(SolutionDiagnosticsChangedMessage message) => Rebuild();
 
     /// <summary>A build finished: its errors and warnings replace the last build's.</summary>
     public void Receive(BuildProblemsMessage message)
@@ -167,15 +175,33 @@ public sealed partial class ProblemsViewModel : ObservableObject,
                     ProjectOf(document.Path)));
             }
 
-        // Build problems: in a file that's open, the same thing is usually already listed by its language server
-        // (the compiler's message, at the same line), so those are left out. The rest are listed by file.
+        // Solution-wide analysis: files that aren't open (an open file's come from its own pulls, above, which see the
+        // unsaved text). Errors, warnings and messages only: a closed file's unused usings would bury the rest.
         var open = _documents.Documents.ToDictionary(document => document.Path, GitStatus.PathComparer);
+        foreach (var (path, diagnostics) in _solutionAnalysis.Files)
+        {
+            if (open.ContainsKey(path))
+                continue;
+            var project = ProjectOf(path);
+            foreach (var diagnostic in diagnostics)
+            {
+                if (diagnostic.Severity >= LspDiagnosticSeverity.Hint)
+                    continue;
+                var code = LspHelpers.DiagnosticCode(diagnostic.Raw);
+                _all.Add(new ProblemItem(path, diagnostic.Severity, diagnostic.StartLine + 1, diagnostic.StartChar + 1,
+                    LspHelpers.DiagnosticText(diagnostic.Message, code), ProblemSource.IntelliSense, code, project));
+            }
+        }
+
+        // Build problems: the same thing is usually already listed by the language server (the compiler's message, at
+        // the same line) for open files, and for every file with solution-wide analysis on, so those are left out.
         foreach (var diagnostic in _buildDiagnostics)
         {
             var document = diagnostic.HasLocation ? open.GetValueOrDefault(diagnostic.Path) : null;
-            if (document is not null
-                && _all.Any(problem => ReferenceEquals(problem.Document, document)
+            if (diagnostic.HasLocation
+                && _all.Any(problem => problem.Source == ProblemSource.IntelliSense
                                        && problem.Line == diagnostic.Line
+                                       && GitStatus.PathComparer.Equals(problem.Path, diagnostic.Path)
                                        && SameText(problem.Message, diagnostic.Message)))
                 continue;
 

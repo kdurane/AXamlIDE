@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Media.Fonts;
 using AXamlIDE.Services.Diagnostics;
 
 namespace AXamlIDE;
@@ -18,6 +19,10 @@ class Program
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
+            // Fonts shipped in Assets/Fonts, addressed as "fonts:App#<family name>" (e.g. fonts:App#JetBrains Mono).
+            .ConfigureFonts(fonts => fonts.AddFontCollection(new EmbeddedFontCollection(
+                new Uri("fonts:App", UriKind.Absolute),
+                new Uri("avares://AXamlIDE/Assets/Fonts", UriKind.Absolute))))
             .LogToTrace();
 
     [STAThread]

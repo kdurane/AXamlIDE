@@ -30,6 +30,33 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
         <Setter Property="Height" Value="10" />
     </Style>
 
+    <!--
+    statusBarItem: a clickable part of the main window's status bar (solution-wide analysis), flat in the bar's own
+    colours. The hover is a translucent grey, so it shows on every theme's bar, light or dark.
+    -->
+    <Style Selector="Button.statusBarItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="0" />
+        <Setter Property="Padding" Value="6,0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource AppStatusBarForegroundBrush}" />
+    </Style>
+    <Style Selector="Button.statusBarItem /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource AppStatusBarForegroundBrush}" />
+    </Style>
+    <Style Selector="Button.statusBarItem:pointerover /template/ ContentPresenter, Button.statusBarItem:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="#33808080" />
+    </Style>
+    <Style Selector="Button.statusBarItem PathIcon">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="Height" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource AppStatusBarForegroundBrush}" />
+    </Style>
+
     <!--  link: looks like a hyperlink (the click handler opens it).  -->
     <Style Selector="Button.link">
         <Setter Property="Background" Value="Transparent" />

@@ -48,7 +48,14 @@ public static class RoslynSettings
             "inlay_hints.dotnet_enable_inlay_hints_for_parameters" => features.InlayParameterHints,
             "inlay_hints.csharp_enable_inlay_hints_for_types" => features.InlayTypeHints,
             "code_lens.dotnet_enable_references_code_lens" => features.CodeLens,   // no counting references nobody sees
+            // Which files Roslyn analyses in the background: its analyzers (IDE0005, CA1822...) and the compiler (CS0103...).
+            "background_analysis.dotnet_analyzer_diagnostics_scope" => AnalysisScope(features),
+            "background_analysis.dotnet_compiler_diagnostics_scope" => AnalysisScope(features),
             _ => Defaults.GetValueOrDefault(section)
         };
     }
+
+    /// <summary>"fullSolution" reports every file through workspace/diagnostic; "openFiles" (Roslyn's default) only the open ones.</summary>
+    private static string AnalysisScope(EditorFeatureSettings features)
+        => features.SolutionWideAnalysis ? "fullSolution" : "openFiles";
 }
