@@ -52,11 +52,14 @@ public sealed class SemanticTokenColors
             ? new SolidColorBrush(color)
             : null;
 
+        var plainMembers = VisualStudioThemes.Contains(rawTheme.GetName());
+
         foreach (var (type, scopes) in Scopes)
-            if (ColorOf(theme, scopes) is { } brush)
+            if (!(plainMembers && PlainMembers.Contains(type)) && ColorOf(theme, scopes) is { } brush)
                 _brushes[type] = brush;
             else if (plainText is not null)
                 _brushes[type] = plainText;
+
     }
 
     /// <summary>The colour for a token type (the server's name for it), or null to leave it as TextMate coloured it.</summary>
@@ -76,4 +79,10 @@ public sealed class SemanticTokenColors
             }
         return null;
     }
+
+    // Visual Studio colours only locals and parameters; members are plain text. These themes have one broad
+    // "variable" rule that would otherwise colour them all, since theme rules match by scope prefix.
+    private static readonly HashSet<string> PlainMembers = ["property", "field", "event", "enumMember", "constant"];
+    private static readonly HashSet<string> VisualStudioThemes = ["Visual Studio Dark", "Visual Studio Light"];
+
 }

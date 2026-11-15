@@ -18,6 +18,8 @@
         <PackageReference Include="ICSharpCode.Decompiler" Version="11.1.0.9782" />
         <PackageReference Include="Microsoft.Diagnostics.Runtime" Version="3.1.512801" />
         <PackageReference Include="TextMateSharp.Grammars" Version="2.0.4" />
+        <!-- Parser toolkit; the vendored XAML Styler uses it to parse markup extensions. -->
+        <PackageReference Include="Irony" Version="1.5.3" />
     </ItemGroup>
 
     <ItemGroup>
@@ -29,6 +31,8 @@
         <!-- The built-in code snippets (SnippetLibrary), in VS Code's snippet file format. -->
         <EmbeddedResource Include="Services/Snippets/*.json" LogicalName="AXamlIDE.Snippets.%(Filename).json" />
         <EmbeddedResource Include="Services/Keymaps/*.json" LogicalName="AXamlIDE.Keymaps.%(Filename).json" />
+        <!-- The XAML formatter's built-in options (the same defaults XAML Styler ships with). -->
+        <EmbeddedResource Include="XamlStyler/Options/DefaultSettings.json" LogicalName="AXamlIDE.XamlStyler.Options.DefaultSettings.json" />
     </ItemGroup>
 
     <ItemGroup>

@@ -81,6 +81,24 @@
 
                         <TextBlock Classes="SettingsHeading" Text="Formatting" />
                         <CheckBox Content="Format documents on save when supported" IsChecked="{Binding FormatOnSave, Mode=TwoWay}" />
+                        <CheckBox
+                            Margin="24,0,0,0"
+                            Content="Include AXAML files"
+                            IsChecked="{Binding FormatXamlOnSave, Mode=TwoWay}"
+                            IsEnabled="{Binding FormatOnSave}" />
+                        <TextBlock
+                            Margin="24,0,0,0"
+                            Classes="SettingHint"
+                            Text="Off: AXAML is only formatted when you run Format Document." />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="AXAML indent size" />
+                            <ComboBox
+                                ItemsSource="{Binding AvailableIndentSizes}"
+                                MinWidth="100"
+                                SelectedItem="{Binding XamlIndentSize, Mode=TwoWay}" />
+                        </StackPanel>
+                        <TextBlock Classes="SettingHint" Text="Spaces per level. A Settings.XamlStyler file in the project overrides this, as in Visual Studio and Rider." />
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

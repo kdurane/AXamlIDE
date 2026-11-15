@@ -5,12 +5,14 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Settings;
+using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.Services.Languages;
@@ -29,12 +31,17 @@ public sealed class LanguageSessionService
     private readonly DocumentManager _documents;
     private readonly LspManager _servers;
     private readonly IMessenger _messenger;
+    private readonly IEditorSettings _settings;
     private readonly Dictionary<OpenDocument, DocumentConnection> _connections = [];
+
+    /// <summary>The open folder/solution: where the XAML formatter stops looking for Settings.XamlStyler.</summary>
+    private string? _workspaceRoot;
 
     public LanguageSessionService(DocumentManager documents, LspManager servers, IEditorSettings settings, IMessenger messenger)
     {
         _documents = documents;
         _servers = servers;
+        _settings = settings;
         _messenger = messenger;
 
         // Some settings are server options (Roslyn's inlay hints, its completion of unimported types).
@@ -78,11 +85,16 @@ public sealed class LanguageSessionService
     /// <summary>A folder or solution was opened: (re)start servers rooted there and reattach documents.</summary>
     public void SetWorkspace(LspWorkspace workspace)
     {
+        _workspaceRoot = workspace.RootPath;
         _servers.SetWorkspace(workspace);
         ReattachDocuments();
     }
 
-    public void ClearWorkspace() => _servers.ClearWorkspace();
+    public void ClearWorkspace()
+    {
+        _workspaceRoot = null;
+        _servers.ClearWorkspace();
+    }
 
     public void Restart()
     {
@@ -205,12 +217,22 @@ public sealed class LanguageSessionService
 
     // ---------------------------------------------------------------- formatting
 
+    /// <summary>Whether format-on-save should format this document (when format-on-save is on).</summary>
+    public bool FormatsOnSave(OpenDocument document)
+        => document.LanguageId == LanguageIds.Axaml
+            ? _settings.Features.FormatXamlOnSave
+            : ClientFor(document)?.SupportsDocumentFormatting == true;
+
     /// <summary>
-    /// Formats the document through its language server. With <paramref name="reportUnchanged"/>
-    /// false (format-on-save) it stays quiet unless something goes wrong.
+    /// Formats the document: AXAML/XAML with the built-in XAML Styler, everything else through its
+    /// language server. With <paramref name="reportUnchanged"/> false (format-on-save) it stays quiet
+    /// unless something goes wrong.
     /// </summary>
     public async Task<bool> FormatDocumentAsync(OpenDocument document, bool reportUnchanged)
     {
+        if (document.LanguageId == LanguageIds.Axaml)
+            return FormatXaml(document, reportUnchanged);
+
         if (ConnectionFor(document) is not { Client: var client, Sync: var sync })
         {
             if (reportUnchanged)
@@ -248,6 +270,51 @@ public sealed class LanguageSessionService
         }
     }
 
+    /// <summary>XAML Styler formatting (no language server involved), applied as line edits in one undo step.</summary>
+    private bool FormatXaml(OpenDocument document, bool reportUnchanged)
+    {
+        if (document.IsReadOnly)
+        {
+            if (reportUnchanged)
+                Status("This document is read-only.");
+            return false;
+        }
+
+        try
+        {
+            var text = document.Document.Text;
+            var formatted = XamlFormatter.Format(text, document.Path, _workspaceRoot, _settings.Features.XamlIndentSize);
+            if (formatted == text)
+            {
+                if (reportUnchanged)
+                    Status("The document is already formatted.");
+                return true;
+            }
+
+            using (document.Document.RunUpdate())   // one undo step
+            {
+                // Back to front, so earlier offsets stay valid.
+                var edits = XamlFormatter.LineEdits(text, formatted);
+                for (var index = edits.Count - 1; index >= 0; index--)
+                    document.Document.Replace(edits[index].Start, edits[index].Length, edits[index].NewText);
+            }
+
+            if (reportUnchanged)
+                Status("Document formatted. Review and save the changes.");
+            return true;
+        }
+        catch (XmlException ex)
+        {
+            Status($"Can't format: the XAML isn't well-formed ({ex.Message}).");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Status($"Document formatting failed: {ex.Message}");
+            return false;
+        }
+    }
+
     private static void ApplyTextEdits(
         OpenDocument document,
         IEnumerable<(LspRange Range, string NewText)> textEdits)
@@ -270,8 +337,11 @@ public sealed class LanguageSessionService
                 throw new InvalidOperationException(
                     $"The language server returned overlapping edits for '{document.Path}'.");
 
-        foreach (var (start, end, newText) in offsets)
-            document.Document.Replace(start, end - start, newText);
+        using (document.Document.RunUpdate())   // one undo step for the whole format
+        {
+            foreach (var (start, end, newText) in offsets)
+                document.Document.Replace(start, end - start, newText);
+        }
     }
 
     private void Status(string text) => _messenger.Send(new StatusMessage(text));

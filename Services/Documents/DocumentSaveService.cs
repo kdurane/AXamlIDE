@@ -11,8 +11,8 @@ using CommunityToolkit.Mvvm.Messaging;
 namespace AXamlIDE.Services.Documents;
 
 /// <summary>
-/// Saving documents the way the user expects: format-on-save (when enabled and the language
-/// server can format), read-only documents refused, and failures reported in the status bar.
+/// Saving documents the way the user expects: format-on-save (when enabled and the document
+/// can be formatted), read-only documents refused, and failures reported in the status bar.
 /// Used by the shell (Ctrl+S, close prompts) and by Run (save all before building).
 /// </summary>
 public sealed class DocumentSaveService(
@@ -30,7 +30,7 @@ public sealed class DocumentSaveService(
             return false;
         }
 
-        if (settings.FormatOnSave && languages.ClientFor(document)?.SupportsDocumentFormatting == true)
+        if (settings.FormatOnSave && languages.FormatsOnSave(document))
             await languages.FormatDocumentAsync(document, reportUnchanged: false);
 
         try

@@ -154,7 +154,7 @@ public sealed partial class DocumentCommands(
     {
         if ((document ?? documents.Active) is not { } target)
         {
-            messenger.Send(new StatusMessage("Open a document with an active language server to format it."));
+            messenger.Send(new StatusMessage("Open a document to format it."));
             return;
         }
 

@@ -1,0 +1,18 @@
+// (c) Xavalon. All rights reserved.
+#nullable disable // Upstream XAML Styler code predates nullable reference types.
+
+using System.Text;
+using System.Xml;
+
+namespace AXamlIDE.XamlStyler.DocumentProcessors
+{
+    internal class XmlDeclarationDocumentProcessor : IDocumentProcessor
+    {
+        public void Process(XmlReader xmlReader, StringBuilder output, ElementProcessContext elementProcessContext)
+        {
+            output.Append("<?xml ");
+            output.Append(xmlReader.Value.Trim());
+            output.Append(" ?>");
+        }
+    }
+}

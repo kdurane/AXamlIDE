@@ -205,6 +205,21 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { AutoCloseXamlTags = value });
     }
 
+    public bool FormatXamlOnSave
+    {
+        get => Features.FormatXamlOnSave;
+        set => SetFeatures(Features with { FormatXamlOnSave = value });
+    }
+
+    /// <summary>The choices for <see cref="XamlIndentSize"/> (what VS offers is 1 and up; nobody indents XAML by more than 8).</summary>
+    public IReadOnlyList<int> AvailableIndentSizes { get; } = [.. Enumerable.Range(1, 8)];
+
+    public int XamlIndentSize
+    {
+        get => Features.XamlIndentSize;
+        set => SetFeatures(Features with { XamlIndentSize = value });
+    }
+
     public bool FileScopedNamespaceOnSemicolon
     {
         get => Features.FileScopedNamespaceOnSemicolon;

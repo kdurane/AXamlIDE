@@ -1,0 +1,28 @@
+﻿// (c) Xavalon. All rights reserved.
+#nullable disable // Upstream XAML Styler code predates nullable reference types.
+
+using System.Text.RegularExpressions;
+
+namespace AXamlIDE.XamlStyler.DocumentManipulation
+{
+    /// <summary>
+    /// Create regular expression (RegEx) from simple "DOS" wildcard (* and ?).
+    /// </summary>
+    public class Wildcard : Regex
+    {
+        public Wildcard(string pattern)
+            : base(WildcardToRegex(pattern))
+        {
+        }
+
+        public Wildcard(string pattern, RegexOptions options)
+            : base(WildcardToRegex(pattern), options)
+        {
+        }
+
+        public static string WildcardToRegex(string pattern)
+        {
+            return "^" + Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+        }
+    }
+}

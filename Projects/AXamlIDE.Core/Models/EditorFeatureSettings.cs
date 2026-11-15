@@ -19,6 +19,14 @@ public sealed record EditorFeatureSettings
     /// <summary>Typing ; after "namespace X" makes the namespace file-scoped.</summary>
     public bool FileScopedNamespaceOnSemicolon { get; init; } = true;
 
+    // ---- Formatting
+
+    /// <summary>Format-on-save includes AXAML (when format-on-save is on). Off: AXAML is formatted only by Format Document.</summary>
+    public bool FormatXamlOnSave { get; init; } = true;
+
+    /// <summary>Spaces per indent level when formatting AXAML. A project's Settings.XamlStyler "IndentSize" wins over it.</summary>
+    public int XamlIndentSize { get; init; } = 4;
+
     // ---- IntelliSense
 
     /// <summary>The completion list opens as a name is typed (else: Ctrl+Space, or after a '.'). VS: "Show completion list after a character is typed".</summary>
