@@ -32,10 +32,15 @@ public static class ClaudeAgentInstall
 
     private static readonly HttpClient Http = CreateHttpClient();
 
-    /// <summary>~/.local/share/AXamlIDE/agents/claude-agent-acp (on Windows, %LOCALAPPDATA%\AXamlIDE\...).</summary>
+    /// <summary>
+    /// The user's local app data: ~/.local/share/AXamlIDE.Agents/claude-agent-acp on Linux,
+    /// %LOCALAPPDATA%\AXamlIDE.Agents\... on Windows, ~/Library/Application Support/AXamlIDE.Agents/... on macOS.
+    /// Not inside the "AXamlIDE" folder there: the IDE itself may be published into that one, and a publish that
+    /// clears its folder would delete the download.
+    /// </summary>
     public static string InstallFolder { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData, Environment.SpecialFolderOption.Create),
-        "AXamlIDE", "agents", "claude-agent-acp");
+        "AXamlIDE.Agents", "claude-agent-acp");
 
     private static string ExeName(string name) => OperatingSystem.IsWindows() ? name + ".exe" : name;
 
