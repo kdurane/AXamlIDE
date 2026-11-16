@@ -110,10 +110,12 @@ public sealed class LanguageSessionService
 
         foreach (var document in _documents.Documents)
         {
+            // A file no server handles has no server diagnostics to clear; AXAML's are XamlAnalysisService's own.
+            if (!_servers.Handles(document.LanguageId))
+                continue;
             document.ClearDiagnostics();
             _messenger.Send(new DiagnosticsChangedMessage(document));
-            if (_servers.Handles(document.LanguageId))
-                _ = AttachAsync(document);
+            _ = AttachAsync(document);
         }
     }
 

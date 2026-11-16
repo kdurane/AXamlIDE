@@ -286,6 +286,12 @@ public partial class PreviewPaneView : UserControl
                 ? widthScale
                 : Math.Min(widthScale, PreviewViewport.Bounds.Height / baseHeight);
             zoom = Math.Round(Math.Clamp(zoom, MinZoomPercent / 100, MaxZoomPercent / 100), 2, MidpointRounding.ToEven);
+            // Without a design size the page re-measures at each zoom and its width drifts a pixel or two,
+            // so chasing an exact fit flips between two zooms forever. Only refit for a real change.
+            var shown = _viewModel.Scaling / GetPreviewRenderScaling();
+            if (Math.Abs(zoom - shown) / shown < 0.02)
+                return;
+
         }
         else if (TryParsePercent(_zoom, out var percent))
         {

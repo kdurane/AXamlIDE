@@ -39,6 +39,7 @@ public sealed class WorkspaceStateStore
         return state with
         {
             OpenFiles = [.. state.OpenFiles.Select(file => file with { Path = Absolute(workspaceFolder, file.Path) })],
+            ExpandedNodes = [.. state.ExpandedNodes.Select(path => Absolute(workspaceFolder, path))],
             ActiveFile = state.ActiveFile is { } active ? Absolute(workspaceFolder, active) : null,
             StartupProject = state.StartupProject is { } startup ? Absolute(workspaceFolder, startup) : null
         };
@@ -51,6 +52,7 @@ public sealed class WorkspaceStateStore
         {
             SchemaVersion = CurrentSchemaVersion,
             OpenFiles = [.. state.OpenFiles.Select(file => file with { Path = Relative(workspaceFolder, file.Path) })],
+            ExpandedNodes = [.. state.ExpandedNodes.Select(path => Absolute(workspaceFolder, path))],
             ActiveFile = state.ActiveFile is { } active ? Relative(workspaceFolder, active) : null,
             StartupProject = state.StartupProject is { } startup ? Relative(workspaceFolder, startup) : null
         };

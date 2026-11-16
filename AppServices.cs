@@ -84,6 +84,7 @@ public static class AppServices
         services.AddSingleton<LanguageSessionService>();
         services.AddSingleton<SolutionAnalysisService>();   // errors in closed files, when solution-wide analysis is on
         services.AddSingleton<XamlCacheKeeper>();          // tells XAML completion when its caches go stale
+        services.AddSingleton<XamlAnalysisService>();      // AXAML diagnostics: unused and undeclared xmlns prefixes
 
         // ---- view models
         services.AddSingleton<PreviewSessions>();          // each AXAML tab's preview and designer host

@@ -25,6 +25,8 @@ public sealed class WorkspaceSession
     private readonly DockLayoutViewModel _docking;
     private readonly RunViewModel _run;
     private readonly WorkspaceStateStore _store;
+
+    private readonly WorkspaceViewModel _tree;
     private readonly IMessenger _messenger;
     private string? _folder;   // the workspace whose session is live
 
@@ -43,6 +45,7 @@ public sealed class WorkspaceSession
         _run = run;
         _store = store;
         _messenger = messenger;
+        _tree = workspaceViewModel;
         workspaceViewModel.Opened += OnWorkspaceOpened;
     }
 
@@ -82,7 +85,8 @@ public sealed class WorkspaceSession
             ActiveFile = _documents.Active is { IsReadOnly: false } active ? active.Path : null,
             Layout = _docking.CaptureLayout(),
             StartupProject = _run.StartupProjectPath,
-            Configuration = _run.Configuration
+            Configuration = _run.Configuration,
+            ExpandedNodes = _tree.ExpandedPaths()
         };
 
         if (_store.Save(folder, state) is { } error)
@@ -100,6 +104,7 @@ public sealed class WorkspaceSession
     {
         var state = _store.Load(folder);
         _docking.ApplyLayout(state.Layout);
+        _ = _tree.RestoreExpandedAsync(state.ExpandedNodes);
         _run.RestoreStartup(state.StartupProject, state.Configuration);
 
         OpenDocument? active = null;

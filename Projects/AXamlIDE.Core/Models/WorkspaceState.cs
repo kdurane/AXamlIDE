@@ -26,6 +26,10 @@ public sealed record WorkspaceState
 
     /// <summary>The build configuration chosen in the toolbar ("Debug", "Release"), or null for the default.</summary>
     public string? Configuration { get; init; }
+
+    /// <summary>The explorer nodes (folders, projects, files with children) that were expanded, by path.</summary>
+    public List<string> ExpandedNodes { get; init; } = [];
+
 }
 
 /// <summary>One open file: where the caret and scroll were, and (for AXAML) how the preview was laid out.</summary>

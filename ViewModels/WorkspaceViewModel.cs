@@ -272,6 +272,32 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         }
     }
 
+    /// <summary>The paths of every expanded node, for the session to save.</summary>
+    public List<string> ExpandedPaths()
+    {
+        var expanded = new HashSet<string>(GitStatus.PathComparer);
+        foreach (var root in Roots)
+        {
+            if (root.IsExpanded && root.FullPath.Length > 0)
+                expanded.Add(root.FullPath);
+            CollectExpanded(root, expanded);
+        }
+        return [.. expanded];
+    }
+
+    /// <summary>Expand these again in a reopened workspace, loading each node on the way down.</summary>
+    public async Task RestoreExpandedAsync(IEnumerable<string> paths)
+    {
+        var expanded = new HashSet<string>(paths, GitStatus.PathComparer);
+        foreach (var root in Roots.ToList())
+        {
+            if (expanded.Contains(root.FullPath))
+                root.IsExpanded = true;
+            await ReExpandAsync(root, expanded);
+        }
+    }
+
+
     private static async Task ReExpandAsync(ProjectTreeNode node, HashSet<string> expanded)
     {
         foreach (var child in node.Children.ToList())

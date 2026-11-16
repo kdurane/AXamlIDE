@@ -36,6 +36,7 @@ public partial class App : Application
             services.GetRequiredService<GitTreeDecorator>();   // colours the explorer tree from then on (nothing else needs it)
             services.GetRequiredService<DocumentReloader>();   // keeps open tabs in step with the disk (nothing else needs it)
             services.GetRequiredService<XamlCacheKeeper>();    // keeps XAML completion's caches current (nothing else needs it)
+            services.GetRequiredService<XamlAnalysisService>(); // AXAML files' own diagnostics (nothing else needs it)
             UseDockViews(services);
             Start(desktop, services);
             desktop.Exit += (_, _) => services.Dispose();
