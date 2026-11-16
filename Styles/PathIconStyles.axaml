@@ -1,0 +1,25 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        spinning: an icon that turns while something runs (VS Code's loading spinner), e.g.
+        <PathIcon Classes.spinning="{Binding IsWorking}" Data="{StaticResource Icon.Loading}" />.
+        The animation runs only while the class is on; it turns about the icon's centre.
+    -->
+    <Style Selector="PathIcon.spinning">
+        <!--  The animation turns this transform (Avalonia 12 has no animator for RenderTransform itself)  -->
+        <Setter Property="RenderTransform">
+            <RotateTransform />
+        </Setter>
+        <Style.Animations>
+            <Animation Duration="0:0:1" IterationCount="INFINITE">
+                <KeyFrame Cue="0%">
+                    <Setter Property="RotateTransform.Angle" Value="0" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="RotateTransform.Angle" Value="360" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+</Styles>

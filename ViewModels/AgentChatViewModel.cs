@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Agents;
+using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Workspace;
 using Avalonia.Threading;
@@ -44,25 +45,28 @@ public enum AgentChatState
 /// message, and again after New Chat or when another folder is opened. If the agent isn't installed the panel says
 /// so and downloads it when asked (ClaudeAgentInstall): nothing is downloaded without that click.
 ///
-/// Split across files: this one (starting, installing, the commands) and AgentChatViewModel.Turn.cs (a prompt turn:
-/// sending, the agent's updates, permission requests).
+/// Split across files: this one (starting, installing, the commands), AgentChatViewModel.Turn.cs (a prompt turn:
+/// sending, the agent's updates, permission requests), AgentChatViewModel.Attachments.cs (files and pictures sent
+/// with a message) and AgentChatViewModel.History.cs (past chats).
 /// </summary>
 public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
 {
     private readonly WorkspaceModel _workspace;
     private readonly DocumentManager _documents;
     private readonly IMessenger _messenger;
+    private readonly IDialogService _dialogs;
     private AcpClient? _client;
     private AcpSession? _session;
     private string? _sessionFolder;
     private ClaudeAgentRelease? _release;
     private System.Threading.CancellationTokenSource? _installCancel;
 
-    public AgentChatViewModel(WorkspaceModel workspace, DocumentManager documents, IMessenger messenger)
+    public AgentChatViewModel(WorkspaceModel workspace, DocumentManager documents, IMessenger messenger, IDialogService dialogs)
     {
         _workspace = workspace;
         _documents = documents;
         _messenger = messenger;
+        _dialogs = dialogs;
         workspace.WorkspaceRoots.CollectionChanged += OnWorkspaceChanged;
         documents.ActiveChanged += _ => OnPropertyChanged(nameof(ActiveFileName));
         Items.CollectionChanged += OnItemsChanged;

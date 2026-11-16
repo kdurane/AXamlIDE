@@ -236,7 +236,7 @@ public sealed class AcpClientTests : IAsyncDisposable
         Assert.Equal("s1", session.Id);
         Assert.Equal("model", Assert.Single(session.Options).Id);
 
-        var prompt = _client.PromptAsync("s1", [new AcpPromptBlock.Text("hi"), new AcpPromptBlock.File("/work/a b.cs")]);
+        var prompt = _client.PromptAsync("s1", [new AcpPromptBlock.Text("hi"), new AcpPromptBlock.File("/work/a b.cs"), new AcpPromptBlock.Image([1, 2, 3], "image/png")]);
         request = await ReceiveAsync();
         Assert.Equal("session/prompt", (string?)request["method"]);
         var blocks = request["params"]!["prompt"]!.AsArray();
@@ -244,6 +244,9 @@ public sealed class AcpClientTests : IAsyncDisposable
         Assert.Equal("resource_link", (string?)blocks[1]!["type"]);
         Assert.Equal("file:///work/a%20b.cs", (string?)blocks[1]!["uri"]);
         Assert.Equal("a b.cs", (string?)blocks[1]!["name"]);
+        Assert.Equal("image", (string?)blocks[2]!["type"]);
+        Assert.Equal("AQID", (string?)blocks[2]!["data"]);
+        Assert.Equal("image/png", (string?)blocks[2]!["mimeType"]);
 
         await SendAsync("""{"jsonrpc":"2.0","method":"session/update","params":{"sessionId":"s1","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Hello"}}}}""");
         await SendAsync($$$"""{"jsonrpc":"2.0","id":{{{request["id"]}}},"result":{"stopReason":"end_turn"}}""");
@@ -259,8 +262,9 @@ public sealed class AcpClientTests : IAsyncDisposable
     {
         var initialize = _client.InitializeAsync();
         var request = await ReceiveAsync();
-        await SendAsync($$$$$$"""{"jsonrpc":"2.0","id":{{{{{{request["id"]}}}}}},"result":{"protocolVersion":1,"agentCapabilities":{"loadSession":true,"sessionCapabilities":{"list":{}}}}}""");
+        await SendAsync($$$$$$"""{"jsonrpc":"2.0","id":{{{{{{request["id"]}}}}}},"result":{"protocolVersion":1,"agentCapabilities":{"loadSession":true,"sessionCapabilities":{"list":{}},"promptCapabilities":{"image":true}}}}""");
         await initialize.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(_client.CanSendImages);
         Assert.True(_client.CanListSessions);
         Assert.True(_client.CanLoadSessions);
 

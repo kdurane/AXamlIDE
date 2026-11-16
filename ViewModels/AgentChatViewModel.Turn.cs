@@ -24,18 +24,16 @@ public sealed partial class AgentChatViewModel
             return;
 
         var text = PromptText.Trim();
-        var file = IncludeActiveFile ? ActiveFilePath : null;
+        var attachments = TakeAttachments();
         PromptText = "";
-        Items.Add(new UserMessageItem(text, file is null ? null : Path.GetFileName(file)));
+        Items.Add(new UserMessageItem(text, attachments));
         IsTurnRunning = true;
         try
         {
             if (await EnsureSessionAsync() is not { } session)
                 return;
 
-            List<AcpPromptBlock> prompt = [new AcpPromptBlock.Text(text)];
-            if (file is not null)
-                prompt.Add(new AcpPromptBlock.File(file));
+            List<AcpPromptBlock> prompt = [new AcpPromptBlock.Text(text), .. attachments.Select(attachment => attachment.ToPromptBlock())];
 
             var stopReason = await client.PromptAsync(session.Id, prompt);
             if (StopReasonNotice(stopReason) is { } notice)
@@ -160,7 +158,7 @@ public sealed partial class AgentChatViewModel
                 if (Items.LastOrDefault() is UserMessageItem growing)
                     growing.Text += user.Text;
                 else
-                    Items.Add(new UserMessageItem(user.Text, null));
+                    Items.Add(new UserMessageItem(user.Text, []));
                 break;
 
             case AcpMessageChunk chunk:

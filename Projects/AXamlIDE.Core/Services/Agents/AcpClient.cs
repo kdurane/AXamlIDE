@@ -19,6 +19,9 @@ public abstract record AcpPromptBlock
 
     /// <summary>A file by its path; the agent reads it itself if it needs to.</summary>
     public sealed record File(string Path) : AcpPromptBlock;
+
+    /// <summary>A picture sent with the message (a pasted screenshot), as its file bytes ("image/png"...).</summary>
+    public sealed record Image(byte[] Data, string MimeType) : AcpPromptBlock;
 }
 
 /// <summary>
@@ -135,6 +138,9 @@ public sealed partial class AcpClient : IDisposable
     /// <summary>The agent can reopen a past session and replay it (session/load).</summary>
     public bool CanLoadSessions { get; private set; }
 
+    /// <summary>The agent takes pictures in a prompt (<see cref="AcpPromptBlock.Image"/>; promptCapabilities.image).</summary>
+    public bool CanSendImages { get; private set; }
+
     /// <summary>The initialize handshake: say which protocol version and features the IDE has.</summary>
     internal async Task InitializeAsync(CancellationToken ct = default)
     {
@@ -157,6 +163,8 @@ public sealed partial class AcpClient : IDisposable
             CanLoadSessions = capabilities.TryGetProperty("loadSession", out var load) && load.ValueKind == JsonValueKind.True;
             CanListSessions = capabilities.TryGetProperty("sessionCapabilities", out var sessions) && sessions.ValueKind == JsonValueKind.Object
                               && sessions.TryGetProperty("list", out _);
+            CanSendImages = capabilities.TryGetProperty("promptCapabilities", out var prompts) && prompts.ValueKind == JsonValueKind.Object
+                            && prompts.TryGetProperty("image", out var image) && image.ValueKind == JsonValueKind.True;
         }
 
         if (result.TryGetProperty("agentInfo", out var info))
@@ -216,6 +224,7 @@ public sealed partial class AcpClient : IDisposable
                 name = Path.GetFileName(file.Path)
             },
             AcpPromptBlock.Text text => new { type = "text", text = text.Value },
+            AcpPromptBlock.Image image => new { type = "image", data = Convert.ToBase64String(image.Data), mimeType = image.MimeType },
             _ => throw new ArgumentOutOfRangeException(nameof(prompt))
         }).ToArray();
 

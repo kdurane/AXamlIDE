@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -5,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AXamlIDE.Services.Agents;
 using AXamlIDE.Services.Git;
+using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -15,15 +17,75 @@ namespace AXamlIDE.ViewModels;
 
 public abstract class AgentChatItem : ObservableObject;
 
-/// <summary>What the user sent, and the file that went with it.</summary>
-public sealed partial class UserMessageItem(string text, string? attachedFile) : AgentChatItem
+/// <summary>What the user sent, and the files and pictures that went with it.</summary>
+public sealed partial class UserMessageItem(string text, IReadOnlyList<PromptAttachment> attachments) : AgentChatItem
 {
     /// <summary>Grows while a reopened chat is replayed (the agent sends old messages in pieces).</summary>
     [ObservableProperty]
     public partial string Text { get; set; } = text;
 
-    public string? AttachedFile { get; } = attachedFile;
-    public bool HasAttachedFile => AttachedFile is not null;
+    public IReadOnlyList<PromptAttachment> Attachments { get; } = attachments;
+    public bool HasAttachments => Attachments.Count > 0;
+}
+
+/// <summary>
+/// A file or picture sent with a message: a chip above the prompt box until it's sent, then under the message.
+/// A picture goes inside the message (<see cref="AcpPromptBlock.Image"/>); a file as a link the agent opens.
+/// </summary>
+public sealed class PromptAttachment
+{
+    private PromptAttachment(string name, string? filePath, byte[]? imageData, string? mimeType, Bitmap? thumbnail)
+    {
+        Name = name;
+        FilePath = filePath;
+        ImageData = imageData;
+        MimeType = mimeType;
+        Thumbnail = thumbnail;
+    }
+
+    public string Name { get; }
+
+    /// <summary>Where it came from; null for a pasted picture.</summary>
+    public string? FilePath { get; }
+
+    public byte[]? ImageData { get; }
+    public string? MimeType { get; }
+
+    /// <summary>A small copy of the picture for the chip; null for a file.</summary>
+    public Bitmap? Thumbnail { get; }
+
+    public bool IsImage => Thumbnail is not null;
+    public string ToolTip => FilePath ?? Name;
+
+    public static PromptAttachment ForFile(string path)
+        => new(Path.GetFileName(Path.TrimEndingDirectorySeparator(path)), path, null, null, null);
+
+    /// <summary>A picture, or null if its bytes aren't a picture Avalonia can read.</summary>
+    public static PromptAttachment? ForImage(byte[] data, string mimeType, string name, string? filePath)
+    {
+        try
+        {
+            using var stream = new MemoryStream(data);
+            return new PromptAttachment(name, filePath, data, mimeType, Bitmap.DecodeToHeight(stream, 64));
+        }
+        catch (Exception)
+        {
+            return null;   // not a picture after all (a damaged file, an unknown format)
+        }
+    }
+
+    /// <summary>The picture types Claude reads, by file extension; null for anything else.</summary>
+    public static string? ImageMimeType(string path) => Path.GetExtension(path).ToLowerInvariant() switch
+    {
+        ".png" => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".webp" => "image/webp",
+        _ => null
+    };
+
+    public AcpPromptBlock ToPromptBlock()
+        => ImageData is { } data ? new AcpPromptBlock.Image(data, MimeType!) : new AcpPromptBlock.File(FilePath!);
 }
 
 /// <summary>The agent's reply (Markdown) or its thinking, growing as the pieces stream in.</summary>

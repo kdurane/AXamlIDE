@@ -286,7 +286,7 @@
                                 MaxHeight="120"
                                 MinHeight="48"
                                 Padding="6,4,28,4"
-                                PlaceholderText="Commit message"
+                                PlaceholderText="{Binding CommitPlaceholder}"
                                 Text="{Binding CommitMessage}"
                                 TextWrapping="Wrap">
                                 <TextBox.KeyBindings>
@@ -301,11 +301,19 @@
                                 Margin="0,2,2,0"
                                 shell:KeyMap.ShortcutTip="Generate Commit Message with Claude"
                                 VerticalAlignment="Top">
-                                <PathIcon Data="{DynamicResource Icon.Sparkle}" />
+                                <!--  While Claude writes, the sparkle becomes a spinner (and the box says so)  -->
+                                <Panel>
+                                    <PathIcon Data="{DynamicResource Icon.Sparkle}" IsVisible="{Binding !IsGeneratingMessage}" />
+                                    <PathIcon
+                                        Classes.spinning="{Binding IsGeneratingMessage}"
+                                        Data="{DynamicResource Icon.Loading}"
+                                        IsVisible="{Binding IsGeneratingMessage}" />
+                                </Panel>
                             </Button>
                         </Panel>
+                        <!--  Commit, or once there's nothing left to commit, Sync / Publish Branch (VS Code's)  -->
                         <Button
-                            Command="{Binding CommitCommand}"
+                            Command="{Binding PrimaryActionCommand}"
                             Content="{Binding CommitButtonText}"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Center"

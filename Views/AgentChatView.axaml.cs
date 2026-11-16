@@ -1,7 +1,13 @@
 using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using AXamlIDE.ViewModels;
 
@@ -18,6 +24,10 @@ public partial class AgentChatView : UserControl
         DataContextChanged += OnDataContextChanged;
         // Tunnel: before the text box turns Enter into a new line.
         PromptBox.AddHandler(KeyDownEvent, OnPromptKeyDown, RoutingStrategies.Tunnel);
+        // Files dropped anywhere on the panel go with the next message.
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -40,6 +50,13 @@ public partial class AgentChatView : UserControl
         if (_viewModel is null)
             return;
 
+        if (IsPasteGesture(e))
+        {
+            e.Handled = true;   // the clipboard is read asynchronously; plain text is pasted after (PasteAsync)
+            _ = PasteAsync();
+            return;
+        }
+
         switch (e.Key)
         {
             case Key.Enter when e.KeyModifiers == KeyModifiers.None:
@@ -53,6 +70,45 @@ public partial class AgentChatView : UserControl
                 return;
         }
 
+        e.Handled = true;
+    }
+
+    private bool IsPasteGesture(KeyEventArgs e)
+        => Avalonia.Application.Current?.PlatformSettings?.HotkeyConfiguration.Paste.Any(gesture => gesture.Matches(e)) == true;
+
+    /// <summary>
+    /// Ctrl+V in the prompt box, as VS Code's chat does it: copied files and pictures (a screenshot) become chips
+    /// above the box; anything else is pasted as text.
+    /// </summary>
+    private async Task PasteAsync()
+    {
+        if (TopLevel.GetTopLevel(this)?.Clipboard is not { } clipboard || _viewModel is not { } viewModel)
+            return;
+
+        if (await clipboard.TryGetFilesAsync() is { Length: > 0 } files)
+        {
+            viewModel.AttachFiles(files.Select(file => file.TryGetLocalPath()).OfType<string>());
+            return;
+        }
+        if (await clipboard.TryGetBitmapAsync() is { } bitmap)
+        {
+            using var png = new MemoryStream();
+            bitmap.Save(png, PngBitmapEncoderOptions.Default);
+            viewModel.AttachPastedImage(png.ToArray());
+            return;
+        }
+        PromptBox.Paste();
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+        => e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None;
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (_viewModel is null || e.DataTransfer.TryGetFiles() is not { Length: > 0 } files)
+            return;
+        _viewModel.AttachFiles(files.Select(file => file.TryGetLocalPath()).OfType<string>());
+        FocusPrompt();
         e.Handled = true;
     }
 

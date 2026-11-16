@@ -92,20 +92,37 @@ public sealed partial class GitViewModel : ObservableObject
     public string PushHeader => _tracker.Current is { Upstream: null, Branch: not null } ? "Publish Branch" : "Push";
     public string ChangesHeader => $"Changes ({Changes.Count})";
 
-    /// <summary>The commit button (Visual Studio's): "Commit Staged" when something is staged, else "Commit All".</summary>
-    public string CommitButtonText => Staged.Count > 0 ? "Commit Staged" : "Commit All";
+    /// <summary>
+    /// Nothing left to commit, but the branch has commits to send or fetch, or isn't on a remote yet: the commit
+    /// button becomes Sync Changes / Publish Branch, as VS Code's does.
+    /// </summary>
+    private bool ShowsSync => Staged.Count + Changes.Count == 0
+                              && _tracker.Current is { Branch: not null } status
+                              && (status.Upstream is null || status.Ahead > 0 || status.Behind > 0);
 
-    public string CommitButtonToolTip => Staged.Count > 0
-        ? "Commit the staged changes (Ctrl+Enter)"
+    /// <summary>
+    /// The commit button (Visual Studio's): "Commit Staged" when something is staged, else "Commit All"; once
+    /// committed, "Sync Changes ↑1 ↓0" or "Publish Branch".
+    /// </summary>
+    public string CommitButtonText => ShowsSync
+        ? _tracker.Current is { Upstream: null } ? "Publish Branch" : $"Sync Changes  ↑{_tracker.Current?.Ahead} ↓{_tracker.Current?.Behind}"
+        : Staged.Count > 0 ? "Commit Staged" : "Commit All";
+
+    public string CommitButtonToolTip => ShowsSync
+        ? _tracker.Current is { Upstream: null } ? "Push the branch to a remote" : "Pull, then push the branch's commits"
+        : Staged.Count > 0 ? "Commit the staged changes (Ctrl+Enter)"
         : "Stage and commit all changes (Ctrl+Enter)";
 
+    /// <summary>The message box's hint, which says so while Claude is writing the message.</summary>
+    public string CommitPlaceholder => IsGeneratingMessage ? "Claude is writing the commit message..." : "Commit message";
+
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CommitCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CommitCommand), nameof(PrimaryActionCommand))]
     public partial string CommitMessage { get; set; } = "";
 
     /// <summary>A git command is running (buttons wait for it).</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(CommitCommand))]
+    [NotifyCanExecuteChangedFor(nameof(CommitCommand), nameof(PrimaryActionCommand))]
     public partial bool IsBusy { get; set; }
 
     private void OnStatusChanged()
@@ -122,6 +139,7 @@ public sealed partial class GitViewModel : ObservableObject
         OnPropertyChanged(nameof(CommitButtonText));
         OnPropertyChanged(nameof(CommitButtonToolTip));
         CommitCommand.NotifyCanExecuteChanged();
+        PrimaryActionCommand.NotifyCanExecuteChanged();
         GenerateCommitMessageCommand.NotifyCanExecuteChanged();
         _ = LoadGraphAsync();
     }
@@ -177,9 +195,22 @@ public sealed partial class GitViewModel : ObservableObject
 
     private bool CanCommit() => !IsBusy && Staged.Count + Changes.Count > 0 && !string.IsNullOrWhiteSpace(CommitMessage);
 
+    /// <summary>
+    /// The big button under the message box: commit, or once there's nothing to commit, sync (or publish a new
+    /// branch). Ctrl+Enter stays on <see cref="CommitCommand"/>, so the shortcut never pushes by surprise.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanPrimaryAction))]
+    private Task PrimaryAction()
+        => !ShowsSync ? Commit()
+            : _tracker.Current is { Upstream: null } ? Push()   // Push publishes a branch that isn't on a remote
+            : Sync();
+
+    private bool CanPrimaryAction() => ShowsSync ? !IsBusy : CanCommit();
+
     /// <summary>Claude is writing the commit message (the sparkle button is disabled until it's done).</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(GenerateCommitMessageCommand))]
+    [NotifyPropertyChangedFor(nameof(CommitPlaceholder))]
     public partial bool IsGeneratingMessage { get; set; }
 
     /// <summary>

@@ -591,6 +591,18 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         return files.FirstOrDefault()?.TryGetLocalPath();
     }
 
+    public async Task<IReadOnlyList<string>> PickFilesAsync(string title, string? startFolder = null)
+    {
+        var files = await Owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = true,
+            SuggestedStartLocation = startFolder is null ? null : await Owner.StorageProvider.TryGetFolderFromPathAsync(startFolder)
+        });
+
+        return [.. files.Select(file => file.TryGetLocalPath()).OfType<string>()];
+    }
+
     // --------------------------------------------------------------- windows
 
     public Task ShowSettingsAsync()

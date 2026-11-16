@@ -34,9 +34,9 @@ public sealed partial class GitViewModel
     [ObservableProperty]
     public partial bool IsChangesExpanded { get; set; } = true;
 
-    /// <summary>The Graph section is open.</summary>
+    /// <summary>The Graph section is open (closed at first: View > Git Graph or its header opens it).</summary>
     [ObservableProperty]
-    public partial bool IsGraphExpanded { get; set; } = true;
+    public partial bool IsGraphExpanded { get; set; }
 
     /// <summary>Every branch, remote branch and tag, not just the current branch and its upstream.</summary>
     [ObservableProperty]

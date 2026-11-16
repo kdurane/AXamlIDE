@@ -35,6 +35,18 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="testing.iconPassed">#73C991</Color>
             <Color x:Key="testing.iconFailed">#F14C4C</Color>
             <Color x:Key="testing.iconSkipped">#848484</Color>
+            <!--  The Claude panel (VS Code's chat keys, with its defaults; app.chat.* are ours)  -->
+            <Color x:Key="textPreformat.foreground">#D7BA7D</Color>
+            <Color x:Key="textPreformat.background">#1AFFFFFF</Color>
+            <Color x:Key="textCodeBlock.background">#660A0A0A</Color>
+            <Color x:Key="chat.requestBackground">#0DFFFFFF</Color>
+            <Color x:Key="chat.requestBorder">#1AFFFFFF</Color>
+            <Color x:Key="focusBorder">#007FD4</Color>
+            <Color x:Key="app.chat.inputBorder">#2EFFFFFF</Color>
+            <Color x:Key="app.chat.timeline">#33FFFFFF</Color>
+            <Color x:Key="app.chat.timelineDot">#80CCCCCC</Color>
+            <Color x:Key="app.chat.sendBackground">#D97757</Color>   <!-- Claude's coral -->
+            <Color x:Key="app.chat.sendForeground">#FFFFFF</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
             <ResourceDictionary.MergedDictionaries>
@@ -52,6 +64,17 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="testing.iconPassed">#388A34</Color>
             <Color x:Key="testing.iconFailed">#F14C4C</Color>
             <Color x:Key="testing.iconSkipped">#848484</Color>
+            <Color x:Key="textPreformat.foreground">#A31515</Color>
+            <Color x:Key="textPreformat.background">#1A000000</Color>
+            <Color x:Key="textCodeBlock.background">#66DCDCDC</Color>
+            <Color x:Key="chat.requestBackground">#0A000000</Color>
+            <Color x:Key="chat.requestBorder">#1A000000</Color>
+            <Color x:Key="focusBorder">#0090F1</Color>
+            <Color x:Key="app.chat.inputBorder">#2E000000</Color>
+            <Color x:Key="app.chat.timeline">#2E000000</Color>
+            <Color x:Key="app.chat.timelineDot">#80555555</Color>
+            <Color x:Key="app.chat.sendBackground">#D97757</Color>
+            <Color x:Key="app.chat.sendForeground">#FFFFFF</Color>
         </ResourceDictionary>
 
         <!--  The themes in Settings.  -->
@@ -177,6 +200,20 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource diffEditor.insertedLineBackground}" x:Key="DiffInsertedLineBrush" />
     <SolidColorBrush Color="{DynamicResource diffEditor.removedLineBackground}" x:Key="DiffRemovedLineBrush" />
     <SolidColorBrush Color="{DynamicResource diffEditor.diagonalFill}" x:Key="DiffFillerLineBrush" />
+
+    <!--  The Claude panel (Views/AgentChatView)  -->
+    <SolidColorBrush Color="{DynamicResource textPreformat.foreground}" x:Key="ChatInlineCodeForegroundBrush" />
+    <SolidColorBrush Color="{DynamicResource textPreformat.background}" x:Key="ChatInlineCodeBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource textCodeBlock.background}" x:Key="ChatCodeBlockBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource chat.requestBackground}" x:Key="ChatRequestBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource chat.requestBorder}" x:Key="ChatRequestBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWidget.background}" x:Key="ChatInputBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource app.chat.inputBorder}" x:Key="ChatInputBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource focusBorder}" x:Key="ChatInputFocusBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource app.chat.timeline}" x:Key="ChatTimelineBrush" />
+    <SolidColorBrush Color="{DynamicResource app.chat.timelineDot}" x:Key="ChatTimelineDotBrush" />
+    <SolidColorBrush Color="{DynamicResource app.chat.sendBackground}" x:Key="ChatSendBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource app.chat.sendForeground}" x:Key="ChatSendForegroundBrush" />
 
     <!--  Hover card and diagnostics (Editor/Hover/HoverCard)  -->
     <SolidColorBrush Color="{DynamicResource editorHoverWidget.background}" x:Key="HoverBackgroundBrush" />

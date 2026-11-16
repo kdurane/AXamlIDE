@@ -41,6 +41,8 @@ public interface IDialogService
     Task<string?> PickAsync(string title, string prompt, IReadOnlyList<string> items);
     Task<string?> PickFolderAsync();
     Task<string?> PickSolutionAsync();
+    /// <summary>Pick any number of files (the Claude panel's Add Files); empty if cancelled.</summary>
+    Task<IReadOnlyList<string>> PickFilesAsync(string title, string? startFolder = null);
     /// <summary>Save As: a file name to write to, starting in the current file's folder; null if cancelled.</summary>
     Task<string?> PickSaveFileAsync(string currentPath);
 
