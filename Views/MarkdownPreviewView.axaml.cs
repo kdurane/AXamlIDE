@@ -3,6 +3,7 @@ using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using CommunityToolkit.Mvvm.Messaging;
@@ -26,12 +27,12 @@ public partial class MarkdownPreviewView : UserControl
         InitializeComponent();
     }
 
-    public MarkdownPreviewView(OpenDocument document, IMessenger messenger)
+    public MarkdownPreviewView(OpenDocument document, IMessenger messenger, CodeHighlighter codeHighlighter)
     {
         InitializeComponent();
         _document = document;
         _messenger = messenger;
-        _renderer = new MarkdownRenderer(Path.GetDirectoryName(document.Path) ?? "", OpenLink);
+        _renderer = new MarkdownRenderer(Path.GetDirectoryName(document.Path) ?? "", OpenLink, codeHighlighter);
         _debounce.Tick += (_, _) =>
         {
             _debounce.Stop();

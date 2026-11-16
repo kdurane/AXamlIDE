@@ -52,6 +52,7 @@ public static class AppServices
         services.AddSingleton<IEditorSettings>(sp => sp.GetRequiredService<SettingsViewModel>());
         services.AddSingleton(_ => new RegistryOptions(ThemeName.DarkPlus));
         services.AddSingleton<EditorGrammars>();   // the built-in grammars plus our AXAML grammar and colours
+        services.AddSingleton<CodeHighlighter>();  // colours Markdown code blocks (Claude panel, Markdown preview)
         services.AddSingleton<NuGetService>();
         services.AddSingleton<NuGetManager>();     // opens the NuGet manager tab (explorer: Manage NuGet Packages...)
         services.AddSingleton<PublishManager>();   // opens the Publish tab (Build > Publish, explorer: Publish...)

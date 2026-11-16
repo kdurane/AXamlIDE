@@ -606,9 +606,10 @@
             </StackPanel>
 
             <!--  The conversation  -->
-            <Panel IsVisible="{Binding IsReady}">
+            <Grid IsVisible="{Binding IsReady}" RowDefinitions="*,Auto">
                 <TextBlock
                     Classes="dim"
+                    Grid.RowSpan="2"
                     IsVisible="{Binding IsEmpty}"
                     Margin="16"
                     Text="Ask Claude about this workspace. It reads and edits files and runs commands in the workspace folder, and asks first when the mode says so. Open tabs pick up its edits."
@@ -616,30 +617,34 @@
                     TextWrapping="Wrap"
                     VerticalAlignment="Center" />
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="10,6,10,8">
+                    <StackPanel Margin="10,6,10,4">
                         <!--  No gap between rows: the timeline's line runs through them (ContentControl.timeline)  -->
                         <ItemsControl ItemsSource="{Binding Items}" />
-                        <!--  Claude is working (VS Code's spinner and "Working..."): the spinner sits on the timeline  -->
-                        <Grid ColumnDefinitions="18,*" IsVisible="{Binding IsTurnRunning}">
-                            <PathIcon
-                                Classes.spinning="{Binding IsTurnRunning}"
-                                Data="{StaticResource Icon.Loading}"
-                                Foreground="{DynamicResource ChatSendBackgroundBrush}"
-                                Height="12"
-                                Width="12" />
-                            <TextBlock
-                                Classes.pulsing="{Binding IsTurnRunning}"
-                                FontSize="13"
-                                Grid.Column="1"
-                                Text="Working..."
-                                VerticalAlignment="Center" />
-                        </Grid>
                     </StackPanel>
                     <Interaction.Behaviors>
                         <b:FollowEndBehavior />
                     </Interaction.Behaviors>
                 </ScrollViewer>
-            </Panel>
+                <!--  Claude is working (VS Code's spinner and "Working..."): pinned under the conversation, so it stays in view as the reply grows  -->
+                <Grid
+                    ColumnDefinitions="18,*"
+                    Grid.Row="1"
+                    IsVisible="{Binding IsTurnRunning}"
+                    Margin="10,0,10,6">
+                    <PathIcon
+                        Classes.spinning="{Binding IsTurnRunning}"
+                        Data="{StaticResource Icon.Sync}"
+                        Foreground="{DynamicResource ChatSendBackgroundBrush}"
+                        Height="12"
+                        Width="12" />
+                    <TextBlock
+                        Classes.pulsing="{Binding IsTurnRunning}"
+                        FontSize="13"
+                        Grid.Column="1"
+                        Text="Working..."
+                        VerticalAlignment="Center" />
+                </Grid>
+            </Grid>
         </Panel>
 
         <!--

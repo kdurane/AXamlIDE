@@ -4,6 +4,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Recycling;
 using Avalonia.Controls.Recycling.Model;
 using Avalonia.VisualTree;
+using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
 using AXamlIDE.Shell;
@@ -32,6 +33,7 @@ public sealed class DockViewCache : IControlRecycling
     private readonly PreviewSessions _previews;
     private readonly OutlineViewModel _outlineViewModel;
     private readonly IMessenger _messenger;
+    private readonly CodeHighlighter _codeHighlighter;
     private readonly ControlRecycling _dockControls = new();
     private readonly Dictionary<DocumentDockable, DocumentView> _documentViews = [];
     private readonly Dictionary<PageDockable, Control> _pageViews = [];
@@ -44,9 +46,11 @@ public sealed class DockViewCache : IControlRecycling
         DocumentManager documents,
         PreviewSessions previews,
         OutlineViewModel outline,
-        IMessenger messenger)
+        IMessenger messenger,
+        CodeHighlighter codeHighlighter)
     {
         _messenger = messenger;
+        _codeHighlighter = codeHighlighter;
         _editorServices = editorServices;
         _toolPanels = toolPanels;
         _documents = documents;
@@ -114,11 +118,18 @@ public sealed class DockViewCache : IControlRecycling
             return view;
 
         Control? preview = tab.IsXaml ? new PreviewPaneView { DataContext = _previews.For(tab.Document) }
-            : tab.IsMarkdown ? new MarkdownPreviewView(tab.Document, _messenger)
+            : tab.IsMarkdown ? new MarkdownPreviewView(tab.Document, _messenger, _codeHighlighter)
             : null;
         view = new DocumentView(tab, _editorServices, preview);
         _documentViews[tab] = view;
         PlaceSharedViews();
+        return view;
+    }
+
+    private AgentChatView ChatView(AgentChatDockable chat)
+    {
+        var view = new AgentChatView { DataContext = chat.Chat };
+        MarkdownText.SetCodeHighlighter(view, _codeHighlighter);   // inherited by the replies' MarkdownText
         return view;
     }
 
@@ -135,7 +146,7 @@ public sealed class DockViewCache : IControlRecycling
             PublishDockable publish => new PublishView { DataContext = publish },
             VisualizerDockable visualizer => new VisualizerView { DataContext = visualizer },
             ImageDockable image => new ImageView { DataContext = image },
-            AgentChatDockable chat => new AgentChatView { DataContext = chat.Chat },
+            AgentChatDockable chat => ChatView(chat),
             _ => null
         };
         if (view is not null)

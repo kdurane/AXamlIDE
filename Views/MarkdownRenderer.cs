@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using AXamlIDE.Editor.Highlighting;
 using Markdig;
 using Markdig.Extensions.Tables;
 using Markdig.Extensions.TaskLists;
@@ -24,9 +25,10 @@ namespace AXamlIDE.Views;
 /// quotes, tables and rules. GitHub-flavoured extensions are on (tables, task lists, strikethrough, autolinks).
 ///
 /// The look is in Styles/MarkdownStyles.axaml, by class (md-h1, md-code, md-link...); this only builds the tree.
+/// Code blocks with a language are coloured by <see cref="CodeHighlighter"/> (the editor's grammars and theme) when there is one.
 /// Text is selectable. A link is a Run, found under the pointer by hit-testing the text, so it wraps like text.
 /// </summary>
-public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink)
+public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink, CodeHighlighter? codeHighlighter = null)
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
 
@@ -81,10 +83,16 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink)
         return TextFor(paragraph.Inline, "md-p");
     }
 
-    private static Control CodeBlockView(LeafBlock block)
+    private Control CodeBlockView(LeafBlock block)
     {
         var lines = block.Lines.Lines.Take(block.Lines.Count).Select(line => line.Slice.ToString());
-        var code = new SelectableTextBlock { Classes = { "md-code-block" }, Text = string.Join("\n", lines) };
+        var text = string.Join("\n", lines);
+        var code = new SelectableTextBlock { Classes = { "md-code-block" } };
+        var language = (block as FencedCodeBlock)?.Info;
+        if (codeHighlighter?.Highlight(language, text) is { } coloured)
+            code.Inlines = [.. coloured];
+        else
+            code.Text = text;
         return new Border
         {
             Classes = { "md-code-block" },

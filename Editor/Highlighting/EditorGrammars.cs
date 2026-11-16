@@ -53,7 +53,30 @@ public sealed class EditorGrammars(RegistryOptions builtIn) : IRegistryOptions
             : null;
     }
 
-    /// <summary>The theme for the editors: the chosen theme with the AXAML colours for its Dark/Light base on top.</summary>
+    /// <summary>
+    /// The grammar scope for a Markdown code fence's language ("csharp", "cs", "xaml", "json", "bash"...), or null
+    /// when there's none. Tried as a language id first, then as a file extension.
+    /// </summary>
+    public string? ScopeForLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+            return null;
+        var name = language.Trim().ToLowerInvariant();
+        name = FenceAliases.GetValueOrDefault(name, name);
+        if (name is "axaml" or "xaml" or "xml")
+            return AxamlScope;
+        return builtIn.GetScopeByLanguageId(name) ?? ScopeForFile("x." + name);
+    }
+
+    // Names people put on fences that aren't a TextMate language id or a file extension.
+    private static readonly Dictionary<string, string> FenceAliases = new()
+    {
+        ["c#"] = "csharp", ["sh"] = "shellscript", ["bash"] = "shellscript", ["shell"] = "shellscript",
+        ["zsh"] = "shellscript", ["console"] = "shellscript", ["js"] = "javascript", ["ts"] = "typescript",
+        ["py"] = "python", ["yml"] = "yaml", ["ps1"] = "powershell", ["pwsh"] = "powershell", ["md"] = "markdown",
+    };
+
+    /// <summary>The theme for the editors:the chosen theme with the AXAML colours for its Dark/Light base on top.</summary>
     public IRawTheme LoadTheme(EditorTheme theme)
     {
         if (_loadedTheme is { } loaded && loaded.Id == theme.Id)
