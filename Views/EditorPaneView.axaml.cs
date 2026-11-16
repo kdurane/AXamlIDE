@@ -68,6 +68,7 @@ public partial class EditorPaneView : UserControl,
     private WhitespaceSelectionController _whitespaceSelection = null!;
     private OccurrenceController _occurrences = null!;
     private SelectionRenderer _selectionRenderer = null!;
+    private CaretRenderer _caretRenderer = null!;
     private TypingController _typing = null!;
     private HoverController _hover = null!;
     private CodeLensController _codeLens = null!;
@@ -117,6 +118,11 @@ public partial class EditorPaneView : UserControl,
         _selectionRenderer = new SelectionRenderer(Editor.TextArea);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_selectionRenderer);
         Editor.TextArea.SelectionBrush = Brushes.Transparent;   // AvaloniaEdit's own selection layer draws nothing
+
+        // Our own caret too (not as tall as a code lens's line), for the same reason.
+        _caretRenderer = new CaretRenderer(Editor.TextArea);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_caretRenderer);
+        Editor.TextArea.Caret.CaretBrush = Brushes.Transparent;
 
         Editor.TextArea.Caret.PositionChanged += (_, _) =>
         {
@@ -173,7 +179,7 @@ public partial class EditorPaneView : UserControl,
         _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);
-        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin, _selectionRenderer, _currentLineRenderer);
+        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin, _selectionRenderer, _caretRenderer, _currentLineRenderer);
         _semanticHighlighting = new SemanticHighlightController(_ctx, _grammars);   // after TextMate: drawn over its colours
         Editor.TextArea.TextView.LineTransformers.Add(_unnecessaryCode);   // last: fades the colours both of those chose
         _inlayHints = new InlayHintController(_ctx);

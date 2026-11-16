@@ -20,6 +20,7 @@ public sealed class TextMateController
     private readonly EditorGrammars _grammars;
     private readonly BreakpointMargin? _breakpointMargin;
     private readonly SelectionRenderer _selection;
+    private readonly CaretRenderer _caret;
     private readonly CurrentLineRenderer _currentLine;
 
     public TextMateController(
@@ -28,6 +29,7 @@ public sealed class TextMateController
         EditorGrammars grammars,
         BreakpointMargin? breakpointMargin,
         SelectionRenderer selection,
+        CaretRenderer caret,
         CurrentLineRenderer currentLine)
     {
         _ctx = ctx;
@@ -35,6 +37,7 @@ public sealed class TextMateController
         _grammars = grammars;
         _breakpointMargin = breakpointMargin;
         _selection = selection;
+        _caret = caret;
         _currentLine = currentLine;
 
         _textMate.AppliedTheme += OnAppliedTheme;
@@ -65,6 +68,9 @@ public sealed class TextMateController
                 }
             }
         }
+
+        if (!ApplyBrushAction(e, "editorCursor.foreground", brush => _caret.Brush = brush))
+            _caret.Brush = null;   // the editor's text colour
 
         if (!ApplyBrushAction(e, "editor.lineHighlightBackground",
          brush =>
