@@ -75,6 +75,18 @@ background, quotes with a bar on the left, tables with borders. Colours come fro
         <Setter Property="Padding" Value="12,10" />
         <Setter Property="Margin" Value="0,0,0,12" />
     </Style>
+    <!--  The copy button, tucked into the block's corner; see-through until the pointer is over the block (or it has focus)  -->
+    <Style Selector="Border.md-code-block Button.md-copy">
+        <Setter Property="Margin" Value="0,-6,-8,0" />
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.md-code-block:pointerover Button.md-copy, Border.md-code-block Button.md-copy:focus-visible">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.md-code-block Button.md-copy PathIcon">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="Height" Value="12" />
+    </Style>
     <Style Selector="SelectableTextBlock.md-code-block">
         <Setter Property="FontFamily" Value="Cascadia Code,Consolas,Menlo,Monospace" />
         <Setter Property="FontSize" Value="13" />

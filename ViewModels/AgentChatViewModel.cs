@@ -119,10 +119,10 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand))]
     public partial bool IsTurnRunning { get; set; }
 
-    /// <summary>Send the front tab's file with the message (VS Code's "current file" chip).</summary>
+    /// <summary>Send the front tab's file with the message when its clicked</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveFileName))]
-    public partial bool IncludeActiveFile { get; set; } = true;
+    public partial bool IncludeActiveFile { get; set; }
 
     /// <summary>The front tab's file name, shown on the chip; null when no real file is open.</summary>
     public string? ActiveFileName => ActiveFilePath is { } path ? Path.GetFileName(path) : null;

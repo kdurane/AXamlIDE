@@ -1,0 +1,13 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!--  Add controls for the previewer here  -->
+        </Border>
+    </Design.PreviewWith>
+
+    <!--  Editable combo boxes: centre the typed text like a normal combo box's text (Fluent puts it at the top)  -->
+    <Style Selector="ComboBox /template/ TextBox#PART_EditableTextBox">
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MinHeight" Value="0" />
+    </Style>
+</Styles>

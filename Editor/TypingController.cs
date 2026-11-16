@@ -6,6 +6,7 @@ using AXamlIDE.CompletionEngine.Parsing;
 using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Hover;
 using AXamlIDE.Editor.SignatureHelp;
+using AXamlIDE.Models;
 using AXamlIDE.Services.CSharp;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Xaml;
@@ -82,6 +83,15 @@ public sealed class TypingController
         }
 
         var client = _ctx.Languages.ClientFor(doc);   // null when the document has no server connection
+
+        // In a comment nothing opens by itself (Ctrl+Space still does), except the tag list for '<' in a /// comment.
+        if (CommentAtCaret(doc) is not CommentKind.None and var comment)
+        {
+            if (comment == CommentKind.Doc && e.Text == "<" && client is not null)
+                _ = _completion.ShowCompletionAsync(doc, client.CompletionTriggerCharacters.Contains("<") ? "<" : null);
+            return;
+        }
+
         // With completion-while-typing off, only the characters that start something new (. < = ...) open it.
         var xamlTrigger = doc.LanguageId == LanguageIds.Axaml
             && ((features.CompletionWhileTyping && IsNameStart(e.Text[0])) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
@@ -135,6 +145,20 @@ public sealed class TypingController
         => _completion.IsOpen
             ? _completion.IsIncomplete && IsNameChar(typed)
             : _ctx.Settings.Features.CompletionWhileTyping && IsNameStart(typed);
+
+    /// <summary>The comment the caret is in: <c>//</c>, <c>/* */</c> or <c>///</c> in C#, <c>&lt;!-- --&gt;</c> in AXAML.</summary>
+    private CommentKind CommentAtCaret(OpenDocument doc)
+    {
+        var caret = _ctx.Editor.CaretOffset;
+        return doc.LanguageId switch
+        {
+            LanguageIds.CSharp => CSharpComments.KindAt(doc.Document.Text, caret),
+            LanguageIds.Axaml or LanguageIds.Xml
+                when XmlParser.Parse(doc.Document.Text.AsMemory(0, caret)).State == XmlParser.ParserState.InsideComment
+                => CommentKind.Plain,
+            _ => CommentKind.None
+        };
+    }
 
     private void OnTextEntering(object? sender, TextInputEventArgs e)
     {

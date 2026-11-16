@@ -5,7 +5,10 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Automation;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
+using Avalonia.Threading;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -38,7 +41,7 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
     public Control Render(string markdown)
     {
         Anchors.Clear();
-        var document = Markdig.Markdown.Parse(markdown, Pipeline);
+        var document = Markdown.Parse(markdown, Pipeline);
         var body = new StackPanel { Classes = { "md-body" } };
         AddBlocks(body, document);
         return body;
@@ -67,7 +70,7 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
         _ => null
     };
 
-    private Control Heading(HeadingBlock heading)
+    private SelectableTextBlock Heading(HeadingBlock heading)
     {
         var text = TextFor(heading.Inline, "md-h" + Math.Clamp(heading.Level, 1, 6));
         if (heading.GetAttributes().Id is { Length: > 0 } id)
@@ -83,9 +86,11 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
         return TextFor(paragraph.Inline, "md-p");
     }
 
-    private Control CodeBlockView(LeafBlock block)
+    private Border CodeBlockView(LeafBlock block)
     {
-        var lines = block.Lines.Lines.Take(block.Lines.Count).Select(line => line.Slice.ToString());
+        var lines = block.Lines.Count == 0
+        ? []
+        : block.Lines.Lines.Take(block.Lines.Count).Select(line => line.Slice.ToString());
         var text = string.Join("\n", lines);
         var code = new SelectableTextBlock { Classes = { "md-code-block" } };
         var language = (block as FencedCodeBlock)?.Info;
@@ -93,33 +98,62 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
             code.Inlines = [.. coloured];
         else
             code.Text = text;
+        var scroller = new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            Content = code
+        };
         return new Border
         {
             Classes = { "md-code-block" },
-            Child = new ScrollViewer
-            {
-                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                Content = code
-            }
+            Child = new Panel { Children = { scroller, CopyButton(text) } }
         };
     }
 
-    private Control Quote(QuoteBlock quote)
+    /// <summary>The copy button in a code block's top-right corner (VS Code's): shown while the pointer is over the block.</summary>
+    private static Button CopyButton(string text)
+    {
+        var icon = new PathIcon { Data = Icon("Icon.ContentCopy") };
+        var button = new Button
+        {
+            Classes = { "icon", "md-copy" },
+            Content = icon,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        ToolTip.SetTip(button, "Copy");
+        AutomationProperties.SetName(button, "Copy code");
+        button.Click += async (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(button)?.Clipboard is not { } clipboard)
+                return;
+            await clipboard.SetTextAsync(text);
+            // A tick for a moment, so it's clear the click did something.
+            icon.Data = Icon("Icon.Check");
+            DispatcherTimer.RunOnce(() => icon.Data = Icon("Icon.ContentCopy"), TimeSpan.FromSeconds(1.5));
+        };
+        return button;
+    }
+
+    private static Geometry? Icon(string key)
+        => Application.Current?.FindResource(key) as Geometry;
+
+    private Border Quote(QuoteBlock quote)
     {
         var inner = new StackPanel();
         AddBlocks(inner, quote);
         return new Border { Classes = { "md-quote" }, Child = inner };
     }
 
-    private Control Container(ContainerBlock block)
+    private StackPanel Container(ContainerBlock block)
     {
         var inner = new StackPanel();
         AddBlocks(inner, block);
         return inner;
     }
 
-    private Control List(ListBlock list)
+    private StackPanel List(ListBlock list)
     {
         var panel = new StackPanel { Classes = { "md-list" } };
         var number = list.IsOrdered && int.TryParse(list.OrderedStart, out var start) ? start : 1;
@@ -146,7 +180,7 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
         return panel;
     }
 
-    private Control TableView(Table table)
+    private ScrollViewer TableView(Table table)
     {
         var columns = table.ColumnDefinitions.Count > 0 ? table.ColumnDefinitions.Count : table.OfType<TableRow>().Select(row => row.Count).DefaultIfEmpty(1).Max();
         var grid = new Grid { Classes = { "md-table" }, HorizontalAlignment = HorizontalAlignment.Left };
@@ -198,7 +232,7 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
         var text = new SelectableTextBlock { Classes = { className }, Inlines = [] };
         var links = new List<(int Start, int End, string Url)>();
         if (inlines is not null)
-            AddInlines(text.Inlines!, inlines, links, []);
+            AddInlines(text.Inlines, inlines, links, []);
 
         if (links.Count > 0)
         {
@@ -246,11 +280,11 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
             case TaskList:
                 break;   // shown as the list item's check box
             case EmphasisInline emphasis:
-            {
-                var style = emphasis.DelimiterChar == '~' ? "md-strike" : emphasis.DelimiterCount >= 2 ? "md-strong" : "md-em";
-                AddInlines(target, emphasis, links, [.. classes, style]);
-                break;
-            }
+                {
+                    var style = emphasis.DelimiterChar == '~' ? "md-strike" : emphasis.DelimiterCount >= 2 ? "md-strong" : "md-em";
+                    AddInlines(target, emphasis, links, [.. classes, style]);
+                    break;
+                }
             case LinkInline { IsImage: true } image:
                 if (LocalImage(image) is { } picture)
                     target.Add(new InlineUIContainer(picture));
@@ -258,13 +292,13 @@ public sealed class MarkdownRenderer(string baseFolder, Action<string> openLink,
                     AddLink(target, image.Url ?? "", $"[{PlainText(image)}]", links, classes);
                 break;
             case LinkInline link:
-            {
-                var start = TextLength(target);
-                AddInlines(target, link, links, [.. classes, "md-link"]);
-                if (!string.IsNullOrEmpty(link.Url))
-                    links.Add((start, TextLength(target), link.Url));
-                break;
-            }
+                {
+                    var start = TextLength(target);
+                    AddInlines(target, link, links, [.. classes, "md-link"]);
+                    if (!string.IsNullOrEmpty(link.Url))
+                        links.Add((start, TextLength(target), link.Url));
+                    break;
+                }
             case AutolinkInline auto:
                 AddLink(target, auto.IsEmail ? "mailto:" + auto.Url : auto.Url, auto.Url, links, classes);
                 break;

@@ -45,6 +45,11 @@ public sealed class CaretRenderer : IBackgroundRenderer
     {
         if (!_on || !_textArea.IsFocused || !textView.VisualLinesValid || textView.GetValue(TextBlock.ForegroundProperty) is not { } brush)
             return;
+        // Only when the caret's line is already built (on screen). Otherwise CalculateCaretRectangle builds it, and
+        // building a line with a code lens, inlay hint or colour swatch adds a control mid-render, which Avalonia
+        // refuses ("Visual was invalidated during the render pass"). A caret that's off screen isn't seen anyway.
+        if (textView.GetVisualLine(_textArea.Caret.Line) is null)
+            return;
         // The caret's rectangle is in document coordinates; CodeLensSpace.Trim works in the text view's. It's only
         // 0.5 wide: snapped to whole device pixels (as AvaloniaEdit's caret layer does), that's one solid pixel
         // instead of a faint, blended half.

@@ -6,21 +6,21 @@
 -->
 <UserControl
     x:Class="AXamlIDE.Views.AgentChatView"
-    x:DataType="vm:AgentChatViewModel"
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:acp="using:AXamlIDE.Services.Agents"
     xmlns:b="using:AXamlIDE.Behaviors"
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:styles="using:AXamlIDE.Styles"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    x:DataType="vm:AgentChatViewModel">
 
     <UserControl.Resources>
         <styles:IconKeyConverter x:Key="IconConverter" />
 
         <!--  A file or picture under a sent message: its thumbnail or a file icon, and its name  -->
-        <DataTemplate x:DataType="vm:PromptAttachment" x:Key="SentAttachmentTemplate">
+        <DataTemplate x:Key="SentAttachmentTemplate" x:DataType="vm:PromptAttachment">
             <Border Classes="attachment" ToolTip.Tip="{Binding ToolTip}">
                 <StackPanel Orientation="Horizontal" Spacing="4">
                     <Image
@@ -29,15 +29,15 @@
                         Source="{Binding Thumbnail}"
                         Stretch="Uniform" />
                     <PathIcon
-                        Data="{StaticResource Icon.FileOutline}"
+                        Width="11"
                         Height="11"
+                        Data="{StaticResource Icon.FileOutline}"
                         IsVisible="{Binding !IsImage}"
-                        Opacity="0.7"
-                        Width="11" />
+                        Opacity="0.7" />
                     <TextBlock
+                        VerticalAlignment="Center"
                         FontSize="11"
-                        Text="{Binding Name}"
-                        VerticalAlignment="Center" />
+                        Text="{Binding Name}" />
                 </StackPanel>
             </Border>
         </DataTemplate>
@@ -99,21 +99,21 @@
                 <ControlTemplate>
                     <Grid ColumnDefinitions="18,*">
                         <Border
-                            Background="{DynamicResource ChatTimelineBrush}"
+                            Width="1"
                             HorizontalAlignment="Center"
-                            Width="1" />
+                            Background="{DynamicResource ChatTimelineBrush}" />
                         <Ellipse
-                            Fill="{DynamicResource ChatTimelineDotBrush}"
-                            Height="7"
-                            HorizontalAlignment="Center"
-                            Margin="0,7,0,0"
                             Name="PART_Dot"
+                            Width="7"
+                            Height="7"
+                            Margin="0,7,0,0"
+                            HorizontalAlignment="Center"
                             VerticalAlignment="Top"
-                            Width="7" />
+                            Fill="{DynamicResource ChatTimelineDotBrush}" />
                         <ContentPresenter
-                            Content="{TemplateBinding Content}"
                             Grid.Column="1"
-                            Padding="{TemplateBinding Padding}" />
+                            Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}" />
                     </Grid>
                 </ControlTemplate>
             </Setter>
@@ -203,7 +203,7 @@
         <Style Selector="Border.diffLine.removed">
             <Setter Property="Background" Value="{DynamicResource DiffRemovedLineBrush}" />
         </Style>
-        <Style Selector="Panel.statusIcon > PathIcon">
+        <Style Selector="Panel.statusIcon &gt; PathIcon">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
         </Style>
@@ -212,7 +212,7 @@
             <Setter Property="FontSize" Value="12" />
         </Style>
         <!--  The history menu's entries (AgentChatViewModel.History): a past chat, or a disabled note.  -->
-        <Style Selector="MenuFlyoutPresenter.chatHistory > MenuItem" x:DataType="vm:ChatHistoryItem">
+        <Style x:DataType="vm:ChatHistoryItem" Selector="MenuFlyoutPresenter.chatHistory &gt; MenuItem">
             <Setter Property="Header" Value="{Binding Label}" />
             <Setter Property="Command" Value="{Binding OpenCommand}" />
             <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
@@ -250,21 +250,21 @@
                     <views:MarkdownText IsVisible="{Binding !IsThought}" Markdown="{Binding Text}" />
                     <StackPanel IsVisible="{Binding IsThought}" Spacing="2">
                         <ToggleButton
-                            Classes="row expander"
+                            Padding="0,2"
                             HorizontalAlignment="Left"
-                            IsChecked="{Binding IsExpanded}"
-                            Padding="0,2">
+                            Classes="row expander"
+                            IsChecked="{Binding IsExpanded}">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock
                                     Classes="dim"
                                     FontSize="13"
                                     Text="Thinking" />
                                 <PathIcon
+                                    Width="9"
+                                    Height="9"
                                     Classes="chevron"
                                     Data="{StaticResource Icon.ChevronRight}"
-                                    Height="9"
-                                    Opacity="0.6"
-                                    Width="9" />
+                                    Opacity="0.6" />
                             </StackPanel>
                         </ToggleButton>
                         <SelectableTextBlock
@@ -295,17 +295,17 @@
                 <Border Classes="card">
                     <StackPanel>
                         <Button
-                            Classes="row"
-                            Command="{Binding ToggleExpandedCommand}"
+                            Padding="6,3"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Stretch"
-                            Padding="6,3">
+                            Classes="row"
+                            Command="{Binding ToggleExpandedCommand}">
                             <Grid ColumnDefinitions="Auto,Auto,*">
                                 <Panel
-                                    Classes="statusIcon"
+                                    Width="12"
                                     Height="12"
                                     Margin="0,0,6,0"
-                                    Width="12">
+                                    Classes="statusIcon">
                                     <PathIcon
                                         Classes.spinning="{Binding IsRunning}"
                                         Data="{StaticResource Icon.Loading}"
@@ -324,12 +324,12 @@
                                         ToolTip.Tip="{Binding Status}" />
                                 </Panel>
                                 <PathIcon
-                                    Data="{Binding IconKey, Converter={StaticResource IconConverter}}"
                                     Grid.Column="1"
+                                    Width="12"
                                     Height="12"
                                     Margin="0,0,6,0"
-                                    Opacity="0.8"
-                                    Width="12" />
+                                    Data="{Binding IconKey, Converter={StaticResource IconConverter}}"
+                                    Opacity="0.8" />
                                 <TextBlock
                                     Grid.Column="2"
                                     Text="{Binding Title}"
@@ -340,9 +340,9 @@
 
                         <!--  The files it works on  -->
                         <ItemsControl
+                            Margin="24,0,6,4"
                             IsVisible="{Binding ShowLocations}"
-                            ItemsSource="{Binding Locations}"
-                            Margin="24,0,6,4">
+                            ItemsSource="{Binding Locations}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel />
@@ -351,20 +351,20 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="acp:AcpLocation">
                                     <Button
+                                        Margin="0,0,10,0"
                                         Classes="link"
                                         Command="{Binding $parent[ItemsControl].((vm:ToolCallItem)DataContext).OpenLocationCommand}"
                                         CommandParameter="{Binding}"
                                         Content="{Binding Path, Converter={x:Static views:AgentChatConverters.FileName}}"
                                         FontSize="11"
-                                        Margin="0,0,10,0"
                                         ToolTip.Tip="{Binding Path}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
                         <StackPanel
-                            IsVisible="{Binding IsExpanded}"
                             Margin="6,0,6,6"
+                            IsVisible="{Binding IsExpanded}"
                             Spacing="6">
                             <!--  Each edit, as a unified diff  -->
                             <ItemsControl ItemsSource="{Binding Diffs}">
@@ -372,12 +372,12 @@
                                     <DataTemplate x:DataType="vm:AgentDiffItem">
                                         <StackPanel Margin="0,0,0,4">
                                             <Button
+                                                Margin="0,0,0,2"
                                                 Classes="link"
                                                 Command="{Binding $parent[ItemsControl].((vm:ToolCallItem)DataContext).OpenDiffFileCommand}"
                                                 CommandParameter="{Binding}"
                                                 Content="{Binding FileName}"
                                                 FontSize="11"
-                                                Margin="0,0,0,2"
                                                 ToolTip.Tip="{Binding Path}" />
                                             <ItemsControl ItemsSource="{Binding Lines}">
                                                 <ItemsControl.ItemTemplate>
@@ -420,9 +420,9 @@
         <DataTemplate x:DataType="vm:PermissionItem">
             <ContentControl Classes="timeline">
                 <Border
+                    Padding="8,6"
                     BorderBrush="{DynamicResource DiagnosticWarningBrush}"
-                    Classes="card"
-                    Padding="8,6">
+                    Classes="card">
                     <StackPanel Spacing="6">
                         <TextBlock FontWeight="SemiBold" Text="Allow Claude to run this?" />
                         <TextBlock
@@ -443,11 +443,11 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="acp:AcpPermissionOption">
                                     <Button
+                                        MinWidth="60"
+                                        Margin="0,0,6,0"
                                         Command="{Binding $parent[ItemsControl].((vm:PermissionItem)DataContext).ChooseCommand}"
                                         CommandParameter="{Binding}"
-                                        Content="{Binding Name}"
-                                        Margin="0,0,6,0"
-                                        MinWidth="60" />
+                                        Content="{Binding Name}" />
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -464,27 +464,33 @@
         <!--  The plan: a tick for done, an arrow for the step in progress  -->
         <DataTemplate x:DataType="vm:PlanItem">
             <ContentControl Classes="timeline">
-                <Border Classes="card" Padding="8,6">
+                <Border Padding="8,6" Classes="card">
                     <StackPanel Spacing="2">
                         <TextBlock FontWeight="SemiBold" Text="Plan" />
                         <ItemsControl ItemsSource="{Binding Entries}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:AgentPlanRow">
-                                    <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                                    <Grid Margin="0,1" ColumnDefinitions="Auto,*">
                                         <Panel
-                                            Classes="statusIcon"
+                                            Width="12"
                                             Height="12"
                                             Margin="0,2,6,0"
                                             VerticalAlignment="Top"
-                                            Width="12">
-                                            <PathIcon Data="{StaticResource Icon.CheckCircle}" Foreground="{DynamicResource TestPassedBrush}" IsVisible="{Binding IsCompleted}" />
+                                            Classes="statusIcon">
+                                            <PathIcon
+                                                Data="{StaticResource Icon.CheckCircle}"
+                                                Foreground="{DynamicResource TestPassedBrush}"
+                                                IsVisible="{Binding IsCompleted}" />
                                             <PathIcon Data="{StaticResource Icon.ChevronRight}" IsVisible="{Binding IsInProgress}" />
-                                            <PathIcon Data="{StaticResource Icon.CircleOutline}" IsVisible="{Binding IsPending}" Opacity="0.6" />
+                                            <PathIcon
+                                                Data="{StaticResource Icon.CircleOutline}"
+                                                IsVisible="{Binding IsPending}"
+                                                Opacity="0.6" />
                                         </Panel>
                                         <TextBlock
+                                            Grid.Column="1"
                                             Classes.dim="{Binding IsCompleted}"
                                             FontWeight="{Binding IsInProgress, Converter={x:Static views:AgentChatConverters.BoldWhen}}"
-                                            Grid.Column="1"
                                             Text="{Binding Content}"
                                             TextWrapping="Wrap" />
                                     </Grid>
@@ -502,11 +508,11 @@
         <!--  The conversation's title, how full its context is, the chat history, and New Chat  -->
         <DockPanel Margin="8,2,2,2">
             <Button
+                shell:KeyMap.ShortcutTip="New Chat"
                 AutomationProperties.Name="New Chat"
                 Classes="icon"
                 Command="{Binding NewChatCommand}"
-                DockPanel.Dock="Right"
-                shell:KeyMap.ShortcutTip="New Chat">
+                DockPanel.Dock="Right">
                 <PathIcon Data="{StaticResource Icon.Plus}" />
             </Button>
             <Button
@@ -525,30 +531,30 @@
                 <PathIcon Data="{StaticResource Icon.History}" />
             </Button>
             <TextBlock
+                Margin="6,0"
+                VerticalAlignment="Center"
                 Classes="dim"
                 DockPanel.Dock="Right"
                 FontSize="11"
-                Margin="6,0"
-                Text="{Binding UsageText}"
-                VerticalAlignment="Center" />
+                Text="{Binding UsageText}" />
             <TextBlock
+                VerticalAlignment="Center"
                 FontWeight="SemiBold"
                 Text="{Binding Title}"
                 TextTrimming="CharacterEllipsis"
-                ToolTip.Tip="{Binding Title}"
-                VerticalAlignment="Center" />
+                ToolTip.Tip="{Binding Title}" />
         </DockPanel>
 
         <Panel Grid.Row="1">
             <!--  Not installed: say what it is, and download it only when asked  -->
             <StackPanel
-                IsVisible="{Binding IsNotInstalled}"
                 Margin="16"
-                Spacing="10"
-                VerticalAlignment="Center">
+                VerticalAlignment="Center"
+                IsVisible="{Binding IsNotInstalled}"
+                Spacing="10">
                 <TextBlock
-                    FontWeight="SemiBold"
                     HorizontalAlignment="Center"
+                    FontWeight="SemiBold"
                     Text="Claude isn't installed" />
                 <TextBlock
                     Classes="dim"
@@ -556,66 +562,66 @@
                     TextAlignment="Center"
                     TextWrapping="Wrap" />
                 <Button
-                    Command="{Binding InstallCommand}"
-                    Content="{Binding InstallText}"
-                    HorizontalAlignment="Center" />
-                <TextBlock
-                    Classes="dim"
                     HorizontalAlignment="Center"
+                    Command="{Binding InstallCommand}"
+                    Content="{Binding InstallText}" />
+                <TextBlock
+                    HorizontalAlignment="Center"
+                    Classes="dim"
                     Text="{Binding InstallProgress}"
                     TextAlignment="Center"
                     TextWrapping="Wrap" />
             </StackPanel>
 
             <StackPanel
+                VerticalAlignment="Center"
                 IsVisible="{Binding IsInstalling}"
-                Spacing="10"
-                VerticalAlignment="Center">
+                Spacing="10">
                 <TextBlock HorizontalAlignment="Center" Text="{Binding InstallProgress}" />
                 <ProgressBar
-                    IsIndeterminate="True"
+                    MinWidth="0"
                     Margin="24,0"
-                    MinWidth="0" />
+                    IsIndeterminate="True" />
                 <Button
+                    HorizontalAlignment="Center"
                     Command="{Binding CancelInstallCommand}"
-                    Content="Cancel"
-                    HorizontalAlignment="Center" />
+                    Content="Cancel" />
             </StackPanel>
 
             <TextBlock
-                Classes="dim"
                 HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Classes="dim"
                 IsVisible="{Binding IsStarting}"
-                Text="Starting Claude..."
-                VerticalAlignment="Center" />
+                Text="Starting Claude..." />
 
             <StackPanel
-                IsVisible="{Binding IsFailed}"
                 Margin="16"
-                Spacing="10"
-                VerticalAlignment="Center">
+                VerticalAlignment="Center"
+                IsVisible="{Binding IsFailed}"
+                Spacing="10">
                 <SelectableTextBlock
                     Classes="error"
                     Text="{Binding Problem}"
                     TextAlignment="Center"
                     TextWrapping="Wrap" />
                 <Button
+                    HorizontalAlignment="Center"
                     Command="{Binding RestartCommand}"
-                    Content="Restart Claude"
-                    HorizontalAlignment="Center" />
+                    Content="Restart Claude" />
             </StackPanel>
 
             <!--  The conversation  -->
             <Grid IsVisible="{Binding IsReady}" RowDefinitions="*,Auto">
                 <TextBlock
-                    Classes="dim"
                     Grid.RowSpan="2"
-                    IsVisible="{Binding IsEmpty}"
                     Margin="16"
+                    VerticalAlignment="Center"
+                    Classes="dim"
+                    IsVisible="{Binding IsEmpty}"
                     Text="Ask Claude about this workspace. It reads and edits files and runs commands in the workspace folder, and asks first when the mode says so. Open tabs pick up its edits."
                     TextAlignment="Center"
-                    TextWrapping="Wrap"
-                    VerticalAlignment="Center" />
+                    TextWrapping="Wrap" />
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="10,6,10,4">
                         <!--  No gap between rows: the timeline's line runs through them (ContentControl.timeline)  -->
@@ -627,22 +633,22 @@
                 </ScrollViewer>
                 <!--  Claude is working (VS Code's spinner and "Working..."): pinned under the conversation, so it stays in view as the reply grows  -->
                 <Grid
-                    ColumnDefinitions="18,*"
                     Grid.Row="1"
-                    IsVisible="{Binding IsTurnRunning}"
-                    Margin="10,0,10,6">
+                    Margin="10,0,10,6"
+                    ColumnDefinitions="18,*"
+                    IsVisible="{Binding IsTurnRunning}">
                     <PathIcon
+                        Width="12"
+                        Height="12"
                         Classes.spinning="{Binding IsTurnRunning}"
                         Data="{StaticResource Icon.Sync}"
-                        Foreground="{DynamicResource ChatSendBackgroundBrush}"
-                        Height="12"
-                        Width="12" />
+                        Foreground="{DynamicResource ChatSendBackgroundBrush}" />
                     <TextBlock
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
                         Classes.pulsing="{Binding IsTurnRunning}"
                         FontSize="13"
-                        Grid.Column="1"
-                        Text="Working..."
-                        VerticalAlignment="Center" />
+                        Text="Working..." />
                 </Grid>
             </Grid>
         </Panel>
@@ -653,35 +659,34 @@
             picture or copied files as chips; files dropped anywhere on the panel are added too (AgentChatView.axaml.cs).
         -->
         <Border
-            Classes="prompt"
             Grid.Row="2"
-            IsVisible="{Binding IsReady}"
-            Margin="8,0,8,8">
+            Margin="8,0,8,8"
+            Classes="prompt"
+            IsVisible="{Binding IsReady}">
             <StackPanel Spacing="4">
                 <TextBlock
+                    Margin="2,0"
                     Classes="dim error"
                     IsVisible="{Binding !HasWorkspace}"
-                    Margin="2,0"
                     Text="Open a folder or solution first: Claude works in the workspace folder."
                     TextWrapping="Wrap" />
                 <WrapPanel>
                     <ToggleButton
+                        Margin="0,0,4,4"
+                        Padding="4,1"
                         Classes="row"
                         IsChecked="{Binding IncludeActiveFile}"
                         IsVisible="{Binding ActiveFileName, Converter={x:Static ObjectConverters.IsNotNull}}"
-                        Margin="0,0,4,4"
-                        Padding="4,1"
-                        ToolTip.Tip="Send the current file with the message (click to leave it out)">
+                        ToolTip.Tip="Click to send the current file with the message">
                         <StackPanel Orientation="Horizontal" Spacing="4">
                             <PathIcon
-                                Data="{StaticResource Icon.FileOutline}"
+                                Width="11"
                                 Height="11"
-                                Width="11" />
+                                Data="{StaticResource Icon.FileOutline}" />
                             <TextBlock
                                 Classes.dim="{Binding !IncludeActiveFile}"
                                 FontSize="11"
-                                Text="{Binding ActiveFileName}"
-                                TextDecorations="{Binding !IncludeActiveFile, Converter={x:Static views:AgentChatConverters.StrikeWhen}}" />
+                                Text="{Binding ActiveFileName}" />
                         </StackPanel>
                     </ToggleButton>
                     <!--  Added files and pasted pictures, each with an × to take it off  -->
@@ -701,27 +706,27 @@
                                             Source="{Binding Thumbnail}"
                                             Stretch="Uniform" />
                                         <PathIcon
-                                            Data="{StaticResource Icon.FileOutline}"
+                                            Width="11"
                                             Height="11"
-                                            IsVisible="{Binding !IsImage}"
-                                            Width="11" />
+                                            Data="{StaticResource Icon.FileOutline}"
+                                            IsVisible="{Binding !IsImage}" />
                                         <TextBlock
-                                            FontSize="11"
                                             MaxWidth="160"
+                                            VerticalAlignment="Center"
+                                            FontSize="11"
                                             Text="{Binding Name}"
-                                            TextTrimming="CharacterEllipsis"
-                                            VerticalAlignment="Center" />
+                                            TextTrimming="CharacterEllipsis" />
                                         <Button
+                                            Padding="2"
                                             AutomationProperties.Name="Remove"
                                             Classes="icon"
                                             Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).RemoveAttachmentCommand}"
                                             CommandParameter="{Binding}"
-                                            Padding="2"
                                             ToolTip.Tip="Remove">
                                             <PathIcon
-                                                Data="{StaticResource Icon.Close}"
+                                                Width="8"
                                                 Height="8"
-                                                Width="8" />
+                                                Data="{StaticResource Icon.Close}" />
                                         </Button>
                                     </StackPanel>
                                 </Border>
@@ -730,24 +735,24 @@
                     </ItemsControl>
                 </WrapPanel>
                 <TextBox
+                    Name="PromptBox"
+                    MinHeight="40"
+                    MaxHeight="160"
+                    Padding="2,2"
                     AcceptsReturn="True"
                     AutomationProperties.Name="Message to Claude"
                     BorderThickness="0"
                     FontSize="13"
-                    MaxHeight="160"
-                    MinHeight="40"
-                    Name="PromptBox"
-                    Padding="2,2"
                     PlaceholderText="Ask Claude (Enter to send, Shift+Enter for a new line)"
                     Text="{Binding PromptText}"
                     TextWrapping="Wrap" />
                 <DockPanel>
                     <Button
+                        Margin="0,0,4,0"
                         AutomationProperties.Name="Add Files"
                         Classes="icon"
                         Command="{Binding AddFilesCommand}"
                         DockPanel.Dock="Left"
-                        Margin="0,0,4,0"
                         ToolTip.Tip="Add files or pictures (or paste / drop them)">
                         <PathIcon Data="{StaticResource Icon.Plus}" />
                     </Button>
@@ -779,27 +784,27 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:AgentSettingItem">
                                 <StackPanel Margin="0,0,4,0" Orientation="Horizontal">
-                                <TextBlock
-                                    Classes="dim"
-                                    FontSize="11"
-                                    IsVisible="{Binding Label, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                    Margin="0,0,3,0"
-                                    Text="{Binding Label}"
-                                    VerticalAlignment="Center" />
-                                <ComboBox
-                                    AutomationProperties.Name="{Binding Name}"
-                                    FontSize="11"
-                                    ItemsSource="{Binding Choices}"
-                                    MinHeight="22"
-                                    Padding="6,0"
-                                    SelectedItem="{Binding Selected}"
-                                    ToolTip.Tip="{Binding Name}">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate x:DataType="acp:AcpChoice">
-                                            <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}" />
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
+                                    <TextBlock
+                                        Margin="0,0,3,0"
+                                        VerticalAlignment="Center"
+                                        Classes="dim"
+                                        FontSize="11"
+                                        IsVisible="{Binding Label, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                        Text="{Binding Label}" />
+                                    <ComboBox
+                                        MinHeight="22"
+                                        Padding="6,0"
+                                        AutomationProperties.Name="{Binding Name}"
+                                        FontSize="11"
+                                        ItemsSource="{Binding Choices}"
+                                        SelectedItem="{Binding Selected}"
+                                        ToolTip.Tip="{Binding Name}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="acp:AcpChoice">
+                                                <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

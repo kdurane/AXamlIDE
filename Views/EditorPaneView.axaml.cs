@@ -427,7 +427,7 @@ public partial class EditorPaneView : UserControl,
             panel.SearchPattern = Editor.SelectedText;
         panel.IsReplaceMode = replace && !Editor.IsReadOnly;
         panel.Open();
-        panel.Reactivate();
+        Dispatcher.UIThread.Post(panel.Reactivate, DispatcherPriority.Input);
     }
 
     /// <summary>Ctrl+G: Visual Studio's Go To Line box.</summary>

@@ -26,6 +26,7 @@
         <StyleInclude Source="/Styles/PaneStyles.axaml" />
         <StyleInclude Source="/Styles/DockStyles.axaml" />
         <StyleInclude Source="/Styles/MarkdownStyles.axaml" />
+        <StyleInclude Source="/Styles/ComboBoxStyles.axaml" />
     </Application.Styles>
 
     <Application.Resources>
