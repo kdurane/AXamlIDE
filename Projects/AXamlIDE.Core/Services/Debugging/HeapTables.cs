@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -41,6 +43,7 @@ public static partial class HeapTables
             if (target.ClrVersions.FirstOrDefault() is not { } clr)
                 return null;
             using var runtime = CreateRuntime(clr);
+            PinDac();
 
             var wanted = Normalize(ClrName(fingerprint.Type));
             var found = new List<ClrObject>(2);
@@ -457,10 +460,22 @@ public static partial class HeapTables
 
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal)
     {
-        ["bool"] = "System.Boolean", ["byte"] = "System.Byte", ["sbyte"] = "System.SByte", ["char"] = "System.Char",
-        ["decimal"] = "System.Decimal", ["double"] = "System.Double", ["float"] = "System.Single", ["int"] = "System.Int32",
-        ["uint"] = "System.UInt32", ["long"] = "System.Int64", ["ulong"] = "System.UInt64", ["short"] = "System.Int16",
-        ["ushort"] = "System.UInt16", ["object"] = "System.Object", ["string"] = "System.String", ["nint"] = "System.IntPtr",
+        ["bool"] = "System.Boolean",
+        ["byte"] = "System.Byte",
+        ["sbyte"] = "System.SByte",
+        ["char"] = "System.Char",
+        ["decimal"] = "System.Decimal",
+        ["double"] = "System.Double",
+        ["float"] = "System.Single",
+        ["int"] = "System.Int32",
+        ["uint"] = "System.UInt32",
+        ["long"] = "System.Int64",
+        ["ulong"] = "System.UInt64",
+        ["short"] = "System.Int16",
+        ["ushort"] = "System.UInt16",
+        ["object"] = "System.Object",
+        ["string"] = "System.String",
+        ["nint"] = "System.IntPtr",
         ["nuint"] = "System.UIntPtr"
     };
 
@@ -496,5 +511,19 @@ public static partial class HeapTables
         return text.Append(LastPart(segment.ToString())).ToString();
 
         static string LastPart(string part) => part.Contains('.') ? part[(part.LastIndexOf('.') + 1)..] : part;
+    }
+
+    private static readonly HashSet<string> PinnedDacs = new(StringComparer.Ordinal);
+
+    /// <summary>ClrMD unloads the DAC on dispose, but the DAC's own native threads can outlive that and then run
+    /// into code that's gone (a segfault no handler sees). Holding our own reference keeps it loaded until exit.</summary>
+    private static void PinDac()
+    {
+        using var self = Process.GetCurrentProcess();
+        foreach (ProcessModule module in self.Modules)
+            if (module.ModuleName.Contains("mscordaccore", StringComparison.OrdinalIgnoreCase))
+                lock (PinnedDacs)
+                    if (PinnedDacs.Add(module.FileName))
+                        NativeLibrary.Load(module.FileName);
     }
 }
