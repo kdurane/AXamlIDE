@@ -1,8 +1,9 @@
-<UserControl
+﻿<UserControl
     x:Class="AXamlIDE.Views.GitView"
     x:DataType="vm:GitViewModel"
     xmlns="https://github.com/avaloniaui"
     xmlns:models="using:AXamlIDE.Models"
+    xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -243,6 +244,7 @@
                         <MenuItem Command="{Binding CommitCommand}" Header="Commit Staged" InputGesture="Ctrl+Enter" />
                         <MenuItem Command="{Binding CommitAllCommand}" Header="Commit All" />
                         <MenuItem Command="{Binding AmendCommand}" Header="Amend Last Commit..." />
+                        <MenuItem Command="{Binding GenerateCommitMessageCommand}" Header="Generate Commit Message" />
                         <Separator />
                         <MenuItem Command="{Binding StageAllCommand}" Header="Stage All Changes" />
                         <MenuItem Command="{Binding UnstageAllCommand}" Header="Unstage All" />
@@ -277,17 +279,31 @@
                         DockPanel.Dock="Top"
                         Margin="8,6,8,6"
                         Spacing="6">
-                        <TextBox
-                            AcceptsReturn="True"
-                            MaxHeight="120"
-                            MinHeight="48"
-                            PlaceholderText="Commit message"
-                            Text="{Binding CommitMessage}"
-                            TextWrapping="Wrap">
-                            <TextBox.KeyBindings>
-                                <KeyBinding Command="{Binding CommitCommand}" Gesture="Ctrl+Enter" />
-                            </TextBox.KeyBindings>
-                        </TextBox>
+                        <!--  The sparkle button sits in the message box's corner, as VS Code's does  -->
+                        <Panel>
+                            <TextBox
+                                AcceptsReturn="True"
+                                MaxHeight="120"
+                                MinHeight="48"
+                                Padding="6,4,28,4"
+                                PlaceholderText="Commit message"
+                                Text="{Binding CommitMessage}"
+                                TextWrapping="Wrap">
+                                <TextBox.KeyBindings>
+                                    <KeyBinding Command="{Binding CommitCommand}" Gesture="Ctrl+Enter" />
+                                </TextBox.KeyBindings>
+                            </TextBox>
+                            <Button
+                                AutomationProperties.Name="Generate Commit Message"
+                                Classes="icon"
+                                Command="{Binding GenerateCommitMessageCommand}"
+                                HorizontalAlignment="Right"
+                                Margin="0,2,2,0"
+                                shell:KeyMap.ShortcutTip="Generate Commit Message with Claude"
+                                VerticalAlignment="Top">
+                                <PathIcon Data="{DynamicResource Icon.Sparkle}" />
+                            </Button>
+                        </Panel>
                         <Button
                             Command="{Binding CommitCommand}"
                             Content="{Binding CommitButtonText}"

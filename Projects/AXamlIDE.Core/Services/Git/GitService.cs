@@ -64,6 +64,29 @@ public sealed class GitService
             ? message.Length == 0 ? ["commit", "-q", "--amend", "--no-edit"] : ["commit", "-q", "--amend", "-m", message]
             : ["commit", "-q", "-m", message]);
 
+    /// <summary>
+    /// The change as a patch, for describing it: with <paramref name="staged"/> what's staged, otherwise every change
+    /// to tracked files since the last commit (staged or not). New files that aren't staged aren't in it.
+    /// </summary>
+    public async Task<string> GetDiffAsync(string repositoryRoot, bool staged)
+    {
+        List<string> arguments = ["diff", "--no-color", "--no-ext-diff", "-M"];
+        if (staged)
+            arguments.Add("--staged");
+        else if (await HasCommitsAsync(repositoryRoot))
+            arguments.Add("HEAD");
+        return await RunAsync(repositoryRoot, arguments);
+    }
+
+    /// <summary>The first lines of the last few commit messages, newest first (empty before the first commit).</summary>
+    public async Task<IReadOnlyList<string>> GetRecentSubjectsAsync(string repositoryRoot, int count)
+    {
+        if (!await HasCommitsAsync(repositoryRoot))
+            return [];
+        var output = await RunAsync(repositoryRoot, ["log", "-n", count.ToString(), "--format=%s"]);
+        return output.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+    }
+
     /// <summary>Throw away the changes to tracked files (staged and not). New files are left alone.</summary>
     public async Task DiscardTrackedChangesAsync(string repositoryRoot, IEnumerable<string>? fullPaths = null)
     {

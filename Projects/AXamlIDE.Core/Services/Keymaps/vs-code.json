@@ -32,6 +32,11 @@
     "View.DebugConsole": "Ctrl+Shift+Y",
     "View.Terminal": "Ctrl+`",
     "View.TogglePanel": "Ctrl+J",
+    "View.Claude": "Ctrl+Alt+I",               // VS Code's Open Chat
+
+    // ---- Claude and Git (VS Code has no default key for these)
+    "Claude.NewChat": "Ctrl+Alt+N",
+    "Git.GenerateCommitMessage": "Ctrl+Alt+M",
 
     // ---- Navigate
     "Navigate.GoToFile": "Ctrl+P",

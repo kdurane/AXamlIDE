@@ -1,0 +1,566 @@
+<!--
+    The Claude panel (DataContext: AgentChatViewModel), laid out like VS Code's chat view: the conversation, then the
+    prompt box with the "current file" chip, the session's drop-downs (Mode, Model) and the send / stop button.
+    Enter sends, Shift+Enter starts a new line, Escape stops a running turn (AgentChatView.axaml.cs).
+    Before the agent runs, the middle shows why instead: not installed (with the download button), starting, failed.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.AgentChatView"
+    x:DataType="vm:AgentChatViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:acp="using:AXamlIDE.Services.Agents"
+    xmlns:b="using:AXamlIDE.Behaviors"
+    xmlns:shell="using:AXamlIDE.Shell"
+    xmlns:styles="using:AXamlIDE.Styles"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <UserControl.Resources>
+        <styles:IconKeyConverter x:Key="IconConverter" />
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!--  Replies sit in a narrow panel: no page margins round the Markdown.  -->
+        <Style Selector="views|MarkdownText StackPanel.md-body">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="MaxWidth" Value="NaN" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="TextBlock.dim, SelectableTextBlock.dim">
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+        <Style Selector="TextBlock.error, SelectableTextBlock.error">
+            <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="BorderBrush" Value="{DynamicResource DockBorderSubtleBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="Border.diffLine.added">
+            <Setter Property="Background" Value="{DynamicResource DiffInsertedLineBrush}" />
+        </Style>
+        <Style Selector="Border.diffLine.removed">
+            <Setter Property="Background" Value="{DynamicResource DiffRemovedLineBrush}" />
+        </Style>
+        <Style Selector="Panel.statusIcon > PathIcon">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+        </Style>
+        <Style Selector="TextBlock.mono">
+            <Setter Property="FontFamily" Value="Cascadia Code,Consolas,Menlo,Monospace" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <!--  The history menu's entries (AgentChatViewModel.History): a past chat, or a disabled note.  -->
+        <Style Selector="MenuFlyoutPresenter.chatHistory > MenuItem" x:DataType="vm:ChatHistoryItem">
+            <Setter Property="Header" Value="{Binding Label}" />
+            <Setter Property="Command" Value="{Binding OpenCommand}" />
+            <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+        </Style>
+    </UserControl.Styles>
+
+    <UserControl.DataTemplates>
+        <!--  The user's message: a tinted bubble, with the file that went with it  -->
+        <DataTemplate x:DataType="vm:UserMessageItem">
+            <Border
+                Background="{DynamicResource HoverBackgroundBrush}"
+                CornerRadius="6"
+                Padding="8,6">
+                <StackPanel Spacing="4">
+                    <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                    <StackPanel
+                        IsVisible="{Binding HasAttachedFile}"
+                        Orientation="Horizontal"
+                        Spacing="4">
+                        <PathIcon
+                            Data="{StaticResource Icon.FileOutline}"
+                            Height="11"
+                            Opacity="0.7"
+                            Width="11" />
+                        <TextBlock
+                            Classes="dim"
+                            FontSize="11"
+                            Text="{Binding AttachedFile}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!--  A reply (Markdown), or its thinking (folded, dimmed)  -->
+        <DataTemplate x:DataType="vm:AgentTextItem">
+            <Panel>
+                <views:MarkdownText IsVisible="{Binding !IsThought}" Markdown="{Binding Text}" />
+                <StackPanel IsVisible="{Binding IsThought}" Spacing="2">
+                    <ToggleButton
+                        Classes="row expander"
+                        HorizontalAlignment="Left"
+                        IsChecked="{Binding IsExpanded}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <PathIcon
+                                Classes="chevron"
+                                Data="{StaticResource Icon.ChevronRight}"
+                                Height="10"
+                                Width="10" />
+                            <TextBlock
+                                Classes="dim"
+                                FontStyle="Italic"
+                                Text="Thinking" />
+                        </StackPanel>
+                    </ToggleButton>
+                    <SelectableTextBlock
+                        Classes="dim"
+                        FontStyle="Italic"
+                        IsVisible="{Binding IsExpanded}"
+                        Margin="14,0,0,0"
+                        Text="{Binding Text}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Panel>
+        </DataTemplate>
+
+        <DataTemplate x:DataType="vm:NoticeItem">
+            <SelectableTextBlock
+                Classes="dim"
+                Classes.error="{Binding IsError}"
+                FontStyle="Italic"
+                Text="{Binding Text}"
+                TextWrapping="Wrap" />
+        </DataTemplate>
+
+        <!--  A tool call: status, kind and title; click to see its output and edits, and the files it touched  -->
+        <DataTemplate x:DataType="vm:ToolCallItem">
+            <Border Classes="card">
+                <StackPanel>
+                    <Button
+                        Classes="row"
+                        Command="{Binding ToggleExpandedCommand}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Stretch"
+                        Padding="6,3">
+                        <Grid ColumnDefinitions="Auto,Auto,*">
+                            <Panel
+                                Classes="statusIcon"
+                                Height="12"
+                                Margin="0,0,6,0"
+                                Width="12">
+                                <PathIcon
+                                    Data="{StaticResource Icon.ClockOutline}"
+                                    IsVisible="{Binding IsRunning}"
+                                    Opacity="0.7"
+                                    ToolTip.Tip="Running" />
+                                <PathIcon
+                                    Data="{StaticResource Icon.CheckCircle}"
+                                    Foreground="{DynamicResource TestPassedBrush}"
+                                    IsVisible="{Binding IsDone}"
+                                    ToolTip.Tip="Done" />
+                                <PathIcon
+                                    Data="{StaticResource Icon.CloseCircle}"
+                                    Foreground="{DynamicResource TestFailedBrush}"
+                                    IsVisible="{Binding IsFailed}"
+                                    ToolTip.Tip="{Binding Status}" />
+                            </Panel>
+                            <PathIcon
+                                Data="{Binding IconKey, Converter={StaticResource IconConverter}}"
+                                Grid.Column="1"
+                                Height="12"
+                                Margin="0,0,6,0"
+                                Opacity="0.8"
+                                Width="12" />
+                            <TextBlock
+                                Grid.Column="2"
+                                Text="{Binding Title}"
+                                TextTrimming="CharacterEllipsis"
+                                ToolTip.Tip="{Binding Title}" />
+                        </Grid>
+                    </Button>
+
+                    <!--  The files it works on  -->
+                    <ItemsControl
+                        IsVisible="{Binding ShowLocations}"
+                        ItemsSource="{Binding Locations}"
+                        Margin="24,0,6,4">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="acp:AcpLocation">
+                                <Button
+                                    Classes="link"
+                                    Command="{Binding $parent[ItemsControl].((vm:ToolCallItem)DataContext).OpenLocationCommand}"
+                                    CommandParameter="{Binding}"
+                                    Content="{Binding Path, Converter={x:Static views:AgentChatConverters.FileName}}"
+                                    FontSize="11"
+                                    Margin="0,0,10,0"
+                                    ToolTip.Tip="{Binding Path}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <StackPanel
+                        IsVisible="{Binding IsExpanded}"
+                        Margin="6,0,6,6"
+                        Spacing="6">
+                        <!--  Each edit, as a unified diff  -->
+                        <ItemsControl ItemsSource="{Binding Diffs}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:AgentDiffItem">
+                                    <StackPanel Margin="0,0,0,4">
+                                        <Button
+                                            Classes="link"
+                                            Command="{Binding $parent[ItemsControl].((vm:ToolCallItem)DataContext).OpenDiffFileCommand}"
+                                            CommandParameter="{Binding}"
+                                            Content="{Binding FileName}"
+                                            FontSize="11"
+                                            Margin="0,0,0,2"
+                                            ToolTip.Tip="{Binding Path}" />
+                                        <ItemsControl ItemsSource="{Binding Lines}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:AgentDiffLine">
+                                                    <Border
+                                                        Classes="diffLine"
+                                                        Classes.added="{Binding IsAdded}"
+                                                        Classes.removed="{Binding IsRemoved}">
+                                                        <TextBlock Classes="mono" TextWrapping="Wrap">
+                                                            <Run Text="{Binding Marker}" />
+                                                            <Run Text=" " />
+                                                            <Run Text="{Binding Text}" />
+                                                        </TextBlock>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock
+                                            Classes="dim"
+                                            FontSize="11"
+                                            IsVisible="{Binding HasMoreLines}"
+                                            Text="{Binding MoreLines}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <views:MarkdownText IsVisible="{Binding HasOutput}" Markdown="{Binding Output}" />
+                        <TextBlock
+                            Classes="dim"
+                            FontStyle="Italic"
+                            IsVisible="{Binding !HasDetails}"
+                            Text="No output yet." />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!--  Claude asks before running a tool: a button per choice, then what was chosen  -->
+        <DataTemplate x:DataType="vm:PermissionItem">
+            <Border
+                BorderBrush="{DynamicResource DiagnosticWarningBrush}"
+                Classes="card"
+                Padding="8,6">
+                <StackPanel Spacing="6">
+                    <TextBlock FontWeight="SemiBold" Text="Allow Claude to run this?" />
+                    <TextBlock
+                        Classes="mono"
+                        Text="{Binding Title}"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Classes="dim"
+                        IsVisible="{Binding HasDetail}"
+                        Text="{Binding Detail}"
+                        TextWrapping="Wrap" />
+                    <ItemsControl IsVisible="{Binding IsWaiting}" ItemsSource="{Binding Options}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="acp:AcpPermissionOption">
+                                <Button
+                                    Command="{Binding $parent[ItemsControl].((vm:PermissionItem)DataContext).ChooseCommand}"
+                                    CommandParameter="{Binding}"
+                                    Content="{Binding Name}"
+                                    Margin="0,0,6,0"
+                                    MinWidth="60" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock
+                        Classes="dim"
+                        FontStyle="Italic"
+                        IsVisible="{Binding !IsWaiting}"
+                        Text="{Binding Outcome}" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!--  The plan: a tick for done, an arrow for the step in progress  -->
+        <DataTemplate x:DataType="vm:PlanItem">
+            <Border Classes="card" Padding="8,6">
+                <StackPanel Spacing="2">
+                    <TextBlock FontWeight="SemiBold" Text="Plan" />
+                    <ItemsControl ItemsSource="{Binding Entries}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AgentPlanRow">
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,1">
+                                    <Panel
+                                        Classes="statusIcon"
+                                        Height="12"
+                                        Margin="0,2,6,0"
+                                        VerticalAlignment="Top"
+                                        Width="12">
+                                        <PathIcon Data="{StaticResource Icon.CheckCircle}" Foreground="{DynamicResource TestPassedBrush}" IsVisible="{Binding IsCompleted}" />
+                                        <PathIcon Data="{StaticResource Icon.ChevronRight}" IsVisible="{Binding IsInProgress}" />
+                                        <PathIcon Data="{StaticResource Icon.CircleOutline}" IsVisible="{Binding IsPending}" Opacity="0.6" />
+                                    </Panel>
+                                    <TextBlock
+                                        Classes.dim="{Binding IsCompleted}"
+                                        FontWeight="{Binding IsInProgress, Converter={x:Static views:AgentChatConverters.BoldWhen}}"
+                                        Grid.Column="1"
+                                        Text="{Binding Content}"
+                                        TextWrapping="Wrap" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.DataTemplates>
+
+    <Grid Background="{DynamicResource ThemeBackgroundBrush}" RowDefinitions="Auto,*,Auto">
+
+        <!--  The conversation's title, how full its context is, the chat history, and New Chat  -->
+        <DockPanel Margin="8,2,2,2">
+            <Button
+                AutomationProperties.Name="New Chat"
+                Classes="icon"
+                Command="{Binding NewChatCommand}"
+                DockPanel.Dock="Right"
+                shell:KeyMap.ShortcutTip="New Chat">
+                <PathIcon Data="{StaticResource Icon.Plus}" />
+            </Button>
+            <Button
+                AutomationProperties.Name="Chat history"
+                Classes="icon"
+                Command="{Binding LoadHistoryCommand}"
+                DockPanel.Dock="Right"
+                IsEnabled="{Binding IsReady}"
+                ToolTip.Tip="Chat History">
+                <Button.Flyout>
+                    <MenuFlyout
+                        FlyoutPresenterClasses="chatHistory"
+                        ItemsSource="{Binding History}"
+                        Placement="BottomEdgeAlignedRight" />
+                </Button.Flyout>
+                <PathIcon Data="{StaticResource Icon.History}" />
+            </Button>
+            <TextBlock
+                Classes="dim"
+                DockPanel.Dock="Right"
+                FontSize="11"
+                Margin="6,0"
+                Text="{Binding UsageText}"
+                VerticalAlignment="Center" />
+            <TextBlock
+                FontWeight="SemiBold"
+                Text="{Binding Title}"
+                TextTrimming="CharacterEllipsis"
+                ToolTip.Tip="{Binding Title}"
+                VerticalAlignment="Center" />
+        </DockPanel>
+
+        <Panel Grid.Row="1">
+            <!--  Not installed: say what it is, and download it only when asked  -->
+            <StackPanel
+                IsVisible="{Binding IsNotInstalled}"
+                Margin="16"
+                Spacing="10"
+                VerticalAlignment="Center">
+                <TextBlock
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Center"
+                    Text="Claude isn't installed" />
+                <TextBlock
+                    Classes="dim"
+                    Text="The Claude panel runs Claude Code through claude-agent-acp, the Agent Client Protocol adapter. It's one download with Claude Code inside, kept in AXamlIDE's own folder. It signs in with your Claude account, the same as the claude command."
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+                <Button
+                    Command="{Binding InstallCommand}"
+                    Content="{Binding InstallText}"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    Classes="dim"
+                    HorizontalAlignment="Center"
+                    Text="{Binding InstallProgress}"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel
+                IsVisible="{Binding IsInstalling}"
+                Spacing="10"
+                VerticalAlignment="Center">
+                <TextBlock HorizontalAlignment="Center" Text="{Binding InstallProgress}" />
+                <ProgressBar
+                    IsIndeterminate="True"
+                    Margin="24,0"
+                    MinWidth="0" />
+                <Button
+                    Command="{Binding CancelInstallCommand}"
+                    Content="Cancel"
+                    HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock
+                Classes="dim"
+                HorizontalAlignment="Center"
+                IsVisible="{Binding IsStarting}"
+                Text="Starting Claude..."
+                VerticalAlignment="Center" />
+
+            <StackPanel
+                IsVisible="{Binding IsFailed}"
+                Margin="16"
+                Spacing="10"
+                VerticalAlignment="Center">
+                <SelectableTextBlock
+                    Classes="error"
+                    Text="{Binding Problem}"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+                <Button
+                    Command="{Binding RestartCommand}"
+                    Content="Restart Claude"
+                    HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <!--  The conversation  -->
+            <Panel IsVisible="{Binding IsReady}">
+                <TextBlock
+                    Classes="dim"
+                    IsVisible="{Binding IsEmpty}"
+                    Margin="16"
+                    Text="Ask Claude about this workspace. It reads and edits files and runs commands in the workspace folder, and asks first when the mode says so. Open tabs pick up its edits."
+                    TextAlignment="Center"
+                    TextWrapping="Wrap"
+                    VerticalAlignment="Center" />
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding Items}" Margin="8,4,8,8">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Spacing="8" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                    <Interaction.Behaviors>
+                        <b:FollowEndBehavior />
+                    </Interaction.Behaviors>
+                </ScrollViewer>
+            </Panel>
+        </Panel>
+
+        <!--  The prompt box  -->
+        <Border
+            Classes="card"
+            Grid.Row="2"
+            IsVisible="{Binding IsReady}"
+            Margin="8,0,8,8"
+            Padding="4">
+            <StackPanel Spacing="4">
+                <TextBlock
+                    Classes="dim error"
+                    IsVisible="{Binding !HasWorkspace}"
+                    Margin="2,0"
+                    Text="Open a folder or solution first: Claude works in the workspace folder."
+                    TextWrapping="Wrap" />
+                <ToggleButton
+                    Classes="row"
+                    HorizontalAlignment="Left"
+                    IsChecked="{Binding IncludeActiveFile}"
+                    IsVisible="{Binding ActiveFileName, Converter={x:Static ObjectConverters.IsNotNull}}"
+                    Padding="4,1"
+                    ToolTip.Tip="Send the current file with the message (click to leave it out)">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <PathIcon
+                            Data="{StaticResource Icon.FileOutline}"
+                            Height="11"
+                            Width="11" />
+                        <TextBlock
+                            Classes.dim="{Binding !IncludeActiveFile}"
+                            FontSize="11"
+                            Text="{Binding ActiveFileName}"
+                            TextDecorations="{Binding !IncludeActiveFile, Converter={x:Static views:AgentChatConverters.StrikeWhen}}" />
+                    </StackPanel>
+                </ToggleButton>
+                <TextBox
+                    AcceptsReturn="True"
+                    AutomationProperties.Name="Message to Claude"
+                    BorderThickness="0"
+                    MaxHeight="160"
+                    MinHeight="40"
+                    Name="PromptBox"
+                    PlaceholderText="Ask Claude (Enter to send, Shift+Enter for a new line)"
+                    Text="{Binding PromptText}"
+                    TextWrapping="Wrap" />
+                <DockPanel>
+                    <Panel DockPanel.Dock="Right">
+                        <Button
+                            AutomationProperties.Name="Send"
+                            Classes="icon"
+                            Command="{Binding SendCommand}"
+                            IsVisible="{Binding !IsTurnRunning}"
+                            ToolTip.Tip="Send (Enter)">
+                            <PathIcon Data="{StaticResource Icon.ArrowUp}" />
+                        </Button>
+                        <Button
+                            AutomationProperties.Name="Stop"
+                            Classes="icon"
+                            Command="{Binding StopCommand}"
+                            IsVisible="{Binding IsTurnRunning}"
+                            ToolTip.Tip="Stop (Escape)">
+                            <PathIcon Data="{StaticResource Icon.Stop}" />
+                        </Button>
+                    </Panel>
+                    <!--  The agent's settings for this conversation (Mode, Model); they appear with the first message  -->
+                    <ItemsControl ItemsSource="{Binding Settings}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:AgentSettingItem">
+                                <StackPanel Margin="0,0,4,0" Orientation="Horizontal">
+                                <TextBlock
+                                    Classes="dim"
+                                    FontSize="11"
+                                    IsVisible="{Binding Label, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                    Margin="0,0,3,0"
+                                    Text="{Binding Label}"
+                                    VerticalAlignment="Center" />
+                                <ComboBox
+                                    AutomationProperties.Name="{Binding Name}"
+                                    FontSize="11"
+                                    ItemsSource="{Binding Choices}"
+                                    MinHeight="22"
+                                    Padding="6,0"
+                                    SelectedItem="{Binding Selected}"
+                                    ToolTip.Tip="{Binding Name}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="acp:AcpChoice">
+                                            <TextBlock Text="{Binding Name}" ToolTip.Tip="{Binding Description}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

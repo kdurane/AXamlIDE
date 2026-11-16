@@ -325,6 +325,9 @@
     <!--  https://pictogrammers.com/library/mdi/icon/plus/  -->
     <StreamGeometry x:Key="Icon.Plus">M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z</StreamGeometry>
 
+    <!--  https://pictogrammers.com/library/mdi/icon/creation/ (the "AI" sparkles: generate commit message)  -->
+    <StreamGeometry x:Key="Icon.Sparkle">M19 1 17.74 3.75 15 5l2.74 1.26L19 9l1.25-2.74L23 5l-2.75-1.25M9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5M19 15l-1.26 2.74L15 19l2.74 1.25L19 23l1.25-2.75L23 19l-2.75-1.26</StreamGeometry>
+
     <!--  https://pictogrammers.com/library/mdi/icon/message/  -->
     <StreamGeometry x:Key="Icon.Message">M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2</StreamGeometry>
 

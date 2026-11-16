@@ -52,6 +52,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         RunViewModel run,
         TerminalViewModel terminal,
         TestExplorerViewModel tests,
+        AgentChatViewModel claude,
         StartViewModel start,
         PropertiesViewModel properties,
         GitViewModel git,
@@ -86,6 +87,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Run = run;
         Terminal = terminal;
         Tests = tests;
+        Claude = claude;
         Start = start;
         Properties = properties;
         Git = git;
@@ -121,6 +123,9 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public RunViewModel Run { get; }
     public TerminalViewModel Terminal { get; }
     public TestExplorerViewModel Tests { get; }
+
+    /// <summary>The Claude panel (View > Claude, New Claude Chat).</summary>
+    public AgentChatViewModel Claude { get; }
 
     /// <summary>The start window's actions and the recent list (File > New Project, Clone, Open, Recent).</summary>
     public StartViewModel Start { get; }
@@ -190,6 +195,26 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     {
         Docking.ShowTool(ToolTab.Terminal);
         Terminal.RequestFocus();
+    }
+
+    /// <summary>
+    /// View > Claude (Ctrl+Alt+I): open the Claude tab (or bring it to the front, in whichever window it's in) and put
+    /// the cursor in its prompt box, like VS Code's chat.
+    /// </summary>
+    [RelayCommand]
+    private void ShowClaude()
+    {
+        if (!Docking.ShowPage(AgentChatDockable.TabId))
+            Docking.OpenPage(new AgentChatDockable(Claude));
+        Claude.RequestFocus();
+    }
+
+    /// <summary>View > New Claude Chat (Ctrl+Alt+N): a fresh conversation, in the Claude tab.</summary>
+    [RelayCommand]
+    private void NewClaudeChat()
+    {
+        ShowClaude();
+        Claude.NewChatCommand.Execute(null);
     }
 
     /// <summary>The View menu: bring a tool panel (a <see cref="ToolTab"/> id) to the front, putting it back if closed.</summary>

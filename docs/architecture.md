@@ -51,6 +51,7 @@ flowchart TB
             EVM["ExplorerViewModel"]
             RVM["RunViewModel<br/>(+ .Debug, .Startup, .Publish)"]
             GVM["GitViewModel"]
+            ACVM["AgentChatViewModel<br/>(the Claude panel)"]
             SVM["SearchViewModel"]
             PVM["ProblemsViewModel"]
             DBG["Locals / Watch / CallStack VMs"]
@@ -81,6 +82,8 @@ flowchart TB
         DPR["DotNetProjectRunner"]
         NCD["NetCoreDbgSession"]
         GS["GitService"]
+        ACP["AcpClient"]
+        CMW["CommitMessageWriter"]
         WSS["WorkspaceSearchService"]
     end
 
@@ -91,6 +94,7 @@ flowchart TB
         DOTNET["dotnet build / run / publish"]
         DESIGN["Avalonia designer host<br/>(dotnet exec ... --method avalonia-remote)"]
         GIT["git"]
+        AGENT["claude-agent-acp<br/>(downloaded on request; claude CLI beside it)"]
     end
 
     Boot --> MW
@@ -130,6 +134,10 @@ flowchart TB
     APP -- "BSON over TCP (Avalonia.Remote.Protocol)" --> DESIGN
 
     GVM --> GS
+    GVM --> CMW
+    CMW -- "claude -p, diff on stdin" --> AGENT
+    ACVM --> ACP
+    ACP -- "Agent Client Protocol: JSON-RPC, one line per message, stdio" --> AGENT
     GST --> GS
     GS --> GIT
     SVM --> WSS

@@ -1,5 +1,6 @@
 using AXamlIDE.Commands;
 using AXamlIDE.Editor.Highlighting;
+using AXamlIDE.Services.Agents;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Snippets;
@@ -81,6 +82,7 @@ public static class AppServices
         services.AddSingleton<GitService>();
         services.AddSingleton<GitCredentialSetup>();
         services.AddSingleton<GitStatusTracker>();
+        services.AddSingleton<CommitMessageWriter>();   // the commit box's sparkle button (claude -p)
         services.AddSingleton<LanguageSessionService>();
         services.AddSingleton<SolutionAnalysisService>();   // errors in closed files, when solution-wide analysis is on
         services.AddSingleton<XamlCacheKeeper>();          // tells XAML completion when its caches go stale
@@ -100,6 +102,7 @@ public static class AppServices
         services.AddSingleton<RunViewModel>();
         services.AddSingleton<TerminalViewModel>();       // the Terminal panel's shell
         services.AddSingleton<TestExplorerViewModel>();   // the Tests panel (Test Explorer)
+        services.AddSingleton<AgentChatViewModel>();      // the Claude panel (claude-agent-acp over ACP)
         services.AddSingleton(new RecentWorkspaces());      // recent.json: the start window's "Open recent"
         services.AddSingleton<StartViewModel>();          // the start window, File > Recent / New Project / Clone
         services.AddSingleton<LocalsViewModel>();          // the debugger's windows (Locals, Watch, Call Stack, visualizers)

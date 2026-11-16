@@ -76,6 +76,13 @@ public static class CommandCatalog
         new("View.Terminal", "Terminal", "Show the Terminal and type a command."),
         new("View.TestExplorer", "Test Explorer", "Show the Tests panel."),
         new("View.TogglePanel", "Show/Hide Panel", "Show or hide the bottom panel (Problems, Output, Terminal...)."),
+        new("View.Claude", "Claude", "Open the Claude tab and type a message."),
+
+        // ---- Claude
+        new("Claude.NewChat", "New Claude Chat", "Start a new conversation in the Claude tab."),
+
+        // ---- Git
+        new("Git.GenerateCommitMessage", "Generate Commit Message", "Have Claude write the commit message for the changes about to be committed."),
 
         // ---- Navigate
         new("Navigate.GoToFile", "Go to File", "Find a file by name and open it."),

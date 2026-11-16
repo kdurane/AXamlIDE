@@ -139,6 +139,9 @@
                         Header="Test E_xplorer" />
                     <MenuItem Command="{Binding ShowFindInFilesCommand}" Header="_Search" />
                     <Separator />
+                    <MenuItem Command="{Binding ShowClaudeCommand}" Header="C_laude" />
+                    <MenuItem Command="{Binding NewClaudeChatCommand}" Header="New Claude C_hat" />
+                    <Separator />
                     <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
                     <MenuItem Command="{Binding TogglePanelCommand}" Header="Show/Hide P_anel" />
                     <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="Move Side Bar to Other Side" />
@@ -489,6 +492,13 @@
                         Command="{Binding ShowTerminalCommand}"
                         shell:KeyMap.ShortcutTip="Terminal">
                         <PathIcon Data="{DynamicResource Icon.Console}" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Claude"
+                        Classes="toolbar"
+                        Command="{Binding ShowClaudeCommand}"
+                        shell:KeyMap.ShortcutTip="Claude">
+                        <PathIcon Data="{DynamicResource Icon.Sparkle}" />
                     </Button>
                     <Button
                         AutomationProperties.Name="Show or hide the panel"

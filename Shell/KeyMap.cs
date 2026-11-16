@@ -130,6 +130,10 @@ public sealed class KeyMap
             ["View.Terminal"] = (shell.ShowTerminalCommand, null),
             ["View.TestExplorer"] = (shell.ShowToolCommand, ToolTab.Tests),
             ["View.TogglePanel"] = (shell.TogglePanelCommand, null),
+            ["View.Claude"] = (shell.ShowClaudeCommand, null),
+
+            ["Claude.NewChat"] = (shell.NewClaudeChatCommand, null),
+            ["Git.GenerateCommitMessage"] = (shell.Git.GenerateCommitMessageCommand, null),
 
             ["Navigate.GoToFile"] = (editor.QuickOpen, null),
             ["Navigate.GoToSymbol"] = (editor.WorkspaceSymbols, null),

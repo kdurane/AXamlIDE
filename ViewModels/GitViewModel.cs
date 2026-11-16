@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Agents;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Git;
@@ -49,6 +50,7 @@ public sealed partial class GitViewModel : ObservableObject
     private readonly IDialogService _dialogs;
     private readonly IClipboardService _clipboard;
     private readonly IMessenger _messenger;
+    private readonly CommitMessageWriter _messageWriter;
 
     public GitViewModel(
         GitStatusTracker tracker,
@@ -58,6 +60,7 @@ public sealed partial class GitViewModel : ObservableObject
         DockLayoutViewModel docking,
         IDialogService dialogs,
         IClipboardService clipboard,
+        CommitMessageWriter messageWriter,
         IMessenger messenger)
     {
         _tracker = tracker;
@@ -68,6 +71,7 @@ public sealed partial class GitViewModel : ObservableObject
         _dialogs = dialogs;
         _clipboard = clipboard;
         _messenger = messenger;
+        _messageWriter = messageWriter;
         tracker.Changed += OnStatusChanged;
     }
 
@@ -118,6 +122,7 @@ public sealed partial class GitViewModel : ObservableObject
         OnPropertyChanged(nameof(CommitButtonText));
         OnPropertyChanged(nameof(CommitButtonToolTip));
         CommitCommand.NotifyCanExecuteChanged();
+        GenerateCommitMessageCommand.NotifyCanExecuteChanged();
         _ = LoadGraphAsync();
     }
 
@@ -171,6 +176,43 @@ public sealed partial class GitViewModel : ObservableObject
     }
 
     private bool CanCommit() => !IsBusy && Staged.Count + Changes.Count > 0 && !string.IsNullOrWhiteSpace(CommitMessage);
+
+    /// <summary>Claude is writing the commit message (the sparkle button is disabled until it's done).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GenerateCommitMessageCommand))]
+    public partial bool IsGeneratingMessage { get; set; }
+
+    /// <summary>
+    /// The commit box's sparkle button (VS Code's "Generate Commit Message"): Claude describes what the commit button
+    /// would commit (the staged changes, or everything) and the message box gets its answer, ready to edit.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanGenerateCommitMessage))]
+    private async Task GenerateCommitMessage()
+    {
+        if (_tracker.RepositoryRoot is not { } root)
+            return;
+
+        var staged = Staged.Count > 0;
+        // Commit All adds new files too, which git diff doesn't show: name them.
+        var newFiles = staged ? [] : Changes.Where(item => item.State == GitFileState.Untracked).Select(item => item.Change.RelativePath).ToList();
+        IsGeneratingMessage = true;
+        _messenger.Send(new StatusMessage("Claude is writing the commit message..."));
+        try
+        {
+            CommitMessage = await _messageWriter.WriteAsync(root, staged, newFiles);
+            _messenger.Send(new StatusMessage("Commit message written by Claude: check it before committing."));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or GitException)
+        {
+            _messenger.Send(new StatusMessage(ex.Message));
+        }
+        finally
+        {
+            IsGeneratingMessage = false;
+        }
+    }
+
+    private bool CanGenerateCommitMessage() => !IsGeneratingMessage && Staged.Count + Changes.Count > 0;
 
     /// <summary>Show the change side by side in a diff tab (double-click).</summary>
     [RelayCommand]

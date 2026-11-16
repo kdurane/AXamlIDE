@@ -40,6 +40,7 @@
     "View.DebugConsole": "Ctrl+Shift+Y",
     "View.Terminal": "Ctrl+`",
     "View.TestExplorer": "Ctrl+E, T",
+    "View.Claude": "Ctrl+\\, Ctrl+C",     // VS's GitHub Copilot Chat window
     "View.TogglePanel": "Ctrl+Shift+F12",   // Rider's Hide All Tool Windows; VS has none, and Ctrl+J is Insert Snippet here
 
     // ---- Navigate
@@ -76,6 +77,10 @@
     "Test.RunFailed": "Ctrl+;, E",
 
     // ---- Tools
-    "Tools.Settings": "Ctrl+,"
+    "Tools.Settings": "Ctrl+,",
+
+    // ---- Claude and Git (no VS default)
+    "Claude.NewChat": "Ctrl+Alt+N",
+    "Git.GenerateCommitMessage": "Ctrl+Alt+M"
   }
 }

@@ -73,8 +73,9 @@ public sealed class CompletionController
             try
             {
                 var result = await _ctx.Xaml.GetCompletionsAsync(doc.Path, requestedText, caret);
+                if (seq != _completionSeq)
+                    return;   // superseded: don't fall through and ask the server on behalf of a stale request
                 if (result is { Completions.Count: > 0 }
-                    && seq == _completionSeq
                     && ReferenceEquals(doc, _ctx.Active)
                     && editor.CaretOffset == caret
                     && doc.Document.Text == requestedText)
@@ -134,10 +135,7 @@ public sealed class CompletionController
             return;
         var items = list.Items;
         if (items.Count == 0)
-        {
-            //ShowSnippetsOnly(doc, seq, caret);
             return;
-        }
 
         // The server knows where the word being completed starts; otherwise walk back over name characters.
         var start = items[0].Edit is { } first
@@ -203,8 +201,11 @@ public sealed class CompletionController
     /// <summary>No other items: a list of just the snippets whose prefix starts with the word being typed, if any.</summary>
     private void ShowSnippetsOnly(OpenDocument doc, int seq, int caret)
     {
+        // Called after an await on the AXAML route: the tab or caret may have moved on without a new request.
+        if (seq != _completionSeq || !ReferenceEquals(doc, _ctx.Active) || _ctx.Editor.CaretOffset != caret)
+            return;
         var start = WordStart(doc.Document, caret);
-        if (seq != _completionSeq || start == caret)
+        if (start == caret)
             return;
         var typed = doc.Document.GetText(start, caret - start);
         var matches = _snippets.CompletionItems(doc, start)
@@ -237,6 +238,7 @@ public sealed class CompletionController
         window.Closed += (_, _) =>
         {
             if (ReferenceEquals(_completionWindow, window)) _completionWindow = null;
+            if (ReferenceEquals(_incompleteWindow, window)) _incompleteWindow = null;
         };
 
         _completionWindow = window;

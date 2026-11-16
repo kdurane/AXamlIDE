@@ -252,6 +252,49 @@ public sealed class GitServiceTests : IDisposable
         Assert.False(string.IsNullOrWhiteSpace(error.Message));
     }
 
+    [Fact]
+    public async Task The_diff_is_the_staged_change_or_everything_since_the_last_commit()
+    {
+        _workspace.Write("a.txt", "one\n");
+        _workspace.Write("b.txt", "one\n");
+        Git("add", "-A");
+        Git("commit", "-q", "-m", "first");
+        _workspace.Write("a.txt", "two\n");
+        _workspace.Write("b.txt", "two\n");
+        Git("add", "a.txt");
+
+        var staged = await _git.GetDiffAsync(_workspace.Root, staged: true);
+        var all = await _git.GetDiffAsync(_workspace.Root, staged: false);
+
+        Assert.Contains("+two", staged);
+        Assert.Contains("a.txt", staged);
+        Assert.DoesNotContain("b.txt", staged);
+        Assert.Contains("a.txt", all);
+        Assert.Contains("b.txt", all);
+    }
+
+    [Fact]
+    public async Task Before_the_first_commit_the_diff_is_the_staged_files_and_there_are_no_subjects()
+    {
+        _workspace.Write("a.txt", "one\n");
+        Git("add", "-A");
+
+        Assert.Contains("+one", await _git.GetDiffAsync(_workspace.Root, staged: true));
+        Assert.Empty(await _git.GetRecentSubjectsAsync(_workspace.Root, 10));
+    }
+
+    [Fact]
+    public async Task Recent_subjects_are_the_first_lines_newest_first()
+    {
+        _workspace.Write("a.txt", "one\n");
+        Git("add", "-A");
+        Git("commit", "-q", "-m", "feat: first\n\nBody.");
+        _workspace.Write("a.txt", "two\n");
+        Git("commit", "-q", "-am", "fix: second");
+
+        Assert.Equal(["fix: second", "feat: first"], await _git.GetRecentSubjectsAsync(_workspace.Root, 10));
+    }
+
     private void Git(params string[] arguments) => GitIn(_workspace.Root, arguments);
 
     private string GitOutput(params string[] arguments) => GitIn(_workspace.Root, arguments);

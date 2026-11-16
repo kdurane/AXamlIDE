@@ -135,6 +135,7 @@ public sealed class DockViewCache : IControlRecycling
             PublishDockable publish => new PublishView { DataContext = publish },
             VisualizerDockable visualizer => new VisualizerView { DataContext = visualizer },
             ImageDockable image => new ImageView { DataContext = image },
+            AgentChatDockable chat => new AgentChatView { DataContext = chat.Chat },
             _ => null
         };
         if (view is not null)
