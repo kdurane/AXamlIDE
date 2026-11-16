@@ -169,6 +169,8 @@ public sealed partial class ProblemsViewModel : ObservableObject,
         foreach (var document in _documents.Documents)
             foreach (var diagnostic in document.Diagnostics)
             {
+                if (PreviewErrorDiagnostic.IsFrom(diagnostic.RawDiagnostic))
+                    continue;   // the preview's error: listed below as the preview's own row
                 var code = LspHelpers.DiagnosticCode(diagnostic.RawDiagnostic);
                 _all.Add(ProblemItem.InDocument(document, diagnostic.Severity, diagnostic.StartOffset,
                     LspHelpers.DiagnosticText(diagnostic.Message, code), ProblemSource.IntelliSense, code,

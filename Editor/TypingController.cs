@@ -8,6 +8,7 @@ using AXamlIDE.Editor.Hover;
 using AXamlIDE.Editor.SignatureHelp;
 using AXamlIDE.Services.CSharp;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Xaml;
 using static AXamlIDE.Editor.NameChars;
 
 namespace AXamlIDE.Editor;
@@ -25,6 +26,12 @@ public sealed class TypingController
     private readonly CompletionController _completion;
     private readonly SignatureHelpController _signature;
 
+    /// <summary>
+    /// Where the caret was left after '/' became "/>", so a '>' typed straight after (typing "/>" in full) isn't a
+    /// second one. -1 once the caret has moved on.
+    /// </summary>
+    private int _selfClosedAt = -1;
+
     public TypingController(EditorContext ctx, HoverController hover, CompletionController completion, SignatureHelpController signature)
     {
         _ctx = ctx;
@@ -34,6 +41,11 @@ public sealed class TypingController
 
         ctx.Editor.TextArea.TextEntering += OnTextEntering;
         ctx.Editor.TextArea.TextEntered += OnTextEntered;
+        ctx.Editor.TextArea.Caret.PositionChanged += (_, _) =>
+        {
+            if (ctx.Editor.CaretOffset != _selfClosedAt)
+                _selfClosedAt = -1;
+        };
     }
 
     private void OnTextEntered(object? sender, TextInputEventArgs e)
@@ -54,6 +66,9 @@ public sealed class TypingController
         {
             case LanguageIds.Axaml when e.Text == ">" && features.AutoCloseXamlTags:
                 TryInsertXamlClosingTag(doc.Document);
+                break;
+            case LanguageIds.Axaml when e.Text == "/" && features.AutoCloseXamlTags:
+                TrySelfCloseXamlTag(doc.Document);
                 break;
             case LanguageIds.Axaml when e.Text == "{" && features.AutoCloseBraces && IsInAttributeValue(doc.Document):
                 TryInsertClosingBrace(doc.Document);
@@ -133,6 +148,16 @@ public sealed class TypingController
             return;
         }
 
+        // Typing the '>' of "/>" when '/' already added it: drop it (the caret is already past the one there).
+        var selfClosed = _selfClosedAt;
+        _selfClosedAt = -1;
+        if (e.Text == ">" && caret == selfClosed && caret >= 2
+            && editor.Document.GetCharAt(caret - 1) == '>' && editor.Document.GetCharAt(caret - 2) == '/')
+        {
+            e.Handled = true;
+            return;
+        }
+
         _completion.HandleTextEntering(e);
     }
 
@@ -162,15 +187,46 @@ public sealed class TypingController
         if (charBeforeEnd >= 0 && document.GetCharAt(charBeforeEnd) == '/')
             return;
 
-        var closingTag = $"</{tagName}>";
-        var afterEnd = caret;
-        while (afterEnd < document.TextLength && char.IsWhiteSpace(document.GetCharAt(afterEnd)))
-            afterEnd++;
-        if (document.Text.AsSpan(afterEnd).StartsWith(closingTag, StringComparison.Ordinal))
+        // Already closed further down: the '>' was deleted and is being typed again.
+        if (XamlTagClosing.HasEndTag(document.Text, caret, tagName))
             return;
 
-        document.Insert(caret, closingTag);
+        document.Insert(caret, $"</{tagName}>");
         editor.CaretOffset = caret;
+    }
+
+    /// <summary>
+    /// '/' typed in a start tag (not in an attribute value): add the '>' to make it "/>", as Visual Studio does, with
+    /// the caret after it; a '>' typed next is dropped (see <see cref="_selfClosedAt"/>). Typed just before the '>' of
+    /// an empty element (&lt;Grid/|&gt;&lt;/Grid&gt;), the end tag goes instead.
+    /// </summary>
+    private void TrySelfCloseXamlTag(TextDocument document)
+    {
+        var editor = _ctx.Editor;
+        var caret = editor.CaretOffset;   // just after the '/'
+        if (caret < 2 || document.GetCharAt(caret - 2) == '<')
+            return;   // "</": an end tag
+
+        var parser = XmlParser.Parse(document.Text.AsMemory(0, caret - 1));
+        if (parser.IsInClosingTag
+            || parser.TagName is not { Length: > 0 } tagName
+            || parser.State is not (XmlParser.ParserState.StartElement
+                or XmlParser.ParserState.InsideElement
+                or XmlParser.ParserState.AfterAttributeValue))
+            return;
+
+        if (caret < document.TextLength && document.GetCharAt(caret) == '>')
+        {
+            if (XamlTagClosing.EmptyEndTagAfter(document.Text, caret, tagName) is { } endTag)
+                document.Remove(endTag.Start, endTag.Length);
+            editor.CaretOffset = caret + 1;
+            _selfClosedAt = caret + 1;
+            return;
+        }
+
+        document.Insert(caret, ">");
+        editor.CaretOffset = caret + 1;
+        _selfClosedAt = caret + 1;
     }
 
     /// <summary>

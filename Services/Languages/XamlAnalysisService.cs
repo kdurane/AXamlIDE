@@ -8,6 +8,7 @@ using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -18,7 +19,9 @@ namespace AXamlIDE.Services.Languages;
 /// so these are the document's only diagnostics. Two kinds:
 ///   - xmlns problems (<see cref="XamlNamespaceAnalysis"/>): from the text alone, so always there;
 ///   - uses of [Obsolete] types and properties (<see cref="XamlObsoleteAnalysis"/>): need the project's metadata,
-///     read from its built DLL, so they appear once the project has been built (and are rechecked after each build).
+///     read from its built DLL, so they appear once the project has been built (and are rechecked after each build);
+///   - the previewer's error (<see cref="PreviewErrorDiagnostic"/>): what Avalonia's own loader couldn't load, such
+///     as a tag missing its "/&gt;". Problems lists it already, as the preview's row; this puts the squiggle there.
 /// Worked out when a file opens and again once typing pauses; they go out as <see cref="DiagnosticsChangedMessage"/>
 /// like a server's.
 /// </summary>
@@ -39,6 +42,13 @@ public sealed class XamlAnalysisService
         public EventHandler OnTextChanged { get; } = onTextChanged;
         /// <summary>Bumped on every edit, so a result for older text is dropped.</summary>
         public int Version { get; set; }
+
+        /// <summary>The last analysis, and the <see cref="Version"/> it was for (-1 before the first).</summary>
+        public IReadOnlyList<LspDiagnostic> Results { get; set; } = [];
+        public int ResultsVersion { get; set; } = -1;
+
+        /// <summary>The preview's current error, or null while it loads fine.</summary>
+        public PreviewError? PreviewError { get; set; }
     }
 
     public XamlAnalysisService(DocumentManager documents, XamlLanguageService xaml, IMessenger messenger)
@@ -56,6 +66,9 @@ public sealed class XamlAnalysisService
             foreach (var document in service._watched.Keys.ToList())
                 _ = service.AnalyseAsync(document);
         });
+
+        messenger.Register<XamlAnalysisService, PreviewProblemMessage>(this, (service, message) =>
+            service.OnPreviewProblem(message.Document, message.Error));
     }
 
     private void Start(OpenDocument document)
@@ -120,11 +133,33 @@ public sealed class XamlAnalysisService
         }
     }
 
-    private void Apply(OpenDocument document, Watch watch, int version, IReadOnlyList<LspDiagnostic> diagnostics)
+    private void Apply(OpenDocument document, Watch watch, int version, IReadOnlyList<LspDiagnostic> results)
     {
         // Closed, or edited since: the next pause analyses the new text.
         if (!_watched.TryGetValue(document, out var current) || current != watch || watch.Version != version)
             return;
+        watch.Results = results;
+        watch.ResultsVersion = version;
+        Publish(document, watch);
+    }
+
+    private void OnPreviewProblem(OpenDocument document, PreviewError? error)
+    {
+        if (!_watched.TryGetValue(document, out var watch) || watch.PreviewError == error)
+            return;   // not ours, or the same error again (the preview reloads on every edit)
+        watch.PreviewError = error;
+
+        // Mid-edit, the analysis due after the pause shows it with the rest; publishing now would put the last
+        // analysis's squiggles back at positions the edit has since moved.
+        if (watch.ResultsVersion == watch.Version)
+            Publish(document, watch);
+    }
+
+    private void Publish(OpenDocument document, Watch watch)
+    {
+        var diagnostics = watch.PreviewError is { } error && PreviewErrorDiagnostic.From(error, document.Document.Text) is { } squiggle
+            ? [.. watch.Results, squiggle]
+            : watch.Results;
         document.ApplyDiagnostics(diagnostics);
         _messenger.Send(new DiagnosticsChangedMessage(document));
     }
