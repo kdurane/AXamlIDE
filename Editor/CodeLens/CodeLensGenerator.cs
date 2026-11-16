@@ -53,6 +53,12 @@ internal sealed class CodeLensGenerator(Func<CodeLensItem, CodeLensControl> crea
         return TextUtilities.GetLeadingWhitespace(document, line).EndOffset;
     }
 
+    /// <summary>A line of only attributes ("[ObservableProperty]", "[Obsolete][Browsable(false)]"), not one with the
+    /// declaration after them ("[ObservableProperty] private int _x;"): that's the declaration's own line.</summary>
     private static bool IsAttributeLine(TextDocument document, DocumentLine line)
-        => document.GetText(line).TrimStart().StartsWith('[');
+    {
+        var text = document.GetText(line).Trim();
+        return text.StartsWith('[') && text.EndsWith(']');
+    }
+
 }
