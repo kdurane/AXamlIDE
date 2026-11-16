@@ -1,8 +1,10 @@
 using System;
+using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
+using AvaloniaEdit.Utils;
 using AXamlIDE.Editor.CodeLens;
 
 namespace AXamlIDE.Editor.Highlighting;
@@ -11,7 +13,7 @@ namespace AXamlIDE.Editor.Highlighting;
 /// Draws the caret in place of AvaloniaEdit's own (its layer is internal, so it is kept but given a transparent
 /// brush): the same bar, but not over a code lens's band above its line (<see cref="CodeLensSpace"/>), as the
 /// selection does. AvaloniaEdit sizes the caret from the line's top to its bottom (LineTop/LineBottom, since its
-/// PR #546), and a lens makes its line taller. TextMateController sets the brush from the theme.
+/// PR #546), and a lens makes its line taller. Drawn as AvaloniaEdit draws it: in the text colour, one device pixel wide.
 /// </summary>
 public sealed class CaretRenderer : IBackgroundRenderer
 {
@@ -37,26 +39,17 @@ public sealed class CaretRenderer : IBackgroundRenderer
         };
     }
 
-    /// <summary>The theme's "editorCursor.foreground"; null draws in the editor's text colour.</summary>
-    public IBrush? Brush
-    {
-        get;
-        set
-        {
-            field = value;
-            Redraw();   // a theme change: redraw with the new colour
-        }
-    }
-
     public KnownLayer Layer => KnownLayer.Caret;
 
     public void Draw(TextView textView, DrawingContext drawingContext)
     {
-        if (!_on || !_textArea.IsFocused || !textView.VisualLinesValid || (Brush ?? _textArea.Foreground) is not { } brush)
+        if (!_on || !_textArea.IsFocused || !textView.VisualLinesValid || textView.GetValue(TextBlock.ForegroundProperty) is not { } brush)
             return;
-        // The caret's rectangle is in document coordinates; CodeLensSpace.Trim works in the text view's.
+        // The caret's rectangle is in document coordinates; CodeLensSpace.Trim works in the text view's. It's only
+        // 0.5 wide: snapped to whole device pixels (as AvaloniaEdit's caret layer does), that's one solid pixel
+        // instead of a faint, blended half.
         var rect = _textArea.Caret.CalculateCaretRectangle().Translate(-textView.ScrollOffset);
-        drawingContext.FillRectangle(brush, CodeLensSpace.Trim(textView, rect));
+        drawingContext.FillRectangle(brush, PixelSnapHelpers.Round(CodeLensSpace.Trim(textView, rect), PixelSnapHelpers.GetPixelSize(textView)));
     }
 
     private void Restart()

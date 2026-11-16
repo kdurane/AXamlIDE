@@ -179,7 +179,7 @@ public partial class EditorPaneView : UserControl,
         _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);
-        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin, _selectionRenderer, _caretRenderer, _currentLineRenderer);
+        _textMateController = new TextMateController(_ctx, _textMate, _grammars, _breakpointMargin, _selectionRenderer, _currentLineRenderer);
         _semanticHighlighting = new SemanticHighlightController(_ctx, _grammars);   // after TextMate: drawn over its colours
         Editor.TextArea.TextView.LineTransformers.Add(_unnecessaryCode);   // last: fades the colours both of those chose
         _inlayHints = new InlayHintController(_ctx);
