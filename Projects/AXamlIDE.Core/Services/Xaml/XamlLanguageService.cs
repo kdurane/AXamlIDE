@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AXamlIDE.CompletionEngine.Completion;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Preview;
+using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Services.Xaml;
@@ -59,6 +60,17 @@ public sealed class XamlLanguageService
         var project = await GetProjectAsync(documentPath);
         return await _xamlCompletion.GetHoverAsync(
             project.ProjectPath, project.AssemblyName, text, offset, project.OutputPath, project.AssetsPath);
+    }
+
+    /// <summary>
+    /// Uses of [Obsolete] types and properties in the file. Throws like completion does when the project can't be
+    /// found or hasn't been built (the metadata comes from its DLL).
+    /// </summary>
+    public async Task<IReadOnlyList<LspDiagnostic>> GetObsoleteUsesAsync(string documentPath, string text)
+    {
+        var project = await GetProjectAsync(documentPath);
+        return await _xamlCompletion.GetObsoleteUsesAsync(
+            project.ProjectPath, project.AssemblyName, text, project.OutputPath, project.AssetsPath);
     }
 
     private async Task<XamlCompletionService.NavigationTarget?> GetNavigationTargetAsync(

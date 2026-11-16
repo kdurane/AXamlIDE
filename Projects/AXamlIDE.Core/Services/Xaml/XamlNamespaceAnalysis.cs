@@ -59,7 +59,7 @@ public static class XamlNamespaceAnalysis
         }
 
         var declared = declarations.Select(d => d.Prefix).ToHashSet(StringComparer.Ordinal);
-        var lines = new LineMap(text);
+        var lines = new XamlLineMap(text);
         var found = new List<LspDiagnostic>();
 
         // mc:Ignorable="d" with no xmlns:d.
@@ -172,32 +172,4 @@ public static class XamlNamespaceAnalysis
     // ':' isn't a name character here: it's what separates the prefix.
     private static bool IsNameStart(char c) => char.IsLetter(c) || c == '_';
     private static bool IsNameChar(char c) => char.IsLetterOrDigit(c) || c is '_' or '-' or '.';
-
-    /// <summary>Offsets to LSP lines and characters (UTF-16 code units, the same as string indexes).</summary>
-    private sealed class LineMap
-    {
-        private readonly List<int> _starts = [0];
-
-        public LineMap(string text)
-        {
-            for (var i = 0; i < text.Length; i++)
-                if (text[i] == '\n')
-                    _starts.Add(i + 1);
-        }
-
-        public LspDiagnostic Diagnostic(int start, int end, int severity, string message, JsonElement? raw = null)
-        {
-            var (startLine, startChar) = Position(start);
-            var (endLine, endChar) = Position(end);
-            return new LspDiagnostic(startLine, startChar, endLine, endChar, severity, message, raw);
-        }
-
-        private (int Line, int Char) Position(int offset)
-        {
-            var line = _starts.BinarySearch(offset);
-            if (line < 0)
-                line = ~line - 1;
-            return (line, offset - _starts[line]);
-        }
-    }
 }

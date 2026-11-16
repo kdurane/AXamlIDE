@@ -78,6 +78,8 @@ public record MetadataType(string Name)
     public string? ContentPropertyName { get; set; }
     /// <summary>Hint values are the resource keys the project defines ({StaticResource}, {DynamicResource}).</summary>
     public bool HintsResourceKeys { get; set; }
+    /// <summary>Marked [Obsolete]: using it in XAML is flagged (a warning, or an error when the attribute says so).</summary>
+    public MetadataObsolete? Obsolete { get; set; }
 
     private static readonly IReadOnlySet<string> EmptySet = new HashSet<string>();
 }
@@ -95,7 +97,14 @@ public enum MetadataTypeCtorArgument
 /// <param name="TypeFullName">The property type's full name, also when <paramref name="Type"/> is unknown (an interface, a framework type).</param>
 [DebuggerDisplay("{Name} from {DeclaringType}")]
 public record MetadataProperty(string Name, MetadataType? Type, MetadataType? DeclaringType, bool IsAttached, bool IsStatic, bool HasGetter, bool HasSetter,
-    bool IsAvaloniaProperty = false, string? TypeFullName = null);
+    bool IsAvaloniaProperty = false, string? TypeFullName = null)
+{
+    /// <summary>Marked [Obsolete] (for an attached property, its XxxProperty field).</summary>
+    public MetadataObsolete? Obsolete { get; init; }
+}
+
+/// <summary>What an [Obsolete] attribute says: its message ("" when it has none) and whether using it is an error.</summary>
+public sealed record MetadataObsolete(string Message, bool IsError);
 
 public record MetadataEvent(string Name, MetadataType? Type, MetadataType? DeclaringType, bool IsAttached);
 

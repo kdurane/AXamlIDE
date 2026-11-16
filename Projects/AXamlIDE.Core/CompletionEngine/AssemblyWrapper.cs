@@ -6,6 +6,20 @@ using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using dnlib.DotNet;
 
 namespace AXamlIDE.CompletionEngine;
+
+    internal static class ObsoleteReader
+    {
+        /// <summary>The member's [Obsolete("message", isError)], or null when it hasn't one.</summary>
+        public static MetadataObsolete? Read(IHasCustomAttribute member)
+        {
+            if (member.CustomAttributes.Find("System.ObsoleteAttribute") is not { } attribute)
+                return null;
+            var arguments = attribute.ConstructorArguments;
+            var message = arguments.Count > 0 ? arguments[0].Value?.ToString() ?? "" : "";
+            var isError = arguments.Count > 1 && arguments[1].Value is true;
+            return new MetadataObsolete(message, isError);
+        }
+    }
     
     internal class AssemblyWrapper(AssemblyDef asm, DnlibMetadataProviderSession session) : IAssemblyInformation
     {
@@ -53,6 +67,7 @@ namespace AXamlIDE.CompletionEngine;
 
         public string FullName => _type.FullName;
         public string Name => _type.Name;
+        public MetadataObsolete? Obsolete => ObsoleteReader.Read(_type);
         public string AssemblyQualifiedName { get; }
         public string Namespace => _type.Namespace;
         public ITypeInformation? GetBaseType() => FromDef(_session.GetTypeDef(_session.GetBaseType(_type)), _session);
@@ -210,6 +225,7 @@ namespace AXamlIDE.CompletionEngine;
         {
             Name = prop.Name;
             IsContent = prop.CustomAttributes.Any(a => a.TypeFullName == "Avalonia.Metadata.ContentAttribute");
+            Obsolete = ObsoleteReader.Read(prop);
 
             var setMethod = prop.SetMethod;
             var getMethod = prop.GetMethod;
@@ -302,6 +318,7 @@ namespace AXamlIDE.CompletionEngine;
         public string QualifiedTypeFullName { get; }
         public string Name { get; }
         public bool IsContent { get; }
+        public MetadataObsolete? Obsolete { get; }
 
         public bool IsVisbleTo(IAssemblyInformation assembly) =>
             _isVisbleTo(_prop, assembly);
@@ -323,7 +340,11 @@ namespace AXamlIDE.CompletionEngine;
             // Only asked about static fields of the type itself, so worked out on first use
             _isRoutedEvent = new Lazy<bool>(() => DerivesFrom(f, session, "Avalonia.Interactivity", "RoutedEvent"));
             _isAvaloniaProperty = new Lazy<bool>(() => DerivesFrom(f, session, "Avalonia", "AvaloniaProperty"));
+            _obsolete = new Lazy<MetadataObsolete?>(() => ObsoleteReader.Read(f));
         }
+
+        private readonly Lazy<MetadataObsolete?> _obsolete;
+        public MetadataObsolete? Obsolete => _obsolete.Value;
 
         /// <summary>The field's type is the named type or derives from it (a generic instance counts as its definition).</summary>
         private static bool DerivesFrom(FieldDef f, DnlibMetadataProviderSession session, string @namespace, string name)

@@ -14,6 +14,9 @@ public static class LspDiagnosticTag
 {
     /// <summary>Code that isn't needed (an unused using, an unused private member): drawn faded.</summary>
     public const int Unnecessary = 1;
+
+    /// <summary>Use of something marked obsolete (CS0618, or [Obsolete] in XAML).</summary>
+    public const int Deprecated = 2;
 }
 
 /// <summary>The LSP <c>SymbolKind</c> values the IDE cares about.</summary>

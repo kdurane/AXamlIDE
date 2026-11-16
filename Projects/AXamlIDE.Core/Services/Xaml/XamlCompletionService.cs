@@ -13,6 +13,7 @@ using AXamlIDE.CompletionEngine;
 using AXamlIDE.CompletionEngine.AssemblyMetadata;
 using AXamlIDE.CompletionEngine.Completion;
 using AXamlIDE.CompletionEngine.Parsing;
+using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Workspace;
 
 namespace AXamlIDE.Services.Xaml;
@@ -160,6 +161,14 @@ public sealed class XamlCompletionService
         }
 
         return ElementHover(targetAssembly, bundle, text, offset) is { } hover ? new XamlHover(null, hover) : null;
+    }
+
+    /// <summary>Uses of [Obsolete] types and properties in the file (see <see cref="XamlObsoleteAnalysis"/>).</summary>
+    public async Task<IReadOnlyList<LspDiagnostic>> GetObsoleteUsesAsync(string projectPath, string assemblyName, string text, string? outputPath = null, string? assetsPath = null)
+    {
+        var (targetAssembly, bundle) = await GetMetadataAsync(projectPath, assemblyName, outputPath, assetsPath);
+        return await Task.Run(() =>
+            XamlObsoleteAnalysis.Find(bundle.Metadata, text, Path.GetFileNameWithoutExtension(targetAssembly)));
     }
 
     /// <summary>The hover for the element or attribute name at the offset (not on a binding path).</summary>

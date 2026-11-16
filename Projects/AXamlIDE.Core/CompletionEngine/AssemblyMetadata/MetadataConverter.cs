@@ -102,6 +102,7 @@ public static class MetadataConverter
                            && !assignableTo.Contains("System.Exception")
                            && !assignableTo.Contains("System.EventArgs"),
             AssignableTo = assignableTo,
+            Obsolete = type.Obsolete,
             // Styles and ControlThemes take any child (IAddChild), but only setters and nested styles make sense.
             ItemTypeNames = assignableTo.Contains("Avalonia.Styling.StyleBase")
                 ? ["Avalonia.Styling.SetterBase", "Avalonia.Styling.IStyle"]
@@ -269,7 +270,10 @@ public static class MetadataConverter
                         currentType, false, prop.IsStatic, prop.HasPublicGetter,
                         prop.HasPublicSetter || IsSettableFromXaml(typeDef.FullName, prop.Name),
                         IsAvaloniaProperty: avaloniaProperties.Contains(prop.Name),
-                        TypeFullName: prop.TypeFullName);
+                        TypeFullName: prop.TypeFullName)
+                    {
+                        Obsolete = prop.Obsolete
+                    };
 
                     type.Properties.Add(p);
                     if (prop.IsContent)
@@ -341,7 +345,10 @@ public static class MetadataConverter
                                     HasGetter: true,
                                     HasSetter: setMethod is not null,
                                     IsAvaloniaProperty: true,
-                                    TypeFullName: getMethod.ReturnTypeFullName));
+                                    TypeFullName: getMethod.ReturnTypeFullName)
+                                {
+                                    Obsolete = fieldDef.Obsolete
+                                });
                             }
                         }
                         else if (type.IsStatic)

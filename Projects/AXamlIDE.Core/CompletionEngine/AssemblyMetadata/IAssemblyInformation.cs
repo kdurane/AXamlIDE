@@ -40,6 +40,8 @@ public interface ITypeInformation
     IEnumerable<IFieldInformation> Fields { get; }
     IEnumerable<string> Pseudoclasses { get; }
     IEnumerable<(ITypeInformation Type, string Name)> TemplateParts { get; }
+    /// <summary>The type's [Obsolete] attribute, or null.</summary>
+    MetadataObsolete? Obsolete { get; }
 
     bool IsEnum { get; }
     bool IsStatic { get; }
@@ -91,6 +93,9 @@ public interface IFieldInformation
     /// AttachedProperty, and any kind Avalonia adds later): found by walking base types, not by name.
     /// </summary>
     bool IsAvaloniaProperty { get; }
+
+    /// <summary>The field's [Obsolete] attribute, or null.</summary>
+    MetadataObsolete? Obsolete { get; }
 }
 
 public interface IParameterInformation
@@ -111,6 +116,8 @@ public interface IPropertyInformation
     string Name { get; }
     /// <summary>Marked [Content]: child elements of the declaring type are assigned to this property.</summary>
     bool IsContent { get; }
+    /// <summary>The property's [Obsolete] attribute, or null.</summary>
+    MetadataObsolete? Obsolete { get; }
     bool IsVisbleTo(IAssemblyInformation assembly);
 }
 
