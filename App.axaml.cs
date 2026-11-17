@@ -17,6 +17,7 @@ using AXamlIDE.Views;
 using Dock.Avalonia.Controls;
 using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
+using Avalonia.Controls;
 
 namespace AXamlIDE;
 
@@ -43,6 +44,7 @@ public partial class App : Application
             UseDockViews(services);
             Start(desktop, services);
             desktop.Exit += (_, _) => services.Dispose();
+            desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;   // a hidden window (Search Everywhere) mustn't keep the app alive
         }
 
         base.OnFrameworkInitializationCompleted();
