@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using AXamlIDE.CompletionEngine.Manipulation;
 // ReSharper disable InconsistentNaming
 
 namespace AXamlIDE.CompletionEngine.Manipulation;

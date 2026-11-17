@@ -1,6 +1,5 @@
 using System;
 using AXamlIDE.Services.Debugging;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

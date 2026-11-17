@@ -1,7 +1,6 @@
 using System.IO;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Workspace;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

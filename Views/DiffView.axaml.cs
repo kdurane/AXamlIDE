@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -16,7 +15,6 @@ using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.ViewModels;
-using TextMateSharp.Grammars;
 
 namespace AXamlIDE.Views;
 

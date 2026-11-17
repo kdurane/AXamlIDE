@@ -65,13 +65,6 @@ public sealed record ProblemItem(
         return new ProblemItem(document.Path, severity, location.Line, location.Column, message, source, code, project, document, offset);
     }
 
-    public string SeverityText => Severity switch
-    {
-        LspDiagnosticSeverity.Error => "Error",
-        LspDiagnosticSeverity.Warning => "Warning",
-        _ => "Info"
-    };
-
     public bool IsError => Severity == LspDiagnosticSeverity.Error;
     public bool IsWarning => Severity == LspDiagnosticSeverity.Warning;
     public bool IsInfo => Severity > LspDiagnosticSeverity.Warning;

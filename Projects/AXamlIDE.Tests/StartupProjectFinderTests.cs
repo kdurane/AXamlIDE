@@ -1,5 +1,4 @@
 using AXamlIDE.Services.Running;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

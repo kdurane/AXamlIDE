@@ -68,22 +68,6 @@ public sealed partial class DebugValueTree(IMessenger messenger, IClipboardServi
         Rows.Clear();
     }
 
-    /// <summary>Replace one root (a watch edited or re-evaluated) in place.</summary>
-    public async Task ReplaceRootAsync(int rootIndex, DebugValue value)
-    {
-        if (Provider is null)
-            return;
-        var roots = Rows.Where(row => row.Level == 0).ToList();
-        if (rootIndex < 0 || rootIndex >= roots.Count)
-            return;
-        var start = Rows.IndexOf(roots[rootIndex]);
-        Collapse(roots[rootIndex]);
-        var node = NewNode(value, 0, value.Name, _previousDisplays, null);
-        Rows[start] = node;
-        if (node.HasChildren && _expandedPaths.Contains(node.Path))
-            await ExpandAsync(node, _previousDisplays, null);
-    }
-
     private DebugValueNode NewNode(DebugValue value, int level, string path, IReadOnlyDictionary<string, string> previous,
         Dictionary<string, string>? displays)
     {

@@ -50,7 +50,8 @@ public interface IDialogService
     Task OpenContainingFolderAsync(string path);
 
     // Windows
-    Task ShowSettingsAsync();
+    /// <summary>Settings, at the page (a tab's header) and with the check box of that text focused, when given.</summary>
+    Task ShowSettingsAsync(string? page = null, string? option = null);
 
     /// <summary>The start window over the main window (File > Start Window); it closes when something is chosen.</summary>
     Task ShowStartWindowAsync(ViewModels.StartViewModel start);

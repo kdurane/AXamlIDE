@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using AXamlIDE.Services.NuGet;
 using CommunityToolkit.Mvvm.ComponentModel;
 

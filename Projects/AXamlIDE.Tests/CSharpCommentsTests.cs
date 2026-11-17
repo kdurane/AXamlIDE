@@ -1,5 +1,4 @@
 using AXamlIDE.Services.CSharp;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

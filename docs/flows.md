@@ -407,11 +407,14 @@ type, and only of a server that is already running.
 1. Ctrl+Shift+F → `Edit.FindInFiles` → `MainWindowViewModel.ShowFindInFiles()` → `DockLayoutViewModel.ShowTool(Search)`.
    Search has no home dock, so the first time it opens it floats (`DockFactory.FloatTool`, near the main window) →
    sends `FocusFindInFilesMessage` → `SearchViewModel` (the view focuses the box).
-   - From Search Everywhere (the top bar's box, double Shift: `SearchEverywhereViewModel`, `SearchEverywhereView`):
-     its Text row calls `MainWindowViewModel.FindInFiles`, which copies the words into `Search.SearchQuery` and runs
-     `SearchWorkspaceCommand`; the box clears. Its other tabs find types and symbols (Roslyn `workspace/symbol`),
-     files (`IDocumentHost.GetWorkspaceFilesAsync`, matched by `FuzzyMatch`), and actions (`KeyMap.Actions`: every
-     `CommandCatalog` command with its key) plus the Settings window's on/off options.
+   - From Search Everywhere (the top bar's button or double Shift → `SearchEverywhereViewModel.Open` →
+     `ShowRequested` → MainWindow shows its one `SearchEverywhereWindow`, hidden rather than closed so it reopens
+     where it was dragged): its Text row calls `MainWindowViewModel.FindInFiles`, which copies the words into
+     `Search.SearchQuery` and runs `SearchWorkspaceCommand`; the window hides and its box clears. Its other tabs find
+     types and symbols (Roslyn `workspace/symbol`), files (`IDocumentHost.GetWorkspaceFilesAsync`, matched by
+     `FuzzyMatch`), and actions (`KeyMap.Actions`: every `CommandCatalog` command with its key) plus the Settings
+     window's on/off options (a switch changes one in place; Enter opens `SettingsWindow` at its page with its check
+     box focused). The list is rebuilt once per pause in typing (90 ms), after waiting up to 400 ms for the symbols.
 2. `SearchViewModel.SearchWorkspace()`:
    1. `GetSearchRoots()`: the workspace folder, plus the folders of solution projects outside it
       (`WorkspaceModel.SearchRoots`).

@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Git;
 

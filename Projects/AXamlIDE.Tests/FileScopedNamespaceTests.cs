@@ -1,4 +1,3 @@
-using System.Linq;
 using AXamlIDE.Services.CSharp;
 
 namespace AXamlIDE.Tests;

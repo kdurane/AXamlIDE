@@ -31,8 +31,6 @@ public sealed partial class DebugValueProvider(IDebugEvaluator debugger, int fra
     /// <summary>Children whose display is refined (evaluated) straight away; others on request.</summary>
     public const int RefineLimit = 100;
 
-    public int FrameId => frameId;
-
     // ---------------------------------------------------------------- entry points
 
     /// <summary>The frame's locals (netcoredbg: one "Locals" scope, `this` included), refined.</summary>

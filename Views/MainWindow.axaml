@@ -1,34 +1,34 @@
 ﻿<Window
-    Background="{DynamicResource AppWindowBackgroundBrush}"
-    Foreground="{DynamicResource AppForegroundBrush}"
-    Title="AXamlIDE"
-    d:DesignHeight="800"
-    d:DesignWidth="1600"
-    MinWidth="800"
     x:Class="AXamlIDE.Views.MainWindow"
-    x:DataType="vm:MainWindowViewModel"
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:msg="using:AXamlIDE.Messages"
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    Title="AXamlIDE"
+    MinWidth="800"
+    d:DesignHeight="800"
+    d:DesignWidth="1600"
+    x:DataType="vm:MainWindowViewModel"
+    Background="{DynamicResource AppWindowBackgroundBrush}"
+    Foreground="{DynamicResource AppForegroundBrush}">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Grid.Row="0">
-            <Border Background="{DynamicResource AppTitleBarBackgroundBrush}" Grid.ColumnSpan="4" />
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto">
+            <Border Grid.ColumnSpan="4" Background="{DynamicResource AppTitleBarBackgroundBrush}" />
             <!--
-            The menus, Visual Studio / Rider style. Each item binds the same command as its button and key; the keys
-            shown come from the active keymap (Shell/KeyMap.cs), except the editor's own (undo, clipboard).
-            Build and Debug act on the startup project (the top bar's box).
+                The menus, Visual Studio / Rider style. Each item binds the same command as its button and key; the keys
+                shown come from the active keymap (Shell/KeyMap.cs), except the editor's own (undo, clipboard).
+                Build and Debug act on the startup project (the top bar's box).
             -->
             <Menu
+                x:Name="MainMenu"
                 MinHeight="0"
-                Padding="0"
-                x:Name="MainMenu">
+                Padding="0">
                 <MenuItem Header="_File">
                     <MenuItem Command="{Binding ShowStartWindowCommand}" Header="Start _Window..." />
                     <Separator />
@@ -44,7 +44,7 @@
                         IsEnabled="{Binding Start.HasMenuItems}"
                         ItemsSource="{Binding Start.MenuItems}">
                         <MenuItem.Styles>
-                            <Style x:DataType="vm:RecentItemViewModel" Selector="MenuItem.recent > MenuItem">
+                            <Style x:DataType="vm:RecentItemViewModel" Selector="MenuItem.recent &gt; MenuItem">
                                 <Setter Property="Header" Value="{Binding MenuHeader}" />
                                 <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Start.OpenRecentCommand, FallbackValue={x:Null}}" />
                                 <Setter Property="CommandParameter" Value="{Binding}" />
@@ -287,7 +287,7 @@
                         Header="_Documents"
                         ItemsSource="{Binding OpenDocuments}">
                         <MenuItem.Styles>
-                            <Style x:DataType="models:OpenDocument" Selector="MenuItem.openDocuments > MenuItem">
+                            <Style x:DataType="models:OpenDocument" Selector="MenuItem.openDocuments &gt; MenuItem">
                                 <Setter Property="Header" Value="{Binding DisplayTitle}" />
                                 <Setter Property="ToolTip.Tip" Value="{Binding Path}" />
                                 <Setter Property="Command" Value="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ActivateDocumentCommand, FallbackValue={x:Null}}" />
@@ -304,43 +304,43 @@
                 </MenuItem>
             </Menu>
             <!--
-            Visual Studio's toolbar: Build, the startup project, the configuration, play (Start Debugging; a stop
-            square while it runs) and the hollow play (Start Without Debugging). Same commands as the menus and keys.
+                Visual Studio's toolbar: Build, the startup project, the configuration, play (Start Debugging; a stop
+                square while it runs) and the hollow play (Start Without Debugging). Same commands as the menus and keys.
             -->
             <StackPanel
                 Grid.Column="1"
-                HorizontalAlignment="Right"
                 Margin="12,0,0,0"
+                HorizontalAlignment="Right"
                 Orientation="Horizontal"
                 Spacing="4">
                 <views:DebugToolbarView DataContext="{Binding Run}" />
                 <Button
+                    Padding="6,0"
+                    VerticalAlignment="Stretch"
                     AutomationProperties.Name="Build"
                     Background="Transparent"
                     Command="{Binding Run.BuildCommand}"
-                    Padding="6,0"
-                    ToolTip.Tip="Build (Ctrl+Shift+B)"
-                    VerticalAlignment="Stretch">
+                    ToolTip.Tip="Build (Ctrl+Shift+B)">
                     <PathIcon
-                        Data="{StaticResource Icon.Hammer}"
+                        Width="16"
                         Height="16"
-                        Width="16" />
+                        Data="{StaticResource Icon.Hammer}" />
                 </Button>
                 <ComboBox
+                    MinWidth="140"
+                    MinHeight="0"
+                    MaxWidth="220"
+                    Margin="0,3"
+                    Padding="8,2"
+                    VerticalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
                     AutomationProperties.Name="Startup project"
                     FontSize="11"
                     IsEnabled="{Binding !Run.IsRunning}"
                     ItemsSource="{Binding Run.StartupProjects}"
-                    Margin="0,3"
-                    MaxWidth="220"
-                    MinHeight="0"
-                    MinWidth="140"
-                    Padding="8,2"
                     PlaceholderText="Startup project"
                     SelectedItem="{Binding Run.StartupProject}"
-                    ToolTip.Tip="Startup project: what Run and Debug start"
-                    VerticalAlignment="Stretch"
-                    VerticalContentAlignment="Center">
+                    ToolTip.Tip="Startup project: what Run and Debug start">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="models:StartupProjectItem">
                             <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
@@ -348,40 +348,40 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
                 <ComboBox
+                    MinHeight="0"
+                    Margin="0,3"
+                    Padding="8,2"
+                    VerticalAlignment="Stretch"
+                    VerticalContentAlignment="Center"
                     AutomationProperties.Name="Configuration"
                     FontSize="11"
                     IsEnabled="{Binding !Run.IsRunning}"
                     ItemsSource="{Binding Run.Configurations}"
-                    Margin="0,3"
-                    MinHeight="0"
-                    Padding="8,2"
                     SelectedItem="{Binding Run.Configuration}"
-                    ToolTip.Tip="Build configuration"
-                    VerticalAlignment="Stretch"
-                    VerticalContentAlignment="Center" />
+                    ToolTip.Tip="Build configuration" />
                 <Button
+                    Padding="6,0"
+                    VerticalAlignment="Stretch"
                     AutomationProperties.Name="{Binding Run.StartOrStopToolTip}"
                     Background="Transparent"
                     Command="{Binding Run.StartOrStopCommand}"
-                    Padding="6,0"
-                    ToolTip.Tip="{Binding Run.StartOrStopToolTip}"
-                    VerticalAlignment="Stretch">
+                    ToolTip.Tip="{Binding Run.StartOrStopToolTip}">
                     <Panel>
                         <PathIcon
+                            Width="16"
+                            Height="16"
                             Data="{StaticResource Icon.Play}"
                             Foreground="{DynamicResource DebugStartBrush}"
-                            Height="16"
-                            IsVisible="{Binding !Run.IsRunning}"
-                            Width="16" />
+                            IsVisible="{Binding !Run.IsRunning}" />
                         <PathIcon
+                            Width="16"
+                            Height="16"
                             Data="{StaticResource Icon.Stop}"
                             Foreground="{DynamicResource DebugStopBrush}"
-                            Height="16"
-                            IsVisible="{Binding Run.IsRunning}"
-                            Width="16" />
+                            IsVisible="{Binding Run.IsRunning}" />
                     </Panel>
                 </Button>
-                <Button
+                <!--<Button
                     AutomationProperties.Name="Start Without Debugging"
                     Background="Transparent"
                     Command="{Binding Run.RunProjectCommand}"
@@ -394,43 +394,54 @@
                         Foreground="{DynamicResource DebugStartBrush}"
                         Height="16"
                         Width="16" />
-                </Button>
+                </Button>-->
             </StackPanel>
 
             <!--  Search Everywhere (double Shift), as Rider's: types, files, symbols, actions, and Text for the Search window.  -->
-            <views:SearchEverywhereView
-                DataContext="{Binding SearchEverywhere}"
-                Grid.Column="2"
-                Margin="4,3"
-                Width="280" />
             <Button
+                Grid.Column="2"
+                Width="280"
+                Margin="4,3"
+                Classes="searchLauncher"
+                Command="{Binding SearchEverywhere.OpenCommand}"
+                CommandParameter="{x:Static models:SearchEverywhereTab.All}"
+                ToolTip.Tip="Search Everywhere (Double Shift)">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon
+                        Width="13"
+                        Height="13"
+                        Data="{DynamicResource Icon.Search}" />
+                    <TextBlock Text="Search Everywhere" />
+                </StackPanel>
+            </Button>
+            <Button
+                Grid.Column="3"
+                Margin="0"
+                Padding="4"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
                 AutomationProperties.Name="Settings"
                 Background="{DynamicResource AppTitleBarBackgroundBrush}"
                 Command="{Binding OpenSettingsCommand}"
-                Grid.Column="3"
-                HorizontalAlignment="Stretch"
-                Margin="0"
-                Padding="4"
-                ToolTip.Tip="Settings"
-                VerticalAlignment="Stretch">
+                ToolTip.Tip="Settings">
                 <PathIcon
-                    Data="{DynamicResource Icon.Cog}"
-                    Foreground="{DynamicResource ThemeForegroundBrush}"
+                    Width="16"
                     Height="16"
-                    Width="16" />
+                    Data="{DynamicResource Icon.Cog}"
+                    Foreground="{DynamicResource ThemeForegroundBrush}" />
             </Button>
         </Grid>
 
         <!--
-        Visual Studio's Standard toolbar: Navigate Backward / Forward, Save / Save All, Undo / Redo, then (on the right)
-        the window buttons that used to be a VS Code style activity bar: side bar, search, tests, terminal, panel.
+            Visual Studio's Standard toolbar: Navigate Backward / Forward, Save / Save All, Undo / Redo, then (on the right)
+            the window buttons that used to be a VS Code style activity bar: side bar, search, tests, terminal, panel.
         -->
         <Border
+            Grid.Row="1"
+            Padding="4,1"
             Background="{DynamicResource AppTitleBarBackgroundBrush}"
             BorderBrush="{DynamicResource AppActivityBarBackgroundBrush}"
-            BorderThickness="0,1,0,0"
-            Grid.Row="1"
-            Padding="4,1">
+            BorderThickness="0,1,0,0">
             <Border.Styles>
                 <Style Selector="Button.toolbar">
                     <Setter Property="Background" Value="Transparent" />
@@ -457,10 +468,10 @@
                     Orientation="Horizontal"
                     Spacing="1">
                     <Button
+                        shell:KeyMap.ShortcutTip="Show/Hide Side Bar"
                         AutomationProperties.Name="Show or hide the side bar"
                         Classes="toolbar"
-                        Command="{Binding ToggleExplorerCommand}"
-                        shell:KeyMap.ShortcutTip="Show/Hide Side Bar">
+                        Command="{Binding ToggleExplorerCommand}">
                         <PathIcon Data="{DynamicResource Icon.FolderMultipleOutline}" />
                     </Button>
                     <Button
@@ -472,70 +483,70 @@
                     </Button>
                     <Border Classes="toolbarSeparator" />
                     <Button
+                        shell:KeyMap.ShortcutTip="Find in Files"
                         AutomationProperties.Name="Search in files"
                         Classes="toolbar"
-                        Command="{Binding ShowFindInFilesCommand}"
-                        shell:KeyMap.ShortcutTip="Find in Files">
+                        Command="{Binding ShowFindInFilesCommand}">
                         <PathIcon Data="{DynamicResource Icon.Search}" />
                     </Button>
                     <Button
+                        shell:KeyMap.ShortcutTip="Test Explorer"
                         AutomationProperties.Name="Test Explorer"
                         Classes="toolbar"
                         Command="{Binding ShowToolCommand}"
-                        CommandParameter="{x:Static msg:ToolTab.Tests}"
-                        shell:KeyMap.ShortcutTip="Test Explorer">
+                        CommandParameter="{x:Static msg:ToolTab.Tests}">
                         <PathIcon Data="{DynamicResource Icon.FlaskEmptyOutline}" />
                     </Button>
                     <Button
+                        shell:KeyMap.ShortcutTip="Terminal"
                         AutomationProperties.Name="Terminal"
                         Classes="toolbar"
-                        Command="{Binding ShowTerminalCommand}"
-                        shell:KeyMap.ShortcutTip="Terminal">
+                        Command="{Binding ShowTerminalCommand}">
                         <PathIcon Data="{DynamicResource Icon.Console}" />
                     </Button>
                     <Button
+                        shell:KeyMap.ShortcutTip="Claude"
                         AutomationProperties.Name="Claude"
                         Classes="toolbar"
-                        Command="{Binding ShowClaudeCommand}"
-                        shell:KeyMap.ShortcutTip="Claude">
+                        Command="{Binding ShowClaudeCommand}">
                         <PathIcon Data="{DynamicResource Icon.Sparkle}" />
                     </Button>
                     <Button
+                        shell:KeyMap.ShortcutTip="Show/Hide Panel"
                         AutomationProperties.Name="Show or hide the panel"
                         Classes="toolbar"
-                        Command="{Binding TogglePanelCommand}"
-                        shell:KeyMap.ShortcutTip="Show/Hide Panel">
+                        Command="{Binding TogglePanelCommand}">
                         <PathIcon Data="{DynamicResource Icon.PanelBottom}" />
                     </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="1">
                     <Button
+                        shell:KeyMap.ShortcutTip="Navigate Backward"
                         AutomationProperties.Name="Navigate Backward"
                         Classes="toolbar"
-                        Command="{Binding NavigateBackCommand}"
-                        shell:KeyMap.ShortcutTip="Navigate Backward">
+                        Command="{Binding NavigateBackCommand}">
                         <PathIcon Data="{DynamicResource Icon.ArrowLeft}" />
                     </Button>
                     <Button
+                        shell:KeyMap.ShortcutTip="Navigate Forward"
                         AutomationProperties.Name="Navigate Forward"
                         Classes="toolbar"
-                        Command="{Binding NavigateForwardCommand}"
-                        shell:KeyMap.ShortcutTip="Navigate Forward">
+                        Command="{Binding NavigateForwardCommand}">
                         <PathIcon Data="{DynamicResource Icon.ArrowRight}" />
                     </Button>
                     <Border Classes="toolbarSeparator" />
                     <Button
+                        shell:KeyMap.ShortcutTip="Save"
                         AutomationProperties.Name="Save"
                         Classes="toolbar"
-                        Command="{Binding DocumentCommands.SaveDocumentCommand}"
-                        shell:KeyMap.ShortcutTip="Save">
+                        Command="{Binding DocumentCommands.SaveDocumentCommand}">
                         <PathIcon Data="{DynamicResource Icon.ContentSaveOutline}" />
                     </Button>
                     <Button
+                        shell:KeyMap.ShortcutTip="Save All"
                         AutomationProperties.Name="Save All"
                         Classes="toolbar"
-                        Command="{Binding DocumentCommands.SaveAllCommand}"
-                        shell:KeyMap.ShortcutTip="Save All">
+                        Command="{Binding DocumentCommands.SaveAllCommand}">
                         <PathIcon Data="{DynamicResource Icon.ContentSaveAllOutline}" />
                     </Button>
                     <Border Classes="toolbarSeparator" />
@@ -559,16 +570,16 @@
 
         <!--  Document tabs and tool panels. Any tab can be dragged to another strip or out into its own window.  -->
         <DockControl
+            Name="DockArea"
             Grid.Row="2"
-            Layout="{Binding Docking.Root}"
-            Name="DockArea" />
+            Layout="{Binding Docking.Root}" />
 
         <Border
-            Background="{DynamicResource AppStatusBarBackgroundBrush}"
+            x:Name="StatusBar"
             Grid.Row="3"
             Padding="8,2"
-            TextElement.Foreground="{DynamicResource AppStatusBarForegroundBrush}"
-            x:Name="StatusBar">
+            Background="{DynamicResource AppStatusBarBackgroundBrush}"
+            TextElement.Foreground="{DynamicResource AppStatusBarForegroundBrush}">
             <!--
                 The status bar (StatusBarViewModel), laid out like Rider's: the message on the left; on the right
                 solution-wide analysis, the active document's errors, Ln/Col, line endings, encoding and indentation,
@@ -577,7 +588,7 @@
             <Grid ColumnDefinitions="*,Auto">
                 <DockPanel DataContext="{Binding StatusBar}" LastChildFill="True">
                     <DockPanel.Styles>
-                        <Style Selector="DockPanel > :is(Control)">
+                        <Style Selector="DockPanel &gt; :is(Control)">
                             <Setter Property="DockPanel.Dock" Value="Right" />
                             <Setter Property="Margin" Value="8,0,0,0" />
                             <Setter Property="VerticalAlignment" Value="Center" />
@@ -595,19 +606,28 @@
                         Spacing="4"
                         ToolTip.Tip="{Binding LanguageServerTip}">
                         <PathIcon
-                            Data="{StaticResource Icon.CSharp}"
-                            Foreground="{DynamicResource AppStatusBarForegroundBrush}"
+                            Width="14"
                             Height="14"
-                            Width="14" />
+                            Data="{StaticResource Icon.CSharp}"
+                            Foreground="{DynamicResource AppStatusBarForegroundBrush}" />
                         <TextBlock
                             MaxWidth="360"
                             Text="{Binding LanguageServerText}"
                             TextTrimming="CharacterEllipsis" />
                     </StackPanel>
 
-                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding IndentText}" ToolTip.Tip="Indentation" />
-                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding EncodingText}" ToolTip.Tip="File encoding" />
-                    <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding LineEndingText}" ToolTip.Tip="Line endings" />
+                    <TextBlock
+                        IsVisible="{Binding HasDocument}"
+                        Text="{Binding IndentText}"
+                        ToolTip.Tip="Indentation" />
+                    <TextBlock
+                        IsVisible="{Binding HasDocument}"
+                        Text="{Binding EncodingText}"
+                        ToolTip.Tip="File encoding" />
+                    <TextBlock
+                        IsVisible="{Binding HasDocument}"
+                        Text="{Binding LineEndingText}"
+                        ToolTip.Tip="Line endings" />
                     <TextBlock IsVisible="{Binding HasDocument}" Text="{Binding CaretText}" />
                     <TextBlock
                         IsVisible="{Binding HasDocument}"
@@ -616,11 +636,11 @@
 
                     <!--  Solution-wide analysis (Rider's "4 errors in 3 files"): click for its menu.  -->
                     <Button
+                        VerticalAlignment="Stretch"
                         AutomationProperties.Name="Solution-wide analysis"
                         Classes="statusBarItem"
                         Classes.off="{Binding !IsSolutionAnalysisOn}"
-                        ToolTip.Tip="{Binding SolutionAnalysisTip}"
-                        VerticalAlignment="Stretch">
+                        ToolTip.Tip="{Binding SolutionAnalysisTip}">
                         <Button.Flyout>
                             <MenuFlyout Placement="TopEdgeAlignedRight">
                                 <MenuItem
@@ -655,17 +675,17 @@
 
                 <StackPanel
                     Grid.Column="1"
-                    IsVisible="{Binding Git.IsRepository}"
                     Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding Git.IsRepository}"
                     Orientation="Horizontal"
                     Spacing="4"
-                    ToolTip.Tip="Current Git branch"
-                    VerticalAlignment="Center">
+                    ToolTip.Tip="Current Git branch">
                     <PathIcon
-                        Data="{StaticResource Icon.SourceBranch}"
-                        Foreground="{DynamicResource AppStatusBarForegroundBrush}"
+                        Width="12"
                         Height="12"
-                        Width="12" />
+                        Data="{StaticResource Icon.SourceBranch}"
+                        Foreground="{DynamicResource AppStatusBarForegroundBrush}" />
                     <TextBlock Text="{Binding Git.BranchText}" />
                 </StackPanel>
             </Grid>

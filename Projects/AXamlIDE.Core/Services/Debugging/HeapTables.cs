@@ -89,7 +89,6 @@ public static partial class HeapTables
     {
         if (candidate.IsArray)
             return candidate.AsArray().Length == fingerprint.Count;
-        var type = candidate.Type!;
         var inner = InnerList(candidate);
         var count = inner is { } list ? list.ReadField<int>("_size") : Count(candidate);
         if (count != fingerprint.Count)

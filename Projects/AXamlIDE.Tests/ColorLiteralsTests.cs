@@ -1,6 +1,5 @@
 using System.Linq;
 using AXamlIDE.Services.ColorValues;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

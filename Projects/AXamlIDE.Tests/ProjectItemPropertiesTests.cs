@@ -107,8 +107,8 @@ public sealed class ProjectItemPropertiesTests : IDisposable
             """));
         _workspace.Write("App/icon.ico", "");
 
-        var result = _host.SetItemType(_project, File("icon.ico"), "EmbeddedResource");
-        result = _host.SetItemMetadata(_project, File("icon.ico"), "CopyToOutputDirectory", "PreserveNewest");
+        _host.SetItemType(_project, File("icon.ico"), "EmbeddedResource");
+        var result = _host.SetItemMetadata(_project, File("icon.ico"), "CopyToOutputDirectory", "PreserveNewest");
 
         Assert.Equal("EmbeddedResource", result.ItemType);
         Assert.Equal("PreserveNewest", result.MetadataOrEmpty("CopyToOutputDirectory"));

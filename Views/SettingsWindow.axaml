@@ -22,7 +22,10 @@
             Margin="0,0,0,16"
             Text="Settings" />
 
-        <TabControl Grid.Row="1" TabStripPlacement="Left">
+        <TabControl
+            Grid.Row="1"
+            Name="Pages"
+            TabStripPlacement="Left">
             <!--  The editor: how it looks, and what it does as you type (VS: Text Editor > General)  -->
             <TabItem FontSize="16" Header="Text Editor">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">

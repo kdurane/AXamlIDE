@@ -1,0 +1,137 @@
+<!--
+    Search Everywhere (Rider's, double Shift): a window over the IDE. Drag it by its top row, resize it from the
+    corner; it stays where it was put. Up/Down, Enter, Tab and Escape are handled in the code-behind, so the keyboard
+    stays in the box.
+-->
+<Window
+    Background="{DynamicResource HoverBackgroundBrush}"
+    CanResize="True"
+    Height="480"
+    MinHeight="240"
+    MinWidth="420"
+    ShowInTaskbar="False"
+    WindowDecorations="None"
+    Title="Search Everywhere"
+    Width="720"
+    x:Class="AXamlIDE.Views.SearchEverywhereWindow"
+    x:DataType="vm:SearchEverywhereViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:models="using:AXamlIDE.Models"
+    xmlns:stylefolder="using:AXamlIDE.Styles"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Window.Resources>
+        <stylefolder:IconKeyConverter x:Key="IconConverter" />
+    </Window.Resources>
+    <Border
+        BorderBrush="{DynamicResource HoverBorderBrush}"
+        BorderThickness="1"
+        TextElement.Foreground="{DynamicResource HoverForegroundBrush}">
+        <DockPanel>
+            <!--  The tabs, and the empty rest of the row is the handle to drag the window by.  -->
+            <DockPanel
+                Background="Transparent"
+                DockPanel.Dock="Top"
+                Margin="4,4,4,0"
+                Name="DragHandle">
+                <ListBox
+                    Classes="tabs"
+                    Focusable="False"
+                    ItemsSource="{Binding Tabs}"
+                    SelectedItem="{Binding SelectedTab, Mode=TwoWay}" />
+            </DockPanel>
+            <TextBox
+                Classes="SearchBox"
+                DockPanel.Dock="Top"
+                Margin="8,6"
+                Name="Box"
+                PlaceholderText="Types, files, symbols, actions and options"
+                Text="{Binding Query, Mode=TwoWay}" />
+            <Grid ColumnDefinitions="*,Auto" DockPanel.Dock="Bottom">
+                <TextBlock
+                    FontSize="11"
+                    Margin="10,4"
+                    Opacity="0.6"
+                    Text="Enter to open  ·  Tab for the next tab  ·  Esc to close  ·  drag the top row to move" />
+                <!--  Resize grip  -->
+                <Border
+                    Background="Transparent"
+                    Cursor="BottomRightCorner"
+                    Grid.Column="1"
+                    Height="14"
+                    Name="ResizeGrip"
+                    VerticalAlignment="Bottom"
+                    Width="14">
+                    <Path
+                        Data="M 12,2 L 2,12 M 12,6 L 6,12 M 12,10 L 10,12"
+                        Opacity="0.5"
+                        Stroke="{DynamicResource HoverForegroundBrush}"
+                        StrokeThickness="1" />
+                </Border>
+            </Grid>
+            <Panel Margin="4,0">
+                <TextBlock
+                    IsVisible="{Binding HasNoResults}"
+                    Margin="8,12"
+                    Opacity="0.7"
+                    Text="Nothing found. Tab moves to the next tab; Text searches inside files." />
+                <ListBox
+                    Classes="compact"
+                    Focusable="False"
+                    ItemsSource="{Binding Results}"
+                    Name="ResultList"
+                    SelectedIndex="{Binding SelectedIndex, Mode=TwoWay}">
+                    <ListBox.Styles>
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="Focusable" Value="False" />
+                        </Style>
+                    </ListBox.Styles>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="models:SearchEverywhereItem">
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="11"
+                                    FontWeight="SemiBold"
+                                    IsVisible="{Binding ShowsSection}"
+                                    Margin="0,6,0,2"
+                                    Opacity="0.6"
+                                    Text="{Binding Section}" />
+                                <DockPanel Margin="0,1">
+                                    <PathIcon
+                                        Data="{Binding Icon, Converter={StaticResource IconConverter}}"
+                                        DockPanel.Dock="Left"
+                                        Height="14"
+                                        Margin="0,0,8,0"
+                                        Width="14" />
+                                    <!--  An option's switch changes it here (Rider); Enter on the row opens Settings at it.  -->
+                                    <ToggleSwitch
+                                        DockPanel.Dock="Right"
+                                        Focusable="False"
+                                        IsChecked="{Binding IsOn, Mode=TwoWay}"
+                                        IsVisible="{Binding IsOption}"
+                                        Margin="12,-6,0,-6"
+                                        MinWidth="0"
+                                        OffContent=""
+                                        OnContent=""
+                                        ToolTip.Tip="On or off, here and now" />
+                                    <TextBlock
+                                        DockPanel.Dock="Right"
+                                        Margin="12,0,0,0"
+                                        Opacity="0.7"
+                                        Text="{Binding Shortcut}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="{Binding Title}" />
+                                        <TextBlock
+                                            Opacity="0.6"
+                                            Text="{Binding Detail}"
+                                            TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </DockPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Panel>
+        </DockPanel>
+    </Border>
+</Window>

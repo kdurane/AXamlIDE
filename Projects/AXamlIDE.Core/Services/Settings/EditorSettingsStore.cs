@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.Json;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Keymaps;
-using TextMateSharp.Grammars;
 
 namespace AXamlIDE.Services.Settings;
 

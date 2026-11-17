@@ -86,6 +86,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Search = search;
         SearchEverywhere = searchEverywhere;
         searchEverywhere.FindInFiles = FindInFiles;
+        searchEverywhere.OpenSettingsAt = (page, option) => _ = _dialogs.ShowSettingsAsync(page, option);
         Problems = problems;
         Run = run;
         Terminal = terminal;

@@ -7,13 +7,11 @@ using System.Threading.Tasks;
 using System.Xml;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
-using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Workspace;
 using AXamlIDE.Services.Xaml;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.ViewModels;
@@ -27,17 +25,15 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
     private readonly WorkspaceModel _workspace;
     private readonly XamlLanguageService _xaml;
     private readonly LanguageSessionService _languages;
-    private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
     private bool _opening;   // a solution is loading (OpenAsync)
 
     public WorkspaceViewModel(WorkspaceModel workspace, XamlLanguageService xaml, LanguageSessionService languages,
-        IDialogService dialogs, IMessenger messenger)
+        IMessenger messenger)
     {
         _workspace = workspace;
         _xaml = xaml;
         _languages = languages;
-        _dialogs = dialogs;
         _messenger = messenger;
         messenger.RegisterAll(this);
     }

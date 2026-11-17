@@ -1,23 +1,23 @@
 <!--
-The start window (DataContext: ViewModels/StartViewModel), laid out like Visual Studio 2022's: "Open recent" on the
-left (a search box, then the pinned entries and the rest by when they were last opened), "Get started" on the right
-(clone, open a solution, open a folder, create a project), and "Continue without code" under them.
+    The start window (DataContext: ViewModels/StartViewModel), laid out like Visual Studio 2022's: "Open recent" on the
+    left (a search box, then the pinned entries and the rest by when they were last opened), "Get started" on the right
+    (clone, open a solution, open a folder, create a project), and "Continue without code" under them.
 -->
 <Window
-    Background="{DynamicResource AppWindowBackgroundBrush}"
-    Foreground="{DynamicResource AppForegroundBrush}"
-    Height="640"
-    MinHeight="440"
-    MinWidth="760"
-    Title="AXamlIDE"
-    Width="1000"
-    WindowStartupLocation="CenterScreen"
     x:Class="AXamlIDE.Views.StartWindow"
-    x:DataType="vm:StartViewModel"
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    Title="AXamlIDE"
+    Width="1000"
+    Height="640"
+    MinWidth="760"
+    MinHeight="440"
+    x:DataType="vm:StartViewModel"
+    Background="{DynamicResource AppWindowBackgroundBrush}"
+    Foreground="{DynamicResource AppForegroundBrush}"
+    WindowStartupLocation="CenterOwner">
 
     <Window.KeyBindings>
         <KeyBinding Command="{Binding ContinueWithoutCodeCommand}" Gesture="Escape" />
@@ -34,13 +34,13 @@ left (a search box, then the pinned entries and the rest by when they were last 
     </Window.Styles>
 
     <Grid
-        ColumnDefinitions="*,48,340"
         Margin="40,28,40,24"
+        ColumnDefinitions="*,48,340"
         RowDefinitions="Auto,*">
         <TextBlock
-            FontSize="28"
             Grid.ColumnSpan="3"
             Margin="0,0,0,24"
+            FontSize="28"
             Text="AXamlIDE" />
 
         <!--  Open recent  -->
@@ -50,12 +50,12 @@ left (a search box, then the pinned entries and the rest by when they were last 
                 DockPanel.Dock="Top"
                 Text="Pick up where you left off" />
             <TextBox
+                Name="SearchBox"
+                Margin="0,0,0,10"
                 AutomationProperties.Name="Search recent"
                 Classes="SearchBox"
                 DockPanel.Dock="Top"
                 IsVisible="{Binding HasRecent}"
-                Margin="0,0,0,10"
-                Name="SearchBox"
                 PlaceholderText="Search recent (Alt+S)"
                 Text="{Binding Search}" />
             <TextBlock
@@ -70,19 +70,19 @@ left (a search box, then the pinned entries and the rest by when they were last 
                         <DataTemplate x:DataType="vm:RecentGroupViewModel">
                             <StackPanel Margin="0,0,0,10">
                                 <TextBlock
+                                    Margin="6,0,0,4"
                                     Classes="dim"
                                     FontWeight="SemiBold"
-                                    Margin="6,0,0,4"
                                     Text="{Binding Title}" />
                                 <ItemsControl ItemsSource="{Binding Items}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:RecentItemViewModel">
                                             <Button
+                                                Padding="6,5"
                                                 AutomationProperties.Name="{Binding Name}"
                                                 Classes="row"
                                                 Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).OpenRecentCommand, FallbackValue={x:Null}}"
                                                 CommandParameter="{Binding}"
-                                                Padding="6,5"
                                                 ToolTip.Tip="{Binding ToolTip}">
                                                 <Button.ContextMenu>
                                                     <ContextMenu>
@@ -102,11 +102,11 @@ left (a search box, then the pinned entries and the rest by when they were last 
                                                 </Button.ContextMenu>
                                                 <Grid ColumnDefinitions="Auto,*,Auto,Auto" Opacity="{Binding IsMissing, Converter={x:Static views:StartConverters.MissingOpacity}}">
                                                     <PathIcon
-                                                        Data="{Binding IsSolution, Converter={x:Static views:StartConverters.Icon}}"
+                                                        Width="18"
                                                         Height="18"
                                                         Margin="0,0,12,0"
                                                         VerticalAlignment="Center"
-                                                        Width="18" />
+                                                        Data="{Binding IsSolution, Converter={x:Static views:StartConverters.Icon}}" />
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                         <TextBlock
                                                             FontWeight="SemiBold"
@@ -118,20 +118,20 @@ left (a search box, then the pinned entries and the rest by when they were last 
                                                             TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
                                                     <TextBlock
-                                                        Classes="dim"
                                                         Grid.Column="2"
                                                         Margin="12,0,4,0"
-                                                        Text="{Binding When}"
-                                                        VerticalAlignment="Top" />
+                                                        VerticalAlignment="Top"
+                                                        Classes="dim"
+                                                        Text="{Binding When}" />
                                                     <Button
+                                                        Grid.Column="3"
+                                                        VerticalAlignment="Top"
                                                         AutomationProperties.Name="{Binding PinToolTip}"
                                                         Classes="icon pin"
                                                         Classes.pinned="{Binding IsPinned}"
                                                         Command="{Binding $parent[Window].((vm:StartViewModel)DataContext).TogglePinCommand, FallbackValue={x:Null}}"
                                                         CommandParameter="{Binding}"
-                                                        Grid.Column="3"
-                                                        ToolTip.Tip="{Binding PinToolTip}"
-                                                        VerticalAlignment="Top">
+                                                        ToolTip.Tip="{Binding PinToolTip}">
                                                         <PathIcon Data="{Binding IsPinned, Converter={x:Static views:StartConverters.PinIcon}}" />
                                                     </Button>
                                                 </Grid>
@@ -148,8 +148,8 @@ left (a search box, then the pinned entries and the rest by when they were last 
 
         <!--  Get started  -->
         <StackPanel
-            Grid.Column="2"
             Grid.Row="1"
+            Grid.Column="2"
             Spacing="8">
             <TextBlock Classes="startHeading" Text="New or existing" />
             <Button Classes="startAction" Command="{Binding CloneRepositoryCommand}">
@@ -201,11 +201,11 @@ left (a search box, then the pinned entries and the rest by when they were last 
                 </DockPanel>
             </Button>
             <Button
+                Margin="0,4,0,0"
+                HorizontalAlignment="Right"
                 Classes="link"
                 Command="{Binding ContinueWithoutCodeCommand}"
-                Content="Go straight to the editor →"
-                HorizontalAlignment="Right"
-                Margin="0,4,0,0" />
+                Content="Go straight to the editor →" />
         </StackPanel>
     </Grid>
 </Window>

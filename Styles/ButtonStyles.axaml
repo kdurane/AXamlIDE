@@ -128,6 +128,22 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
     </Style>
 
     <!--  clear: the small x that empties a box (TextBox.SearchBox shows it once there's text).  -->
+    <!--  searchLauncher: looks like a search box but opens a window (the top bar's Search Everywhere, as VS's and Rider's).  -->
+    <Style Selector="Button.searchLauncher">
+        <Setter Property="Background" Value="{DynamicResource AppWindowBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ComboBoxBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.searchLauncher PathIcon, Button.searchLauncher TextBlock">
+        <Setter Property="Opacity" Value="0.65" />
+    </Style>
+
     <Style Selector="Button.clear">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />

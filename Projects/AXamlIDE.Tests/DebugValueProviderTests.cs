@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AXamlIDE.Services.Debugging;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

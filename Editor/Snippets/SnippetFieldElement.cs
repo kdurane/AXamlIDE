@@ -1,7 +1,6 @@
 using System;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
 using AvaloniaEdit.Rendering;
 using AvaloniaEdit.Snippets;
 using AXamlIDE.Views;

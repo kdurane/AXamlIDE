@@ -6,7 +6,6 @@ using Avalonia.Input;
 using Avalonia.Media;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
-using AXamlIDE.Models;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Views;
 

@@ -33,7 +33,6 @@ using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Settings;
 using CommunityToolkit.Mvvm.Messaging;
-using TextMateSharp.Grammars;
 
 namespace AXamlIDE.Views;
 
@@ -64,17 +63,13 @@ public partial class EditorPaneView : UserControl,
     private BreakpointMargin? _breakpointMargin;
     private TextMateController _textMateController = null!;
     private FoldingController _folding = null!;
-    private IndentationController _indentation = null!;
-    private WhitespaceSelectionController _whitespaceSelection = null!;
     private OccurrenceController _occurrences = null!;
     private SelectionRenderer _selectionRenderer = null!;
     private CaretRenderer _caretRenderer = null!;
-    private TypingController _typing = null!;
     private HoverController _hover = null!;
     private CodeLensController _codeLens = null!;
     private SemanticHighlightController _semanticHighlighting = null!;
     private InlayHintController _inlayHints = null!;
-    private ColorSwatchController _colorSwatches = null!;
 
     public EditorPaneView()
     {
@@ -165,17 +160,18 @@ public partial class EditorPaneView : UserControl,
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
         _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
         _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesTree, ReferencesTitle);
-        _colorSwatches = new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
+        // Not kept in fields: these wire themselves to the editor's events and live as long as it does.
+        new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
         _signatureHelp = new SignatureHelpController(_ctx);
         _snippets = new SnippetController(_ctx, services.Snippets, services.Dialogs);
         _completion = new CompletionController(_ctx, _hover, _snippets);
         _snippets.IsCompletionOpen = () => _completion.IsOpen;
-        _typing = new TypingController(_ctx, _hover, _completion, _signatureHelp);
+        new TypingController(_ctx, _hover, _completion, _signatureHelp);
         _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots, _breakpointMargin);
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
-        _indentation = new IndentationController(_ctx);
-        _whitespaceSelection = new WhitespaceSelectionController(_ctx);
+        new IndentationController(_ctx);
+        new WhitespaceSelectionController(_ctx);
         _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);

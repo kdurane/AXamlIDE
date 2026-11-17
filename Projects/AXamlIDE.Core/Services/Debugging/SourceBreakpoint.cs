@@ -5,10 +5,7 @@ namespace AXamlIDE.Services.Debugging;
 /// Studio's Conditions: an expression that must be true (<see cref="Condition"/>), and a hit count
 /// (<see cref="HitCondition"/>: "5" stops on the 5th hit; netcoredbg also takes "&gt;= 5" style comparisons).
 /// </summary>
-public sealed record SourceBreakpoint(int Line, string? Condition = null, string? HitCondition = null)
-{
-    public bool HasCondition => !string.IsNullOrWhiteSpace(Condition) || !string.IsNullOrWhiteSpace(HitCondition);
-}
+public sealed record SourceBreakpoint(int Line, string? Condition = null, string? HitCondition = null);
 
 /// <summary>The exception filters netcoredbg understands (DAP's setExceptionBreakpoints).</summary>
 public static class ExceptionFilters

@@ -79,7 +79,4 @@ public sealed class NuGetLocalPackages(string folder)
             => [.. parent.Elements().Where(e => e.Name.LocalName == "dependency")
                 .Select(e => new NuGetDependency(e.Attribute("id")?.Value ?? "", e.Attribute("version")?.Value))];
     }
-
-    /// <summary>The icon file a downloaded version ships, or null.</summary>
-    public string? TryGetIconPath(string id, string version) => TryGetDetails(id, version)?.LocalIconPath;
 }

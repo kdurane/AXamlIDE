@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -18,15 +17,20 @@ using CommunityToolkit.Mvvm.Input;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// Search Everywhere, as Rider's (double Shift): the top bar's box finds types, files, symbols, IDE actions and
-/// options as you type, with tabs to narrow it down, and Text sends the words to the Search window. Choosing a row
-/// clears the box. The box and its drop-down are Views/SearchEverywhereView.
+/// Search Everywhere, as Rider's (double Shift): a window that finds types, files, symbols, IDE actions and options
+/// as you type, with tabs to narrow it down, and Text sends the words to the Search window. Choosing a row closes it
+/// and clears the box. The window is Views/SearchEverywhereWindow; the top bar's button opens it.
 /// </summary>
 public sealed partial class SearchEverywhereViewModel : ObservableObject
 {
     // Rows per section on the All tab; a tab of its own shows up to MaxRows.
     private const int AllTabRows = 6;
     private const int MaxRows = 100;
+
+    // The list changes once per pause in typing, not on every key, and waits this long for the language server's
+    // symbols so they come in with the rest rather than pushing the list down a moment later.
+    private static readonly TimeSpan TypingPause = TimeSpan.FromMilliseconds(90);
+    private static readonly TimeSpan SymbolWait = TimeSpan.FromMilliseconds(400);
 
     private readonly IDocumentHost _documents;
     private readonly DocumentManager _openDocuments;
@@ -38,7 +42,7 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
     private IReadOnlyList<string> _files = [];
     private IReadOnlyList<LspLocation> _symbols = [];
     private string _symbolsQuery = "";
-    private CancellationTokenSource? _symbolSearch;
+    private CancellationTokenSource? _update;
 
     public SearchEverywhereViewModel(IDocumentHost documents, DocumentManager openDocuments, WorkspaceModel workspace,
         LanguageSessionService languages, NavigationService navigator, SettingsViewModel settings)
@@ -59,74 +63,63 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
     /// <summary>Text: search the workspace's files for the words, in the Search window (set by MainWindowViewModel).</summary>
     public Action<string> FindInFiles { get; set; } = _ => { };
 
-    /// <summary>The view puts the keyboard focus in the box (Open from a key or menu).</summary>
-    public event Action? FocusRequested;
+    /// <summary>An option row: open Settings at its page with it focused (set by MainWindowViewModel).</summary>
+    public Action<string, string> OpenSettingsAt { get; set; } = (_, _) => { };
+
+    /// <summary>The window is to show, with the keyboard in its box (Open from the button, a key or a menu).</summary>
+    public event Action? ShowRequested;
 
     [ObservableProperty] public partial string Query { get; set; } = "";
     [ObservableProperty] public partial SearchEverywhereTab SelectedTab { get; set; }
     [ObservableProperty] public partial bool IsOpen { get; set; }
     [ObservableProperty] public partial int SelectedIndex { get; set; } = -1;
 
-    public ObservableCollection<SearchEverywhereItem> Results { get; } = [];
+    /// <summary>The rows; replaced as a whole when they change, so the list redraws once.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasNoResults))]
+    public partial IReadOnlyList<SearchEverywhereItem> Results { get; set; } = [];
 
-    /// <summary>Nothing matched: the drop-down says so rather than showing an empty box.</summary>
+    /// <summary>Nothing matched: the window says so rather than showing an empty list.</summary>
     public bool HasNoResults => Results.Count == 0;
-
-    public string PlaceholderText => "Search Everywhere (Double Shift)";
 
     // ---------------------------------------------------------------- opening and closing
 
-    /// <summary>Navigate > Search Everywhere (double Shift) or Find Action (the Actions tab): open with the box focused.</summary>
+    /// <summary>Navigate > Search Everywhere (double Shift) or Find Action (the Actions tab): show the window.</summary>
     [RelayCommand]
     private void Open(SearchEverywhereTab tab)
     {
         SelectedTab = tab;
-        Show();
-        FocusRequested?.Invoke();
-    }
-
-    /// <summary>The drop-down opens (the box got the focus, or something was typed): list the files again, refresh.</summary>
-    public void Show()
-    {
         if (!IsOpen)
         {
             IsOpen = true;
             _ = LoadFilesAsync();
+            Rebuild();
         }
-        Refresh();
+        ShowRequested?.Invoke();
     }
 
-    /// <summary>Escape, a click elsewhere, or a row chosen: close and clear the box, as VS Code and Rider do.</summary>
+    /// <summary>The window has closed (Escape, a row chosen, or a click back in the IDE): clear it for next time.</summary>
     public void Close()
     {
-        _symbolSearch?.Cancel();
+        _update?.Cancel();
         IsOpen = false;
         Query = "";
         _symbols = [];
         _symbolsQuery = "";
-        Results.Clear();
-    }
-
-    // Closed by a click outside it (the popup's light dismiss): clear up as Escape does.
-    partial void OnIsOpenChanged(bool value)
-    {
-        if (!value)
-            Close();
+        Results = [];
+        SelectedIndex = -1;
     }
 
     partial void OnQueryChanged(string value)
     {
-        if (value.Length > 0 && !IsOpen)
-            Show();
-        else if (IsOpen)
-            Refresh();
-        SearchSymbolsSoon();
+        if (IsOpen)
+            UpdateSoon();
     }
 
     partial void OnSelectedTabChanged(SearchEverywhereTab value)
     {
         if (IsOpen)
-            Refresh();
+            Rebuild();
     }
 
     /// <summary>Tab / Shift+Tab: the next or previous tab, as in Rider.</summary>
@@ -141,22 +134,14 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Enter, or a click: what the row does. Returns the row's action for the view to run once the popup is gone and
-    /// the focus is back where it was (null for an option, which runs here and keeps the list).
+    /// Enter, or a click: the row's action, for the window to run once it has closed and the main window has the focus
+    /// back. Null when nothing is selected.
     /// </summary>
     public Action? Choose(SearchEverywhereItem? item = null)
     {
         item ??= SelectedIndex >= 0 && SelectedIndex < Results.Count ? Results[SelectedIndex] : null;
         if (item is null)
             return null;
-        if (item.KeepsOpen)
-        {
-            var index = SelectedIndex;
-            item.Run();
-            Refresh();
-            SelectedIndex = Math.Min(index, Results.Count - 1);
-            return null;
-        }
         Close();
         return item.Run;
     }
@@ -174,11 +159,64 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             _files = [];
         }
         if (IsOpen)
-            Refresh();
+            Rebuild();
     }
 
-    /// <summary>Rebuild the list for the query and tab. Symbols come from the language server, a moment later.</summary>
-    private void Refresh()
+    /// <summary>
+    /// Typing: once it pauses, ask the language server for the symbols (waiting a little for them), then show the
+    /// lot at once. A slow server's symbols are added when they come.
+    /// </summary>
+    private void UpdateSoon()
+    {
+        _update?.Cancel();
+        var cancellation = _update = new CancellationTokenSource();
+        _ = UpdateAsync(Query.Trim(), cancellation.Token);
+    }
+
+    private async Task UpdateAsync(string query, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(TypingPause, ct);
+            if (query.Length == 0)
+            {
+                Rebuild();
+                return;
+            }
+            var symbols = SearchSymbolsAsync(query, ct);
+            if (await Task.WhenAny(symbols, Task.Delay(SymbolWait, ct)) != symbols)
+            {
+                Rebuild();   // the rest now; the symbols when they come
+                await symbols;
+            }
+            ct.ThrowIfCancellationRequested();
+            Rebuild();
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task SearchSymbolsAsync(string query, CancellationToken ct)
+    {
+        try
+        {
+            if (await _languages.ClientForLanguageAsync(LanguageIds.CSharp) is not { SupportsWorkspaceSymbols: true } client)
+                return;
+            var symbols = await client.WorkspaceSymbolsAsync(query, ct);
+            if (ct.IsCancellationRequested)
+                return;
+            _symbols = symbols;
+            _symbolsQuery = query;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Server busy or gone: files and actions still show.
+        }
+    }
+
+    /// <summary>The list for the query and tab, keeping the selected row selected if it's still there.</summary>
+    private void Rebuild()
     {
         var query = Query.Trim();
         var tab = SelectedTab;
@@ -196,7 +234,7 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
         if (tab is SearchEverywhereTab.All or SearchEverywhereTab.Text && query.Length > 0)
             sections.Add([TextRow(query)]);
 
-        Results.Clear();
+        var results = new List<SearchEverywhereItem>();
         foreach (var section in sections)
         {
             var first = true;
@@ -204,11 +242,15 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             {
                 item.ShowsSection = first && tab == SearchEverywhereTab.All;
                 first = false;
-                Results.Add(item);
+                results.Add(item);
             }
         }
-        SelectedIndex = Results.Count > 0 ? 0 : -1;
-        OnPropertyChanged(nameof(HasNoResults));
+
+        // A row the user moved down to stays selected; otherwise the best match (the first row) is.
+        var selectedKey = SelectedIndex > 0 && SelectedIndex < Results.Count ? Results[SelectedIndex].Key : null;
+        Results = results;
+        var kept = selectedKey is null ? -1 : results.FindIndex(r => r.Key == selectedKey);
+        SelectedIndex = kept >= 0 ? kept : results.Count > 0 ? 0 : -1;
     }
 
     /// <summary>Files by name; with nothing typed, the open tabs (Rider shows recent files).</summary>
@@ -291,44 +333,6 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
         return container.Length == 0 ? file : $"{container}  ·  {file}";
     }
 
-    /// <summary>Ask the C# server for the symbols, once typing pauses; the list is rebuilt when they arrive.</summary>
-    private void SearchSymbolsSoon()
-    {
-        _symbolSearch?.Cancel();
-        var query = Query.Trim();
-        if (query.Length == 0 || !IsOpen)
-            return;
-        var cancellation = _symbolSearch = new CancellationTokenSource();
-        _ = SearchSymbolsAsync(query, cancellation.Token);
-    }
-
-    private async Task SearchSymbolsAsync(string query, CancellationToken ct)
-    {
-        try
-        {
-            await Task.Delay(150, ct);
-            if (await _languages.ClientForLanguageAsync(LanguageIds.CSharp) is not { SupportsWorkspaceSymbols: true } client)
-                return;
-            var symbols = await client.WorkspaceSymbolsAsync(query, ct);
-            if (ct.IsCancellationRequested || !IsOpen)
-                return;
-            _symbols = symbols;
-            _symbolsQuery = query;
-            var selected = SelectedIndex >= 0 && SelectedIndex < Results.Count ? Results[SelectedIndex] : null;
-            Refresh();
-            // Keep the row the user had moved to, if it's still there (a file below the new types).
-            if (selected is not null && SelectedIndex == 0 && Results.FirstOrDefault(r => r.Title == selected.Title && r.Section == selected.Section) is { } same)
-                SelectedIndex = Results.IndexOf(same);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        catch (Exception)
-        {
-            // Server busy or gone: files and actions still show.
-        }
-    }
-
     private async Task GoToSymbolAsync(LspLocation symbol)
     {
         if (!LspHelpers.IsSourceGenerated(symbol.Uri))
@@ -362,12 +366,12 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
         {
             Title = option.Name,
             Detail = $"Option · {option.Page}",
-            Shortcut = option.Get() ? "On" : "Off",
             Icon = "Icon.Cog",
             Section = "Actions",
             Score = Match(option.Name, option.Page, query),
-            KeepsOpen = true,
-            Run = () => option.Set(!option.Get())
+            GetOption = option.Get,
+            SetOption = option.Set,
+            Run = () => OpenSettingsAt(option.Page, option.CheckBox ?? option.Name)
         });
         return commands.Concat(options)
             .Where(item => item.Score >= 0)
@@ -384,9 +388,10 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
         return description.Contains(query, StringComparison.OrdinalIgnoreCase) ? 50 : -1;
     }
 
-    private sealed record Option(string Name, string Page, Func<bool> Get, Action<bool> Set);
+    /// <param name="CheckBox">The check box's text in the Settings window, when the name here says more.</param>
+    private sealed record Option(string Name, string Page, Func<bool> Get, Action<bool> Set, string? CheckBox = null);
 
-    /// <summary>The Settings window's switches, by the names it shows them under.</summary>
+    /// <summary>The Settings window's switches, by the names it shows them under (its page is the tab's header).</summary>
     private IEnumerable<Option> Options()
     {
         var s = _settings;
@@ -400,7 +405,7 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             new("Colour swatches", "Text Editor", () => s.ColorSwatches, v => s.ColorSwatches = v),
             new("Automatic brace completion", "Text Editor", () => s.AutoCloseBraces, v => s.AutoCloseBraces = v),
             new("Close AXAML tags", "Text Editor", () => s.AutoCloseXamlTags, v => s.AutoCloseXamlTags = v),
-            new("Format documents on save", "Text Editor", () => s.FormatOnSave, v => s.FormatOnSave = v),
+            new("Format documents on save", "Text Editor", () => s.FormatOnSave, v => s.FormatOnSave = v, "Format documents on save when supported"),
             new("Show the completion list while typing", "IntelliSense", () => s.CompletionWhileTyping, v => s.CompletionWhileTyping = v),
             new("Show items from namespaces that aren't imported", "IntelliSense", () => s.CompletionFromUnimportedNamespaces, v => s.CompletionFromUnimportedNamespaces = v),
             new("Show parameter info while typing", "IntelliSense", () => s.ParameterInfoWhileTyping, v => s.ParameterInfoWhileTyping = v),
@@ -408,10 +413,10 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             new("Expand a snippet with Tab after its shortcut", "IntelliSense", () => s.TabExpandsSnippets, v => s.TabExpandsSnippets = v),
             new("Show Quick Info on hover", "IntelliSense", () => s.QuickInfoOnHover, v => s.QuickInfoOnHover = v),
             new("Analyse the entire solution", "IntelliSense", () => s.SolutionWideAnalysis, v => s.SolutionWideAnalysis = v),
-            new("Inlay hints: parameter names", "Inline Hints", () => s.InlayParameterHints, v => s.InlayParameterHints = v),
-            new("Inlay hints: types", "Inline Hints", () => s.InlayTypeHints, v => s.InlayTypeHints = v),
-            new("CodeLens: show references", "Inline Hints", () => s.CodeLens, v => s.CodeLens = v),
-            new("Show inline values while debugging", "Debugging", () => s.InlineDebugValues, v => s.InlineDebugValues = v),
+            new("Inlay hints: parameter names", "Inline Hints", () => s.InlayParameterHints, v => s.InlayParameterHints = v, "Parameter names"),
+            new("Inlay hints: types", "Inline Hints", () => s.InlayTypeHints, v => s.InlayTypeHints = v, "Types"),
+            new("CodeLens: show references", "Inline Hints", () => s.CodeLens, v => s.CodeLens = v, "Show references"),
+            new("Show inline values while debugging", "Debugging", () => s.InlineDebugValues, v => s.InlineDebugValues = v, "Show inline values"),
             new("Break when any exception is thrown", "Debugging", () => s.BreakOnAllExceptions, v => s.BreakOnAllExceptions = v),
             new("Track active item in Solution Explorer", "Environment", () => s.TrackActiveItem, v => s.TrackActiveItem = v),
             new("Show Solution Explorer on the right", "Environment", () => s.SolutionExplorerOnRight, v => s.SolutionExplorerOnRight = v),

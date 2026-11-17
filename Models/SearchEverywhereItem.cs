@@ -32,7 +32,7 @@ public sealed class SearchEverywhereItem
     /// <summary>Greyed after the title: a folder, the containing type, an action's category.</summary>
     public string Detail { get; init; } = "";
 
-    /// <summary>On the right: an action's key, an option's On/Off.</summary>
+    /// <summary>On the right: an action's key.</summary>
     public string? Shortcut { get; init; }
 
     /// <summary>An icon resource key (Icon.File...).</summary>
@@ -44,13 +44,27 @@ public sealed class SearchEverywhereItem
     public bool ShowsSection { get; set; }
 
     /// <summary>
-    /// What choosing it does. The popup closes first and the focus goes back where it was (the editor), so an
-    /// editor action works on the editor. Options don't close the popup (<see cref="KeepsOpen"/>).
+    /// What choosing it does (Enter or a click). The window closes first and the focus goes back to the main window
+    /// (the editor), so an editor action works on the editor. For an option: open Settings at it.
     /// </summary>
     public required Action Run { get; init; }
 
-    /// <summary>An option row: choosing it switches the option and the list stays, as in Rider.</summary>
-    public bool KeepsOpen { get; init; }
+    /// <summary>An option row: its value, shown as a switch that changes it in place, as in Rider.</summary>
+    public Func<bool>? GetOption { get; init; }
+
+    public Action<bool>? SetOption { get; init; }
+
+    public bool IsOption => GetOption is not null;
+
+    /// <summary>The switch's binding: reads and writes the setting.</summary>
+    public bool IsOn
+    {
+        get => GetOption?.Invoke() ?? false;
+        set => SetOption?.Invoke(value);
+    }
+
+    /// <summary>The same row in another list (kept selected when the list changes under it).</summary>
+    public string Key => $"{Section}|{Title}|{Detail}";
 
     /// <summary>How well it matched (FuzzyMatch); the best come first within a section.</summary>
     public int Score { get; init; }

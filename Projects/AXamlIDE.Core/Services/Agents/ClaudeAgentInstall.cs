@@ -63,20 +63,6 @@ public static class ClaudeAgentInstall
         return FindOnPath(ExeName("claude"));
     }
 
-    /// <summary>The version the IDE downloaded last (from version.txt in <see cref="InstallFolder"/>), or null.</summary>
-    public static string? InstalledVersion()
-    {
-        var file = Path.Combine(InstallFolder, "version.txt");
-        try
-        {
-            return File.Exists(file) ? File.ReadAllText(file).Trim() : null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-    }
-
     private static string? FindOnPath(string exe)
     {
         foreach (var folder in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))

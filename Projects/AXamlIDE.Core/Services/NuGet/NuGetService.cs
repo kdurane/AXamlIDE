@@ -131,10 +131,6 @@ public sealed class NuGetService : IDisposable
     public async Task<NuGetPackageDetails?> GetLocalDetailsAsync(string projectDirectory, string id, string version, CancellationToken ct)
         => (await LocalAsync(projectDirectory, ct))?.TryGetDetails(id, version);
 
-    /// <summary>The icon a downloaded version ships, if it's in the global packages folder.</summary>
-    public async Task<string?> GetLocalIconPathAsync(string projectDirectory, string id, string version, CancellationToken ct)
-        => (await LocalAsync(projectDirectory, ct))?.TryGetIconPath(id, version);
-
     // ---------------------------------------------------------------- the project
 
     public Task<InstalledPackages> GetInstalledAsync(string projectPath, CancellationToken ct) => NuGetCli.ListInstalledAsync(projectPath, ct);

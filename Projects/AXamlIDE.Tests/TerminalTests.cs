@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AXamlIDE.Services.Terminal;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

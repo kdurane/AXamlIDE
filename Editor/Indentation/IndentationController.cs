@@ -1,5 +1,4 @@
 using Avalonia.Input;
-using AvaloniaEdit.Document;
 using AvaloniaEdit.Indentation;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Indentation;

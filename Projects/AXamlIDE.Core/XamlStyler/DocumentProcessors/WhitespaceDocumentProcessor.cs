@@ -2,7 +2,6 @@
 #nullable disable // Upstream XAML Styler code predates nullable reference types.
 
 using System;
-using System.Linq;
 using System.Text;
 using System.Xml;
 

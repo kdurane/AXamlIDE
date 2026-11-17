@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using AXamlIDE.Services.Documents;
@@ -18,6 +17,7 @@ namespace AXamlIDE.Views;
 public partial class MainWindow : Window
 {
     private readonly KeyMap _keyMap = null!;
+    private SearchEverywhereWindow? _searchEverywhere;   // made on first use, then hidden and shown again
     private bool _exitConfirmed;    // the exit questions were answered: the next close goes through
     private bool _confirmingExit;   // they're being asked now
 
@@ -80,6 +80,11 @@ public partial class MainWindow : Window
         };
         keyMap.AttachTo(this);
         viewModel.SearchEverywhere.Actions = keyMap.Actions;   // its Actions tab: the commands, with their keys
+        viewModel.SearchEverywhere.ShowRequested += () =>
+        {
+            _searchEverywhere ??= new SearchEverywhereWindow(this, viewModel.SearchEverywhere);
+            _searchEverywhere.ShowOver();
+        };
         Activated += (_, _) => fileWatcher.CheckAll();
     }
 

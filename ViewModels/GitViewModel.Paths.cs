@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
-using AXamlIDE.Services.Git;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 

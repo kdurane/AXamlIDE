@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Workspace;
-using Xunit;
 
 namespace AXamlIDE.Tests;
 

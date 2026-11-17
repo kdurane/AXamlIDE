@@ -605,8 +605,8 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
     // --------------------------------------------------------------- windows
 
-    public Task ShowSettingsAsync()
-        => new SettingsWindow(settings).ShowDialog(Owner);
+    public Task ShowSettingsAsync(string? page = null, string? option = null)
+        => new SettingsWindow(settings, page, option).ShowDialog(Owner);
 
     public async Task<IReadOnlyList<NewItemFile>?> AddNewItemAsync(string folder, string? workspaceRoot, string? templateName = null)
     {
