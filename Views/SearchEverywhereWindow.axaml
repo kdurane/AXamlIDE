@@ -38,6 +38,7 @@
                 DockPanel.Dock="Top"
                 WindowDecorationProperties.ElementRole="TitleBar">
                 <ListBox
+                    HorizontalAlignment="Left"
                     Classes="tabs"
                     Focusable="False"
                     ItemsSource="{Binding Tabs}"
