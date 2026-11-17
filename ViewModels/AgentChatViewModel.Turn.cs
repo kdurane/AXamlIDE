@@ -68,7 +68,16 @@ public sealed partial class AgentChatViewModel
     {
         if (_session is { } session && _sessionFolder == WorkspaceFolder)
             return Task.FromResult<AcpSession?>(session);
-        return _sessionStarting ??= StartSessionAsync();
+        if (_sessionStarting is { } starting)
+            return starting;
+
+        // Shared while it runs, so two callers don't start two sessions. One that finished without waiting (no agent
+        // or folder, or it failed at once) has already run its finally, which clears _sessionStarting: keeping it
+        // would hand its null to every later call, and no message would ever be sent.
+        var start = StartSessionAsync();
+        if (!start.IsCompleted)
+            _sessionStarting = start;
+        return start;
     }
 
     private async Task<AcpSession?> StartSessionAsync()
