@@ -111,9 +111,15 @@ public sealed partial class AgentChatViewModel
             {
                 var session = await client.NewSessionAsync(folder);
                 if (!ReferenceEquals(client, _client) || WorkspaceFolder != folder)
-                    return null;   // stopped, or another folder opened, while it started
+                {
+                    client.CloseSession(session.Id);   // stopped, or another folder opened, while it started
+                    return null;
+                }
                 if (_session is not null)
-                    return _session;   // a reopened chat took over while it started
+                {
+                    client.CloseSession(session.Id);   // a reopened chat took over while it started
+                    return _session;
+                }
                 _session = session;
                 _sessionFolder = folder;
                 ShowSettings(session.Options);
@@ -164,11 +170,13 @@ public sealed partial class AgentChatViewModel
             _ = EnsureSessionAsync();   // the drop-downs for the new chat
     }
 
-    /// <summary>Forget the session and empty the conversation.</summary>
+    /// <summary>Close the session (it stays in the history) and empty the conversation.</summary>
     private void ClearConversation()
     {
         if (IsTurnRunning)
             Stop();
+        if (_session is { } session)
+            _client?.CloseSession(session.Id);
         _session = null;
         _sessionFolder = null;
         _toolCalls.Clear();

@@ -155,6 +155,9 @@ public sealed partial class AcpClient : IDisposable
     /// <summary>The agent can reopen a past session and replay it (session/load).</summary>
     public bool CanLoadSessions { get; private set; }
 
+    /// <summary>The agent can end a session it's holding open (session/close), which stops its claude process.</summary>
+    public bool CanCloseSessions { get; private set; }
+
     /// <summary>The agent takes pictures in a prompt (<see cref="AcpPromptBlock.Image"/>; promptCapabilities.image).</summary>
     public bool CanSendImages { get; private set; }
 
@@ -182,6 +185,8 @@ public sealed partial class AcpClient : IDisposable
             CanLoadSessions = capabilities.TryGetProperty("loadSession", out var load) && load.ValueKind == JsonValueKind.True;
             CanListSessions = capabilities.TryGetProperty("sessionCapabilities", out var sessions) && sessions.ValueKind == JsonValueKind.Object
                               && sessions.TryGetProperty("list", out _);
+            CanCloseSessions = capabilities.TryGetProperty("sessionCapabilities", out var closing) && closing.ValueKind == JsonValueKind.Object
+                               && closing.TryGetProperty("close", out _);
             CanSendImages = capabilities.TryGetProperty("promptCapabilities", out var prompts) && prompts.ValueKind == JsonValueKind.Object
                             && prompts.TryGetProperty("image", out var image) && image.ValueKind == JsonValueKind.True;
         }
@@ -258,6 +263,19 @@ public sealed partial class AcpClient : IDisposable
     /// Permission requests still waiting must be answered with null (the caller does that: it shows them).
     /// </summary>
     public void Cancel(string sessionId) => Notify("session/cancel", new { sessionId });
+
+    /// <summary>
+    /// Tell the agent we're done with a session, so it stops the claude process behind it (each open session has one,
+    /// and they otherwise last until the agent exits). The chat stays saved, for the history. Doesn't wait for the
+    /// answer: nothing depends on it, and an agent that can't close sessions is just left alone.
+    /// </summary>
+    public void CloseSession(string sessionId)
+    {
+        if (!CanCloseSessions || _disposed)
+            return;
+        _ = RequestAsync("session/close", new { sessionId }).ContinueWith(
+            t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+    }
 
     /// <summary>Change one of the session's settings (the mode, the model); returns all of them as they now are.</summary>
     public async Task<IReadOnlyList<AcpConfigOption>> SetConfigOptionAsync(string sessionId, string configId, string value)

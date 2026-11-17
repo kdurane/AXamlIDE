@@ -161,17 +161,17 @@ public partial class EditorPaneView : UserControl,
         _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
         _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesTree, ReferencesTitle);
         // Not kept in fields: these wire themselves to the editor's events and live as long as it does.
-        new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
+        _ = new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
         _signatureHelp = new SignatureHelpController(_ctx);
         _snippets = new SnippetController(_ctx, services.Snippets, services.Dialogs);
         _completion = new CompletionController(_ctx, _hover, _snippets);
         _snippets.IsCompletionOpen = () => _completion.IsOpen;
-        new TypingController(_ctx, _hover, _completion, _signatureHelp);
+        _ = new TypingController(_ctx, _hover, _completion, _signatureHelp);
         _debugValues = new DebugValuesController(_ctx, services.DebugSnapshots, _breakpointMargin);
         _navigation = new NavigationCommands(_ctx, services.Dialogs, services.WorkspaceEdits, services.Navigation);
         _folding = new FoldingController(_ctx);
-        new IndentationController(_ctx);
-        new WhitespaceSelectionController(_ctx);
+        _ = new IndentationController(_ctx);
+        _ = new WhitespaceSelectionController(_ctx);
         _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);
