@@ -11,6 +11,7 @@ using AXamlIDE.Models;
 using AXamlIDE.Services.Diagnostics;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Languages;
+using AXamlIDE.Services.Mcp;
 using AXamlIDE.ViewModels;
 using AXamlIDE.Views;
 using Dock.Avalonia.Controls;
@@ -38,6 +39,7 @@ public partial class App : Application
             services.GetRequiredService<DocumentReloader>();   // keeps open tabs in step with the disk (nothing else needs it)
             services.GetRequiredService<XamlCacheKeeper>();    // keeps XAML completion's caches current (nothing else needs it)
             services.GetRequiredService<XamlAnalysisService>(); // AXAML files' own diagnostics (nothing else needs it)
+            services.GetRequiredService<IdeMcpServer>().Start();   // render_xaml, get_problems... for Claude (panel and terminal)
             UseDockViews(services);
             Start(desktop, services);
             desktop.Exit += (_, _) => services.Dispose();

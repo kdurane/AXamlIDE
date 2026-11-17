@@ -156,6 +156,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { TrackActiveItem = value });
     }
 
+    public bool ClaudeIdeTools
+    {
+        get => Features.ClaudeIdeTools;
+        set => SetFeatures(Features with { ClaudeIdeTools = value });
+    }
+
     /// <summary>The bottom panel as it was left (DockLayoutViewModel keeps it up to date and restores it at startup).</summary>
     public PanelSettings Panel
     {

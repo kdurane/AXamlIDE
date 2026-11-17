@@ -167,6 +167,11 @@
                         <CheckBox Content="Track active item in Solution Explorer" IsChecked="{Binding TrackActiveItem, Mode=TwoWay}" />
                         <TextBlock Classes="SettingHint" Text="Switching tabs selects that file in the explorer. Off: the explorer's Sync with Active Document button does it when you ask." />
                     </StackPanel>
+                    <TextBlock Classes="SettingsHeading" Text="Claude" />
+                    <StackPanel Spacing="4">
+                        <CheckBox Content="Let Claude use the IDE's tools" IsChecked="{Binding ClaudeIdeTools, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="The Claude panel can render previews, read the Problems list and see what's open in the editor. Also the IDE button under the panel's message box. Applies at once." />
+                    </StackPanel>
                     <TextBlock Classes="SettingsHeading" Text="Startup" />
                     <StackPanel Spacing="6">
                         <TextBlock Text="On startup, open" />

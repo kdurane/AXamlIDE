@@ -8,6 +8,7 @@ using AXamlIDE.Services.Editor;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Mcp;
 using AXamlIDE.Services.Navigation;
 using AXamlIDE.Services.NuGet;
 using AXamlIDE.Services.Settings;
@@ -112,6 +113,8 @@ public static class AppServices
         services.AddSingleton<CallStackViewModel>();
         services.AddSingleton<VisualizerManager>();
         services.AddSingleton<DockLayoutViewModel>();
+        services.AddSingleton<McpPreviewRenderer>();      // render_xaml's own designer host
+        services.AddSingleton<IdeMcpServer>();            // the IDE's tools for Claude, on localhost (started in App)
         services.AddSingleton<WorkspaceSession>();
         services.AddSingleton<MainWindowViewModel>();
 

@@ -860,6 +860,29 @@
                         ToolTip.Tip="Add files or pictures (or paste / drop them)">
                         <PathIcon Data="{StaticResource Icon.Plus}" />
                     </Button>
+                    <!--  Claude can use the IDE's tools (render a preview, the Problems list...); also in Settings > Environment  -->
+                    <ToggleButton
+                        Margin="0,0,4,0"
+                        Padding="4,1"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="IDE tools"
+                        Classes="row"
+                        DockPanel.Dock="Left"
+                        IsChecked="{Binding UseIdeTools}"
+                        IsVisible="{Binding HasIdeTools}"
+                        ToolTip.Tip="{Binding IdeToolsToolTip}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <PathIcon
+                                Width="11"
+                                Height="11"
+                                Classes.dim="{Binding !UseIdeTools}"
+                                Data="{StaticResource Icon.Wrench}" />
+                            <TextBlock
+                                Classes.dim="{Binding !UseIdeTools}"
+                                FontSize="11"
+                                Text="IDE" />
+                        </StackPanel>
+                    </ToggleButton>
                     <Panel DockPanel.Dock="Right">
                         <Button
                             AutomationProperties.Name="Send"

@@ -158,6 +158,19 @@ public sealed partial class AcpClient : IDisposable
     /// <summary>The agent can end a session it's holding open (session/close), which stops its claude process.</summary>
     public bool CanCloseSessions { get; private set; }
 
+    /// <summary>The agent can connect to an MCP server over HTTP (mcpCapabilities.http), so it can be given the IDE's.</summary>
+    public bool CanUseHttpMcp { get; private set; }
+
+    /// <summary>
+    /// An MCP server (Streamable HTTP) every session is given when the agent can use one: the IDE's own tools.
+    /// Null gives none.
+    /// </summary>
+    public (string Name, string Url)? HttpMcpServer { get; set; }
+
+    private object[] McpServers() => CanUseHttpMcp && HttpMcpServer is { } server
+        ? [new { type = "http", name = server.Name, url = server.Url, headers = Array.Empty<object>() }]
+        : [];
+
     /// <summary>The agent takes pictures in a prompt (<see cref="AcpPromptBlock.Image"/>; promptCapabilities.image).</summary>
     public bool CanSendImages { get; private set; }
 
@@ -187,6 +200,8 @@ public sealed partial class AcpClient : IDisposable
                               && sessions.TryGetProperty("list", out _);
             CanCloseSessions = capabilities.TryGetProperty("sessionCapabilities", out var closing) && closing.ValueKind == JsonValueKind.Object
                                && closing.TryGetProperty("close", out _);
+            CanUseHttpMcp = capabilities.TryGetProperty("mcpCapabilities", out var mcp) && mcp.ValueKind == JsonValueKind.Object
+                            && mcp.TryGetProperty("http", out var http) && http.ValueKind == JsonValueKind.True;
             CanSendImages = capabilities.TryGetProperty("promptCapabilities", out var prompts) && prompts.ValueKind == JsonValueKind.Object
                             && prompts.TryGetProperty("image", out var image) && image.ValueKind == JsonValueKind.True;
         }
@@ -205,7 +220,7 @@ public sealed partial class AcpClient : IDisposable
     /// <summary>Start a conversation whose tools work in <paramref name="folder"/> (the workspace root).</summary>
     public async Task<AcpSession> NewSessionAsync(string folder, CancellationToken ct = default)
     {
-        var result = await RequestAsync("session/new", new { cwd = folder, mcpServers = Array.Empty<object>() }, ct);
+        var result = await RequestAsync("session/new", new { cwd = folder, mcpServers = McpServers() }, ct);
         var id = AcpParser.String(result, "sessionId") ?? throw new AcpException("The agent didn't return a session id.");
         return new AcpSession(id, AcpParser.ConfigOptions(result));
     }
@@ -230,7 +245,7 @@ public sealed partial class AcpClient : IDisposable
     /// </summary>
     public async Task<AcpSession> LoadSessionAsync(string sessionId, string folder, CancellationToken ct = default)
     {
-        var result = await RequestAsync("session/load", new { sessionId, cwd = folder, mcpServers = Array.Empty<object>() }, ct);
+        var result = await RequestAsync("session/load", new { sessionId, cwd = folder, mcpServers = McpServers() }, ct);
         return new AcpSession(sessionId, AcpParser.ConfigOptions(result));
     }
 

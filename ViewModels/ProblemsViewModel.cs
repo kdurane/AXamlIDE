@@ -60,6 +60,9 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     /// <summary>The rows shown (after the filters).</summary>
     public ObservableCollection<ProblemItem> Problems { get; } = [];
 
+    /// <summary>Every problem, whatever the scope and filters (the MCP server's get_problems).</summary>
+    public IReadOnlyList<ProblemItem> All => _all;
+
     [ObservableProperty] public partial int ErrorCount { get; private set; }
     [ObservableProperty] public partial int WarningCount { get; private set; }
     [ObservableProperty] public partial int InfoCount { get; private set; }

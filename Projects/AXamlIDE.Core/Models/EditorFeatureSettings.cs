@@ -94,4 +94,13 @@ public sealed record EditorFeatureSettings
 
     /// <summary>Break as soon as any exception is thrown; off: only when user code doesn't handle it (VS's default).</summary>
     public bool BreakOnAllExceptions { get; init; }
+
+    // ---- Claude
+
+    /// <summary>
+    /// The Claude panel's conversations can use the IDE's own tools (render_xaml, get_problems...: Services/Mcp). Off,
+    /// their calls are turned away straight away, in a conversation that's going on too. Claude Code in a terminal
+    /// isn't affected (it's set up there, with claude mcp).
+    /// </summary>
+    public bool ClaudeIdeTools { get; init; } = true;
 }

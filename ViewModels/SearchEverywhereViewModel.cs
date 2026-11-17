@@ -420,6 +420,7 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             new("Break when any exception is thrown", "Debugging", () => s.BreakOnAllExceptions, v => s.BreakOnAllExceptions = v),
             new("Track active item in Solution Explorer", "Environment", () => s.TrackActiveItem, v => s.TrackActiveItem = v),
             new("Show Solution Explorer on the right", "Environment", () => s.SolutionExplorerOnRight, v => s.SolutionExplorerOnRight = v),
+            new("Let Claude use the IDE's tools", "Claude", () => s.ClaudeIdeTools, v => s.ClaudeIdeTools = v),
         ];
     }
 

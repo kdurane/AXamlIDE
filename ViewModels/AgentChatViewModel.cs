@@ -8,6 +8,7 @@ using AXamlIDE.Models;
 using AXamlIDE.Services.Agents;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Mcp;
 using AXamlIDE.Services.Workspace;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -61,9 +62,22 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     private string? _sessionFolder;
     private ClaudeAgentRelease? _release;
     private System.Threading.CancellationTokenSource? _installCancel;
+    private readonly IdeMcpServer _ideTools;   // given to every session: render_xaml, get_problems, get_editor_state...
+    private readonly SettingsViewModel _settings;
 
-    public AgentChatViewModel(WorkspaceModel workspace, DocumentManager documents, IMessenger messenger, IDialogService dialogs)
+    public AgentChatViewModel(WorkspaceModel workspace, DocumentManager documents, IMessenger messenger, IDialogService dialogs,
+        IdeMcpServer ideTools, SettingsViewModel settings)
     {
+        _ideTools = ideTools;
+        _settings = settings;
+        settings.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SettingsViewModel.ClaudeIdeTools))
+            {
+                OnPropertyChanged(nameof(UseIdeTools));
+                OnPropertyChanged(nameof(IdeToolsToolTip));
+            }
+        };
         _workspace = workspace;
         _documents = documents;
         _messenger = messenger;
@@ -127,6 +141,23 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(ActiveFileName))]
     public partial bool IncludeActiveFile { get; set; }
 
+    /// <summary>
+    /// Claude may use the IDE's tools (the IDE button; Settings > Environment > Claude). Works at once: every session
+    /// is given the tools, and the IDE turns the calls away while this is off.
+    /// </summary>
+    public bool UseIdeTools
+    {
+        get => _settings.ClaudeIdeTools;
+        set => _settings.ClaudeIdeTools = value;
+    }
+
+    /// <summary>The IDE's tool server is listening (it isn't if no port could be had).</summary>
+    public bool HasIdeTools => _ideTools.Url is not null;
+
+    public string IdeToolsToolTip => UseIdeTools
+        ? "Claude can use the IDE: render previews, read the Problems list and the editor. Click to turn off."
+        : "Claude can't use the IDE's tools. Click to let it render previews, read the Problems list and the editor.";
+
     /// <summary>The front tab's file name, shown on the chip; null when no real file is open.</summary>
     public string? ActiveFileName => ActiveFilePath is { } path ? Path.GetFileName(path) : null;
 
@@ -174,6 +205,8 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
         try
         {
             var client = await AcpClient.StartAsync(agent, [], WorkspaceFolder ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            if (_ideTools.PanelUrl is { } url)
+                client.HttpMcpServer = ("axamlide", url);
             client.Updated += (sessionId, update) => Dispatcher.UIThread.Post(() => OnUpdate(sessionId, update));
             client.PermissionHandler = request => Dispatcher.UIThread.InvokeAsync(() => AskPermissionAsync(request));
             client.AuthStateChanged += state => Dispatcher.UIThread.Post(() =>

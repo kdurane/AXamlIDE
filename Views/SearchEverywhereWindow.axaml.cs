@@ -38,16 +38,6 @@ public partial class SearchEverywhereWindow : Window
 
         // Tunnel: before the TextBox uses Up/Down/Tab itself.
         Box.AddHandler(KeyDownEvent, OnBoxKeyDown, RoutingStrategies.Tunnel);
-        DragHandle.PointerPressed += (_, e) =>
-        {
-            if (e.Source == DragHandle && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                BeginMoveDrag(e);
-        };
-        ResizeGrip.PointerPressed += (_, e) =>
-        {
-            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
-                BeginResizeDrag(WindowEdge.SouthEast, e);
-        };
         ResultList.Tapped += (_, e) =>
         {
             if (e.Source is Visual source && source.FindAncestorOfType<ToggleSwitch>(includeSelf: true) is not null)
