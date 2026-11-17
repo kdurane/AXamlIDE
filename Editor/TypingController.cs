@@ -94,7 +94,7 @@ public sealed class TypingController
 
         // With completion-while-typing off, only the characters that start something new (. < = ...) open it.
         var xamlTrigger = doc.LanguageId == LanguageIds.Axaml
-            && ((features.CompletionWhileTyping && IsNameStart(e.Text[0])) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
+            && ((features.CompletionWhileTyping && StartsCompletion(e.Text[0])) || e.Text is "<" or " " or "." or "=" or "{" or ":" or ",");
 
         if (doc.LanguageId == LanguageIds.Axaml && !_completion.IsOpen
             && (xamlTrigger || client?.CompletionTriggerCharacters.Contains(e.Text) == true))
@@ -144,7 +144,14 @@ public sealed class TypingController
     private bool ShouldAskForCompletion(char typed)
         => _completion.IsOpen
             ? _completion.IsIncomplete && IsNameChar(typed)
-            : _ctx.Settings.Features.CompletionWhileTyping && IsNameStart(typed);
+            : _ctx.Settings.Features.CompletionWhileTyping && StartsCompletion(typed);
+
+    /// <summary>
+    /// Only a letter opens the list as you type. An underscore on its own doesn't: "_ = ..." and fast typing would
+    /// have it pop up on every one, offering every _field. The letter after it does, and "_t" then lists _text, _timer...
+    /// (the word being completed starts at the '_'). Ctrl+Space still opens it anywhere.
+    /// </summary>
+    private static bool StartsCompletion(char typed) => char.IsLetter(typed);
 
     /// <summary>The comment the caret is in: <c>//</c>, <c>/* */</c> or <c>///</c> in C#, <c>&lt;!-- --&gt;</c> in AXAML.</summary>
     private CommentKind CommentAtCaret(OpenDocument doc)

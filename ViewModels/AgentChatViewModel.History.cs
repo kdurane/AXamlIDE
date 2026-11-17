@@ -21,6 +21,7 @@ public sealed partial class AgentChatViewModel
     /// <summary>A past session is being replayed: no sending until it's back.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
+    [NotifyPropertyChangedFor(nameof(SendToolTip))]
     public partial bool IsLoadingSession { get; set; }
 
     /// <summary>The agent is replaying a session: its user chunks are the old messages, so they're shown.</summary>

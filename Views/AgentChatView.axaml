@@ -866,7 +866,8 @@
                             Classes="send"
                             Command="{Binding SendCommand}"
                             IsVisible="{Binding !IsTurnRunning}"
-                            ToolTip.Tip="Send (Enter)">
+                            ToolTip.ShowOnDisabled="True"
+                            ToolTip.Tip="{Binding SendToolTip}">
                             <PathIcon Data="{StaticResource Icon.ArrowUp}" />
                         </Button>
                         <Button

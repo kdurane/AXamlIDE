@@ -80,7 +80,7 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     public ObservableCollection<AgentSettingItem> Settings { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNotInstalled), nameof(IsInstalling), nameof(IsStarting), nameof(IsFailed), nameof(IsReady), nameof(IsSignIn))]
+    [NotifyPropertyChangedFor(nameof(IsNotInstalled), nameof(IsInstalling), nameof(IsStarting), nameof(IsFailed), nameof(IsReady), nameof(IsSignIn), nameof(SendToolTip))]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(InstallCommand), nameof(RestartCommand), nameof(SignInCommand))]
     public partial AgentChatState State { get; set; } = AgentChatState.Idle;
 
@@ -114,6 +114,7 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The message being typed.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
+    [NotifyPropertyChangedFor(nameof(SendToolTip))]
     public partial string PromptText { get; set; } = "";
 
     /// <summary>A turn is running: the send button becomes a stop button.</summary>

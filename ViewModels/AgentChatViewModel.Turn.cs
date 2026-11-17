@@ -63,6 +63,21 @@ public sealed partial class AgentChatViewModel
 
     private bool CanSend() => State == AgentChatState.Ready && !IsTurnRunning && !IsLoadingSession && !string.IsNullOrWhiteSpace(PromptText);
 
+    /// <summary>
+    /// The send button's tooltip. It's greyed out until there's something to send (as in VS Code), so it says why,
+    /// rather than seeming not to work when clicked.
+    /// </summary>
+    public string SendToolTip => State switch
+    {
+        AgentChatState.Ready when IsLoadingSession => "Loading the chat...",
+        AgentChatState.Ready when string.IsNullOrWhiteSpace(PromptText) => "Type a message to send",
+        AgentChatState.Ready => "Send (Enter)",
+        AgentChatState.Starting or AgentChatState.Installing or AgentChatState.Idle => "Claude is starting...",
+        AgentChatState.SignIn => "Sign in to Claude first",
+        AgentChatState.NotInstalled => "Download Claude first",
+        _ => "Claude isn't running (Restart above)"
+    };
+
     private Task<AcpSession?>? _sessionStarting;
 
     /// <summary>

@@ -185,10 +185,10 @@ Started by typing (`TypingController.OnTextEntered`) or by Ctrl+Space (`KeyMap` 
 
 `TypingController.OnTextEntered` decides:
 
-- **AXAML**: opens completion on `<`, space, `.`, `=`, `{`, `:`, `,`, or a name start when "completion while
-  typing" is on.
-- **C#**: opens on the server's `CompletionTriggerCharacters`, or on a name start (`ShouldAskForCompletion`). If the
-  open list is incomplete, it asks again.
+- **AXAML**: opens completion on `<`, space, `.`, `=`, `{`, `:`, `,`, or a letter when "completion while typing" is on.
+- **C#**: opens on the server's `CompletionTriggerCharacters`, or on a letter (`ShouldAskForCompletion`). A lone `_`
+  waits for the letter after it, so `_ =` and fast typing don't pop up every `_field`. If the open list is
+  incomplete, it asks again.
 
 `CompletionController.ShowCompletionAsync(doc, triggerChar)` (`Editor/CodeCompletion/CompletionController.cs`):
 
