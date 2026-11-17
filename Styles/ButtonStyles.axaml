@@ -181,4 +181,36 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
     <Style Selector="Button.nonstacked > PathIcon">
         <Setter Property="Data" Value="{DynamicResource Icon.ArrowLeftRight}" />
     </Style>
+
+    <!--
+    startButton: the toolbar's Visual Studio start button (MainWindow): play + startup project name, and an arrow that
+    lists the startup projects. Coloured like the configuration box beside it (SplitButton* in ThemeResources).
+    -->
+    <Style Selector="SplitButton.startButton">
+        <Setter Property="Margin" Value="0,3" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MaxWidth" Value="240" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="SplitButton.startButton /template/ Button">
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="SplitButton.startButton /template/ Button#PART_PrimaryButton">
+        <Setter Property="Padding" Value="6,0,8,0" />
+    </Style>
+    <Style Selector="SplitButton.startButton /template/ Button#PART_SecondaryButton">
+        <Setter Property="Padding" Value="4,0" />
+    </Style>
+    <Style Selector="SplitButton.startButton PathIcon">
+        <Setter Property="Width" Value="14" />
+        <Setter Property="Height" Value="14" />
+    </Style>
+    <Style Selector="SplitButton.startButton TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
 </Styles>

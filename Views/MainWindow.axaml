@@ -304,10 +304,11 @@
                 </MenuItem>
             </Menu>
             <!--
-                Visual Studio's toolbar: Build, the startup project, the configuration, play (Start Debugging; a stop
-                square while it runs) and the hollow play (Start Without Debugging). Same commands as the menus and keys.
+                Visual Studio's toolbar: Build, the configuration, and the start button (play + startup project, with
+                a drop-down to pick it). Same commands as the menus and keys.
             -->
             <StackPanel
+                x:Name="MainToolbar"
                 Grid.Column="1"
                 Margin="12,0,0,0"
                 HorizontalAlignment="Right"
@@ -327,27 +328,6 @@
                         Data="{StaticResource Icon.Hammer}" />
                 </Button>
                 <ComboBox
-                    MinWidth="140"
-                    MinHeight="0"
-                    MaxWidth="220"
-                    Margin="0,3"
-                    Padding="8,2"
-                    VerticalAlignment="Stretch"
-                    VerticalContentAlignment="Center"
-                    AutomationProperties.Name="Startup project"
-                    FontSize="11"
-                    IsEnabled="{Binding !Run.IsRunning}"
-                    ItemsSource="{Binding Run.StartupProjects}"
-                    PlaceholderText="Startup project"
-                    SelectedItem="{Binding Run.StartupProject}"
-                    ToolTip.Tip="Startup project: what Run and Debug start">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:StartupProjectItem">
-                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-                <ComboBox
                     MinHeight="0"
                     Margin="0,3"
                     Padding="8,2"
@@ -359,42 +339,44 @@
                     ItemsSource="{Binding Run.Configurations}"
                     SelectedItem="{Binding Run.Configuration}"
                     ToolTip.Tip="Build configuration" />
-                <Button
-                    Padding="6,0"
-                    VerticalAlignment="Stretch"
+                <!--
+                    Visual Studio's start button: play and the startup project's name start debugging it (a stop square
+                    while it runs); the arrow lists the startup projects to pick from.
+                -->
+                <SplitButton
+                    Classes="startButton"
                     AutomationProperties.Name="{Binding Run.StartOrStopToolTip}"
-                    Background="Transparent"
                     Command="{Binding Run.StartOrStopCommand}"
                     ToolTip.Tip="{Binding Run.StartOrStopToolTip}">
-                    <Panel>
-                        <PathIcon
-                            Width="16"
-                            Height="16"
-                            Data="{StaticResource Icon.Play}"
-                            Foreground="{DynamicResource DebugStartBrush}"
-                            IsVisible="{Binding !Run.IsRunning}" />
-                        <PathIcon
-                            Width="16"
-                            Height="16"
-                            Data="{StaticResource Icon.Stop}"
-                            Foreground="{DynamicResource DebugStopBrush}"
-                            IsVisible="{Binding Run.IsRunning}" />
-                    </Panel>
-                </Button>
-                <!--<Button
-                    AutomationProperties.Name="Start Without Debugging"
-                    Background="Transparent"
-                    Command="{Binding Run.RunProjectCommand}"
-                    IsEnabled="{Binding !Run.IsRunning}"
-                    Padding="6,0"
-                    ToolTip.Tip="Start Without Debugging (Ctrl+F5)"
-                    VerticalAlignment="Stretch">
-                    <PathIcon
-                        Data="{StaticResource Icon.PlayOutline}"
-                        Foreground="{DynamicResource DebugStartBrush}"
-                        Height="16"
-                        Width="16" />
-                </Button>-->
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Panel>
+                            <PathIcon
+                                Data="{StaticResource Icon.Play}"
+                                Foreground="{DynamicResource DebugStartBrush}"
+                                IsVisible="{Binding !Run.IsRunning}" />
+                            <PathIcon
+                                Data="{StaticResource Icon.Stop}"
+                                Foreground="{DynamicResource DebugStopBrush}"
+                                IsVisible="{Binding Run.IsRunning}" />
+                        </Panel>
+                        <TextBlock Text="{Binding Run.StartupProject.Name, FallbackValue=Start, TargetNullValue=Start}" />
+                    </StackPanel>
+                    <SplitButton.Flyout>
+                        <MenuFlyout ItemsSource="{Binding Run.StartupProjects}" Placement="BottomEdgeAlignedLeft">
+                            <MenuFlyout.ItemContainerTheme>
+                                <ControlTheme
+                                    x:DataType="models:StartupProjectItem"
+                                    BasedOn="{StaticResource {x:Type MenuItem}}"
+                                    TargetType="MenuItem">
+                                    <Setter Property="Header" Value="{Binding Name}" />
+                                    <Setter Property="Command" Value="{Binding #MainToolbar.((vm:MainWindowViewModel)DataContext).Run.SelectStartupProjectCommand}" />
+                                    <Setter Property="CommandParameter" Value="{Binding}" />
+                                    <Setter Property="IsEnabled" Value="{Binding !#MainToolbar.((vm:MainWindowViewModel)DataContext).Run.IsRunning}" />
+                                </ControlTheme>
+                            </MenuFlyout.ItemContainerTheme>
+                        </MenuFlyout>
+                    </SplitButton.Flyout>
+                </SplitButton>
             </StackPanel>
 
             <!--  Search Everywhere (double Shift), as Rider's: types, files, symbols, actions, and Text for the Search window.  -->

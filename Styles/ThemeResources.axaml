@@ -208,6 +208,26 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="ComboBoxBorderBrush" />
     <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="ComboBoxDropDownBorderBrush" />
 
+    <!--  Split buttons (the toolbar's start button) look like the drop-downs beside them  -->
+    <SolidColorBrush Color="{DynamicResource dropdown.background}" x:Key="SplitButtonBackground" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="SplitButtonBackgroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="SplitButtonBackgroundPressed" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="SplitButtonBackgroundChecked" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="SplitButtonBackgroundCheckedPointerOver" />
+    <SolidColorBrush Color="{DynamicResource list.hoverBackground}" x:Key="SplitButtonBackgroundCheckedPressed" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="SplitButtonForeground" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="SplitButtonForegroundPointerOver" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="SplitButtonForegroundPressed" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="SplitButtonForegroundChecked" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="SplitButtonForegroundCheckedPointerOver" />
+    <SolidColorBrush Color="{DynamicResource dropdown.foreground}" x:Key="SplitButtonForegroundCheckedPressed" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="SplitButtonBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="SplitButtonBorderBrushPointerOver" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="SplitButtonBorderBrushPressed" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="SplitButtonBorderBrushChecked" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="SplitButtonBorderBrushCheckedPointerOver" />
+    <SolidColorBrush Color="{DynamicResource dropdown.border}" x:Key="SplitButtonBorderBrushCheckedPressed" />
+
     <!--  Git (Views/GitStateConverters picks one per file state)  -->
     <SolidColorBrush Color="{DynamicResource gitDecoration.modifiedResourceForeground}" x:Key="GitModifiedBrush" />
     <SolidColorBrush Color="{DynamicResource gitDecoration.addedResourceForeground}" x:Key="GitAddedBrush" />

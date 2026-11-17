@@ -12,7 +12,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// The startup project and build configuration (the toolbar's two boxes, like Visual Studio's).
+/// The startup project and build configuration (the toolbar's configuration box and the play button's drop-down,
+/// like Visual Studio's).
 /// Run and Debug start the startup project; when there's more than one candidate and none is chosen, they ask.
 /// The startup project is offered from the projects that build an executable, is remembered per workspace
 /// (WorkspaceSession, in .axamlide/) and shown bold in the explorer (ExplorerView compares paths).
@@ -32,13 +33,16 @@ public partial class RunViewModel
 
     /// <summary>The build configuration for Build, Run and Debug.</summary>
     [ObservableProperty] public partial string Configuration { get; set; } = "Debug";
+    partial void OnConfigurationChanged(string value) => OnPropertyChanged(nameof(StartOrStopToolTip));
 
     public string? StartupProjectPath => StartupProject?.Path;
 
     /// <summary>The play button's tooltip: what clicking it will do.</summary>
     public string StartOrStopToolTip => IsRunning
-        ? "Stop (Shift+F5)"
-        : StartupProject is { } project ? $"Start Debugging {project.Name} (F5)" : "Start Debugging (F5)";
+     ? "Stop (Shift+F5)"
+     : StartupProject is { } project
+         ? $"Start Debugging {project.Name} ({Configuration}) (F5)"
+         : $"Start Debugging ({Configuration}) (F5)";
 
     partial void OnIsRunningChanged(bool value) => OnPropertyChanged(nameof(StartOrStopToolTip));
 
@@ -61,6 +65,14 @@ public partial class RunViewModel
         }
 
         return StartDebuggingCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>A project picked from the play button's drop-down (Visual Studio's startup project list).</summary>
+    [RelayCommand]
+    private void SelectStartupProject(StartupProjectItem? item)
+    {
+        if (item is not null && !IsRunning)
+            StartupProject = item;
     }
 
     /// <summary>The explorer's "Set as Startup Project".</summary>

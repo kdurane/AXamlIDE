@@ -316,7 +316,7 @@
     <StreamGeometry x:Key="Icon.ChevronDown">M7.41 8.58 12 13.17l4.59-4.59L18 10l-6 6-6-6z</StreamGeometry>
 
     <!--  https://pictogrammers.com/library/mdi/icon/undo/  -->
-    <StreamGeometry x:Key="Icon.Undo">M12.5 8c-2.65 0-5.05 1-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8</StreamGeometry>
+    <StreamGeometry x:Key="Icon.Undo">M20 13.5a6.5 6.5 0 0 1-6.5 6.5H6v-2h7.5c2.5 0 4.5-2 4.5-4.5S16 9 13.5 9H7.83l3.08 3.09L9.5 13.5 4 8l5.5-5.5 1.42 1.41L7.83 7h5.67a6.5 6.5 0 0 1 6.5 6.5</StreamGeometry>
 
     <!--  https://pictogrammers.com/library/mdi/icon/dots-horizontal/  -->
     <StreamGeometry x:Key="Icon.DotsHorizontal">M16 12a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2m-6 0a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2m-6 0a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2 2 2 0 0 1-2-2</StreamGeometry>
@@ -349,7 +349,7 @@
     <StreamGeometry x:Key="Icon.ContentPaste">M19 20H5V4h2v3h10V4h2m-7-2a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1m7 0h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2</StreamGeometry>
 
     <!--  https://pictogrammers.com/library/mdi/icon/redo/  -->
-    <StreamGeometry x:Key="Icon.Redo">M18.4,10.6C16.55,9 14.15,8 11.5,8C6.85,8 2.92,11.03 1.54,15.22L3.9,16C4.95,12.81 7.95,10.5 11.5,10.5C13.45,10.5 15.23,11.22 16.62,12.38L13,16H22V7L18.4,10.6Z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.Redo">M10.5 18H18v2h-7.5a6.5 6.5 0 1 1 0-13h5.67l-3.09-3.09L14.5 2.5 20 8l-5.5 5.5-1.41-1.41L16.17 9H10.5C8 9 6 11 6 13.5S8 18 10.5 18</StreamGeometry>
     <!--  https://pictogrammers.com/library/mdi/icon/content-save-all/  -->
     <StreamGeometry x:Key="Icon.ContentSaveAll">M17,7V3H7V7H17M14,17A3,3 0 0,0 17,14A3,3 0 0,0 14,11A3,3 0 0,0 11,14A3,3 0 0,0 14,17M19,1L23,5V17A2,2 0 0,1 21,19H7C5.89,19 5,18.1 5,17V3A2,2 0 0,1 7,1H19M1,7H3V21H17V23H3A2,2 0 0,1 1,21V7Z</StreamGeometry>
     <!--  https://pictogrammers.com/library/mdi/icon/content-save-all-outline/  -->
@@ -454,7 +454,7 @@
     <StreamGeometry x:Key="Icon.PlayOutline">M8.5 8.64 13.77 12 8.5 15.36zM6.5 5v14l11-7</StreamGeometry>
 
     <!--  https://pictogrammers.com/library/mdi/icon/hammer/  -->
-    <StreamGeometry x:Key="Icon.Hammer">M2 19.63 13.43 8.2l-.71-.7 1.42-1.43L12 3.89c1.2-1.19 3.09-1.19 4.27 0l3.6 3.61-1.42 1.41h2.84l.71.71-3.55 3.59-.71-.71V9.62l-1.47 1.42-.71-.71L4.13 21.76z</StreamGeometry>
+    <StreamGeometry x:Key="Icon.Hammer">M14.242.557 9.957.482a.8.8 0 0 0-.247.033L8.996.73q-.527-.73-2-.73h-.139a2.29 2.29 0 0 0-2.286 2.286v2.948A2.29 2.29 0 0 0 6.857 7.52h.138q1.601-.002 2.083-.857l.468.045v7.456a1.82 1.82 0 0 0-.689 1.425v6.587a1.825 1.825 0 0 0 1.823 1.823h2.638a1.825 1.825 0 0 0 1.823-1.823v-6.587a1.82 1.82 0 0 0-.646-1.39V6.121a2 2 0 0 1 .298-.17c2.065-.052 3.245.925 3.288.96a.813.813 0 0 0 1.347-.612c0-3.039-2.427-5.723-5.186-5.743m-.726 21.619a.2.2 0 0 1-.197.198H10.68a.2.2 0 0 1-.197-.198v-6.587a.2.2 0 0 1 .197-.198h2.639a.2.2 0 0 1 .197.198zm1.067-17.843a.8.8 0 0 0-.237.047c-.346.124-1.476.606-1.476 1.59v7.754h-1.698V5.971a.813.813 0 0 0-.734-.81l-1.89-.184a.81.81 0 0 0-.892.81q0 .027-.002.046c-.07.025-.244.061-.659.061h-.138a.66.66 0 0 1-.66-.66V2.285a.66.66 0 0 1 .66-.66h.138c.415 0 .59.036.66.062l.001.046a.812.812 0 0 0 1.045.779l1.353-.403 4.167.073c1.481.011 2.718 1.206 3.27 2.59a7.3 7.3 0 0 0-2.908-.44</StreamGeometry>
 
     <!--  https://pictogrammers.com/library/mdi/icon/pause/  -->
     <StreamGeometry x:Key="Icon.Pause">M14 19h4V5h-4M6 19h4V5H6z</StreamGeometry>
