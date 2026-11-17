@@ -36,12 +36,13 @@
                 Margin="4,4,4,0"
                 Background="Transparent"
                 DockPanel.Dock="Top"
-                WindowDecorationProperties.ElementRole="User">
+                WindowDecorationProperties.ElementRole="TitleBar">
                 <ListBox
                     Classes="tabs"
                     Focusable="False"
                     ItemsSource="{Binding Tabs}"
-                    SelectedItem="{Binding SelectedTab, Mode=TwoWay}" />
+                    SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+                    WindowDecorationProperties.ElementRole="User" />
             </DockPanel>
             <TextBox
                 Name="Box"

@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Preview;
 using AXamlIDE.Services.Settings;
@@ -36,8 +37,8 @@ public sealed class IdeMcpServer : IDisposable
         "Tools for the AXamlIDE workspace that's open. render_xaml shows what an .axaml file looks like (using the " +
         "editor's unsaved text), can hover or click a point first, and reports its XAML error if it can't render; " +
         "get_problems lists errors and warnings from the Problems panel; get_editor_state says which file is active, " +
-        "where the caret is, and what's unsaved; read_open_file reads an open file as the editor has it, unsaved edits " +
-        "included. Relative paths are from the workspace folder.";
+        "where the caret is, and what's unsaved; get_unsaved_changes shows just those edits as a diff against the saved " +
+        "file; read_open_file reads an open file as the editor has it. Relative paths are from the workspace folder.";
 
     /// <summary>The Claude panel's sessions connect with this (?client=panel), so its switch can turn just them away.</summary>
     private const string PanelClient = "panel";
@@ -56,7 +57,7 @@ public sealed class IdeMcpServer : IDisposable
         _problems = problems;
         _renderer = renderer;
         var version = typeof(IdeMcpServer).Assembly.GetName().Version?.ToString() ?? "0";
-        _server = new McpServer("axamlide", version, [RenderXaml(), GetProblems(), GetEditorState(), ReadOpenFile()], Instructions)
+        _server = new McpServer("axamlide", version, [RenderXaml(), GetProblems(), GetEditorState(), ReadOpenFile(), GetUnsavedChanges()], Instructions)
         {
             // Read on each call, so the switch works at once, in the conversation that's going on too.
             RefuseCall = client => client == PanelClient && !settings.Features.ClaudeIdeTools
@@ -246,6 +247,82 @@ public sealed class IdeMcpServer : IDisposable
             output.Append(number).Append('\t').AppendLine(text.GetText(line.Offset, line.Length));
         }
         return McpToolResult.Text(output.ToString().TrimEnd());
+    }
+
+    // ------------------------------------------------------------ get_unsaved_changes
+
+    /// <summary>Unchanged lines shown around each change.</summary>
+    private const int DiffContext = 2;
+
+    private McpTool GetUnsavedChanges()
+    {
+        var schema = McpArguments.Schema(
+            ("path", "string", "Only this file (absolute or workspace-relative). Default: every open file with unsaved edits.", null));
+        return new McpTool("get_unsaved_changes",
+            "What the user has typed but not saved: a diff of each unsaved open file against the file on disk, with the " +
+            "editor's line numbers (\"-\" saved, \"+\" in the editor). Cheaper than reading the whole file.",
+            schema,
+            (arguments, ct) => OnUiThread(() => UnsavedChangesAsync(arguments, ct)));
+    }
+
+    private async Task<McpToolResult> UnsavedChangesAsync(JsonElement arguments, CancellationToken ct)
+    {
+        IEnumerable<OpenDocument> documents;
+        if (ResolvePath(McpArguments.String(arguments, "path")) is { } path)
+        {
+            if (FindOpen(path) is not { } document)
+                return McpToolResult.Error($"{Relative(path)} isn't open in the editor.");
+            documents = [document];
+        }
+        else
+            documents = _documents.Documents.Where(d => d.IsDirty && !d.IsReadOnly).ToList();
+
+        var output = new StringBuilder();
+        foreach (var document in documents)
+        {
+            var saved = File.Exists(document.Path) ? await File.ReadAllTextAsync(document.Path, ct) : null;
+            output.AppendLine(saved is null ? $"{Relative(document.Path)}: not saved yet (new file)." : Diff(document, saved));
+        }
+        return McpToolResult.Text(output.Length == 0 ? "No unsaved changes." : output.ToString().TrimEnd());
+    }
+
+    /// <summary>A unified diff's hunks, each headed by the editor's line where it starts.</summary>
+    private string Diff(OpenDocument document, string saved)
+    {
+        var lines = InlineDiff.Compare(saved.ReplaceLineEndings("\n"), document.Document.Text.ReplaceLineEndings("\n"));
+        var output = new StringBuilder();
+        var changed = lines.Select((line, index) => (line, index)).Where(x => x.line.Kind != DiffLineKind.Unchanged).Select(x => x.index).ToList();
+        if (changed.Count == 0)
+            return $"{Relative(document.Path)}: no differences from the saved file.";
+
+        // The editor's line number of each diff line (a removed line takes the number of the line after it).
+        var numbers = new int[lines.Count];
+        var number = 1;
+        for (var i = 0; i < lines.Count; i++)
+        {
+            numbers[i] = number;
+            if (lines[i].Kind != DiffLineKind.Removed)
+                number++;
+        }
+
+        output.AppendLine($"{Relative(document.Path)} (unsaved):");
+        var start = 0;
+        while (start < changed.Count)
+        {
+            var end = start;   // changes this close together share a hunk
+            while (end + 1 < changed.Count && changed[end + 1] - changed[end] <= DiffContext * 2 + 1)
+                end++;
+            var from = Math.Max(0, changed[start] - DiffContext);
+            var to = Math.Min(lines.Count - 1, changed[end] + DiffContext);
+            output.AppendLine($"@@ line {numbers[from]}");
+            for (var i = from; i <= to; i++)
+            {
+                var marker = lines[i].Kind switch { DiffLineKind.Added => '+', DiffLineKind.Removed => '-', _ => ' ' };
+                output.Append(marker).AppendLine(lines[i].Text);
+            }
+            start = end + 1;
+        }
+        return output.ToString().TrimEnd();
     }
 
     // ------------------------------------------------------------ helpers
