@@ -19,22 +19,30 @@ The .NET base library (`Process`, `System.Text.Json`, `FileSystemWatcher`...) is
 | API | What it does | Where we call it |
 |---|---|---|
 | `AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace()` | Builds the app and picks the platform backend (X11/Wayland, Win32, macOS) | `Program.BuildAvaloniaApp` |
+| `AppBuilder.ConfigureFonts(fonts => fonts.AddFontCollection(new EmbeddedFontCollection(key, source)))` | Makes the fonts in `Assets/Fonts` (JetBrains Mono) usable as `fonts:App#<family>` | `Program.BuildAvaloniaApp` |
 | `AppBuilder.StartWithClassicDesktopLifetime(args)` | Starts the UI loop with a desktop lifetime (main window, exit on last window) | `Program.Main` |
 | `AvaloniaXamlLoader.Load(this)` | Loads the compiled XAML for `App` (styles, resources) | `App.Initialize` |
 | `IClassicDesktopStyleApplicationLifetime.MainWindow` / `.Exit` | The window whose closing ends the app; the exit event | `App.Start`, `App.OnFrameworkInitializationCompleted` |
 | `Application.DataTemplates.Add(new FuncDataTemplate<T>(match, build))` | App-wide "view for this view model type" | `App.UseDockViews` (the `WelcomeViewModel` screen) |
 | `Application.Styles.Add(new Style(selector => selector.OfType<T>()) { Setters = ... })` | An app-wide style made in code | `App.UseDockViews` (sets `DockViewCache` on every `DockControl`) |
 | `ControlRecyclingDataTemplate.ControlRecyclingProperty` / `IControlRecycling` / `ControlRecycling` (namespace `Avalonia.Controls.Recycling`, from the `Dock.Controls.Recycling` package that `Dock.Avalonia` brings in) | The control cache Dock asks for tab contents | `App.UseDockViews`, `Views/DockViewCache.cs` (implements it, and passes everything else to a `ControlRecycling`) |
-| `Dispatcher.UIThread.Post(action, priority)` | Runs code later on the UI thread | Many places (24 files), e.g. `LanguageSessionService.OnDiagnosticsPublished`, `RunViewModel.Debug`, `EditorPaneView.SetDocument`, `DockLayoutViewModel.OnDockableClosing` |
-| `Dispatcher.UIThread.InvokeAsync` | Runs on the UI thread and waits for it | `Services/Preview/AvaloniaPreviewProcess.cs` (raising `FrameReceived`) |
+| `Dispatcher.UIThread.UnhandledException` (+ `e.Handled = true`) | An exception thrown on the UI thread; handling it keeps the app running | `App.ReportUnhandledExceptions` (crash log and status bar) |
+| `Dispatcher.UIThread.Post(action, priority)` | Runs code later on the UI thread | Many places (26 files), e.g. `LanguageSessionService.OnDiagnosticsPublished`, `RunViewModel.Debug`, `EditorPaneView.SetDocument`, `DockLayoutViewModel.OnDockableClosing` |
+| `Dispatcher.UIThread.InvokeAsync` | Runs on the UI thread and waits for it | `Services/Preview/AvaloniaPreviewProcess.cs` (raising `FrameReceived`), `AgentChatViewModel.StartAsync` (the agent's permission questions) |
 | `Dispatcher.UIThread.CheckAccess()` | "Am I on the UI thread?" | `RunViewModel.AppendBuildOutput` / `AppendConsoleOutput` |
-| `DispatcherTimer` (`Interval`, `Tick`, `Start`, `Stop`) | A timer that ticks on the UI thread; used for debounces | `Services/Languages/DocumentSync.cs` (150 ms didChange), `ViewModels/PreviewPaneViewModel.cs` (300 ms), `Services/Git/GitStatusTracker.cs` (400 ms), `Services/Documents/FileChangeWatcher.cs`, `Editor/CodeLens/CodeLensController.cs`, `Editor/VisibleLinesFetcher.cs` |
-| `StorageProvider.OpenFilePickerAsync` / `OpenFolderPickerAsync` | The system file and folder pickers | `Views/DialogService.cs` (`PickSolutionAsync`, `PickFolderAsync`), `Views/PublishWizardWindow.axaml.cs`, `Views/PublishSettingsWindow.axaml.cs` |
-| `TopLevel.Clipboard.SetTextAsync` | Puts text on the clipboard | `Views/ClipboardService.cs` |
+| `DispatcherTimer` (`Interval`, `Tick`, `Start`, `Stop`) | A timer that ticks on the UI thread; used for debounces | `Services/Languages/DocumentSync.cs` (150 ms didChange), `ViewModels/PreviewPaneViewModel.cs` (300 ms), `Services/Languages/XamlAnalysisService.cs` (300 ms), `Services/Git/GitStatusTracker.cs` (400 ms), `Editor/Highlighting/CaretRenderer.cs` (500 ms caret blink), `Services/Documents/FileChangeWatcher.cs`, `Editor/CodeLens/CodeLensController.cs`, `Editor/VisibleLinesFetcher.cs`, `Editor/Hover/HoverController.cs`, `Editor/Folding/FoldingController.cs`, `ViewModels/OutlineViewModel.cs`, `ViewModels/StatusBarViewModel.cs`, the Markdown views |
+| `DispatcherTimer.RunOnce(action, delay)` | Runs code once after a delay | `Views/MarkdownRenderer.CopyButton` (the tick after copying goes back to the copy icon) |
+| `StorageProvider.OpenFilePickerAsync` / `OpenFolderPickerAsync` / `SaveFilePickerAsync` | The system file, folder and save pickers | `Views/DialogService.cs` (`PickSolutionAsync`, `PickFolderAsync`, `PickFilesAsync` for Claude attachments, `PickSaveFileAsync`), `Views/PublishWizardWindow.axaml.cs`, `Views/PublishSettingsWindow.axaml.cs` |
+| `StorageProvider.TryGetFolderFromPathAsync`, `IStorageItem.TryGetLocalPath()` | A path → a picker start folder; a picked or dropped item → its path | `Views/DialogService.cs`, `Views/AgentChatView.axaml.cs` |
+| `TopLevel.Clipboard.SetTextAsync` | Puts text on the clipboard | `Views/ClipboardService.cs`, `MarkdownRenderer.CopyButton` (code blocks) |
+| `Clipboard.SetDataAsync(new DataTransfer { DataTransferItem.CreateText(...) })` | Puts data on the clipboard through the newer data-transfer API | `Views/ExplorerView.axaml.cs` (`CopyPathAsync`) |
+| `Clipboard.TryGetFilesAsync()` / `TryGetBitmapAsync()`, `Bitmap.Save(stream, PngBitmapEncoderOptions.Default)` | Reads copied files or a copied picture; saves the picture as PNG | `AgentChatView.PasteAsync` (Ctrl+V in the Claude prompt box) |
+| `DragDrop.SetAllowDrop`, `DragDrop.DragOverEvent` / `DropEvent` / `DragLeaveEvent`, `DragDrop.DoDragDropAsync`, `DragEventArgs.DataTransfer` (`Contains`, `TryGetFiles`), `DataTransferItem.Create(format, value)` | Drag and drop | `Views/ExplorerView.axaml.cs` (moving files in the tree), `Views/AgentChatView.axaml.cs` (files dropped on the Claude panel) |
+| `PlatformSettings.HotkeyConfiguration.Paste` (`KeyGesture.Matches`) | The platform's paste keys | `AgentChatView.IsPasteGesture` |
 | `TopLevel.GetTopLevel(control)` | The window a control is in (null when it isn't on screen) | `EditorPaneView` (`ApplyPendingReveal`, `RestoreViewState`, scroll tracking) |
 | `Window.Activate()` | Brings a window to the front | `EditorPaneView.ApplyPendingReveal` (a tab in a floating window) |
-| `InputElement.AddHandler(event, handler, RoutingStrategies.Tunnel)` | Sees an event before the control under the pointer or focus does | `Shell/KeyMap.AttachTo` (`KeyDownEvent`: shortcuts are caught before the editor), `EditorPaneView.Initialize` (`PointerWheelChangedEvent`: Ctrl+wheel zoom), `Views/ExplorerView.axaml.cs` (`DoubleTappedEvent`) |
-| `AvaloniaProperty.Register` / `RegisterAttached` | Declares a styled or attached property | `Shell/KeyMap.cs` (`CommandId`, `ShortcutTip`), `Views/SkImageControl.cs`, `Views/CollapsiblePane.cs`, `Views/DebugValueTreeView.axaml.cs`, `Views/GitGraphCell.cs` |
+| `InputElement.AddHandler(event, handler, RoutingStrategies.Tunnel)` | Sees an event before the control under the pointer or focus does | `Shell/KeyMap.AttachTo` (`KeyDownEvent`: shortcuts are caught before the editor), `EditorPaneView.Initialize` (`PointerWheelChangedEvent`: Ctrl+wheel zoom), `Views/ExplorerView.axaml.cs` (`DoubleTappedEvent`), `AgentChatView` (`KeyDownEvent` on the prompt box: Enter sends) |
+| `AvaloniaProperty.Register` / `RegisterAttached` | Declares a styled or attached property | `Shell/KeyMap.cs` (`CommandId`, `ShortcutTip`), `Views/SkImageControl.cs`, `Views/CollapsiblePane.cs`, `Views/DebugValueTreeView.axaml.cs`, `Views/GitGraphCell.cs`, `Views/MarkdownText.cs` (`Markdown`; `CodeHighlighter` with `inherits: true`, so setting it on the Claude panel reaches every reply) |
 | `Control.LoadedEvent.AddClassHandler<MenuItem>` / `ToolTip.ToolTipOpeningEvent.AddClassHandler<Button>` | Runs code for *every* control of a type when it loads or opens | `KeyMap` constructor (shows each menu item's shortcut) |
 | `Visual.GetVisualParent()` / `GetSelfAndVisualAncestors()` (`Avalonia.VisualTree`) | Walks up the visual tree | `DockViewCache.Detach`, `ExplorerView.OnDoubleTapped` |
 | `ContentPresenter.UpdateChild()` | Makes a presenter drop or refresh its child now | `DockViewCache.Detach` (so a view can be moved to another tab strip) |
@@ -83,10 +91,12 @@ The text editor. Most of it is used under `Editor/`.
 | `TextEditor.Select`, `ScrollTo(line, col)`, `Undo`, `Redo`, `Cut`, `Copy`, `Paste`, `SelectAll` | Editor actions | `EditorPaneView.ApplyPendingReveal`, `EditorPaneView.Receive(EditorActionMessage)` |
 | `ApplicationCommands.Copy/Cut/Paste/SelectAll.Execute(null, TextArea)` | The same actions from the right-click menu | `EditorPaneView.OnCopyClick` etc. |
 | `TextArea.TextEntering` / `TextEntered` | A typed character, before or after it goes in | `TypingController` (both), `CompletionController.ShowSnippetsOnly` |
-| `TextArea.Caret.PositionChanged` | The caret moved | `EditorPaneView.Initialize` |
+| `TextArea.Caret.PositionChanged` | The caret moved | `EditorPaneView.Initialize`, `TypingController`, `SignatureHelpController`, `OverviewRuler` |
+| `Caret.CaretBrush = Brushes.Transparent`, `TextArea.SelectionBrush = Brushes.Transparent` | Hides AvaloniaEdit's own caret and selection, which we draw ourselves | `EditorPaneView.Initialize` (with `CaretRenderer` and `SelectionRenderer`; AvaloniaEdit's caret is as tall as a line with a code lens) |
+| `TextEditor.SearchPanel` (`SearchPattern`, `IsReplaceMode`, `Open`, `Reactivate`) | The find/replace bar | `EditorPaneView.OpenSearchPanel` (Ctrl+F / Ctrl+H); its look is our `ControlTheme` in `Styles/SearchPanelTheme.axaml`, replacing AvaloniaEdit's template |
 | `TextArea.LeftMargins` + `AbstractMargin` | Gutter columns | `BreakpointMargin`, `CodeActionMargin`, `FoldingCaretMargin`, `DiffLineNumberMargin` |
-| `TextView.BackgroundRenderers` + `IBackgroundRenderer` | Draws behind the text (squiggles, highlights) | `DiagnosticRenderer`, `CurrentLineRenderer`, `SelectionRenderer`, `OccurrenceRenderer`, `CurrentStatementRenderer`, `DiffLineRenderer`, `SnippetFieldElement` |
-| `DocumentColorizingTransformer` | Recolours text runs | `Editor/Highlighting/SemanticColorizer.cs` (semantic tokens over TextMate) |
+| `TextView.BackgroundRenderers` + `IBackgroundRenderer` | Draws behind the text (squiggles, highlights) | `DiagnosticRenderer`, `CurrentLineRenderer`, `SelectionRenderer`, `CaretRenderer`, `OccurrenceRenderer`, `CurrentStatementRenderer`, `DiffLineRenderer`, `SnippetFieldElement` |
+| `DocumentColorizingTransformer` | Recolours text runs | `Editor/Highlighting/SemanticColorizer.cs` (semantic tokens over TextMate), `Editor/Highlighting/UnnecessaryCodeColorizer.cs` (fades unused code) |
 | `VisualLineElementGenerator` + `InlineObjectElement` | Inserts controls or extra text into a line | `CodeLensGenerator`, `InlayHintGenerator`, `ColorSwatchGenerator`, `DebugInlineValueGenerator` |
 | `TextView.InvalidateLayer(KnownLayer.X)` / `Redraw()` | Redraws a layer | `EditorPaneView.Receive(DiagnosticsChangedMessage)`, `ApplyEditorSettings`, and the controllers that draw |
 | `TextView.GetVisualLine` / `GetPosition` / `GetVisualPosition` | Screen point ↔ document position | hover, margins, `OverviewRuler`, `WhitespaceSelectionController` |
@@ -116,7 +126,11 @@ The text editor. Most of it is used under `Editor/`.
 | `RegistryOptions.LoadTheme(ThemeName)` / `GetTheme` / `GetInjections` / `GetDefaultTheme` | Built-in themes and grammar injections | `Models/EditorTheme.cs`, `EditorGrammars` (which implements `IRegistryOptions` and passes these through) |
 | `IRegistryOptions` | What TextMate asks for grammars and themes | Implemented by `Editor/Highlighting/EditorGrammars.cs` (adds our AXAML grammar and colour layers) |
 | `GrammarReader.ReadGrammarSync` / `ThemeReader.ReadThemeSync` | Parse a grammar or theme JSON file | `EditorGrammars` (our AXAML grammar, colour layers), `Models/EditorTheme.cs` (bundled themes) |
+| `RegistryOptions.GetScopeByLanguageId` (then the extension lookup) | A code fence's language (`csharp`, `json`...) → grammar scope | `EditorGrammars.ScopeForLanguage` (used by `CodeHighlighter`; our `FenceAliases` map `c#`, `sh`, `py`... first) |
 | `Theme.CreateFromRawTheme(raw, registry)` + `GetGuiColorDictionary()` | Resolves a theme so colours can be looked up by scope | `Editor/Highlighting/SemanticTokenColors.cs` |
+| `new Registry(options)`, `SetTheme(rawTheme)`, `GetColorMap()`, `LoadGrammar(scope)` | A grammar registry of our own, outside any editor | `Editor/Highlighting/CodeHighlighter.cs` (one per theme, made again when the theme changes) |
+| `IGrammar.TokenizeLine2(line, state, timeLimit)` → result (`Tokens`, `RuleStack`), `IStateStack` | Tokenises one line; the tokens are packed (start, metadata) pairs | `CodeHighlighter.Highlight` (Markdown code blocks in the preview and the Claude panel) |
+| `EncodedTokenAttributes.GetForeground` / `GetFontStyle` (`TextMateSharp.Internal.Grammars`) | Unpacks a token's colour id and font style | `CodeHighlighter.RunFor` |
 | `ThemeName` enum | The names of the built-in themes | `Core/Services/Settings/ThemeIds.cs`, `Core/Models/EditorSettings.cs`, `Views/ThemeVariants.cs` |
 
 ## CommunityToolkit.Mvvm — app
@@ -159,9 +173,10 @@ The text editor. Most of it is used under `Editor/`.
 | API | What it does | Where we call it |
 |---|---|---|
 | `new MarkdownPipelineBuilder().UseAdvancedExtensions().Build()` | A parser with tables, task lists, etc. turned on | `Views/MarkdownRenderer.cs`, `Editor/Hover/HoverContent.cs` |
+| `FencedCodeBlock.Info`, `CodeBlock`, `HtmlBlock` | A code block and its language; raw HTML (shown as source) | `MarkdownRenderer.CodeBlockView` (coloured by `CodeHighlighter`, with a Copy button) |
 | `Markdown.Parse(text, pipeline)` → `MarkdownDocument` | Markdown → syntax tree | `MarkdownRenderer.Render`, `HoverContent.FromMarkdown` |
 | `Markdown.ToPlainText(text, pipeline)` | Markdown → plain text | `HoverContent.FromMarkdown` |
-| `Markdig.Syntax` / `Markdig.Syntax.Inlines` types (`HeadingBlock`, `ParagraphBlock`, `ContainerInline`, `LinkInline`, `TaskList`...) | The syntax tree we walk to build Avalonia controls | `MarkdownRenderer` (`RenderBlock`, `TextFor`, `AddInlines`); used by `Views/MarkdownPreviewView.axaml.cs` |
+| `Markdig.Syntax` / `Markdig.Syntax.Inlines` types (`HeadingBlock`, `ParagraphBlock`, `ContainerInline`, `LinkInline`, `TaskList`...) | The syntax tree we walk to build Avalonia controls | `MarkdownRenderer` (`RenderBlock`, `TextFor`, `AddInlines`); used by `Views/MarkdownPreviewView.axaml.cs` and `Views/MarkdownText.cs` (Claude's replies) |
 
 ## Microsoft.Extensions.DependencyInjection — app
 
@@ -251,6 +266,8 @@ debugger request per row.
 | `ClrObject.Type`, `AsArray()`, `ReadField<T>`, `ReadObjectField`, `ReadValueTypeField`; `ClrValueType` (same); `ClrType.GetFieldByName`; `ClrArray.Rank`, `GetObjectValue`, `GetStructValue` | Read fields and array elements | `HeapTables` (`Matches`, `InnerList`, `Count`, `Read`, `Items`, the `Slot` helpers) |
 
 Called from `Core/Services/Debugging/DebugValueProvider.Table.cs` (`Task.Run(() => HeapTables.TryRead(...))`).
+`HeapTables.PinDac` loads the DAC (`mscordaccore`) a second time with `NativeLibrary.Load` and never frees it: ClrMD
+unloads the DAC on dispose, but the DAC's own threads can outlive that and crash the IDE.
 
 ## Irony — Core (vendored XAML Styler only)
 

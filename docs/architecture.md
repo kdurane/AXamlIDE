@@ -61,6 +61,7 @@ flowchart TB
             DM["DocumentManager<br/>(open files: source of truth)"]
             DSS["DocumentSaveService"]
             LSS["LanguageSessionService"]
+            XAS["XamlAnalysisService<br/>(AXAML diagnostics)"]
             NAV["NavigationService"]
             PS["PreviewSessions → PreviewPaneViewModel"]
             APP["AvaloniaPreviewProcess"]
@@ -123,6 +124,8 @@ flowchart TB
     MBC -- "one JSON line each way, stdio" --> HOST
     XLS --> WM
     XLS --> XCS
+    XAS --> XLS
+    XAS -- "Opened / Closing events" --> DM
 
     RVM --> DPR
     DPR --> DOTNET
@@ -148,6 +151,7 @@ flowchart TB
     MSG -.-> NAV
     MSG -.-> PVM
     MSG -.-> DST
+    MSG -.-> XAS
     NAV --> DM
 ```
 
@@ -168,7 +172,8 @@ The code uses four ways to connect parts. Which one a class uses tells you how t
 kills the MSBuild host, and `LspManager`, which disposes each client.
 
 Some singletons are resolved in `App.OnFrameworkInitializationCompleted` only so that they get created and start
-listening: `GitTreeDecorator`, `DocumentReloader` and `XamlCacheKeeper`. Nothing else asks for them.
+listening: `GitTreeDecorator`, `DocumentReloader`, `XamlCacheKeeper` and `XamlAnalysisService`. Nothing else asks
+for them.
 
 Two kinds of object are **not** in the container and are created by hand:
 
@@ -185,11 +190,11 @@ parts subscribe to its events and are never called by it directly:
 
 | Event | Subscribers |
 |---|---|
-| `Opened` | `LanguageSessionService.OnDocumentOpened` (sends didOpen), `RunViewModel.TrackDocument` (breakpoints), `DocumentReloader` (watches the file on disk) |
-| `Closing` | `LanguageSessionService.OnDocumentClosing` (sends didClose), `RunViewModel.UntrackDocument`, `PreviewSessions.OnDocumentClosing`, `DocumentReloader` |
+| `Opened` | `LanguageSessionService.OnDocumentOpened` (sends didOpen), `XamlAnalysisService.Start` (AXAML files' own diagnostics), `RunViewModel.TrackDocument` (breakpoints), `DocumentReloader` (watches the file on disk) |
+| `Closing` | `LanguageSessionService.OnDocumentClosing` (sends didClose), `XamlAnalysisService.Stop`, `RunViewModel.UntrackDocument`, `PreviewSessions.OnDocumentClosing`, `NavigationService` (drops the file from back/forward history), `DocumentReloader` |
 | `Saving` | `LanguageSessionService.OnDocumentSaving` (flushes pending edits) |
 | `Saved` | `LanguageSessionService.OnDocumentSaved` (sends didSave), `XamlCacheKeeper`, `GitStatusTracker` (refreshes status), `FileChangeWatcher` (marks the write as ours) |
-| `ActiveChanged` | `DockLayoutViewModel.OnActiveDocumentChanged`, `DockViewCache.PlaceSharedViews`, `StatusBarViewModel.OnActiveDocumentChanged`, `OutlineViewModel`, `ProblemsViewModel` (Current Document / Project scope) |
+| `ActiveChanged` | `DockLayoutViewModel.OnActiveDocumentChanged`, `DockViewCache.PlaceSharedViews`, `StatusBarViewModel.OnActiveDocumentChanged`, `OutlineViewModel`, `ProblemsViewModel` (Current Document / Project scope), `NavigationService.OnActiveChanged` (back/forward history), `ExplorerViewModel` (Track Active Item, when that setting is on), `AgentChatViewModel` (the active file's name in the Claude panel) |
 | `Documents.CollectionChanged` | `DockLayoutViewModel.OnDocumentsChanged` (adds and removes tabs), `ProblemsViewModel` |
 | `FrontRequested` | `DockLayoutViewModel.OnActiveDocumentChanged` |
 
@@ -205,20 +210,21 @@ handler, search for `IRecipient<ThatMessage>` or `Register<..., ThatMessage>`.
 |---|---|---|
 | `StatusMessage` | many | `StatusBarViewModel` (back to "Ready" after 10 s; tooltip keeps the last 15) |
 | `OpenWorkspaceMessage` | `StartViewModel.Choose`, `App.Start` (reopen last) | `MainWindowViewModel` |
-| `ShowToolTabMessage` | `RunViewModel`, `ProblemsViewModel`, `WatchViewModel`, `TestExplorerViewModel` | `DockLayoutViewModel` |
+| `ShowToolTabMessage` | `RunViewModel`, `ProblemsViewModel`, `WatchViewModel`, `TestExplorerViewModel`, `ExplorerViewModel`, `StatusBarViewModel` | `DockLayoutViewModel` |
 | `EditorActionMessage` | `EditorCommands` (menus and key bindings) | `EditorPaneView` (only the pane showing the active document acts) |
-| `DiagnosticsChangedMessage` | `LanguageSessionService` | `EditorPaneView`, `ProblemsViewModel`, `StatusBarViewModel` |
+| `DiagnosticsChangedMessage` | `LanguageSessionService` (language servers), `XamlAnalysisService` (AXAML) | `EditorPaneView`, `ProblemsViewModel`, `StatusBarViewModel` |
 | `SolutionDiagnosticsChangedMessage` | `SolutionAnalysisService` | `ProblemsViewModel`, `StatusBarViewModel` |
-| `EditorStateChangedMessage` | `EditorPaneView` (caret moved, diagnostics redrawn) | `MainWindowViewModel` |
-| `NavigateToSearchResultMessage` | `SearchViewModel.OpenResult` | `NavigationService` |
-| `NavigateToProblemMessage` | `ProblemsViewModel` | `NavigationService` |
+| `EditorStateChangedMessage` | `EditorPaneView` (caret moved, diagnostics redrawn) | `StatusBarViewModel` |
+| `NavigateToSearchResultMessage` | `SearchViewModel.OpenResult`, `TestExplorerViewModel`, `MarkdownPreviewView` (links to files), `AgentChatViewModel` (file links in Claude's replies) | `NavigationService` |
+| `NavigateToProblemMessage` | `ProblemsViewModel`, `RunViewModel.OpenOutputLine` (double-click an error in Output) | `NavigationService` |
 | `NavigateToOutlineItemMessage` | `OutlineViewModel` | `NavigationService` |
-| `NavigateToDebugLocationMessage` | `RunViewModel.DebugProjectAsync` (on a stop) | `NavigationService` |
+| `NavigateToDebugLocationMessage` | `RunViewModel.DebugProjectAsync` (on a stop), `CallStackViewModel` (picking a frame) | `NavigationService` |
 | `DebugSnapshotChangedMessage` | `RunViewModel.Debug` | `DebugSnapshotTracker` |
 | `DebugSessionChangedMessage` | `RunViewModel.OnIsDebuggingChanged` | `DockLayoutViewModel` (adds or removes Locals, Watch, Call Stack) |
-| `BuildStartedMessage` / `BuildFinishedMessage` | `RunViewModel` | `PreviewSessions` (pause or resume previews), `XamlCacheKeeper` (finished only) |
+| `BuildStartedMessage` / `BuildFinishedMessage` | `RunViewModel` | `PreviewSessions` (pause or resume previews); finished only: `XamlCacheKeeper`, `XamlAnalysisService` (checks for obsolete uses again) |
+| `BuildProblemsMessage` | `RunViewModel.BuildWithNoticeAsync` (the parsed build output), `ClearBuildProblems` | `ProblemsViewModel` |
 | `FilesCreatedMessage` | `WorkspaceEditService` | `WorkspaceViewModel` |
-| `PreviewProblemMessage` | `PreviewPaneViewModel` | `ProblemsViewModel` |
+| `PreviewProblemMessage` | `PreviewPaneViewModel` | `ProblemsViewModel` (the preview's row), `XamlAnalysisService` (puts a squiggle where the error is) |
 | `AddWatchMessage` | `EditorPaneView`, `DebugValueNode`, `CollectionDataTip` | `WatchViewModel` |
 | `VisualizeDebugValueMessage` | `DebugValueTree`, `CollectionDataTip` | `VisualizerManager` |
 | `DebugValuesEditedMessage` | `DebugValueTree` | `DebugSnapshotTracker` |
@@ -262,7 +268,8 @@ Dock asks for views through a "control recycling" cache. `App.UseDockViews` puts
 `DockControl` as `ControlRecyclingDataTemplate.ControlRecycling`. `DockViewCache.Build` returns:
 
 - a `DocumentView` for a `DocumentDockable` (made once, then moved when the tab is dragged);
-- a page view (`DiffView`, `NuGetView`, `PublishView`, `VisualizerView`, `ImageView`) for a `PageDockable`;
+- a page view (`DiffView`, `NuGetView`, `PublishView`, `VisualizerView`, `ImageView`, and `AgentChatView` for the
+  Claude tab) for a `PageDockable`;
 - `ToolPanels.ViewFor(id)` for a `ToolDockable`.
 
 The comment on `DockViewCache` explains why these views are kept out of app-wide data templates: Dock's tab headers
@@ -278,6 +285,8 @@ and drag preview would otherwise try to show the same editor control a second ti
 | `dotnet` | `DotNetProjectRunner.ExecuteAsync` | Plain output lines | `PATH` |
 | Avalonia designer host | `AvaloniaPreviewProcess.StartAsync` (`dotnet exec ... --transport tcp-bson://127.0.0.1:<port>/ --method avalonia-remote`) | `Avalonia.Remote.Protocol` BSON over TCP | `XamlPreviewTarget.HostAppPath` (worked out by `XamlPreviewTargetResolver`) |
 | `git` | `GitService` (its own `ProcessStartInfo("git")`); `GitClone` (through `LineProcess.RunAsync`) | Plain output | `PATH` |
+| `claude-agent-acp` | `AcpClient.StartAsync`, from `AgentChatViewModel.StartAsync` when the Claude panel is first shown | Agent Client Protocol: JSON-RPC 2.0, one JSON message per line, stdio (`AcpClient.Transport.cs`) | `ClaudeAgentInstall.FindAgent` (its install folder under the OS's local app data). If it isn't there, the panel offers to download it from GitHub (`FindLatestReleaseAsync`, `InstallAsync`), only when its button is clicked |
+| `claude` (Claude Code CLI, installed beside the agent) | `CommitMessageWriter.WriteAsync` (the Git panel's sparkle button) | `claude -p --model haiku --tools ""` with the diff on stdin; the reply is the message | `ClaudeAgentInstall.FindCli` |
 
 The MSBuild host is a separate process because it loads the installed SDK's MSBuild assemblies with
 `MSBuildLocator.RegisterDefaults()`. The `.csproj` comment explains why: shipping its own copies would cause version
@@ -292,5 +301,8 @@ conflicts. `SolutionLoader` and the rest of Core never reference `Microsoft.Buil
 | The starting dock layout, or adding a tool panel | `ViewModels/DockFactory.cs`, `Shell/ToolPanels.cs`, `Messages/ToolTab.cs` |
 | A keyboard shortcut | `Shell/KeyMap.cs` (`WireCommands`), Core `Services/Keymaps/*.json` |
 | An editor feature | `Views/EditorPaneView.axaml.cs` (`Initialize`), then the controller in `Editor/` |
+| AXAML diagnostics (xmlns problems, `[Obsolete]` uses, the preview's error) | `Services/Languages/XamlAnalysisService.cs`, Core `Services/Xaml/XamlNamespaceAnalysis.cs` / `XamlObsoleteAnalysis.cs`, Core `Services/Preview/PreviewErrorDiagnostic.cs` |
+| The Claude panel | `ViewModels/AgentChatViewModel*.cs` (start, turn, history, attachments), `Views/AgentChatView.axaml`, Core `Services/Agents/` |
+| The editor's find/replace bar | `Styles/SearchPanelTheme.axaml` (our template for AvaloniaEdit's `SearchPanel`) |
 | Adding a language server | `LspServers` in `Projects/AXamlIDE.Core/Services/Lsp/LspServers.cs` |
 | Project evaluation | `Projects/AXamlIDE.msbuildhost/Program.cs`, `MsBuildHostClient` |

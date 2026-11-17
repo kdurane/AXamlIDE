@@ -333,8 +333,7 @@
                                 <TextBlock
                                     Grid.Column="2"
                                     Text="{Binding Title}"
-                                    TextTrimming="CharacterEllipsis"
-                                    ToolTip.Tip="{Binding Title}" />
+                                    TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </Button>
 

@@ -22,17 +22,22 @@ Contents:
 11. [Find in files](#11-find-in-files)
 12. [Git commit](#12-git-commit)
 13. [Close the solution](#13-close-the-solution)
+14. [AXAML diagnostics](#14-axaml-diagnostics)
+15. [Claude panel: send a message](#15-claude-panel-send-a-message)
 
 ---
 
 ## 1. App startup
 
-1. `Program.Main` → `BuildAvaloniaApp()` (`AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace()`) →
-   `StartWithClassicDesktopLifetime(args)`.
+1. `Program.Main` hooks `AppDomain.UnhandledException` (→ `CrashLog.Write`), then `BuildAvaloniaApp()`
+   (`AppBuilder.Configure<App>().UsePlatformDetect()`, `ConfigureFonts` to add the fonts in `Assets/Fonts` as
+   `fonts:App#...`, `LogToTrace()`) → `StartWithClassicDesktopLifetime(args)`.
 2. Avalonia calls `App.Initialize` (`AvaloniaXamlLoader.Load(this)`), then `App.OnFrameworkInitializationCompleted`.
 3. `AppServices.Build()` registers every service as a singleton and builds the container (`ValidateOnBuild = true`).
-4. The app resolves `ThemeSwitcher` and calls `.Apply()`. It also resolves `GitTreeDecorator`, `DocumentReloader` and
-   `XamlCacheKeeper`, which only need to exist so they start listening.
+   `ReportUnhandledExceptions` then hooks `Dispatcher.UIThread.UnhandledException`: an exception on the UI thread is
+   written to the crash log, reported in the status bar, and marked handled so the IDE carries on.
+4. The app resolves `ThemeSwitcher` and calls `.Apply()`. It also resolves `GitTreeDecorator`, `DocumentReloader`,
+   `XamlCacheKeeper` and `XamlAnalysisService`, which only need to exist so they start listening.
 5. `App.UseDockViews(services)`:
    - adds a `FuncDataTemplate<WelcomeViewModel>` (the empty-documents screen);
    - adds a style that sets `ControlRecyclingDataTemplate.ControlRecycling` on every `DockControl` to the
@@ -118,14 +123,18 @@ Starting from **File > Open Solution** or the start window's button.
      configured): waits for `LspManager.GetClientAsync`, then `client.DidOpen(uri, languageId, 1, text)`, creates
      `new DocumentConnection(client, new DocumentSync(...))`, raises `ClientAttached`, and pulls diagnostics if the
      server supports that.
-   - `Opened` → `RunViewModel.TrackDocument` (breakpoint changes), and `DocumentReloader` (changes on disk).
+   - `Opened` → `XamlAnalysisService.Start` (AXAML files only, see [flow 14](#14-axaml-diagnostics)),
+     `RunViewModel.TrackDocument` (breakpoint changes), and `DocumentReloader` (changes on disk).
 5. `DocumentHost.Activate` → `DocumentManager.BringToFront(document)` → sets `Active` → `ActiveChanged`:
    - `DockLayoutViewModel.OnActiveDocumentChanged` → `_factory.SetActiveDockable(tab)` + `SetFocusedDockable`.
-   - `StatusBarViewModel.OnActiveDocumentChanged`, `OutlineViewModel`, `DockViewCache.PlaceSharedViews`.
+   - `StatusBarViewModel.OnActiveDocumentChanged`, `OutlineViewModel`, `DockViewCache.PlaceSharedViews`,
+     `NavigationService.OnActiveChanged` (back/forward history).
+   - `ExplorerViewModel.TrackActiveAsync` selects the file in the tree, if Track Active Item is on.
 6. Dock now shows the tab. It asks the control cache for the content: `DockViewCache.Build(DocumentDockable)` →
    `DocumentViewFor(tab)`. The first time, it creates:
    - a preview control for AXAML (`PreviewPaneView` with `PreviewSessions.For(document)`, see
-     [flow 10](#10-axaml-live-preview)) or for Markdown (`MarkdownPreviewView`);
+     [flow 10](#10-axaml-live-preview)) or for Markdown (`MarkdownPreviewView`, whose code blocks are coloured by the
+     `CodeHighlighter` singleton);
    - `new DocumentView(tab, _editorServices, preview)` → `new EditorPaneView()` → `Initialize(services)` (creates
      `EditorContext` and every controller, and calls `Editor.InstallTextMate(grammars)`) → `SetDocument(doc)`.
 7. `EditorPaneView.SetDocument(doc)`: `_ctx.Detach()`, `Editor.Document = doc.Document`, `_ctx.Attach(doc)` (every
@@ -143,7 +152,10 @@ Starting from **File > Open Solution** or the start window's button.
    `OpenDocument`'s `UndoStack.PropertyChanged` → `IsDirty` / `DisplayTitle` change → `DocumentDockable` updates the
    tab title (adds `•`).
 4. `TextArea.TextEntered` → `TypingController.OnTextEntered`: auto-close `{`, file-scoped namespace on `;`, and
-   whether to open completion ([flow 5](#5-completion-c-and-axaml)) or signature help.
+   whether to open completion ([flow 5](#5-completion-c-and-axaml)) or signature help. In a comment
+   (`CommentAtCaret`, which uses Core `CSharpComments.KindAt` for C#) nothing opens by itself, except the tag list for
+   `<` in a `///` comment. In AXAML, `>` adds the end tag (`TryInsertXamlClosingTag`, which asks `XamlTagClosing`
+   whether the element already has one) and `/` in a start tag makes it `/>` (`TrySelfCloseXamlTag`).
 5. Caret moves → `EditorPaneView` (in `Initialize`) stores `active.CaretOffset` and sends `EditorStateChangedMessage`
    → `StatusBarViewModel.UpdateDocument` ("Ln x, Col y", line endings, encoding).
 6. When the timer fires, `DocumentSync.Flush()` increments `Version`, then calls `LspClient.DidChange(uri, version,
@@ -181,6 +193,8 @@ Started by typing (`TypingController.OnTextEntered`) or by Ctrl+Space (`KeyMap` 
 `CompletionController.ShowCompletionAsync(doc, triggerChar)` (`Editor/CodeCompletion/CompletionController.cs`):
 
 **AXAML branch**
+
+Nothing opens by itself in a comment ([flow 4](#4-type-in-a-c-file-sync-and-diagnostics), step 4).
 
 1. `_ctx.Xaml.GetCompletionsAsync(path, text, caret)` → `XamlLanguageService.GetCompletionsAsync`:
    1. `GetProjectAsync`: `WorkspaceModel.FindProjectForDocument`, then
@@ -268,8 +282,15 @@ Started by typing (`TypingController.OnTextEntered`) or by Ctrl+Space (`KeyMap` 
       - `DotNetProjectRunner.ExecuteAsync` → `dotnet build <path> --configuration <c>`. Each stdout and stderr line →
         `OutputReceived` → `RunViewModel.AppendProcessOutput` → `AppendBuildOutput` (posted to the UI thread if
         needed) → the Output panel;
-      - `finally`: sends `BuildFinishedMessage(exitCode == 0)` → `PreviewSessions.OnBuildFinished` (resume previews)
-        and `XamlCacheKeeper` → `XamlLanguageService.OnBuildFinished` (looks for the DLL again).
+      - `finally`: sends `BuildFinishedMessage(exitCode == 0)` → `PreviewSessions.OnBuildFinished` (resume previews),
+        `XamlCacheKeeper` → `XamlLanguageService.OnBuildFinished` (looks for the DLL again) and
+        `XamlAnalysisService` (checks open AXAML files for obsolete uses again);
+      - then `PublishBuildProblems`: `BuildOutputParser.Parse` reads the build's lines into errors and warnings →
+        `BuildProblemsMessage` → `ProblemsViewModel` (the Build rows). The status bar gets "Build failed: N errors...",
+        and if there were errors, `ShowToolTabMessage(Problems)` brings the Problems panel up, as Visual Studio does
+        with its Error List.
+   4. Double-clicking an error line in Output: `RunViewModel.OpenOutputLineCommand` → `BuildOutputParser.TryParseLine`
+      → `NavigateToProblemMessage` → `NavigationService`.
 
    Every build (Build, Rebuild, Clean, and the builds before Run and Debug) goes through `BuildWithNoticeAsync`, so
    each one sends exactly one started and one finished message.
@@ -353,7 +374,8 @@ Started by typing (`TypingController.OnTextEntered`) or by Ctrl+Space (`KeyMap` 
       {...})`.
 3. The host renders and sends a `FrameMessage` → `OnConnectionMessage` turns it into a `RawImageData` (Skia colour
    type), raises `FrameReceived` on the UI thread, and replies with `FrameReceivedMessage`. An `UpdateXamlResultMessage`
-   with an error raises `ErrorChanged` → `PreviewPaneViewModel` → `PreviewProblemMessage` → `ProblemsViewModel`.
+   with an error raises `ErrorChanged` → `PreviewPaneViewModel` → `PreviewProblemMessage` → `ProblemsViewModel` (a
+   Problems row) and `XamlAnalysisService` (a squiggle in the editor, [flow 14](#14-axaml-diagnostics)).
 4. `PreviewPaneViewModel.OnFrameReceived` → `FrameChanged` → `PreviewPaneView.OnFrameChanged` → the frame is drawn
    through `SkImageControl` / `SkBitmapImage` (SkiaSharp `InstallPixels`, drawn in a custom draw operation through
    `ISkiaSharpApiLeaseFeature`).
@@ -385,10 +407,17 @@ Started by typing (`TypingController.OnTextEntered`) or by Ctrl+Space (`KeyMap` 
    400 ms debounce (`DispatcherTimer`) → `RefreshAsync` → `GitService.GetStatusAsync` (runs `git`) → raises `Changed`.
    `GitViewModel` rebuilds its `Changes` and `Staged` lists from that.
 2. Stage: `GitViewModel.StageCommand` → `RunAsync(root => _git.StageAsync(root, [path]))`.
-3. Commit: `GitViewModel.Commit()` (enabled by `CanCommit`: not busy, something to commit, a message). If nothing is
+3. Optional: the sparkle button in the message box → `GitViewModel.GenerateCommitMessageCommand` (enabled while
+   there are changes and no message is being written). It sends the staged changes if there are any, else
+   everything, plus the names of untracked files (which `git diff` doesn't show), to
+   `CommitMessageWriter.WriteAsync(root, staged, newFiles)` (Core `Services/Agents/`): it gets the diff from
+   `GitService`, then runs the Claude Code CLI found beside the agent (`ClaudeAgentInstall.FindCli`) as
+   `claude -p --model haiku --tools "" --no-session-persistence ...` with the diff on stdin. The reply goes into
+   `CommitMessage`, for the user to check. A missing CLI or a git error goes to the status bar.
+4. Commit: `GitViewModel.Commit()` (enabled by `CanCommit`: not busy, something to commit, a message). If nothing is
    staged it runs `CommitAll()`. Otherwise `RunAsync(root => _git.CommitAsync(root, message))` →
    `GitService.CommitAsync` → `git commit -q -m <message>`.
-4. `RunAsync` → `TryRunAsync` sets `IsBusy`, runs the action, and reports any error (`Report`). On success the
+5. `RunAsync` → `TryRunAsync` sets `IsBusy`, runs the action, and reports any error (`Report`). On success the
    message box is cleared and `StatusMessage("Committed N files.")` is sent.
 
 ## 13. Close the solution
@@ -410,7 +439,9 @@ workspace over this one goes the same way (`OpenWorkspaceAsync` calls `CloseWork
    disposed, breakpoints untracked) and removes it from `Documents`. `DockLayoutViewModel.OnDocumentsChanged` then
    removes the tab and raises `TabRemoved`, and `DockViewCache.OnTabRemoved` calls `DocumentView.Shutdown()` →
    `EditorPaneView.Shutdown()`.
-4. `DockLayoutViewModel.CloseAllPages()` closes the diff, NuGet, Publish and visualizer tabs.
+4. `DockLayoutViewModel.CloseAllPages()` closes the page tabs (diff, NuGet, Publish, visualizer, image, Claude). The
+   Claude conversation itself lives in the `AgentChatViewModel` singleton; when the workspace folder changes, its
+   `OnWorkspaceChanged` starts a new chat, because Claude's tools work in the session's folder.
 5. `WorkspaceViewModel.Close()`: clears `Roots`, `ClearProjectCaches`, `LanguageSessionService.ClearWorkspace()` →
    `LspManager.ClearWorkspace()` → `Restart()` (disposes the server clients). Raises `Closed`.
 
@@ -431,3 +462,80 @@ window's X):
 4. `desktop.Exit` → `services.Dispose()` disposes every disposable singleton (MSBuild host, language servers,
    `RunViewModel` → runner, `PreviewSessions` → designer hosts). A program started with Run (not debugging) is
    stopped here without a question, as in Visual Studio: `DotNetProjectRunner.Dispose` → `Stop` kills its process tree.
+
+## 14. AXAML diagnostics
+
+No language server handles AXAML, so `XamlAnalysisService` (`Services/Languages/XamlAnalysisService.cs`) makes the
+squiggles and Problems rows for `.axaml` files itself, and sends them out the same way a server's are.
+
+1. `DocumentManager.Opened` → `XamlAnalysisService.Start(document)` (AXAML only): makes a 300 ms `DispatcherTimer`,
+   subscribes to `TextDocument.TextChanged` (each edit bumps the watch's `Version` and restarts the timer), and runs
+   `AnalyseAsync` once straight away.
+2. `AnalyseAsync(document)` (when the timer fires, and after every `BuildFinishedMessage`):
+   1. `XamlNamespaceAnalysis.Find(text)` (Core `Services/Xaml/`): xmlns problems, worked out from the text alone.
+   2. `XamlLanguageService.GetObsoleteUsesAsync(path, text)` → `XamlCompletionService.GetObsoleteUsesAsync` →
+      `GetMetadataAsync` (the same metadata completion uses, so it needs a built DLL) → `XamlObsoleteAnalysis.Find`
+      on a background thread: uses of `[Obsolete]` types and properties. If the project isn't built, this throws and
+      there's just nothing to flag.
+   3. If the metadata isn't ready within 150 ms (the first read of a project takes seconds), the xmlns results are
+      applied first, and the full set when the obsolete check finishes.
+3. `Apply` drops a result if the document closed or was edited since (`Version` changed). Otherwise `Publish`:
+   adds the preview's error as a squiggle if there is one (`PreviewErrorDiagnostic.From(error, text)`, from the last
+   `PreviewProblemMessage`), then `OpenDocument.ApplyDiagnostics` and `DiagnosticsChangedMessage`, which runs the
+   same reactions as [flow 4](#4-type-in-a-c-file-sync-and-diagnostics), step 9.
+4. `PreviewProblemMessage` → `OnPreviewProblem`: stores the error and publishes again. Mid-edit it waits for the next
+   analysis, since the last one's positions are out of date.
+5. `DocumentManager.Closing` → `Stop`: stops the timer and unsubscribes.
+
+## 15. Claude panel: send a message
+
+The panel is a page tab (`AgentChatDockable`, opened by View > Claude or the title-bar button) showing `AgentChatView`. The conversation is held by the
+`AgentChatViewModel` singleton (split into `.Turn`, `.History` and `.Attachments` partial files), so closing and
+reopening the tab brings the same chat back. It talks to `claude-agent-acp` through `AcpClient` (Core
+`Services/Agents/`) using the Agent Client Protocol.
+
+**Starting** (the first time the panel is shown)
+
+1. `AgentChatView.OnDataContextChanged` → `AgentChatViewModel.EnsureStarted()` → `StartAsync()`.
+2. `ClaudeAgentInstall.FindAgent()`. If the agent isn't installed: `State = NotInstalled`, and
+   `ClaudeAgentInstall.FindLatestReleaseAsync` looks up the newest GitHub release for this OS. Nothing is downloaded
+   until the Install button: `InstallCommand` → `ClaudeAgentInstall.InstallAsync` (download, unpack the `.zip` or
+   `.tar.gz` to a temporary folder, then move it into place), then `StartAsync` again.
+3. `AcpClient.StartAsync(agent, args, folder)` starts the process and its read loop (`AcpClient.Transport.cs`:
+   newline-delimited JSON-RPC on a `Channel`), then `InitializeAsync` (the ACP `initialize` request) reads the
+   agent's capabilities (`CanListSessions`, `CanLoadSessions`, `CanSendImages`).
+4. The view model subscribes to `Updated`, `AuthStateChanged` and `Exited`, posting each to the UI thread, and sets
+   `PermissionHandler`. Then `EnsureSessionAsync` → `NewSessionAsync(folder)` (`session/new` in the workspace
+   folder), so the Mode and Model drop-downs show before anything is typed (`ShowSettings`).
+
+**Attachments** (optional)
+
+- The + button → `AddFilesCommand` → `IDialogService.PickFilesAsync`. Files dropped on the panel → `OnDrop`.
+  Ctrl+V in the prompt box → `AgentChatView.PasteAsync`: copied files, else a picture (saved as PNG), else plain
+  text.
+- `AttachFiles` / `AttachPastedImage` add a `PromptAttachment` chip. A picture (up to `MaxImageBytes`) goes as an
+  image block if the agent takes pictures. Anything else goes as a file link the agent reads itself.
+
+**Sending** (Enter in the prompt box, or the send button)
+
+1. `AgentChatView.OnPromptKeyDown` (a tunnelling handler, so Enter doesn't become a new line) → `SendCommand` →
+   `AgentChatViewModel.Send()` (`AgentChatViewModel.Turn.cs`): adds a `UserMessageItem`, sets `IsTurnRunning`, and
+   calls `client.PromptAsync(sessionId, [text, ...attachments])` (`session/prompt`), which returns when the turn is
+   over.
+2. While it runs, the agent sends `session/update` notifications → `AcpClient.Updated` → `OnUpdate`:
+   - message and thought chunks are added to the last `AgentTextItem` (or start a new one);
+   - tool calls become `ToolCallItem`s and are updated in place;
+   - plans, the session title, settings and token usage update the panel.
+   Replies are shown by `MarkdownText` → `MarkdownRenderer`. Code blocks are coloured by `CodeHighlighter` (the
+   editor's TextMate grammars and current theme; `DockViewCache.ChatView` sets it as an inherited attached
+   property), and each has a Copy button. File links → `AgentChatViewModel.OpenFile` →
+   `NavigateToSearchResultMessage` → `NavigationService`.
+3. `session/request_permission` from the agent → `PermissionHandler` → `AskPermissionAsync` (on the UI thread): adds a
+   `PermissionItem` to the conversation and awaits the button the user clicks.
+4. When `PromptAsync` returns: a stop reason other than the normal end becomes a `NoticeItem`, open permission
+   questions are cancelled, and still-running tool calls are marked cancelled.
+5. Stop (the button, or Escape while a turn runs) → `StopCommand` → `client.Cancel(sessionId)` (`session/cancel`).
+
+**History**: the history button → `LoadHistoryCommand` → `client.ListSessionsAsync(folder)` (`session/list`).
+Picking one → `OpenSessionAsync` → `client.LoadSessionAsync` (`session/load`), and the agent replays the conversation
+as `session/update`s.
