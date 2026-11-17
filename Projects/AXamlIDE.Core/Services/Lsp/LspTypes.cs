@@ -24,7 +24,8 @@ public sealed record LspWorkspaceDiagnosticReport(
     string Uri, string? ResultId, bool Unchanged, IReadOnlyList<LspDiagnostic> Diagnostics);
 
 public sealed record LspRange(int StartLine, int StartChar, int EndLine, int EndChar);
-public sealed record LspLocation(string Uri, LspRange Range, string? Name = null, string? ContainerName = null);
+/// <param name="Kind">For a workspace symbol, the LSP SymbolKind (5 class, 6 method, 7 property...); else 0.</param>
+public sealed record LspLocation(string Uri, LspRange Range, string? Name = null, string? ContainerName = null, int Kind = 0);
 public sealed record LspDocumentSymbol(string Name, int Kind, LspRange Range, LspRange SelectionRange, string? ContainerName = null);
 
 /// <summary>

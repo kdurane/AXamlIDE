@@ -79,6 +79,7 @@ public partial class MainWindow : Window
             docking.CloseFloatingWindows();
         };
         keyMap.AttachTo(this);
+        viewModel.SearchEverywhere.Actions = keyMap.Actions;   // its Actions tab: the commands, with their keys
         Activated += (_, _) => fileWatcher.CheckAll();
     }
 

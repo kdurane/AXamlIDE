@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace AXamlIDE.Services.Xaml;
@@ -36,6 +37,25 @@ public sealed partial record XamlTypeReference(string Prefix, string Name, strin
         if (name.Length == 0 || !char.IsLetter(name[0]) && name[0] != '_' || ClrNamespaceOf(text, prefix) is not { } ns)
             return null;
         return new XamlTypeReference(prefix, name, ns, start > 0 && text[start - 1] == '<');
+    }
+
+    /// <summary>
+    /// The full names of the types the document's x:DataType and DataType="..." attributes name (with a CLR xmlns
+    /// prefix), each once: the view models its bindings go to.
+    /// </summary>
+    public static IReadOnlyList<string> DataTypes(string text)
+    {
+        var names = new List<string>();
+        const string attribute = "DataType=";
+        var at = 0;
+        while ((at = text.IndexOf(attribute, at, StringComparison.Ordinal)) >= 0)
+        {
+            at += attribute.Length;
+            if (at < text.Length && text[at] is '"' or '\''
+                && At(text, at + 1) is { InTag: false } type && !names.Contains(type.FullName))
+                names.Add(type.FullName);
+        }
+        return names;
     }
 
     /// <summary>The CLR namespace an xmlns prefix stands for in the document; null for URL namespaces.</summary>

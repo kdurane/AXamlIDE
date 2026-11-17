@@ -63,8 +63,39 @@ public sealed class XamlCompletionService
         var (targetAssembly, bundle) = await GetMetadataAsync(projectPath, assemblyName, outputPath, assetsPath);
         var projectXaml = GetProjectXaml(projectPath);
         lock (_engineGate)
+        {
+            AddSourceProperties(bundle.Metadata);
             return _engine.GetCompletions(
                 bundle.Metadata, text, caretOffset, Path.GetFileNameWithoutExtension(targetAssembly), projectXaml);
+        }
+    }
+
+    // Type full name -> the property names its C# source has now (see SetSourceProperties).
+    private readonly ConcurrentDictionary<string, IReadOnlyList<string>> _sourceProperties = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The properties a project type has in its source right now, from the C# language server. Metadata is read from
+    /// the built DLL, so without these a property added since the last build isn't offered in {Binding ...}: an
+    /// [ObservableProperty], a [RelayCommand]'s SaveCommand (both made by a source generator), or a plain new one.
+    /// Rider offers them straight away. Ones the DLL already has are left as they are.
+    /// </summary>
+    public void SetSourceProperties(string typeFullName, IReadOnlyList<string> propertyNames)
+        => _sourceProperties[typeFullName] = propertyNames;
+
+    /// <summary>Give the built types the properties their source has gained (called under the engine lock).</summary>
+    private void AddSourceProperties(Metadata metadata)
+    {
+        foreach (var (fullName, names) in _sourceProperties)
+        {
+            if (!metadata.InverseNamespace.TryGetValue(fullName, out var ns)
+                || !metadata.Namespaces.TryGetValue(ns, out var types)
+                || !types.TryGetValue(fullName[(fullName.LastIndexOf('.') + 1)..], out var type))
+                continue;   // not built yet at all: nothing to add to
+            foreach (var name in names)
+                if (!type.Properties.Exists(p => p.Name == name))
+                    type.Properties.Add(new MetadataProperty(name, Type: null, DeclaringType: type, IsAttached: false,
+                        IsStatic: false, HasGetter: true, HasSetter: false));
+        }
     }
 
     /// <summary>A build finished: look for each project's DLL again (it may now be in another output folder).</summary>

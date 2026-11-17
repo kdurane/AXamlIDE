@@ -100,6 +100,7 @@ public static class AppServices
         services.AddSingleton<StatusBarViewModel>();        // messages, Ln/Col, encoding, solution analysis, language server
         services.AddSingleton<OutlineViewModel>();
         services.AddSingleton<SearchViewModel>();
+        services.AddSingleton<SearchEverywhereViewModel>();   // the top bar's box (double Shift)
         services.AddSingleton<RunViewModel>();
         services.AddSingleton<TerminalViewModel>();       // the Terminal panel's shell
         services.AddSingleton<TestExplorerViewModel>();   // the Tests panel (Test Explorer)

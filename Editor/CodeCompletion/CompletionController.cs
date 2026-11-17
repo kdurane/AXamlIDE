@@ -23,6 +23,7 @@ public sealed class CompletionController
     private readonly EditorContext _ctx;
     private readonly HoverController _hover;
     private readonly SnippetController _snippets;
+    private readonly XamlSourceMembers _sourceMembers;
 
     private CompletionWindow? _completionWindow;
     private CompletionWindow? _incompleteWindow;   // the open list, when the server left items out of it
@@ -33,6 +34,7 @@ public sealed class CompletionController
         _ctx = ctx;
         _hover = hover;
         _snippets = snippets;
+        _sourceMembers = new XamlSourceMembers(ctx.Languages, ctx.Xaml);
 
         ctx.Detaching += _ => Close();
     }
@@ -72,6 +74,8 @@ public sealed class CompletionController
             var requestedText = doc.Document.Text;
             try
             {
+                // Properties the view models have gained since the last build ([ObservableProperty], [RelayCommand]).
+                await _sourceMembers.UpdateAsync(requestedText, TimeSpan.FromMilliseconds(300));
                 var result = await _ctx.Xaml.GetCompletionsAsync(doc.Path, requestedText, caret);
                 if (seq != _completionSeq)
                     return;   // superseded: don't fall through and ask the server on behalf of a stale request

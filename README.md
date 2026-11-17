@@ -20,7 +20,8 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 - **Testing**: Test Explorer for xUnit, NUnit, MSTest and TUnit projects: run all, run failed, results in the tree.
 - **NuGet**: browse, install, update and uninstall packages; installed and transitive packages.
 - **Git**: status in the explorer, stage, unstage, commit, side-by-side diffs, history graph.
-- **Other**: search in files, go to file and symbol, Problems panel, terminal, image viewer, dockable and floating
+- **Other**: Search Everywhere (double Shift, as Rider's: types, files, symbols, IDE actions and options), search in
+  files, go to file and symbol, Problems panel, terminal, image viewer, dockable and floating
   panels, open files reload when changed on disk.
 
 ## Requirements

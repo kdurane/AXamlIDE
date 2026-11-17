@@ -43,7 +43,7 @@ public sealed class SnippetController
     public IEnumerable<SnippetCompletionData> CompletionItems(OpenDocument document, int start)
     {
         var text = document.Document;
-        if (start > 0 && text.GetCharAt(start - 1) == '.')
+        if (!_ctx.Settings.Features.SnippetsInCompletion || start > 0 && text.GetCharAt(start - 1) == '.')
             return [];
         var snippets = _library.For(document.LanguageId);
         if (document.LanguageId == LanguageIds.Axaml)
@@ -79,7 +79,8 @@ public sealed class SnippetController
     /// <summary>Tab right after a snippet's prefix ("prop|") expands it.</summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key != Key.Tab || e.KeyModifiers != KeyModifiers.None || _ctx.Active is not { } document
+        if (e.Key != Key.Tab || e.KeyModifiers != KeyModifiers.None || !_ctx.Settings.Features.TabExpandsSnippets
+            || _ctx.Active is not { } document
             || IsCompletionOpen() || _ctx.Editor.SelectionLength > 0
             || !_ctx.Editor.TextArea.StackedInputHandlers.IsEmpty)   // a snippet being filled in: Tab moves between its fields
             return;

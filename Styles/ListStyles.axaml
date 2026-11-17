@@ -22,6 +22,32 @@
         <Setter Property="Padding" Value="0,0,6,0" />
         <Setter Property="MinHeight" Value="22" />
     </Style>
+    <!--  tabs: a row of words to pick from, the picked one underlined (Search Everywhere's All / Types / Files..., as Rider's).  -->
+    <Style Selector="ListBox.tabs">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.tabs ListBoxItem">
+        <Setter Property="Padding" Value="10,3" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+    <Style Selector="ListBox.tabs ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="BorderThickness" Value="0,0,0,2" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="ListBox.tabs ListBoxItem:selected">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="ListBox.tabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DockTabActiveIndicatorBrush}" />
+    </Style>
     <!--  compact tree: the same dense rows (the references list under a code lens).  -->
     <Style Selector="TreeView.compact">
         <Setter Property="Background" Value="Transparent" />

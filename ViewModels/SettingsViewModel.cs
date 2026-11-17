@@ -250,6 +250,18 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { ParameterInfoWhileTyping = value });
     }
 
+    public bool SnippetsInCompletion
+    {
+        get => Features.SnippetsInCompletion;
+        set => SetFeatures(Features with { SnippetsInCompletion = value });
+    }
+
+    public bool TabExpandsSnippets
+    {
+        get => Features.TabExpandsSnippets;
+        set => SetFeatures(Features with { TabExpandsSnippets = value });
+    }
+
     public bool QuickInfoOnHover
     {
         get => Features.QuickInfoOnHover;

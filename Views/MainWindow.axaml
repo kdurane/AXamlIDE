@@ -150,6 +150,14 @@
                     <MenuItem Command="{Binding NavigateBackCommand}" Header="Navigate _Backward" />
                     <MenuItem Command="{Binding NavigateForwardCommand}" Header="Navigate For_ward" />
                     <Separator />
+                    <MenuItem
+                        Command="{Binding SearchEverywhere.OpenCommand}"
+                        CommandParameter="{x:Static models:SearchEverywhereTab.All}"
+                        Header="Search _Everywhere..." />
+                    <MenuItem
+                        Command="{Binding SearchEverywhere.OpenCommand}"
+                        CommandParameter="{x:Static models:SearchEverywhereTab.Actions}"
+                        Header="Find _Action..." />
                     <MenuItem Command="{Binding EditorCommands.QuickOpen}" Header="Go to _File..." />
                     <MenuItem Command="{Binding EditorCommands.WorkspaceSymbols}" Header="Go to _Symbol..." />
                     <Separator />
@@ -389,20 +397,12 @@
                 </Button>
             </StackPanel>
 
-            <!--  Search the workspace; results open in the Search window.  -->
-            <TextBox
-                Classes="SearchBox"
-                FontSize="11"
+            <!--  Search Everywhere (double Shift), as Rider's: types, files, symbols, actions, and Text for the Search window.  -->
+            <views:SearchEverywhereView
+                DataContext="{Binding SearchEverywhere}"
                 Grid.Column="2"
                 Margin="4,3"
-                MinHeight="0"
-                PlaceholderText="Search in files (Ctrl+Shift+F)"
-                Text="{Binding TopBarSearchText}"
-                Width="280">
-                <TextBox.KeyBindings>
-                    <KeyBinding Command="{Binding SearchFromTopBarCommand}" Gesture="Enter" />
-                </TextBox.KeyBindings>
-            </TextBox>
+                Width="280" />
             <Button
                 AutomationProperties.Name="Settings"
                 Background="{DynamicResource AppTitleBarBackgroundBrush}"

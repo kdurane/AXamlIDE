@@ -425,6 +425,14 @@ public sealed partial class LspClient : ILspSender, IDisposable
     public void DidClose(string uri)
         => Notify("textDocument/didClose", new { textDocument = new { uri } });
 
+    /// <summary>
+    /// Roslyn: run the source generators again for the text as it is now. Roslyn otherwise only reruns them when a
+    /// file is saved, so what [ObservableProperty] and [RelayCommand] generate (Title, SaveCommand, OnTitleChanged)
+    /// is missing from completion until then. Unchanged generator inputs are reused, so it's cheap when nothing moved.
+    /// </summary>
+    public void RefreshSourceGenerators()
+        => Notify("workspace/_roslyn_refreshSourceGenerators", new { forceRegeneration = false });
+
     /// <summary>The settings changed: the server asks for the ones it uses again (workspace/configuration).</summary>
     public void DidChangeConfiguration()
         => Notify("workspace/didChangeConfiguration", new { settings = (object?)null });

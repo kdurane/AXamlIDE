@@ -39,6 +39,7 @@
     "Git.GenerateCommitMessage": "Ctrl+Alt+M",
 
     // ---- Navigate
+    "Navigate.FindAction": ["Ctrl+Shift+P", "F1"],
     "Navigate.GoToFile": "Ctrl+P",
     "Navigate.GoToSymbol": "Ctrl+T",
     "Navigate.GoToDefinition": "F12",

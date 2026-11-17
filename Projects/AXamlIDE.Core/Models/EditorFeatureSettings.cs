@@ -38,6 +38,15 @@ public sealed record EditorFeatureSettings
     /// <summary>Parameter info opens on '(' and ','. (Ctrl+Shift+Space still opens it.)</summary>
     public bool ParameterInfoWhileTyping { get; init; } = true;
 
+    /// <summary>
+    /// Snippets (class, prop, ctor...) are offered in the completion list. Rider: "Show live templates in completion";
+    /// VS Code: editor.snippetSuggestions. Insert Snippet (Ctrl+J) still lists them.
+    /// </summary>
+    public bool SnippetsInCompletion { get; init; } = true;
+
+    /// <summary>Tab right after a snippet's shortcut ("prop" + Tab) expands it. VS Code: editor.tabCompletion.</summary>
+    public bool TabExpandsSnippets { get; init; } = true;
+
     /// <summary>Resting the pointer on a name shows what it is (Quick Info). Errors under the pointer still show.</summary>
     public bool QuickInfoOnHover { get; init; } = true;
 

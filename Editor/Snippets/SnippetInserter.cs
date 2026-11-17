@@ -27,7 +27,39 @@ public static class SnippetInserter
             textArea.Document.Remove(start, caret - start);
             textArea.Caret.Offset = start;
         }
+        if (filePath?.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) == true)
+            definition = WithoutTypedModifiers(definition, textArea.Document, start);
         Build(definition, filePath, IndentUnit.Detect(textArea.Document.Text)).Insert(textArea);
+    }
+
+    private static readonly HashSet<string> Modifiers =
+    [
+        "public", "private", "protected", "internal", "file", "static", "sealed", "abstract", "partial", "readonly",
+        "virtual", "override", "async", "unsafe", "required", "extern", "volatile"
+    ];
+
+    /// <summary>
+    /// "private sealed cla" + the class snippet gives "private sealed class X", not "private sealed public class X":
+    /// when only modifiers come before the snippet on its line, the ones the snippet starts with are dropped
+    /// (the typed ones win, as with Rider's templates).
+    /// </summary>
+    private static SnippetDefinition WithoutTypedModifiers(SnippetDefinition definition, AvaloniaEdit.Document.TextDocument document, int start)
+    {
+        var line = document.GetLineByOffset(start);
+        var typed = document.GetText(line.Offset, start - line.Offset).Split(' ', '\t', StringSplitOptions.RemoveEmptyEntries);
+        if (typed.Length == 0 || !typed.All(Modifiers.Contains))
+            return definition;
+
+        // Peel "public " (one word and its space) off the front of the body while it's a modifier.
+        var body = definition.Body;
+        while (true)
+        {
+            var space = body.IndexOf(' ');
+            if (space <= 0 || !Modifiers.Contains(body[..space]))
+                break;
+            body = body[(space + 1)..];
+        }
+        return definition with { Body = body };
     }
 
     private static Snippet Build(SnippetDefinition definition, string? filePath, string indent)

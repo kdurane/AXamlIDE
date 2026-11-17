@@ -55,6 +55,10 @@ public sealed class XamlLanguageService
             project.ProjectPath, project.AssemblyName, text, caretOffset, project.OutputPath, project.AssetsPath);
     }
 
+    /// <inheritdoc cref="XamlCompletionService.SetSourceProperties"/>
+    public void SetSourceProperties(string typeFullName, IReadOnlyList<string> propertyNames)
+        => _xamlCompletion.SetSourceProperties(typeFullName, propertyNames);
+
     public async Task<XamlCompletionService.XamlHover?> GetHoverAsync(string documentPath, string text, int offset)
     {
         var project = await GetProjectAsync(documentPath);

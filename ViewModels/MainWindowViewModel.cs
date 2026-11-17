@@ -48,6 +48,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         DockLayoutViewModel docking,
         WorkspaceSession session,
         SearchViewModel search,
+        SearchEverywhereViewModel searchEverywhere,
         ProblemsViewModel problems,
         RunViewModel run,
         TerminalViewModel terminal,
@@ -83,6 +84,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         Docking = docking;
         Session = session;
         Search = search;
+        SearchEverywhere = searchEverywhere;
+        searchEverywhere.FindInFiles = FindInFiles;
         Problems = problems;
         Run = run;
         Terminal = terminal;
@@ -110,11 +113,11 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     /// <summary>The open workspace's remembered session (open files, layout). MainWindow saves it on exit.</summary>
     public WorkspaceSession Session { get; }
 
-    /// <summary>Find in files (the top bar's search box sends its query here).</summary>
+    /// <summary>Find in files (Search Everywhere's Text tab sends its words here).</summary>
     public SearchViewModel Search { get; }
 
-    /// <summary>The top bar's search box text.</summary>
-    [ObservableProperty] public partial string TopBarSearchText { get; set; } = "";
+    /// <summary>The top bar's box: Search Everywhere (double Shift), as Rider's.</summary>
+    public SearchEverywhereViewModel SearchEverywhere { get; }
 
     // Areas the menus and KeyMap bind to.
     public WorkspaceViewModel Workspace { get; }
@@ -160,17 +163,10 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         _messenger.Send(new FocusFindInFilesMessage());
     }
 
-    /// <summary>The top bar's search box: search the workspace for its text, in the Search window.</summary>
-    [RelayCommand]
-    private void SearchFromTopBar()
+    /// <summary>Search Everywhere's "Find ... in Files": search the workspace for the words, in the Search window.</summary>
+    private void FindInFiles(string query)
     {
-        if (string.IsNullOrWhiteSpace(TopBarSearchText))
-        {
-            ShowFindInFiles();
-            return;
-        }
-
-        Search.SearchQuery = TopBarSearchText;
+        Search.SearchQuery = query;
         Docking.ShowTool(ToolTab.Search);
         Search.SearchWorkspaceCommand.Execute(null);
     }

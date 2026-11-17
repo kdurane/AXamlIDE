@@ -113,6 +113,10 @@
                         <TextBlock Classes="SettingHint" Text="Picking one adds the using. C#." />
                         <CheckBox Content="Show parameter info while typing" IsChecked="{Binding ParameterInfoWhileTyping, Mode=TwoWay}" />
                         <TextBlock Classes="SettingHint" Text="On ( and , in a call. Off: Ctrl+Shift+Space shows it." />
+                        <CheckBox Content="Show snippets in the completion list" IsChecked="{Binding SnippetsInCompletion, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="class, prop, ctor... below the other items. Off: Edit &gt; Insert Snippet (Ctrl+J) still lists them." />
+                        <CheckBox Content="Expand a snippet with Tab after its shortcut" IsChecked="{Binding TabExpandsSnippets, Mode=TwoWay}" />
+                        <TextBlock Classes="SettingHint" Text="Type prop, press Tab." />
                         <CheckBox Content="Show Quick Info on hover" IsChecked="{Binding QuickInfoOnHover, Mode=TwoWay}" />
                         <TextBlock Classes="SettingHint" Text="What the name under the pointer is, and its documentation. Errors and warnings under the pointer always show." />
 

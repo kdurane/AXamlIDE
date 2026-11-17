@@ -44,6 +44,7 @@
     "View.TogglePanel": "Ctrl+Shift+F12",   // Rider's Hide All Tool Windows; VS has none, and Ctrl+J is Insert Snippet here
 
     // ---- Navigate
+    "Navigate.SearchEverywhere": "Ctrl+Q",
     "Navigate.GoToFile": "Ctrl+P",
     "Navigate.GoToSymbol": "Ctrl+T",
     "Navigate.GoToDefinition": "F12",

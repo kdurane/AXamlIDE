@@ -85,6 +85,8 @@ public static class CommandCatalog
         new("Git.GenerateCommitMessage", "Generate Commit Message", "Have Claude write the commit message for the changes about to be committed."),
 
         // ---- Navigate
+        new("Navigate.SearchEverywhere", "Search Everywhere", "Find types, files, symbols, actions and options by name, as Rider's (also double Shift)."),
+        new("Navigate.FindAction", "Find Action", "Find an IDE command or option by name and run it (VS Code's Command Palette)."),
         new("Navigate.GoToFile", "Go to File", "Find a file by name and open it."),
         new("Navigate.GoToSymbol", "Go to Symbol", "Find a type or member anywhere in the workspace."),
         new("Navigate.GoToDefinition", "Go to Definition", "Jump to where the symbol at the caret is declared.", Editor),

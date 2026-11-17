@@ -34,6 +34,13 @@ public sealed class LanguageSessionService
     private readonly IEditorSettings _settings;
     private readonly Dictionary<OpenDocument, DocumentConnection> _connections = [];
 
+    /// <summary>
+    /// A pause in typing C#: Roslyn reruns the source generators (see <see cref="LspClient.RefreshSourceGenerators"/>),
+    /// so a new [RelayCommand] method's SaveCommand is in the completion list without saving first, as in Rider.
+    /// </summary>
+    private readonly DispatcherTimer _generatorRefresh = new() { Interval = TimeSpan.FromMilliseconds(600) };
+    private LspClient? _generatorClient;
+
     /// <summary>The open folder/solution: where the XAML formatter stops looking for Settings.XamlStyler.</summary>
     private string? _workspaceRoot;
 
@@ -59,6 +66,13 @@ public sealed class LanguageSessionService
         _servers.DiagnosticsPublished += OnDiagnosticsPublished;
         _servers.DiagnosticsRefreshNeeded += OnDiagnosticsRefreshNeeded;
         _servers.WorkspaceEditHandler = edit => WorkspaceEditRequested?.Invoke(edit) ?? Task.FromResult(false);
+
+        _generatorRefresh.Tick += (_, _) =>
+        {
+            _generatorRefresh.Stop();
+            _generatorClient?.RefreshSourceGenerators();
+            _generatorClient = null;
+        };
     }
 
     /// <summary>Raised once a document is connected to its server (<see cref="ConnectionFor"/> is non-null from then on).</summary>
@@ -143,6 +157,12 @@ public sealed class LanguageSessionService
         {
             if (client.SupportsPullDiagnostics)
                 _ = PullDiagnosticsAsync(document);
+            if (document.LanguageId == LanguageIds.CSharp)
+            {
+                _generatorClient = client;
+                _generatorRefresh.Stop();
+                _generatorRefresh.Start();   // restart: once typing pauses
+            }
         };
 
         if (client.SupportsPullDiagnostics)

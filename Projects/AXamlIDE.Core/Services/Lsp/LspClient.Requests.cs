@@ -317,7 +317,8 @@ public sealed partial class LspClient
                           ? ParseRange(range)
                           : new LspRange(0, 0, 0, 0),
                       Str(symbol, "name"),
-                      Str(symbol, "containerName"));
+                      Str(symbol, "containerName"),
+                      symbol.TryGetProperty("kind", out var kind) && kind.TryGetInt32(out var k) ? k : 0);
               }).Where(location => location.Uri.Length > 0)];
     }
 

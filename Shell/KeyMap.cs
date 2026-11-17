@@ -10,6 +10,7 @@ using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using AvaloniaEdit.Editing;
 using AXamlIDE.Messages;
+using AXamlIDE.Models;
 using AXamlIDE.Services.Keymaps;
 using AXamlIDE.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
@@ -83,6 +84,14 @@ public sealed class KeyMap
     /// <summary>The active keymap's shortcuts.</summary>
     public IReadOnlyList<KeyMapEntry> Entries { get; private set; }
 
+    /// <summary>Every catalog command with its key in the active keymap: Search Everywhere's Actions.</summary>
+    public IEnumerable<IdeAction> Actions()
+        => CommandCatalog.All.Select(info =>
+        {
+            var (command, parameter) = _commands[info.Id];
+            return new IdeAction(info, command, parameter, Entries.FirstOrDefault(e => e.Info.Id == info.Id)?.Shortcut.ToString());
+        });
+
     /// <summary>The command behind each id in CommandCatalog. To add a command, add a line here and to the catalog.</summary>
     private static Dictionary<string, (ICommand, object?)> WireCommands(MainWindowViewModel shell, PropertiesViewModel properties)
     {
@@ -135,6 +144,8 @@ public sealed class KeyMap
             ["Claude.NewChat"] = (shell.NewClaudeChatCommand, null),
             ["Git.GenerateCommitMessage"] = (shell.Git.GenerateCommitMessageCommand, null),
 
+            ["Navigate.SearchEverywhere"] = (shell.SearchEverywhere.OpenCommand, SearchEverywhereTab.All),
+            ["Navigate.FindAction"] = (shell.SearchEverywhere.OpenCommand, SearchEverywhereTab.Actions),
             ["Navigate.GoToFile"] = (editor.QuickOpen, null),
             ["Navigate.GoToSymbol"] = (editor.WorkspaceSymbols, null),
             ["Navigate.GoToDefinition"] = (editor.GoToDefinition, null),
@@ -207,10 +218,48 @@ public sealed class KeyMap
 
     /// <summary>Make the shortcuts work while <paramref name="root"/> (usually a Window) has focus.</summary>
     public void AttachTo(InputElement root)
-        => root.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+    {
+        root.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        root.AddHandler(InputElement.KeyUpEvent, OnKeyUp, RoutingStrategies.Tunnel);
+    }
+
+    // Double Shift (Rider's Search Everywhere): two taps of Shift on its own, close together. Typing a capital, or
+    // Shift+arrows, presses another key in between, so it never counts.
+    private const long DoubleShiftMilliseconds = 400;
+    private bool _shiftAlone;        // Shift is down and nothing else has been pressed with it
+    private long _lastShiftTap;      // when the last lone tap ended (Environment.TickCount64), 0 for none
+
+    private void TrackShift(KeyEventArgs e)
+    {
+        if (e.Key is Key.LeftShift or Key.RightShift)
+        {
+            _shiftAlone = e.KeyModifiers == KeyModifiers.Shift;   // not Ctrl+Shift...
+            return;
+        }
+        _shiftAlone = false;
+        _lastShiftTap = 0;
+    }
+
+    private void OnKeyUp(object? sender, KeyEventArgs e)
+    {
+        if (e.Key is not (Key.LeftShift or Key.RightShift) || !_shiftAlone)
+            return;
+        _shiftAlone = false;
+        var now = Environment.TickCount64;
+        if (_lastShiftTap != 0 && now - _lastShiftTap <= DoubleShiftMilliseconds)
+        {
+            _lastShiftTap = 0;
+            var (command, parameter) = _commands["Navigate.SearchEverywhere"];
+            if (command.CanExecute(parameter))
+                command.Execute(parameter);
+            return;
+        }
+        _lastShiftTap = now;
+    }
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
+        TrackShift(e);
         if (e.Key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
             or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin)
             return;   // a modifier on its own, e.g. Ctrl going down for the second key of a chord

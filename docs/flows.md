@@ -196,6 +196,13 @@ Started by typing (`TypingController.OnTextEntered`) or by Ctrl+Space (`KeyMap` 
 
 Nothing opens by itself in a comment ([flow 4](#4-type-in-a-c-file-sync-and-diagnostics), step 4).
 
+First, `XamlSourceMembers.UpdateAsync` (waits at most 300 ms): for each `x:DataType` type in the file
+(`XamlTypeReference.DataTypes`), Roslyn's `workspace/symbol` finds every part of the class (the user's file and
+each generator's `.g.cs`), and `textDocument/documentSymbol` on each lists its properties →
+`XamlLanguageService.SetSourceProperties`. That's how `{Binding ...}` offers an `[ObservableProperty]` or a
+`[RelayCommand]`'s `SaveCommand` before the next build, as Rider does. Asked again at most every 2 seconds per
+type, and only of a server that is already running.
+
 1. `_ctx.Xaml.GetCompletionsAsync(path, text, caret)` → `XamlLanguageService.GetCompletionsAsync`:
    1. `GetProjectAsync`: `WorkspaceModel.FindProjectForDocument`, then
       `Task.Run(() => Host.GetProjectFacts(project))`. This uses the MSBuild host, but is usually answered from its cache.
@@ -207,7 +214,9 @@ Nothing opens by itself in a comment ([flow 4](#4-type-in-a-c-file-sync-and-diag
         dnlib), then `ReadDocumentation` (XML doc files).
       - `GetProjectXaml`: the `x:Key`s and style classes of the project's `.axaml` files. The scan is trusted for 10
         seconds, and saved files clear it (`XamlCacheKeeper`).
-      - `lock (_engineGate) _engine.GetCompletions(...)` runs the forked `CompletionEngine` (`Core/CompletionEngine/`).
+      - `lock (_engineGate)`: `AddSourceProperties` gives the built types the properties their C# source has gained
+        since the build (see below), then `_engine.GetCompletions(...)` runs the forked `CompletionEngine`
+        (`Core/CompletionEngine/`).
 2. If the request is still current (same sequence number, same document, caret and text unchanged): it creates a
    `CompletionWindow(editor.TextArea)` with one `XamlEngineCompletionData` per item, adds snippets, and calls
    `ShowCompletionWindow` → `window.Show()`.
@@ -223,6 +232,13 @@ Nothing opens by itself in a comment ([flow 4](#4-type-in-a-c-file-sync-and-diag
    If the open list was incomplete and starts at the same place, it `Refill`s it. Otherwise it opens a new
    `CompletionWindow`.
 5. `SelectionChanged` → `LspCompletionData.Resolve()` (`completionItem/resolve`: documentation and the `using` to add).
+   Snippets are only added with Settings > IntelliSense > "Show snippets in the completion list" on
+   (`SnippetController.CompletionItems`); Tab after a prefix expands one only with "Expand a snippet with Tab" on.
+   A C# snippet inserted after modifiers ("private sealed cla" + `class`) drops the ones it starts with
+   (`SnippetInserter.WithoutTypedModifiers`).
+   Source generators: after a 600 ms pause in typing C#, `LanguageSessionService` sends Roslyn
+   `workspace/_roslyn_refreshSourceGenerators` (`LspClient.RefreshSourceGenerators`), which otherwise reruns them only
+   on save, so a new `[RelayCommand]`'s `SaveCommand` is in the next list.
 6. Typing a character that isn't part of a name: `TypingController.OnTextEntering` →
    `CompletionController.HandleTextEntering` → `CompletionList.RequestInsertion(e)` commits the selected item.
 
@@ -391,8 +407,11 @@ Nothing opens by itself in a comment ([flow 4](#4-type-in-a-c-file-sync-and-diag
 1. Ctrl+Shift+F → `Edit.FindInFiles` → `MainWindowViewModel.ShowFindInFiles()` → `DockLayoutViewModel.ShowTool(Search)`.
    Search has no home dock, so the first time it opens it floats (`DockFactory.FloatTool`, near the main window) →
    sends `FocusFindInFilesMessage` → `SearchViewModel` (the view focuses the box).
-   - The top bar's search box: `MainWindowViewModel.SearchFromTopBar` copies the text into `Search.SearchQuery` and runs
-     `SearchWorkspaceCommand`.
+   - From Search Everywhere (the top bar's box, double Shift: `SearchEverywhereViewModel`, `SearchEverywhereView`):
+     its Text row calls `MainWindowViewModel.FindInFiles`, which copies the words into `Search.SearchQuery` and runs
+     `SearchWorkspaceCommand`; the box clears. Its other tabs find types and symbols (Roslyn `workspace/symbol`),
+     files (`IDocumentHost.GetWorkspaceFilesAsync`, matched by `FuzzyMatch`), and actions (`KeyMap.Actions`: every
+     `CommandCatalog` command with its key) plus the Settings window's on/off options.
 2. `SearchViewModel.SearchWorkspace()`:
    1. `GetSearchRoots()`: the workspace folder, plus the folders of solution projects outside it
       (`WorkspaceModel.SearchRoots`).
