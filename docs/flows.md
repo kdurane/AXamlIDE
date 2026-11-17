@@ -503,10 +503,27 @@ reopening the tab brings the same chat back. It talks to `claude-agent-acp` thro
    `.tar.gz` to a temporary folder, then move it into place), then `StartAsync` again.
 3. `AcpClient.StartAsync(agent, args, folder)` starts the process and its read loop (`AcpClient.Transport.cs`:
    newline-delimited JSON-RPC on a `Channel`), then `InitializeAsync` (the ACP `initialize` request) reads the
-   agent's capabilities (`CanListSessions`, `CanLoadSessions`, `CanSendImages`).
+   agent's capabilities (`CanListSessions`, `CanLoadSessions`, `CanSendImages`). The IDE says it can run sign-in
+   commands (`_meta["terminal-auth"]`), so the agent lists its ways to sign in (`AuthMethods`, read by
+   `AcpParser.AuthMethods`).
 4. The view model subscribes to `Updated`, `AuthStateChanged` and `Exited`, posting each to the UI thread, and sets
    `PermissionHandler`. Then `EnsureSessionAsync` → `NewSessionAsync(folder)` (`session/new` in the workspace
    folder), so the Mode and Model drop-downs show before anything is typed (`ShowSettings`).
+
+**Signing in** (`AgentChatViewModel.SignIn.cs`), like VS Code's Claude sign-in
+
+1. The agent says it isn't signed in: `auth/status_update` with `unauthenticated` → `AuthStateChanged`, or
+   `session/new` or `session/prompt` fails with ACP's "authentication required" error (`AcpException.IsAuthRequired`,
+   code -32000; this is how an expired login shows up). `NeedSignIn` sets `State = SignIn` and remembers the
+   conversation to reopen. A message that failed goes back into the prompt box.
+2. The panel shows a button per `AcpAuthMethod` (Claude subscription, Anthropic Console). A click → `SignInCommand` →
+   `AgentSignIn.Start`, which runs the method's command (`claude-agent-acp --cli auth login --claudeai`) with no
+   window. The command opens the browser itself, and the browser hands the login back to it on localhost.
+3. The command also prints a link for when the browser can't open (`AgentSignIn.LinkFound`). The panel then offers
+   Open sign-in page / Copy link and a box for the code that page shows (`SubmitSignInCodeCommand` →
+   `AgentSignIn.SubmitCode`, written to the command's stdin). Cancel kills the command.
+4. The command exits 0 → `RestartAfterSignInAsync`: a fresh agent (the old one still thinks it isn't signed in),
+   then `OpenSessionAsync` reopens the interrupted conversation.
 
 **Attachments** (optional)
 

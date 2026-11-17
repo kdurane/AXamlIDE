@@ -112,5 +112,22 @@ public partial class AgentChatView : UserControl
         e.Handled = true;
     }
 
+    /// <summary>The sign-in page, for when the browser didn't open by itself.</summary>
+    private async void OnOpenSignInLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string url }
+            && Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && uri.Scheme == "https"
+            && TopLevel.GetTopLevel(this) is { } topLevel)
+            await topLevel.Launcher.LaunchUriAsync(uri);
+    }
+
+    /// <summary>The sign-in page's link, to open in another browser.</summary>
+    private async void OnCopySignInLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string url } && TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard)
+            await clipboard.SetTextAsync(url);
+    }
+
     private void FocusPrompt() => Dispatcher.UIThread.Post(() => PromptBox.Focus(), DispatcherPriority.Loaded);
 }

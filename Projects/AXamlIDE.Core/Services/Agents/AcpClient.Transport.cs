@@ -145,7 +145,8 @@ public sealed partial class AcpClient
             if (hasId && id.TryGetInt32(out var number) && _pending.TryRemove(number, out var reply))
             {
                 if (message.TryGetProperty("error", out var error))
-                    reply.TrySetException(new AcpException(AcpParser.String(error, "message") ?? "The agent returned an error."));
+                    reply.TrySetException(new AcpException(AcpParser.String(error, "message") ?? "The agent returned an error.",
+                        error.ValueKind == JsonValueKind.Object && error.TryGetProperty("code", out var code) && code.TryGetInt32(out var value) ? value : null));
                 else
                     reply.TrySetResult(message.TryGetProperty("result", out var result) ? result.Clone() : default);
             }

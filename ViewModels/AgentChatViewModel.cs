@@ -31,6 +31,9 @@ public enum AgentChatState
     Starting,
     Ready,
 
+    /// <summary>Claude needs the user to sign in (never signed in, or the login expired): the sign-in buttons.</summary>
+    SignIn,
+
     /// <summary>It wouldn't start, or it stopped: <see cref="AgentChatViewModel.Problem"/> says why.</summary>
     Failed
 }
@@ -47,7 +50,7 @@ public enum AgentChatState
 ///
 /// Split across files: this one (starting, installing, the commands), AgentChatViewModel.Turn.cs (a prompt turn:
 /// sending, the agent's updates, permission requests), AgentChatViewModel.Attachments.cs (files and pictures sent
-/// with a message) and AgentChatViewModel.History.cs (past chats).
+/// with a message), AgentChatViewModel.History.cs (past chats) and AgentChatViewModel.SignIn.cs (signing in).
 /// </summary>
 public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
 {
@@ -79,8 +82,8 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     public ObservableCollection<AgentSettingItem> Settings { get; } = [];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsNotInstalled), nameof(IsInstalling), nameof(IsStarting), nameof(IsFailed), nameof(IsReady))]
-    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(InstallCommand), nameof(RestartCommand))]
+    [NotifyPropertyChangedFor(nameof(IsNotInstalled), nameof(IsInstalling), nameof(IsStarting), nameof(IsFailed), nameof(IsReady), nameof(IsSignIn))]
+    [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(InstallCommand), nameof(RestartCommand), nameof(SignInCommand))]
     public partial AgentChatState State { get; set; } = AgentChatState.Idle;
 
     public bool IsNotInstalled => State == AgentChatState.NotInstalled;
@@ -88,6 +91,7 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     public bool IsStarting => State == AgentChatState.Starting;
     public bool IsFailed => State == AgentChatState.Failed;
     public bool IsReady => State == AgentChatState.Ready;
+    public bool IsSignIn => State == AgentChatState.SignIn;
 
     /// <summary>Why it failed to start or stopped (State is Failed).</summary>
     [ObservableProperty]
@@ -173,7 +177,11 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
             var client = await AcpClient.StartAsync(agent, [], WorkspaceFolder ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
             client.Updated += (sessionId, update) => Dispatcher.UIThread.Post(() => OnUpdate(sessionId, update));
             client.PermissionHandler = request => Dispatcher.UIThread.InvokeAsync(() => AskPermissionAsync(request));
-            client.AuthStateChanged += state => Dispatcher.UIThread.Post(() => OnAuthStateChanged(state));
+            client.AuthStateChanged += state => Dispatcher.UIThread.Post(() =>
+            {
+                if (ReferenceEquals(client, _client))
+                    OnAuthStateChanged(state);
+            });
             client.Exited += () => Dispatcher.UIThread.Post(() => OnExited(client));
             _client = client;
             State = AgentChatState.Ready;
@@ -198,24 +206,17 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
         State = AgentChatState.Failed;
     }
 
-    private void OnAuthStateChanged(string state)
-    {
-        if (state == "unauthenticated")
-            Items.Add(new NoticeItem(
-                $"Claude isn't signed in. Run \"{ClaudeAgentInstall.FindCli() ?? "claude"}\" in a terminal and sign in (/login), then start a New Chat.",
-                isError: true));
-    }
-
     /// <summary>Stop the agent and start it again (the Failed state's button; also after installing).</summary>
     [RelayCommand(CanExecute = nameof(CanRestart))]
     private async Task Restart()
     {
+        CancelSignIn();
         DropClient();
         ClearConversation();
         await StartAsync();
     }
 
-    private bool CanRestart() => State is AgentChatState.Failed or AgentChatState.Ready;
+    private bool CanRestart() => State is AgentChatState.Failed or AgentChatState.Ready or AgentChatState.SignIn;
 
     private void DropClient()
     {
@@ -326,6 +327,7 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     {
         _workspace.WorkspaceRoots.CollectionChanged -= OnWorkspaceChanged;
         _installCancel?.Cancel();
+        CancelSignIn();
         DropClient();
     }
 }

@@ -9,8 +9,16 @@ using System.Threading.Tasks;
 
 namespace AXamlIDE.Services.Agents;
 
-/// <summary>An error the agent sent back, or the agent stopping mid-request.</summary>
-public sealed class AcpException(string message) : Exception(message);
+/// <summary>An error the agent sent back (with its JSON-RPC code), or the agent stopping mid-request (no code).</summary>
+public sealed class AcpException(string message, int? code = null) : Exception(message)
+{
+    /// <summary>ACP's "authentication required" error code: the agent needs the user to sign in.</summary>
+    public const int AuthRequiredCode = -32000;
+
+    public int? Code { get; } = code;
+
+    public bool IsAuthRequired => Code == AuthRequiredCode;
+}
 
 /// <summary>A piece of a prompt: text the user typed, or a file the agent should look at.</summary>
 public abstract record AcpPromptBlock
@@ -55,6 +63,15 @@ public sealed partial class AcpClient : IDisposable
     /// </summary>
     public string? AuthState { get; private set; }
 
+    /// <summary>
+    /// The ways the agent offers to sign in, from initialize (claude-agent-acp: the Claude subscription and the
+    /// Anthropic Console). Each is a command to run; <see cref="AgentSignIn"/> runs one.
+    /// </summary>
+    public IReadOnlyList<AcpAuthMethod> AuthMethods { get; private set; } = [];
+
+    // The agent's own program, for a sign-in method that only gives the arguments to run it with.
+    private string? _command;
+
     /// <summary>A session/update arrived: (session id, update). Raised on a background thread.</summary>
     public event Action<string, AcpUpdate>? Updated;
 
@@ -98,7 +115,7 @@ public sealed partial class AcpClient : IDisposable
             startInfo.Environment[name] = value;
 
         var process = Process.Start(startInfo) ?? throw new InvalidOperationException($"Couldn't start '{command}'.");
-        var client = new AcpClient(process.StandardOutput.BaseStream, process.StandardInput.BaseStream, process);
+        var client = new AcpClient(process.StandardOutput.BaseStream, process.StandardInput.BaseStream, process) { _command = command };
         try
         {
             await client.InitializeAsync(ct);
@@ -150,7 +167,9 @@ public sealed partial class AcpClient : IDisposable
             clientCapabilities = new
             {
                 fs = new { readTextFile = false, writeTextFile = false },
-                terminal = false
+                terminal = false,
+                // We can run a sign-in command ourselves (AgentSignIn): the agent then lists its ways to sign in.
+                _meta = new Dictionary<string, object> { ["terminal-auth"] = true }
             },
             clientInfo = new { name = "AXamlIDE", version = typeof(AcpClient).Assembly.GetName().Version?.ToString() ?? "0" }
         }, ct);
@@ -166,6 +185,8 @@ public sealed partial class AcpClient : IDisposable
             CanSendImages = capabilities.TryGetProperty("promptCapabilities", out var prompts) && prompts.ValueKind == JsonValueKind.Object
                             && prompts.TryGetProperty("image", out var image) && image.ValueKind == JsonValueKind.True;
         }
+
+        AuthMethods = AcpParser.AuthMethods(result, _command);
 
         if (result.TryGetProperty("agentInfo", out var info))
         {

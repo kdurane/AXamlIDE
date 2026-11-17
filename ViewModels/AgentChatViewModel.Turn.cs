@@ -39,6 +39,13 @@ public sealed partial class AgentChatViewModel
             if (StopReasonNotice(stopReason) is { } notice)
                 Items.Add(new NoticeItem(notice, isError: stopReason != "cancelled"));
         }
+        catch (AcpException ex) when (ex.IsAuthRequired && ReferenceEquals(client, _client))
+        {
+            // The login expired: back in the box to send again once signed in (NeedSignIn reopens this chat).
+            if (PromptText.Length == 0)
+                PromptText = text;
+            NeedSignIn(ExpiredReason);
+        }
         catch (AcpException ex)
         {
             if (ReferenceEquals(client, _client))   // not the agent being stopped on purpose
@@ -97,6 +104,11 @@ public sealed partial class AgentChatViewModel
                 _sessionFolder = folder;
                 ShowSettings(session.Options);
                 return session;
+            }
+            catch (AcpException ex) when (ex.IsAuthRequired && ReferenceEquals(client, _client))
+            {
+                NeedSignIn(ExpiredReason);
+                return null;
             }
             catch (AcpException ex)
             {

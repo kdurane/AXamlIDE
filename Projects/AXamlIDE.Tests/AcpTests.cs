@@ -194,6 +194,7 @@ public sealed class AcpClientTests : IAsyncDisposable
         Assert.Equal("initialize", (string?)request["method"]);
         Assert.Equal(1, (int?)request["params"]!["protocolVersion"]);
         Assert.False((bool?)request["params"]!["clientCapabilities"]!["terminal"]);
+        Assert.True((bool?)request["params"]!["clientCapabilities"]!["_meta"]!["terminal-auth"]);   // so it lists its sign-in commands
         await SendAsync($$$"""{"jsonrpc":"2.0","id":{{{request["id"]}}},"result":{"protocolVersion":1,"agentInfo":{"name":"x","title":"Claude Agent","version":"0.107.2"},"authMethods":[]}}""");
         await initialize.WaitAsync(TimeSpan.FromSeconds(10));
     }
@@ -402,6 +403,21 @@ public sealed class AcpClientTests : IAsyncDisposable
 
         var error = await Assert.ThrowsAsync<AcpException>(() => setting.WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal("Unknown model", error.Message);
+        Assert.Equal(-32602, error.Code);
+        Assert.False(error.IsAuthRequired);
+    }
+
+    [Fact]
+    public async Task An_expired_login_is_an_auth_required_error()
+    {
+        await HandshakeAsync();
+
+        var prompt = _client.PromptAsync("s1", [new AcpPromptBlock.Text("hi")]);
+        var request = await ReceiveAsync();
+        await SendAsync($$$"""{"jsonrpc":"2.0","id":{{{request["id"]}}},"error":{"code":-32000,"message":"Authentication required"}}""");
+
+        var error = await Assert.ThrowsAsync<AcpException>(() => prompt.WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.True(error.IsAuthRequired);
     }
 
     [Fact]
@@ -427,6 +443,103 @@ public sealed class AcpClientTests : IAsyncDisposable
 
         Assert.Equal("unauthenticated", await signedIn.Task.WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal("unauthenticated", _client.AuthState);
+    }
+}
+
+/// <summary>The sign-in methods in initialize's answer, as claude-agent-acp 0.107 sends them.</summary>
+public sealed class AcpAuthMethodTests
+{
+    private static IReadOnlyList<AcpAuthMethod> Parse(string json, string? agent = null)
+    {
+        using var document = JsonDocument.Parse(json);
+        return AcpParser.AuthMethods(document.RootElement, agent);
+    }
+
+    [Fact]
+    public void Reads_the_terminal_auth_commands()
+    {
+        var methods = Parse("""
+            {"protocolVersion":1,"authMethods":[
+             {"description":"Use Claude subscription ","name":"Claude Subscription","id":"claude-ai-login","type":"terminal","args":["--cli","auth","login","--claudeai"],
+              "_meta":{"terminal-auth":{"command":"/opt/claude-agent-acp","args":["--cli","auth","login","--claudeai"],"label":"Claude Login"}}},
+             {"description":"Use Anthropic Console (API usage billing)","name":"Anthropic Console","id":"console-login","type":"terminal","args":["--cli","auth","login","--console"],
+              "_meta":{"terminal-auth":{"command":"/opt/claude-agent-acp","args":["--cli","auth","login","--console"],"label":"Anthropic Console Login"}}}]}
+            """);
+
+        Assert.Equal(2, methods.Count);
+        Assert.Equal("claude-ai-login", methods[0].Id);
+        Assert.Equal("Claude Subscription", methods[0].Name);
+        Assert.Equal("Use Claude subscription", methods[0].Description);
+        Assert.Equal("/opt/claude-agent-acp", methods[0].Command);
+        Assert.Equal(["--cli", "auth", "login", "--claudeai"], methods[0].Args);
+        Assert.Equal("console-login", methods[1].Id);
+    }
+
+    [Fact]
+    public void A_terminal_method_without_a_command_runs_the_agent_itself()
+    {
+        var methods = Parse("""{"authMethods":[{"name":"Login","id":"login","type":"terminal","args":["login"]}]}""", agent: "/opt/agent");
+
+        Assert.Equal("/opt/agent", Assert.Single(methods).Command);
+        Assert.Equal(["login"], methods[0].Args);
+    }
+
+    [Fact]
+    public void Methods_the_IDE_cant_run_are_left_out()
+    {
+        Assert.Empty(Parse("""{"authMethods":[{"name":"API key","id":"key","description":"Set ANTHROPIC_API_KEY"}]}"""));
+        Assert.Empty(Parse("""{"authMethods":[]}"""));
+        Assert.Empty(Parse("""{"protocolVersion":1}"""));
+    }
+}
+
+/// <summary>Running a sign-in command, with a shell script standing in for "claude auth login".</summary>
+public sealed class AgentSignInTests
+{
+    [Theory]
+    [InlineData("If the browser didn't open, visit: https://claude.com/cai/oauth/authorize?code=true&state=x", "https://claude.com/cai/oauth/authorize?code=true&state=x")]
+    [InlineData("Opening browser to sign in…", null)]
+    public void Finds_the_link_to_open_by_hand(string line, string? link)
+        => Assert.Equal(link, AgentSignIn.FindLink(line));
+
+    private static AcpAuthMethod Script(string script) => new("login", "Login", null, "/bin/sh", ["-c", script]);
+
+    [Fact]
+    public async Task Signs_in_with_a_pasted_code()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        using var signIn = AgentSignIn.Start(Script("""echo "visit: https://example.com/login"; printf 'Paste code here if prompted > '; read code; [ "$code" = "abc" ]"""));
+        var link = new TaskCompletionSource<string>();
+        signIn.LinkFound += found => link.TrySetResult(found);
+
+        Assert.Equal("https://example.com/login", await link.Task.WaitAsync(TimeSpan.FromSeconds(10)));
+        signIn.SubmitCode("  abc \n");
+        Assert.True(await signIn.Completion.WaitAsync(TimeSpan.FromSeconds(10)));
+    }
+
+    [Fact]
+    public async Task A_failed_sign_in_says_why()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        using var signIn = AgentSignIn.Start(Script("echo 'Login failed: denied' >&2; exit 1"));
+
+        Assert.False(await signIn.Completion.WaitAsync(TimeSpan.FromSeconds(10)));
+        await Task.Delay(100);   // stderr's last line can land just after the exit
+        Assert.Contains("denied", signIn.RecentOutput);
+    }
+
+    [Fact]
+    public async Task Cancelling_stops_the_command()
+    {
+        if (OperatingSystem.IsWindows())
+            return;
+        var signIn = AgentSignIn.Start(Script("sleep 30"));
+
+        signIn.Dispose();
+
+        Assert.False(await signIn.Completion.WaitAsync(TimeSpan.FromSeconds(10)));
     }
 }
 

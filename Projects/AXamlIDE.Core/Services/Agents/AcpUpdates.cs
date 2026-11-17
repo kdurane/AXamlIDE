@@ -83,6 +83,12 @@ public sealed record AcpSession(string Id, IReadOnlyList<AcpConfigOption> Option
 /// A past conversation, from session/list: its id, title (the agent's name for it; may be null) and when it last
 /// changed. Claude Code's sessions are shared, so this includes ones started in VS Code or the terminal.
 /// </summary>
+/// <summary>
+/// A way to sign in that the agent offers (initialize's authMethods): a command the IDE runs, which signs in through
+/// the browser ("claude-agent-acp --cli auth login --claudeai"). <paramref name="Name"/> is the button's text.
+/// </summary>
+public sealed record AcpAuthMethod(string Id, string Name, string? Description, string Command, IReadOnlyList<string> Args);
+
 public sealed record AcpSessionInfo(string Id, string? Title, System.DateTimeOffset? UpdatedAt);
 
 /// <summary>
@@ -239,6 +245,45 @@ public static class AcpParser
         }
         return (sessions, String(result, "nextCursor"));
     }
+
+    /// <summary>
+    /// The sign-in commands in initialize's authMethods. A method gives its command in _meta["terminal-auth"]
+    /// (command, args), or as type "terminal" with only args, to run the agent itself with (<paramref name="agentCommand"/>).
+    /// Methods the IDE can't run (no command) are left out.
+    /// </summary>
+    public static IReadOnlyList<AcpAuthMethod> AuthMethods(JsonElement result, string? agentCommand)
+    {
+        var methods = new List<AcpAuthMethod>();
+        if (result.ValueKind != JsonValueKind.Object || !result.TryGetProperty("authMethods", out var list) || list.ValueKind != JsonValueKind.Array)
+            return methods;
+
+        foreach (var method in list.EnumerateArray())
+        {
+            if (String(method, "id") is not { } id)
+                continue;
+            string? command = null;
+            var args = new List<string>();
+            if (method.TryGetProperty("_meta", out var meta) && meta.ValueKind == JsonValueKind.Object
+                && meta.TryGetProperty("terminal-auth", out var terminal) && String(terminal, "command") is { } metaCommand)
+            {
+                command = metaCommand;
+                args.AddRange(Strings(terminal, "args"));
+            }
+            else if (String(method, "type") == "terminal" && agentCommand is not null)
+            {
+                command = agentCommand;
+                args.AddRange(Strings(method, "args"));
+            }
+            if (command is not null)
+                methods.Add(new AcpAuthMethod(id, String(method, "name") ?? id, String(method, "description")?.Trim(), command, args));
+        }
+        return methods;
+    }
+
+    private static IEnumerable<string> Strings(JsonElement element, string name)
+        => element.TryGetProperty(name, out var array) && array.ValueKind == JsonValueKind.Array
+            ? array.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.String).Select(item => item.GetString()!)
+            : [];
 
     internal static string? String(JsonElement element, string name)
         => element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String

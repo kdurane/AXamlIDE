@@ -610,6 +610,111 @@
                     Content="Restart Claude" />
             </StackPanel>
 
+            <!--  Sign in (VS Code's Claude sign-in): a button per way the agent offers; a click opens the browser  -->
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" IsVisible="{Binding IsSignIn}">
+                <StackPanel
+                    MaxWidth="360"
+                    Margin="16"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        FontWeight="SemiBold"
+                        Text="Sign in to Claude" />
+                    <TextBlock
+                        Classes="dim"
+                        Text="{Binding SignInReason}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+
+                    <!--  The ways to sign in: the first (the Claude subscription) is the accent button  -->
+                    <ItemsControl IsVisible="{Binding !IsWaitingForBrowser}" ItemsSource="{Binding SignInMethods}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SignInOption">
+                                <StackPanel Margin="0,4" Spacing="3">
+                                    <Button
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        Classes.accent="{Binding IsPrimary}"
+                                        Command="{Binding $parent[ItemsControl].((vm:AgentChatViewModel)DataContext).SignInCommand}"
+                                        CommandParameter="{Binding}"
+                                        Content="{Binding Method.Name}" />
+                                    <TextBlock
+                                        Classes="dim"
+                                        IsVisible="{Binding Method.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                        Text="{Binding Method.Description}"
+                                        TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--  An agent with no sign-in command: how to do it by hand  -->
+                    <StackPanel IsVisible="{Binding HasNoSignInMethods}" Spacing="10">
+                        <SelectableTextBlock
+                            Text="{Binding ManualSignInText}"
+                            TextAlignment="Center"
+                            TextWrapping="Wrap" />
+                        <Button
+                            HorizontalAlignment="Center"
+                            Command="{Binding RestartCommand}"
+                            Content="Restart Claude" />
+                    </StackPanel>
+
+                    <!--  Signing in, in the browser  -->
+                    <StackPanel IsVisible="{Binding IsWaitingForBrowser}" Spacing="10">
+                        <TextBlock
+                            HorizontalAlignment="Center"
+                            Text="Finish signing in in your browser..."
+                            TextWrapping="Wrap" />
+                        <ProgressBar
+                            MinWidth="0"
+                            Margin="24,0"
+                            IsIndeterminate="True" />
+                        <StackPanel IsVisible="{Binding HasSignInLink}" Spacing="6">
+                            <TextBlock
+                                Margin="0,6,0,0"
+                                Classes="dim"
+                                Text="Browser didn't open? Open the sign-in page yourself, then paste the code it shows here."
+                                TextAlignment="Center"
+                                TextWrapping="Wrap" />
+                            <StackPanel
+                                HorizontalAlignment="Center"
+                                Orientation="Horizontal"
+                                Spacing="6">
+                                <Button
+                                    Click="OnOpenSignInLinkClick"
+                                    Content="Open sign-in page"
+                                    Tag="{Binding SignInLink}" />
+                                <Button
+                                    Click="OnCopySignInLinkClick"
+                                    Content="Copy link"
+                                    Tag="{Binding SignInLink}" />
+                            </StackPanel>
+                            <DockPanel>
+                                <Button
+                                    Margin="6,0,0,0"
+                                    Command="{Binding SubmitSignInCodeCommand}"
+                                    Content="Submit"
+                                    DockPanel.Dock="Right" />
+                                <TextBox Text="{Binding SignInCode}" Watermark="Paste code here" />
+                            </DockPanel>
+                        </StackPanel>
+                        <Button
+                            HorizontalAlignment="Center"
+                            Command="{Binding CancelSignInCommand}"
+                            Content="Cancel" />
+                    </StackPanel>
+
+                    <SelectableTextBlock
+                        Classes="error"
+                        IsVisible="{Binding HasSignInProblem}"
+                        Text="{Binding SignInProblem}"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </ScrollViewer>
+
             <!--  The conversation  -->
             <Grid IsVisible="{Binding IsReady}" RowDefinitions="*,Auto">
                 <TextBlock
