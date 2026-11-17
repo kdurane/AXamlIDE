@@ -30,6 +30,7 @@ Restored at build time and shipped in the app's output. The licence each package
 | Microsoft.Extensions.DependencyInjection | MIT |
 | SkiaSharp.NativeAssets.Linux.NoDependencies | MIT |
 | ClosedXML | MIT |
+| Iciclecreek.Avalonia.Terminal, XTerm.NET, Porta.Pty (the Terminal panel), with Wcwidth, Unicode.net, SkiaSharp.HarfBuzz and Microsoft.Windows.Console.ConPTY | MIT |
 | Markdig | BSD-2-Clause |
 | dnlib | MIT |
 | ICSharpCode.Decompiler | MIT |

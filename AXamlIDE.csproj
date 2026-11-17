@@ -126,6 +126,7 @@
         <PackageReference Include="Dock.Avalonia" Version="12.1.5" />
         <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.1.5" />
         <PackageReference Include="Dock.Model.Mvvm" Version="12.1.5" />
+        <PackageReference Include="Iciclecreek.Avalonia.Terminal" Version="4.1.4" />
         <PackageReference Include="Markdig" Version="1.6.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
         <PackageReference Include="TextMateSharp" Version="2.0.5" />

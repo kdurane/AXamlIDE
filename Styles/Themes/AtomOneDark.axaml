@@ -115,4 +115,22 @@
     <Color x:Key="debugIcon.breakpointCurrentStackframeForeground">#FFCC00</Color>   <!-- default: the current-statement arrow -->
     <Color x:Key="debugIcon.breakpointStackframeForeground">#89D185</Color>   <!-- default -->
     <Color x:Key="app.debug.changedValueForeground">#F48771</Color>   <!-- default: ours: a value changed since the last step (VS shows it red) -->
+
+    <!--  Terminal: the 16 ANSI colours programs print in (from TextMate's built-in AtomOneDark theme).  -->
+    <Color x:Key="terminal.ansiBlack">#282C34</Color>
+    <Color x:Key="terminal.ansiRed">#E06C75</Color>
+    <Color x:Key="terminal.ansiGreen">#98C379</Color>
+    <Color x:Key="terminal.ansiYellow">#E5C07B</Color>
+    <Color x:Key="terminal.ansiBlue">#61AFEF</Color>
+    <Color x:Key="terminal.ansiMagenta">#C678DD</Color>
+    <Color x:Key="terminal.ansiCyan">#56B6C2</Color>
+    <Color x:Key="terminal.ansiWhite">#ABB2BF</Color>
+    <Color x:Key="terminal.ansiBrightBlack">#5C6370</Color>
+    <Color x:Key="terminal.ansiBrightRed">#E06C75</Color>
+    <Color x:Key="terminal.ansiBrightGreen">#98C379</Color>
+    <Color x:Key="terminal.ansiBrightYellow">#E5C07B</Color>
+    <Color x:Key="terminal.ansiBrightBlue">#61AFEF</Color>
+    <Color x:Key="terminal.ansiBrightMagenta">#C678DD</Color>
+    <Color x:Key="terminal.ansiBrightCyan">#56B6C2</Color>
+    <Color x:Key="terminal.ansiBrightWhite">#FFFFFF</Color>
 </ResourceDictionary>

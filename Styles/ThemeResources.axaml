@@ -47,6 +47,23 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="app.chat.timelineDot">#80CCCCCC</Color>
             <Color x:Key="app.chat.sendBackground">#D97757</Color>   <!-- Claude's coral -->
             <Color x:Key="app.chat.sendForeground">#FFFFFF</Color>
+            <!--  The Terminal panel's 16 ANSI colours (VS Code's defaults for a dark theme)  -->
+            <Color x:Key="terminal.ansiBlack">#000000</Color>
+            <Color x:Key="terminal.ansiRed">#CD3131</Color>
+            <Color x:Key="terminal.ansiGreen">#0DBC79</Color>
+            <Color x:Key="terminal.ansiYellow">#E5E510</Color>
+            <Color x:Key="terminal.ansiBlue">#2472C8</Color>
+            <Color x:Key="terminal.ansiMagenta">#BC3FBC</Color>
+            <Color x:Key="terminal.ansiCyan">#11A8CD</Color>
+            <Color x:Key="terminal.ansiWhite">#E5E5E5</Color>
+            <Color x:Key="terminal.ansiBrightBlack">#666666</Color>
+            <Color x:Key="terminal.ansiBrightRed">#F14C4C</Color>
+            <Color x:Key="terminal.ansiBrightGreen">#23D18B</Color>
+            <Color x:Key="terminal.ansiBrightYellow">#F5F543</Color>
+            <Color x:Key="terminal.ansiBrightBlue">#3B8EEA</Color>
+            <Color x:Key="terminal.ansiBrightMagenta">#D670D6</Color>
+            <Color x:Key="terminal.ansiBrightCyan">#29B8DB</Color>
+            <Color x:Key="terminal.ansiBrightWhite">#E5E5E5</Color>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
             <ResourceDictionary.MergedDictionaries>
@@ -75,6 +92,23 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="app.chat.timelineDot">#80555555</Color>
             <Color x:Key="app.chat.sendBackground">#D97757</Color>
             <Color x:Key="app.chat.sendForeground">#FFFFFF</Color>
+            <!--  The Terminal panel's 16 ANSI colours (VS Code's defaults for a light theme)  -->
+            <Color x:Key="terminal.ansiBlack">#000000</Color>
+            <Color x:Key="terminal.ansiRed">#CD3131</Color>
+            <Color x:Key="terminal.ansiGreen">#107C10</Color>
+            <Color x:Key="terminal.ansiYellow">#949800</Color>
+            <Color x:Key="terminal.ansiBlue">#0451A5</Color>
+            <Color x:Key="terminal.ansiMagenta">#BC05BC</Color>
+            <Color x:Key="terminal.ansiCyan">#0598BC</Color>
+            <Color x:Key="terminal.ansiWhite">#555555</Color>
+            <Color x:Key="terminal.ansiBrightBlack">#666666</Color>
+            <Color x:Key="terminal.ansiBrightRed">#CD3131</Color>
+            <Color x:Key="terminal.ansiBrightGreen">#14CE14</Color>
+            <Color x:Key="terminal.ansiBrightYellow">#B5BA00</Color>
+            <Color x:Key="terminal.ansiBrightBlue">#0451A5</Color>
+            <Color x:Key="terminal.ansiBrightMagenta">#BC05BC</Color>
+            <Color x:Key="terminal.ansiBrightCyan">#0598BC</Color>
+            <Color x:Key="terminal.ansiBrightWhite">#A5A5A5</Color>
         </ResourceDictionary>
 
         <!--  The themes in Settings.  -->
@@ -150,6 +184,8 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource list.activeSelectionForeground}" x:Key="TreeViewItemForegroundSelected" />
     <SolidColorBrush Color="{DynamicResource list.activeSelectionForeground}" x:Key="ListBoxItemForegroundSelected" />
     <SolidColorBrush Color="{DynamicResource list.activeSelectionForeground}" x:Key="ComboBoxItemForegroundSelected" />
+    <!--  The Terminal panel's selection (its other colours: Views/TerminalPalette)  -->
+    <SolidColorBrush Color="{DynamicResource list.activeSelectionBackground}" Opacity="0.8" x:Key="TerminalSelectionBrush" />
 
     <!--  Title bar, activity bar, status bar  -->
     <SolidColorBrush Color="{DynamicResource titleBar.activeBackground}" x:Key="AppTitleBarBackgroundBrush" />

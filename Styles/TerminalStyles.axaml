@@ -1,0 +1,18 @@
+<!--
+The Terminal panel's terminal (Iciclecreek.Avalonia.Terminal). Its colours come from the theme in code
+(Views/TerminalPalette), because the terminal takes colour values, not brushes. The font family is the editor's
+(Views/TerminalView binds it).
+-->
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:term="using:Iciclecreek.Terminal"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style Selector="term|TerminalControl">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource TerminalSelectionBrush}" />
+        <!--  Ctrl+Shift+C / Ctrl+Shift+V copy and paste; every other key goes to the program (VS Code on Linux).  -->
+        <Setter Property="ShortcutMode" Value="Terminal" />
+        <Setter Property="BufferSize" Value="10000" />
+    </Style>
+</Styles>

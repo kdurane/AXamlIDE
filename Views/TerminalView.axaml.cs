@@ -4,90 +4,123 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using AXamlIDE.ViewModels;
+using Iciclecreek.Terminal;
 
 namespace AXamlIDE.Views;
 
-/// <summary>The Terminal tool panel. DataContext: <see cref="TerminalViewModel"/>.</summary>
+/// <summary>
+/// The Terminal panel. DataContext: <see cref="TerminalViewModel"/>, which says when and where to start the shell;
+/// the TerminalControl runs it. The colours follow the IDE's theme (<see cref="TerminalPalette"/>).
+/// </summary>
 public partial class TerminalView : UserControl
 {
     private TerminalViewModel? _viewModel;
+    private bool _templateApplied;
 
     public TerminalView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
-        OutputEditor.Options.AllowScrollBelowDocument = false;   // the newest line at the bottom, as in a terminal
-        // Tunnel: before the text box moves its caret for Up/Down.
-        InputBox.AddHandler(KeyDownEvent, OnInputKeyDown, RoutingStrategies.Tunnel);
-        // A click in the output that doesn't select anything goes to the command line, as in a terminal.
-        OutputEditor.TextArea.AddHandler(PointerReleasedEvent, OnOutputClicked, RoutingStrategies.Bubble, handledEventsToo: true);
+        Terminal.InputSent += (_, _) => _viewModel?.OnInputSent();
+        Terminal.ProcessExited += (_, _) => _viewModel?.OnShellExited();
+        Terminal.WritingMessage += OnWritingMessage;
+        // Tunnel: see the key before the terminal does, so a key after the shell has exited starts a new one.
+        Terminal.AddHandler(KeyDownEvent, OnTerminalKeyDown, RoutingStrategies.Tunnel);
+        // The control's terminal exists once its template is applied; colour it then and whenever the theme changes.
+        Terminal.TemplateApplied += (_, _) =>
+        {
+            _templateApplied = true;
+            TerminalPalette.Apply(Terminal);
+            // The control stops its shell when it leaves the logical tree, which happens whenever Dock moves the panel
+            // to another tab strip or a floating window. Keep it running; Restart and closing the app stop it (Stop).
+            Terminal.BeginReparent();
+        };
+        Terminal.ActualThemeVariantChanged += (_, _) => ApplyPalette();
+
+        // The menu shows this platform's copy and paste keys (Cmd+C on macOS).
+        if (Terminal.ContextMenu?.Items is { Count: > 1 } items)
+        {
+            ((MenuItem)items[0]!).InputGesture = TerminalKeyGestures.Copy[0];
+            ((MenuItem)items[1]!).InputGesture = TerminalKeyGestures.Paste[0];
+        }
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (_viewModel is not null)
         {
-            _viewModel.OutputAppended -= OnOutputAppended;
-            _viewModel.FocusRequested -= FocusInput;
+            _viewModel.LaunchRequested -= Launch;
+            _viewModel.ClearRequested -= Terminal.ClearScreen;
+            _viewModel.FocusRequested -= FocusTerminal;
+            _viewModel.StopRequested -= Stop;
         }
 
         _viewModel = DataContext as TerminalViewModel;
         if (_viewModel is null)
             return;
-        _viewModel.OutputAppended += OnOutputAppended;
-        _viewModel.FocusRequested += FocusInput;
+        _viewModel.LaunchRequested += Launch;
+        _viewModel.ClearRequested += Terminal.ClearScreen;
+        _viewModel.FocusRequested += FocusTerminal;
+        _viewModel.StopRequested += Stop;
         _viewModel.EnsureStarted();
         if (_viewModel.TakePendingFocusRequest())
-            FocusInput();
+            FocusTerminal();
     }
 
-    private void OnInputKeyDown(object? sender, KeyEventArgs e)
+    /// <summary>Start the shell in <paramref name="folder"/>, stopping the one that's running.</summary>
+    private void Launch(string folder)
     {
         if (_viewModel is null)
             return;
+        Stop();
+        Terminal.ClearScreen();
+        var shell = _viewModel.Shell;
+        Terminal.EnvironmentVariables ??= new System.Collections.Generic.Dictionary<string, string>();
+        Terminal.EnvironmentVariables["TERM_PROGRAM"] = "AXamlIDE";   // VS Code sets "vscode", so scripts can tell
+        _ = Terminal.LaunchProcess(folder, shell.Path, [.. shell.Arguments]);
+    }
 
-        var ctrl = e.KeyModifiers == KeyModifiers.Control;
-        switch (e.Key)
-        {
-            case Key.Enter when e.KeyModifiers == KeyModifiers.None:
-                _viewModel.SubmitCommand.Execute(null);
-                break;
-            case Key.Up when e.KeyModifiers == KeyModifiers.None:
-                _viewModel.HistoryPreviousCommand.Execute(null);
-                InputBox.CaretIndex = InputBox.Text?.Length ?? 0;
-                break;
-            case Key.Down when e.KeyModifiers == KeyModifiers.None:
-                _viewModel.HistoryNextCommand.Execute(null);
-                InputBox.CaretIndex = InputBox.Text?.Length ?? 0;
-                break;
-            case Key.C when ctrl && InputBox.SelectionStart == InputBox.SelectionEnd:
-                _viewModel.InterruptCommand.Execute(null);   // with a selection, Ctrl+C copies as usual
-                break;
-            case Key.L when ctrl:
-                _viewModel.ClearCommand.Execute(null);
-                break;
-            default:
-                return;
-        }
+    private void ApplyPalette()
+    {
+        if (_templateApplied)
+            TerminalPalette.Apply(Terminal);
+    }
 
+    private void Stop()
+    {
+        if (Terminal.IsLive)
+            Terminal.Kill();
+    }
+
+    /// <summary>The shell has gone: say how to get a new one (VS Code's wording).</summary>
+    private void OnWritingMessage(object? sender, TerminalMessageEventArgs e)
+    {
+        if (e.Kind == TerminalMessageKind.ProcessExited)
+            e.Text = $"\r\n[The shell exited with code {e.ExitCode}. Press any key to start a new one.]\r\n";
+    }
+
+    private void OnTerminalKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (Terminal.IsLive || _viewModel is null || IsModifier(e.Key))
+            return;
         e.Handled = true;
+        _viewModel.OnKeyAfterExit();
     }
 
-    /// <summary>Keep showing the newest output, unless the user has scrolled up to read something.</summary>
-    private void OnOutputAppended()
-    {
-        // The extent here is from before the new text was laid out, so "at the end" allows a little slack.
-        var atEnd = OutputEditor.VerticalOffset + OutputEditor.ViewportHeight >= OutputEditor.ExtentHeight - 40;
-        if (atEnd)
-            Dispatcher.UIThread.Post(OutputEditor.ScrollToEnd, DispatcherPriority.Loaded);
-    }
-
-    private void OnOutputClicked(object? sender, PointerReleasedEventArgs e)
-    {
-        if (OutputEditor.TextArea.Selection.IsEmpty)
-            InputBox.Focus();
-    }
+    private static bool IsModifier(Key key)
+        => key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift or Key.LeftAlt or Key.RightAlt
+            or Key.LWin or Key.RWin;
 
     // After layout: the panel may have only just been switched to (or created).
-    private void FocusInput() => Dispatcher.UIThread.Post(() => InputBox.Focus(), DispatcherPriority.Loaded);
+    private void FocusTerminal() => Dispatcher.UIThread.Post(() => Terminal.Focus(), DispatcherPriority.Loaded);
+
+    private void OnCopyClick(object? sender, RoutedEventArgs e) => _ = Terminal.CopyAsync();
+
+    private void OnPasteClick(object? sender, RoutedEventArgs e) => _ = Terminal.PasteAsync();
+
+    private void OnSelectAllClick(object? sender, RoutedEventArgs e)
+    {
+        Terminal.Terminal.Selection.SelectAll();
+        Terminal.Refresh();
+    }
 }

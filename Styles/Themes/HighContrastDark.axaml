@@ -115,4 +115,22 @@
     <Color x:Key="debugIcon.breakpointCurrentStackframeForeground">#FFCC00</Color>   <!-- default: the current-statement arrow -->
     <Color x:Key="debugIcon.breakpointStackframeForeground">#89D185</Color>   <!-- default -->
     <Color x:Key="app.debug.changedValueForeground">#F48771</Color>   <!-- default: ours: a value changed since the last step (VS shows it red) -->
+
+    <!--  Terminal: the 16 ANSI colours programs print in (VS Code's defaults for a high contrast theme).  -->
+    <Color x:Key="terminal.ansiBlack">#000000</Color>
+    <Color x:Key="terminal.ansiRed">#CD0000</Color>
+    <Color x:Key="terminal.ansiGreen">#00CD00</Color>
+    <Color x:Key="terminal.ansiYellow">#CDCD00</Color>
+    <Color x:Key="terminal.ansiBlue">#0000EE</Color>
+    <Color x:Key="terminal.ansiMagenta">#CD00CD</Color>
+    <Color x:Key="terminal.ansiCyan">#00CDCD</Color>
+    <Color x:Key="terminal.ansiWhite">#E5E5E5</Color>
+    <Color x:Key="terminal.ansiBrightBlack">#7F7F7F</Color>
+    <Color x:Key="terminal.ansiBrightRed">#FF0000</Color>
+    <Color x:Key="terminal.ansiBrightGreen">#00FF00</Color>
+    <Color x:Key="terminal.ansiBrightYellow">#FFFF00</Color>
+    <Color x:Key="terminal.ansiBrightBlue">#5C5CFF</Color>
+    <Color x:Key="terminal.ansiBrightMagenta">#FF00FF</Color>
+    <Color x:Key="terminal.ansiBrightCyan">#00FFFF</Color>
+    <Color x:Key="terminal.ansiBrightWhite">#FFFFFF</Color>
 </ResourceDictionary>

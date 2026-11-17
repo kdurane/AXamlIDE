@@ -2,16 +2,16 @@
     x:Class="AXamlIDE.Views.TerminalView"
     x:DataType="vm:TerminalViewModel"
     xmlns="https://github.com/avaloniaui"
-    xmlns:edit="using:AvaloniaEdit"
+    xmlns:term="using:Iciclecreek.Terminal"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--
-    The Terminal panel (DataContext: TerminalViewModel): the shell's output, read-only and selectable, over the
-    command line. Enter runs, Up/Down go through the commands typed, Ctrl+C stops the running command (copies when
-    text is selected), Ctrl+L clears.
+    The Terminal panel (DataContext: TerminalViewModel): the shell in a real terminal (Iciclecreek.Avalonia.Terminal,
+    styled in Styles/TerminalStyles.axaml). Copy and paste are Ctrl+Shift+C / Ctrl+Shift+V, as in VS Code on Linux;
+    Ctrl+C goes to the program. Which IDE shortcuts still work while it has focus: Shell/KeyMap.
     -->
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,*">
 
         <DockPanel Grid.Row="0" Margin="6,0,2,0">
             <StackPanel
@@ -19,18 +19,10 @@
                 Orientation="Horizontal"
                 Spacing="2">
                 <Button
-                    AutomationProperties.Name="Stop the running command"
-                    Classes="icon"
-                    Command="{Binding InterruptCommand}"
-                    IsEnabled="{Binding IsBusy}"
-                    ToolTip.Tip="Stop the running command (Ctrl+C)">
-                    <PathIcon Data="{StaticResource Icon.Stop}" />
-                </Button>
-                <Button
                     AutomationProperties.Name="Clear"
                     Classes="icon"
                     Command="{Binding ClearCommand}"
-                    ToolTip.Tip="Clear (Ctrl+L)">
+                    ToolTip.Tip="Clear the terminal">
                     <PathIcon Data="{StaticResource Icon.TrashCan}" />
                 </Button>
                 <Button
@@ -43,41 +35,37 @@
             </StackPanel>
             <TextBlock
                 Opacity="0.7"
-                Text="{Binding ShellName}"
+                Text="{Binding Shell.Name}"
                 VerticalAlignment="Center" />
         </DockPanel>
 
-        <edit:TextEditor
-            Background="Transparent"
-            Document="{Binding Output}"
-            FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
-            FontSize="12"
-            Foreground="{DynamicResource ThemeForegroundBrush}"
+        <!--  The control has no Padding, so the gap before the text is a border in the terminal's own background.  -->
+        <Border
+            Background="{Binding #Terminal.Background}"
             Grid.Row="1"
-            HorizontalScrollBarVisibility="Disabled"
-            IsReadOnly="True"
-            Name="OutputEditor"
-            Padding="6,0"
-            ShowLineNumbers="False"
-            VerticalScrollBarVisibility="Auto"
-            WordWrap="True" />
-
-        <Grid
-            ColumnDefinitions="Auto,*"
-            Grid.Row="2"
-            Margin="6,0,6,2">
-            <TextBlock
-                FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
-                FontSize="12"
-                Margin="0,0,4,0"
-                Text="{Binding Prompt}"
-                VerticalAlignment="Center" />
-            <TextBox
-                AutomationProperties.Name="Command"
-                Classes="terminal"
-                Grid.Column="1"
-                Name="InputBox"
-                Text="{Binding InputText}" />
-        </Grid>
+            Padding="6,0,0,0">
+            <term:TerminalControl
+                AutomationProperties.Name="Terminal"
+                FontFamily="{Binding FontFamily}"
+                Name="Terminal">
+                <term:TerminalControl.ContextMenu>
+                    <!--  VS Code's terminal menu (the parts we have).  -->
+                    <ContextMenu>
+                        <MenuItem
+                            Click="OnCopyClick"
+                            Header="_Copy"
+                            InputGesture="Ctrl+Shift+C" />
+                        <MenuItem
+                            Click="OnPasteClick"
+                            Header="_Paste"
+                            InputGesture="Ctrl+Shift+V" />
+                        <MenuItem Click="OnSelectAllClick" Header="Select _All" />
+                        <Separator />
+                        <MenuItem Command="{Binding ClearCommand}" Header="C_lear" />
+                        <MenuItem Command="{Binding RestartCommand}" Header="_Restart Shell" />
+                    </ContextMenu>
+                </term:TerminalControl.ContextMenu>
+            </term:TerminalControl>
+        </Border>
     </Grid>
 </UserControl>

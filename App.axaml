@@ -27,6 +27,7 @@
         <StyleInclude Source="/Styles/DockStyles.axaml" />
         <StyleInclude Source="/Styles/MarkdownStyles.axaml" />
         <StyleInclude Source="/Styles/ComboBoxStyles.axaml" />
+        <StyleInclude Source="/Styles/TerminalStyles.axaml" />
     </Application.Styles>
 
     <Application.Resources>

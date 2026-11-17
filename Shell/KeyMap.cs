@@ -14,6 +14,7 @@ using AXamlIDE.Models;
 using AXamlIDE.Services.Keymaps;
 using AXamlIDE.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
+using Iciclecreek.Terminal;
 
 namespace AXamlIDE.Shell;
 
@@ -264,6 +265,9 @@ public sealed class KeyMap
             or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin)
             return;   // a modifier on its own, e.g. Ctrl going down for the second key of a chord
 
+        if (_chordFirstKey is null && IsInTerminal(e.Source) && BelongsToShell(e))
+            return;   // Ctrl+R, Ctrl+K, Alt+B... are the shell's while the terminal has focus
+
         var inEditor = IsInTextEditor(e.Source);
         bool InScope(KeyMapEntry entry) => entry.Info.Scope == CommandScope.Global || inEditor;
 
@@ -309,6 +313,28 @@ public sealed class KeyMap
 
     private static bool IsInTextEditor(object? source)
         => source is TextArea || (source as Visual)?.FindAncestorOfType<TextArea>() is not null;
+
+    private static bool IsInTerminal(object? source)
+        => source is TerminalControl || (source as Visual)?.FindAncestorOfType<TerminalControl>() is not null;
+
+    /// <summary>
+    /// Keys the terminal keeps even when a shortcut uses them, like Rider's "Override IDE shortcuts": typing, and
+    /// Ctrl or Alt with a letter or digit (Ctrl+R history search, Ctrl+K cut, Alt+B back a word, Ctrl+P in readline).
+    /// Function keys, Ctrl+Shift, Ctrl+Alt, Ctrl+` and Ctrl+Tab still reach the IDE, so Search Everywhere, the
+    /// command palette, the debugger and moving between panels work from the terminal.
+    /// </summary>
+    private static bool BelongsToShell(KeyEventArgs e)
+    {
+        if (e.Key is >= Key.F1 and <= Key.F24)
+            return false;
+        var letterOrDigit = e.Key is >= Key.A and <= Key.Z or >= Key.D0 and <= Key.D9;
+        return e.KeyModifiers switch
+        {
+            KeyModifiers.None or KeyModifiers.Shift => true,
+            KeyModifiers.Control or KeyModifiers.Alt => letterOrDigit,
+            _ => false
+        };
+    }
 
     private void Status(string text) => _messenger.Send(new StatusMessage(text));
 
