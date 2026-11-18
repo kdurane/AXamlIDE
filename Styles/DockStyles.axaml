@@ -1,67 +1,72 @@
 ﻿<!--
-The bottom panel (Problems, Output, Debug Console, Terminal...), made to look like VS Code's: the tabs along the top,
-with an X on the right that hides the whole panel (View.TogglePanel), and an X on the tabs that can be closed
-(Terminal, Tests, the debugger windows). Only the dock with Id "BottomTools" (ViewModels/DockFactory) gets this;
-Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the selectors match.
+    The bottom panel (Problems, Output, Debug Console, Terminal...), made to look like VS Code's: the tabs along the top,
+    with an X on the right that hides the whole panel (View.TogglePanel), and an X on the tabs that can be closed
+    (Terminal, Tests, the debugger windows). Only the dock with Id "BottomTools" (ViewModels/DockFactory) gets this;
+    Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the selectors match.
 -->
 
 <Styles
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="using:Dock.Model.Core"
     xmlns:shell="using:AXamlIDE.Shell"
-    xmlns:vm="using:AXamlIDE.ViewModels"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:vm="using:AXamlIDE.ViewModels">
 
 
     <Design.PreviewWith>
         <Border>
             <Button
+                Name="HidePanelButton"
+                shell:KeyMap.ShortcutTip="Hide Panel"
                 AutomationProperties.Name="Hide Panel"
                 Classes="icon panelHide"
-                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}"
-                Name="HidePanelButton"
-                shell:KeyMap.ShortcutTip="Hide Panel">
-                <PathIcon Data="{StaticResource Icon.Close}"/>
+                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}">
+                <PathIcon Data="{StaticResource Icon.Close}" />
             </Button>
         </Border>
     </Design.PreviewWith>
 
     <!--
-    A document tab's right-click menu, Visual Studio's. The tab's DataContext is its dockable: a DocumentDockable for
-    a file (every item), a PageDockable for NuGet, a diff or a visualizer (only Close and Float: the file items bind
-    by reflection and hide when the property isn't there).
+        A document tab's right-click menu, Visual Studio's. The tab's DataContext is its dockable: a DocumentDockable for
+        a file (every item), a PageDockable for NuGet, a diff or a visualizer (only Close and Float: the file items bind
+        by reflection and hide when the property isn't there).
     -->
     <Style Selector="DocumentTabStripItem">
         <Setter Property="ContextMenu">
             <ContextMenu x:DataType="core:IDockable">
                 <MenuItem
+                    shell:KeyMap.CommandId="File.Close"
                     Command="{Binding Owner.Factory.CloseDockable, FallbackValue={x:Null}}"
                     CommandParameter="{Binding}"
-                    Header="_Close"
-                    shell:KeyMap.CommandId="File.Close" />
+                    Header="_Close" />
                 <MenuItem
                     Command="{ReflectionBinding CloseOtherTabsCommand}"
                     Header="Close All _But This"
-                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
                 <MenuItem
+                    shell:KeyMap.CommandId="File.CloseAll"
                     Command="{ReflectionBinding CloseAllTabsCommand}"
                     Header="Close _All Documents"
-                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}"
-                    shell:KeyMap.CommandId="File.CloseAll" />
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
                 <Separator IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
                 <MenuItem
+                    shell:KeyMap.CommandId="File.Save"
                     Command="{ReflectionBinding SaveTabCommand}"
                     Header="_Save"
-                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}"
-                    shell:KeyMap.CommandId="File.Save" />
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
                 <MenuItem
                     Command="{ReflectionBinding CopyFullPathCommand}"
                     Header="Copy Full _Path"
-                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
                 <MenuItem
                     Command="{ReflectionBinding OpenContainingFolderCommand}"
                     Header="Open Containing _Folder"
-                    IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
                 <Separator />
                 <MenuItem
                     Command="{Binding Owner.Factory.FloatDockable, FallbackValue={x:Null}}"
@@ -78,17 +83,17 @@ Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the sel
             <ControlTemplate>
                 <Panel>
                     <ContentPresenter
+                        Name="PART_ContentPresenter"
                         Background="{TemplateBinding Background}"
                         Content="{TemplateBinding Content}"
-                        ContentTemplate="{TemplateBinding ContentTemplate}"
-                        Name="PART_ContentPresenter" />
+                        ContentTemplate="{TemplateBinding ContentTemplate}" />
                     <Button
+                        Name="HidePanelButton"
+                        shell:KeyMap.ShortcutTip="Hide Panel"
                         AutomationProperties.Name="Hide Panel"
                         Classes="icon panelHide"
-                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}"
-                        Name="HidePanelButton"
-                        shell:KeyMap.ShortcutTip="Hide Panel">
-                        <PathIcon Data="{StaticResource Icon.Close}"/>
+                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).TogglePanelCommand, FallbackValue={x:Null}}">
+                        <PathIcon Data="{StaticResource Icon.Close}" />
                     </Button>
                 </Panel>
             </ControlTemplate>
@@ -101,9 +106,10 @@ Dock's ToolDockControl puts the dock's Id in AutomationId, which is what the sel
                 <StackPanel Orientation="Horizontal">
                     <TextBlock
                         Padding="{DynamicResource DockHeaderContentPadding}"
-                        Text="{Binding Title}"
-                        VerticalAlignment="Center" />
+                        VerticalAlignment="Center"
+                        Text="{Binding Title}" />
                     <Button
+                        Padding="2"
                         AutomationProperties.Name="Close"
                         Classes="icon panelTabClose"
                         Command="{Binding Owner.Factory.CloseDockable, FallbackValue={x:Null}}"

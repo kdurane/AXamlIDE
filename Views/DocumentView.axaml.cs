@@ -54,7 +54,9 @@ public partial class DocumentView : UserControl
     {
         if (_outline is null)
         {
-            _outline = new OutlineView();
+            // DataContext before it's attached: otherwise it inherits the tab's DocumentDockable for a moment and
+            // its compiled OutlineViewModel bindings throw an InvalidCastException.
+            _outline = new OutlineView { DataContext = outline };
             _outline.PropertyChanged += OnOutlinePropertyChanged;
             OutlineHost.Content = _outline;
         }
