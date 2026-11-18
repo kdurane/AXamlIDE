@@ -108,21 +108,26 @@ public sealed partial class DocumentCommands(
         return CloseManyAsync(documents.Documents.Where(d => !ReferenceEquals(d, keep)).ToArray());
     }
 
-    /// <summary>Ask about every unsaved one first; nothing is closed if the user cancels.</summary>
-    private async Task CloseManyAsync(IReadOnlyList<OpenDocument> targets)
+    /// <summary>
+    /// Close these documents, asking about every unsaved one first; nothing is closed (and false comes back)
+    /// if the user cancels or a save fails. Used by a floating window's close button.
+    /// </summary>
+    public Task<bool> CloseDocumentsAsync(IReadOnlyList<OpenDocument> targets) => CloseManyAsync(targets);
+
+    private async Task<bool> CloseManyAsync(IReadOnlyList<OpenDocument> targets)
     {
         var decisions = new List<(OpenDocument Document, SaveChoice Choice)>();
         foreach (var document in targets.Where(d => d.IsDirty))
         {
             var choice = await dialogs.AskSaveAsync(document);
             if (choice == SaveChoice.Cancel)
-                return;
+                return false;
             decisions.Add((document, choice));
         }
 
         foreach (var (document, choice) in decisions)
             if (choice == SaveChoice.Save && !await saver.SaveAsync(document))
-                return;   // a save failed: keep everything open
+                return false;   // a save failed: keep everything open
 
         var active = documents.Active;
         foreach (var document in targets)
@@ -130,6 +135,7 @@ public sealed partial class DocumentCommands(
 
         if (documents.Active is null && documents.Documents.Count > 0)
             documents.Active = active is not null && documents.Documents.Contains(active) ? active : documents.Documents[^1];
+        return true;
     }
 
     private async Task<bool> CloseAsync(OpenDocument document)

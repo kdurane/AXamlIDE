@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Commands;
 using AXamlIDE.Messages;
@@ -417,7 +418,10 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         Dispatcher.UIThread.Post(() => _commands.CloseDocumentCommand.Execute(tab.Document));
     }
 
-    /// <summary>A floating window's close button: move its tabs back into the main window, then let it go.</summary>
+    /// <summary>
+    /// A floating window's close button closes the tabs in it, as in Visual Studio: documents (asking about unsaved
+    /// changes; Cancel keeps the window open), pages, and tools (hidden: the View menu brings them back home).
+    /// </summary>
     private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
         if (_shuttingDown || e.Window?.Layout is not { } layout || !DockFactory.TabsIn(layout).Any())
@@ -425,27 +429,31 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
 
         e.Cancel = true;
         var window = e.Window;
-        Dispatcher.UIThread.Post(() => MoveTabsHome(window, layout));
+        Dispatcher.UIThread.Post(() => _ = CloseWindowTabsAsync(window, layout));
     }
 
-    private void MoveTabsHome(IDockWindow window, IRootDock layout)
+    private async Task CloseWindowTabsAsync(IDockWindow window, IRootDock layout)
     {
         window.Save();   // its current position and size, from the platform window
+
+        var documents = DockFactory.TabsIn(layout).OfType<DocumentDockable>().Select(tab => tab.Document).ToArray();
+        if (documents.Length > 0 && !await _commands.CloseDocumentsAsync(documents))
+            return;   // cancelled: the window stays as it was
+
         foreach (var dockable in DockFactory.TabsIn(layout).ToArray())
         {
             _factory.Detach(dockable);
-            if (dockable is ToolDockable tool && _factory.FloatsByDefault(tool))
+            if (dockable is PageDockable page)
+                ForgetPage(page);
+            else if (dockable is ToolDockable tool && _factory.FloatsByDefault(tool))
                 _searchWindowBounds = (window.X, window.Y, window.Width, window.Height);   // reopens here
-            else if (dockable is ToolDockable docked)
-                _factory.PutBack(docked);
-            else
-                _factory.AddDockable(_factory.MainDocuments, dockable);
         }
 
         if (Root.Windows?.Contains(window) == true)
             _factory.RemoveWindow(window);
 
-        OnActiveDocumentChanged(_documents.Active);   // re-focus the selected tab in its new place
+        SavePanel();
+        OnActiveDocumentChanged(_documents.Active);   // re-focus the selected tab, now in another window
     }
 
     // ------------------------------------------------------------- remembering the layout

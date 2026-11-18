@@ -109,7 +109,6 @@
                         VerticalAlignment="Center"
                         Text="{Binding Title}" />
                     <Button
-                        Padding="2"
                         AutomationProperties.Name="Close"
                         Classes="icon panelTabClose"
                         Command="{Binding Owner.Factory.CloseDockable, FallbackValue={x:Null}}"
@@ -121,6 +120,17 @@
                 </StackPanel>
             </DataTemplate>
         </Setter>
+    </Style>
+
+    <!--
+        A document tab's X: a bigger target, same-size icon. Dock's DocumentCloseButtonTheme makes the button
+        DockCloseButtonSize (12, compact) with no padding and stretches the X to fit, so the extra size goes in padding.
+        Both presenters: the X on the right, and the one that replaces the icon when tabs get narrow.
+    -->
+    <Style Selector="DocumentTabStripItem /template/ ContentPresenter#PART_ClosePresenter Button, DocumentTabStripItem /template/ ContentPresenter#PART_CompactClosePresenter Button">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Padding" Value="3" />
     </Style>
 
     <!--  The tabs on top, kept clear of the Hide Panel button; shown even when there's only one.  -->

@@ -150,10 +150,10 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
                || Root.Windows?.Any(window => ReferenceEquals(window.Layout, current)) == true;
     }
 
-    /// <summary>All document and tool tabs inside <paramref name="dock"/> (at any depth).</summary>
+    /// <summary>All document, page and tool tabs inside <paramref name="dock"/> (at any depth).</summary>
     public static IEnumerable<IDockable> TabsIn(IDockable dock)
     {
-        if (dock is DocumentDockable or ToolDockable)
+        if (dock is DocumentDockable or PageDockable or ToolDockable)
         {
             yield return dock;
             yield break;
