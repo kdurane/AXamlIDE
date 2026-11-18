@@ -5,8 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
+using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Workspace;
@@ -18,7 +20,8 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// The solution explorer: open a folder or a solution, refresh it, close it, and which node
-/// is selected. Opening points the language servers at the new root.
+/// is selected. Opening points the language servers at the new root. Files added, removed or renamed on disk by
+/// anything (Claude, a terminal, another editor) show up by themselves, as in VS Code and Rider.
 /// </summary>
 public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<FilesCreatedMessage>
 {
@@ -28,14 +31,22 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
     private readonly IMessenger _messenger;
     private bool _opening;   // a solution is loading (OpenAsync)
 
+    // Paths added, removed or renamed on disk, gathered for a moment (a git checkout or a code generator writes
+    // many at once) and then put in the tree together.
+    private readonly HashSet<string> _diskChanges = new(GitStatus.PathComparer);
+    private readonly DispatcherTimer _diskTimer = new() { Interval = TimeSpan.FromMilliseconds(300) };
+    private bool _applyingDiskChanges;
+
     public WorkspaceViewModel(WorkspaceModel workspace, XamlLanguageService xaml, LanguageSessionService languages,
-        IMessenger messenger)
+        IMessenger messenger, GitStatusTracker git)
     {
         _workspace = workspace;
         _xaml = xaml;
         _languages = languages;
         _messenger = messenger;
         messenger.RegisterAll(this);
+        git.FileAddedOrRemoved += OnFileAddedOrRemoved;
+        _diskTimer.Tick += OnDiskTimerTick;
     }
 
     /// <summary>The tree roots (one: the folder or the solution).</summary>
@@ -140,7 +151,10 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
 
     // ---------------------------------------------------------- refresh
 
-    /// <summary>Reload one node's children, or the whole workspace if it's the root.</summary>
+    /// <summary>
+    /// Reload one node's children from disk, or the whole workspace if it's the root. A project folder's children come
+    /// from the project's evaluation, so its project is evaluated again.
+    /// </summary>
     public async Task RefreshAsync(ProjectTreeNode node)
     {
         if (node.Kind is NodeKind.Directory or NodeKind.Solution
@@ -150,8 +164,11 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
             return;
         }
 
-        node.Reset();
-        await node.PopulateAsync();
+        if (await ReloadAroundAsync(node) is null)
+        {
+            node.Reset();   // a dependency: re-read just it
+            await node.PopulateAsync();
+        }
     }
 
     /// <summary>
@@ -169,10 +186,20 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
 
         var expanded = new HashSet<string>(GitStatus.PathComparer);
         CollectExpanded(target, expanded);
+        // A selected node under it is about to be replaced: select its replacement after (nothing, if it's gone).
+        var selected = SelectedNode is { FullPath.Length: > 0 } old && !ReferenceEquals(old, target)
+                                                                    && FindByPath(target, old.FullPath) is not null
+            ? old
+            : null;
 
+        // Its files come from the project's evaluation, which doesn't know about files added since.
+        if (target.Kind == NodeKind.Project)
+            _workspace.ForgetProject(target.FullPath);
         target.Reset();
         await target.PopulateAsync();
         await ReExpandAsync(target, expanded);
+        if (selected is not null && (SelectedNode is null || ReferenceEquals(SelectedNode, selected)))
+            SelectedNode = FindByPath(target, selected.FullPath);
         return target;
     }
 
@@ -342,6 +369,66 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
          .Select(FindContainer)
          .OfType<ProjectTreeNode>()
          .Distinct();
+        foreach (var container in containers)
+            await ReloadAroundAsync(container);
+    }
+
+    // ------------------------------------------------------- following the disk
+
+    private void OnFileAddedOrRemoved(string path)
+    {
+        if (!IsOpen)
+            return;
+        _diskChanges.Add(path);
+        _diskTimer.Stop();   // restart: wait until the burst is over
+        _diskTimer.Start();
+    }
+
+    private async void OnDiskTimerTick(object? sender, EventArgs e)
+    {
+        _diskTimer.Stop();
+        if (_applyingDiskChanges)
+        {
+            _diskTimer.Start();   // still putting the last lot in: these go in after
+            return;
+        }
+        var paths = _diskChanges.ToList();
+        _diskChanges.Clear();
+        _applyingDiskChanges = true;
+        try
+        {
+            await ApplyDiskChangesAsync(paths);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // a folder that can't be read: the tree catches up on the next change or a Refresh
+        }
+        finally
+        {
+            _applyingDiskChanges = false;
+        }
+    }
+
+    /// <summary>
+    /// Files or folders appeared, went or were renamed on disk: reload the loaded folders and projects that show (or
+    /// should show) them. A project's evaluation is forgotten either way, so it's read afresh when next asked about,
+    /// even one that isn't expanded yet. A folder that hasn't been opened reads the disk when it is, so it's left alone.
+    /// </summary>
+    public async Task ApplyDiskChangesAsync(IEnumerable<string> paths)
+    {
+        var containers = new List<ProjectTreeNode>();
+        foreach (var path in paths)
+        {
+            if (_workspace.FindProjectForDocument(path) is { } project)
+                _workspace.ForgetProject(project);
+
+            var onDisk = File.Exists(path) || Directory.Exists(path);
+            var inTree = Roots.Any(root => FindByPath(root, path) is not null);
+            if (onDisk == inTree)
+                continue;   // the tree already shows it as it is (one the IDE added itself, say)
+            if (FindContainer(path) is { NeedsPopulating: false } container && !containers.Contains(container))
+                containers.Add(container);
+        }
         foreach (var container in containers)
             await ReloadAroundAsync(container);
     }

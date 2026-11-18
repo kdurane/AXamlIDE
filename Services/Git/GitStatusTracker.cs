@@ -59,6 +59,12 @@ public sealed class GitStatusTracker : IDisposable
     public event Action<string>? FileChanged;
 
     /// <summary>
+    /// Like <see cref="FileChanged"/>, but only for a file or folder that was created, deleted or renamed (both
+    /// paths of a rename), not one that was written: what the Solution Explorer needs to follow the disk.
+    /// </summary>
+    public event Action<string>? FileAddedOrRemoved;
+
+    /// <summary>
     /// Show <paramref name="status"/> as if git had just reported it, for the designer's sample data (SampleData/DesignData):
     /// a refresh already under way is dropped, so it can't replace it.
     /// </summary>
@@ -174,7 +180,12 @@ public sealed class GitStatusTracker : IDisposable
         string[] paths = e is RenamedEventArgs renamed ? [renamed.OldFullPath, e.FullPath] : [e.FullPath];
         foreach (var path in paths)
             if (GitFolderPart(path) is null && !IsBuildOutput(path))
-                Dispatcher.UIThread.Post(() => FileChanged?.Invoke(path));
+                Dispatcher.UIThread.Post(() =>
+                {
+                    FileChanged?.Invoke(path);
+                    if (e.ChangeType != WatcherChangeTypes.Changed)
+                        FileAddedOrRemoved?.Invoke(path);
+                });
     }
 
     /// <summary>

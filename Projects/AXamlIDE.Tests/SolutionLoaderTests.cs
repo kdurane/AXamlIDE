@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using AXamlIDE.Models;
@@ -66,5 +66,21 @@ public sealed class SolutionLoaderTests : IDisposable
 
         Assert.Contains(items, node => node is { Kind: NodeKind.Folder, Name: "Assets" });
         Assert.Contains(items, node => node is { Kind: NodeKind.File, Name: "Program.cs" });
+    }
+
+    [Fact]
+    public void LoadProjectItems_SeesAFileAddedOnDiskOnceTheProjectIsForgotten()
+    {
+        var app = _workspace.Write("App/App.csproj", """<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>""");
+        _workspace.Write("App/Program.cs", "class Program { }");
+        _ = SolutionLoader.LoadProjectItems(_host, app).ToList();
+
+        // Written by something else (Claude, a terminal): the project file isn't touched, so the remembered
+        // evaluation still looks current until the explorer forgets it.
+        _workspace.Write("App/Added.cs", "class Added { }");
+        _host.Forget(app);
+        var items = SolutionLoader.LoadProjectItems(_host, app).ToList();
+
+        Assert.Contains(items, node => node is { Kind: NodeKind.File, Name: "Added.cs" });
     }
 }

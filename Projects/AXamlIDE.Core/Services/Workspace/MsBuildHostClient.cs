@@ -102,6 +102,17 @@ public sealed class MsBuildHostClient : IDisposable
     /// </summary>
     public void ClearCache() => _evaluations.Clear();
 
+    /// <summary>
+    /// Forget one project's remembered evaluations. Needed when a file is added, removed or renamed under it: the
+    /// project's globs take in a different set of files, but neither the project file nor its imports was written.
+    /// </summary>
+    public void Forget(string projectPath)
+    {
+        var path = Path.GetFullPath(projectPath);
+        foreach (var key in _evaluations.Keys.Where(key => key.Path == path))
+            _evaluations.TryRemove(key, out _);
+    }
+
     // ---- one file's build action and metadata (the Properties panel)
 
     public ProjectItemProperties GetItemProperties(string projectPath, string filePath)
@@ -157,7 +168,6 @@ public sealed class MsBuildHostClient : IDisposable
     /// <summary>Send a request that writes the project file, and forget its remembered evaluations.</summary>
     private HostResponse SendAndForget(HostRequest request)
     {
-        var path = Path.GetFullPath(request.ProjectPath);
         try
         {
             return Send(request);
@@ -165,8 +175,7 @@ public sealed class MsBuildHostClient : IDisposable
         finally
         {
             // The write time alone could miss it: a coarse file-system clock can give the same time twice.
-            foreach (var key in _evaluations.Keys.Where(key => key.Path == path))
-                _evaluations.TryRemove(key, out _);
+            Forget(request.ProjectPath);
         }
     }
 

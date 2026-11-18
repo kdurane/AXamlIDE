@@ -118,6 +118,13 @@ public sealed class WorkspaceModel : IDisposable
             _msbuildHost?.ClearCache();   // not started yet: nothing remembered
     }
 
+    /// <summary>Forget one project's remembered evaluation (a file was added, removed or renamed under it).</summary>
+    public void ForgetProject(string projectPath)
+    {
+        lock (_hostGate)
+            _msbuildHost?.Forget(projectPath);
+    }
+
     public string? FindProjectForDocument(string documentPath)
         => _projectResolver.FindProjectForDocument(documentPath, Projects, RootPath);
 
