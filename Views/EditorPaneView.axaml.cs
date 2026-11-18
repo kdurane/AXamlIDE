@@ -125,6 +125,11 @@ public partial class EditorPaneView : UserControl,
                 active.CaretOffset = Editor.CaretOffset;
             _ctx.Messenger.Send(new EditorStateChangedMessage());
         };
+        Editor.TextArea.SelectionChanged += (_, _) =>
+        {
+            if (_ctx.Active is { } active)
+                active.Selection = (Editor.SelectionStart, Editor.SelectionLength);
+        };
 
         // Typing or clicking in an editor makes its tab the selected one, in whichever window it is.
         Editor.TextArea.GotFocus += (_, _) =>
@@ -244,6 +249,7 @@ public partial class EditorPaneView : UserControl,
         _unnecessaryCode.Document = doc;
         _textMateController.SetGrammarForFile(doc.Path);
         Editor.CaretOffset = Math.Min(doc.CaretOffset, doc.Document.TextLength);
+        doc.Selection = default;   // the editor doesn't bring a tab's selection back
         doc.RevealRequested += OnRevealRequested;
 
         // Scrolling needs a layout pass first. A pending reveal wins over the saved scroll position.

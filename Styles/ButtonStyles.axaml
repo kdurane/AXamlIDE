@@ -10,7 +10,7 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
             <Button Classes="link" Content="https://avaloniaui.net" />
             <ToggleButton Classes="row expander">
                 <StackPanel Orientation="Horizontal">
-                    <PathIcon Classes="chevron" Data="M 2,0 L 6,4 L 2,8 Z" Height="8" Margin="0,0,6,0" Width="8" />
+                    <PathIcon Classes="chevron triangle" Height="8" Margin="0,0,6,0" Width="8" />
                     <TextBlock Text="A row that expands" />
                 </StackPanel>
             </ToggleButton>
@@ -72,7 +72,8 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
 
     <!--
     row: a whole list row you click (search results), flat and highlighted on hover like a list item.
-    ToggleButton.row.expander is a group header: its PathIcon.chevron points down while it's open.
+    ToggleButton.row.expander is a group header: its PathIcon.chevron points down while it's open (a chevron, or a
+    small triangle with Classes="chevron triangle"); the styles give the icon its shape, so don't set its Data.
     -->
     <Style Selector="Button.row, ToggleButton.row">
         <Setter Property="Background" Value="Transparent" />
@@ -89,11 +90,22 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
     <Style Selector="Button.row:pointerover /template/ ContentPresenter, ToggleButton.row:pointerover /template/ ContentPresenter, ToggleButton.row:checked:pointerover /template/ ContentPresenter">
         <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}" />
     </Style>
+    <!--
+        The shape is swapped rather than the icon turned: PathIcon (Avalonia 12) sets RenderTransform on its own
+        template in code, over any style, so a rotate() in a style doesn't show.
+    -->
     <Style Selector="ToggleButton.expander PathIcon.chevron">
         <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        <Setter Property="Data" Value="{DynamicResource Icon.ChevronRight}" />
+    </Style>
+    <Style Selector="ToggleButton.expander PathIcon.chevron.triangle">
+        <Setter Property="Data" Value="M 2,0 L 6,4 L 2,8 Z" />
     </Style>
     <Style Selector="ToggleButton.expander:checked PathIcon.chevron">
-        <Setter Property="RenderTransform" Value="rotate(90deg)" />
+        <Setter Property="Data" Value="{DynamicResource Icon.ChevronDown}" />
+    </Style>
+    <Style Selector="ToggleButton.expander:checked PathIcon.chevron.triangle">
+        <Setter Property="Data" Value="M 0,2 L 8,2 L 4,6 Z" />
     </Style>
 
     <!--

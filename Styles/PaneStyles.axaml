@@ -33,7 +33,6 @@
                                 <StackPanel Orientation="Horizontal">
                                     <PathIcon
                                         Classes="chevron"
-                                        Data="{DynamicResource Icon.ChevronRight}"
                                         Height="10"
                                         Margin="2,0,4,0"
                                         Width="10" />

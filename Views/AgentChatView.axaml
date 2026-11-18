@@ -7,14 +7,21 @@
 <UserControl
     x:Class="AXamlIDE.Views.AgentChatView"
     xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:acp="using:AXamlIDE.Services.Agents"
     xmlns:b="using:AXamlIDE.Behaviors"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:styles="using:AXamlIDE.Styles"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
-    x:DataType="vm:AgentChatViewModel">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:DataType="vm:AgentChatViewModel"
+    Design.DataContext="{x:Static design:DesignData.AgentChat}"
+    d:DesignWidth="440"
+    d:DesignHeight="760"
+    mc:Ignorable="d">
 
     <UserControl.Resources>
         <styles:IconKeyConverter x:Key="IconConverter" />
@@ -263,7 +270,6 @@
                                     Width="9"
                                     Height="9"
                                     Classes="chevron"
-                                    Data="{StaticResource Icon.ChevronRight}"
                                     Opacity="0.6" />
                             </StackPanel>
                         </ToggleButton>

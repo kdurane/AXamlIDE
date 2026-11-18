@@ -62,7 +62,8 @@ public partial class TerminalView : UserControl
         _viewModel.ClearRequested += Terminal.ClearScreen;
         _viewModel.FocusRequested += FocusTerminal;
         _viewModel.StopRequested += Stop;
-        _viewModel.EnsureStarted();
+        if (!Design.IsDesignMode)   // no shell in the previewer: it shows the panel as it is before one starts
+            _viewModel.EnsureStarted();
         if (_viewModel.TakePendingFocusRequest())
             FocusTerminal();
     }

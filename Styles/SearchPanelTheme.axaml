@@ -255,8 +255,9 @@ Colours: Styles/ThemeResources.axaml (SearchPanel*). Icons: Styles/IconResources
         </Setter>
 
         <!--  The expander's chevron points down while the Replace row is showing.  -->
+        <!--  Its shape is swapped: PathIcon (Avalonia 12) sets RenderTransform on its template in code, over a style's rotate().  -->
         <Style Selector="^ /template/ ToggleButton#Expander:checked PathIcon#ExpanderIcon">
-            <Setter Property="RenderTransform" Value="rotate(90deg)" />
+            <Setter Property="Data" Value="{DynamicResource Icon.ChevronDown}" />
         </Style>
         <Style Selector="^ /template/ PathIcon">
             <Setter Property="Width" Value="12" />

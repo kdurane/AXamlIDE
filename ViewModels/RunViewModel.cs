@@ -20,6 +20,9 @@ namespace AXamlIDE.ViewModels;
 /// <summary>What the Build menu's three commands do (Visual Studio's Build, Rebuild and Clean).</summary>
 public enum BuildKind { Build, Rebuild, Clean }
 
+/// <summary>How the last build went (Build, Rebuild, Clean, or the build before Run / Debug).</summary>
+public sealed record BuildOutcome(DateTime Finished, string What, bool Succeeded, int Errors, int Warnings);
+
 /// <summary>
 /// Build, run and (in RunViewModel.Debug.cs) debug a project, plus the Output and Console
 /// text they produce. Run and Debug start the startup project (RunViewModel.Startup.cs) unless a
@@ -76,6 +79,9 @@ public partial class RunViewModel : ObservableObject, IDisposable
     [ObservableProperty] public partial bool IsRunning { get; set; }
     [ObservableProperty] private partial bool IsBusy { get; set; }
 
+    /// <summary>The last build's result this session, or null before the first.</summary>
+    public BuildOutcome? LastBuild { get; private set; }
+
     // ---------------------------------------------------------------- build
 
     /// <summary>
@@ -120,10 +126,24 @@ public partial class RunViewModel : ObservableObject, IDisposable
             await BuildAsync(projectPath, kind);
     }
 
-    private async Task BuildAsync(string path, BuildKind kind = BuildKind.Build)
+    /// <summary>
+    /// Claude's build (the MCP build tool): what Build builds, except that it never asks which project and leaves
+    /// unsaved files alone (the user's half-typed edits aren't Claude's to save). Null when a build or run is already
+    /// going, or there's nothing to build.
+    /// </summary>
+    public async Task<BuildOutcome?> BuildForAgentAsync()
+    {
+        if (IsBusy || (_explorer.SolutionPath ?? StartupProjectPath) is not { } path)
+            return null;
+        var before = LastBuild;
+        await BuildAsync(path, BuildKind.Build, save: false);
+        return ReferenceEquals(LastBuild, before) ? null : LastBuild;
+    }
+
+    private async Task BuildAsync(string path, BuildKind kind = BuildKind.Build, bool save = true)
     {
         // Like other IDEs: save everything before building (a clean doesn't read the sources).
-        if (IsBusy || kind != BuildKind.Clean && !await _saver.SaveAllAsync())
+        if (IsBusy || save && kind != BuildKind.Clean && !await _saver.SaveAllAsync())
             return;
 
         var configuration = Configuration;
@@ -237,6 +257,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
         var errors = diagnostics.Count(d => d.IsError);
         var warnings = diagnostics.Count - errors;
+        LastBuild = new BuildOutcome(DateTime.Now, what, exitCode == 0, errors, warnings);
         ShowStatus(exitCode == 0
             ? warnings > 0 ? $"{what} succeeded with {warnings} warning{(warnings == 1 ? "" : "s")}." : $"{what} succeeded."
             : errors > 0 ? $"{what} failed: {errors} error{(errors == 1 ? "" : "s")}, {warnings} warning{(warnings == 1 ? "" : "s")}." : $"{what} failed.");

@@ -101,6 +101,9 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
     // View state. CaretOffset is kept current by the editor while the document is active;
     // the scroll offsets are saved on tab switch. All are restored when the tab returns.
     public int CaretOffset { get; set; }
+
+    /// <summary>The selected text's range (Length 0 = nothing selected), kept current like <see cref="CaretOffset"/>.</summary>
+    public (int Offset, int Length) Selection { get; set; }
     public double VerticalOffset { get; set; }
     public double HorizontalOffset { get; set; }
 

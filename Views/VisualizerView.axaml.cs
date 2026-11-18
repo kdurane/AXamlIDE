@@ -50,7 +50,8 @@ public partial class VisualizerView : UserControl
                 // One-way: the default (two-way) would write the shown text back into the row, turning every cell into a string.
                 Binding = new Binding($"[{i}]") { Mode = BindingMode.OneWay },
                 CanUserSort = true,
-                CustomSortComparer = new CellComparer(i)
+                CustomSortComparer = new CellComparer(i),
+                FontSize = Table.FontSize   // a text column has its own size (the theme's 14), not the grid's
             });
     }
 

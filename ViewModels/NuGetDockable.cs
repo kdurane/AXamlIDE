@@ -53,7 +53,8 @@ public sealed partial class NuGetDockable : PageDockable
         Id = IdFor(projectPath);
         Title = $"NuGet: {ProjectName}";
         CanPin = false;
-        _ = InitializeAsync();
+        if (!Avalonia.Controls.Design.IsDesignMode)   // the designer's sample (SampleData/DesignData) fills it instead
+            _ = InitializeAsync();
     }
 
     public static string IdFor(string projectPath) => "nuget:" + projectPath;

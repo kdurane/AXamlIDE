@@ -1,7 +1,14 @@
 <UserControl
     x:Class="AXamlIDE.Views.SearchView"
     x:DataType="vm:SearchViewModel"
+    Design.DataContext="{x:Static design:DesignData.Search}"
+    d:DesignWidth="340"
+    d:DesignHeight="420"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -55,7 +62,7 @@
                                 IsChecked="{Binding IsExpanded}"
                                 ToolTip.Tip="{Binding FilePath}">
                                 <Grid ColumnDefinitions="Auto,Auto,*,Auto">
-                                    <PathIcon Classes="chevron" Data="M 2,0 L 6,4 L 2,8 Z" Height="8" Margin="0,0,6,0" Width="8" />
+                                    <PathIcon Classes="chevron triangle" Height="8" Margin="0,0,6,0" Width="8" />
                                     <TextBlock Grid.Column="1" FontWeight="SemiBold" Text="{Binding FileName}" />
                                     <TextBlock
                                         Grid.Column="2"

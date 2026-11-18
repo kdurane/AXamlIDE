@@ -1,9 +1,16 @@
 ﻿<UserControl
     x:Class="AXamlIDE.Views.ConsoleView"
     x:DataType="vm:RunViewModel"
+    Design.DataContext="{x:Static design:DesignData.Run}"
+    d:DesignWidth="800"
+    d:DesignHeight="200"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
-    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:b="using:AXamlIDE.Behaviors"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  Program / debuggee output (DataContext: RunViewModel)  -->

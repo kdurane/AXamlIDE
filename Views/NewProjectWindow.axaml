@@ -12,9 +12,16 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.NewProjectWindow"
     x:DataType="vm:NewProjectViewModel"
+    Design.DataContext="{x:Static design:DesignData.NewProject}"
+    d:DesignWidth="820"
+    d:DesignHeight="540"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
-    xmlns:workspace="using:AXamlIDE.Services.Workspace"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:workspace="using:AXamlIDE.Services.Workspace"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Window.Styles>

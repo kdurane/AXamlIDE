@@ -9,9 +9,17 @@
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.SettingsWindow"
     x:DataType="vm:SettingsViewModel"
+    Design.DataContext="{x:Static design:DesignData.Settings}"
+    d:DesignWidth="900"
+    d:DesignHeight="600"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
     xmlns:keymaps="using:AXamlIDE.Services.Keymaps"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:AXamlIDE.Models"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
@@ -50,7 +58,14 @@
                             <ComboBox
                                 ItemsSource="{Binding AvailableEditorFontFamilies}"
                                 MinWidth="260"
-                                SelectedItem="{Binding EditorFontFamily, Mode=TwoWay}" />
+                                SelectedItem="{Binding EditorFontFamily, Mode=TwoWay}">
+                                <!--  The first family by name; the full setting (with its fallbacks) as the tooltip.  -->
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <TextBlock Text="{Binding Converter={x:Static views:SettingsConverters.FontName}}" ToolTip.Tip="{Binding}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                             <CheckBox Content="Enable font ligatures" IsChecked="{Binding FontLigatures, Mode=TwoWay}" />
 
                         </StackPanel>

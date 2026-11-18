@@ -59,7 +59,8 @@ public sealed class DiffDockable : PageDockable
 
         OpenFileCommand = new RelayCommand(OpenFile, () => File.Exists(FilePath));
         tracker.Changed += OnStatusChanged;
-        _ = ReloadAsync();
+        if (!Avalonia.Controls.Design.IsDesignMode)   // the designer's sample (SampleData/DesignData) sets Diff instead
+            _ = ReloadAsync();
     }
 
     /// <summary>What <paramref name="commit"/> changed in <paramref name="file"/> (a file under a commit in the Git graph).</summary>
@@ -96,7 +97,7 @@ public sealed class DiffDockable : PageDockable
     public SideBySideDiff? Diff
     {
         get;
-        private set
+        internal set   // internal: the designer's sample data sets it
         {
             if (SetProperty(ref field, value))
                 OnPropertyChanged(nameof(Summary));

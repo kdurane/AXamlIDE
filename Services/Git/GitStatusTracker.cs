@@ -58,6 +58,18 @@ public sealed class GitStatusTracker : IDisposable
     /// </summary>
     public event Action<string>? FileChanged;
 
+    /// <summary>
+    /// Show <paramref name="status"/> as if git had just reported it, for the designer's sample data (SampleData/DesignData):
+    /// a refresh already under way is dropped, so it can't replace it.
+    /// </summary>
+    internal void ShowForDesign(GitStatus status)
+    {
+        ++_workspaceVersion;
+        RepositoryRoot = status.RepositoryRoot;
+        Current = status;
+        Changed?.Invoke();
+    }
+
     /// <summary>Refresh soon (several requests close together become one refresh).</summary>
     public void RequestRefresh()
     {

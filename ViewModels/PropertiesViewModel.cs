@@ -75,7 +75,7 @@ public sealed partial class PropertiesViewModel : ObservableObject
     }
 
     /// <summary>"Program.cs  File Properties".</summary>
-    [ObservableProperty] public partial string Heading { get; private set; } = "";
+    [ObservableProperty] public partial string Heading { get; internal set; } = "";   // internal: the designer's sample data sets it
 
     public ObservableCollection<PropertyGroup> Groups { get; } = [];
 

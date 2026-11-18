@@ -5,8 +5,15 @@
 <UserControl
     x:Class="AXamlIDE.Views.WatchView"
     x:DataType="vm:WatchViewModel"
+    Design.DataContext="{x:Static design:DesignData.Watch}"
+    d:DesignWidth="700"
+    d:DesignHeight="220"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
     xmlns:local="using:AXamlIDE.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <DockPanel>

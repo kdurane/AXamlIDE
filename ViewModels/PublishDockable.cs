@@ -57,7 +57,8 @@ public sealed partial class PublishDockable : PageDockable
         Id = IdFor(projectPath);
         Title = $"Publish: {ProjectName}";
         CanPin = false;
-        _ = InitializeAsync();
+        if (!Avalonia.Controls.Design.IsDesignMode)   // the designer's sample (SampleData/DesignData) fills it instead
+            _ = InitializeAsync();
     }
 
     public static string IdFor(string projectPath) => "publish:" + projectPath;

@@ -69,7 +69,8 @@ public sealed class PreviewPaneViewModel : ObservableObject, IDisposable
 
         document.Document.Changed += OnDocumentChanged;
         _previewUpdateTimer.Tick += OnPreviewUpdateTimer;
-        _ = UpdatePreviewAsync();
+        if (!Avalonia.Controls.Design.IsDesignMode)   // no designer host inside the designer
+            _ = UpdatePreviewAsync();
     }
 
     /// <summary>The AXAML file this previews.</summary>

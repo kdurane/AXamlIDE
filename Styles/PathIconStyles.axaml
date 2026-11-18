@@ -6,7 +6,8 @@
         <PathIcon Classes.spinning="{Binding IsWorking}" Data="{StaticResource Icon.Loading}" />.
         The animation runs only while the class is on; it turns about the icon's centre.
     -->
-    <Style Selector="PathIcon.spinning">
+    <!--  The icon's template Border turns: PathIcon (Avalonia 12) sets its own and its Viewbox's RenderTransform in code, over any style.  -->
+    <Style Selector="PathIcon.spinning /template/ Border">
         <!--  The animation turns this transform (Avalonia 12 has no animator for RenderTransform itself)  -->
         <Setter Property="RenderTransform">
             <RotateTransform />

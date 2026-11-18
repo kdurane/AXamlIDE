@@ -1,8 +1,15 @@
 <UserControl
     x:Class="AXamlIDE.Views.TestExplorerView"
     x:DataType="vm:TestExplorerViewModel"
+    Design.DataContext="{x:Static design:DesignData.TestExplorer}"
+    d:DesignWidth="760"
+    d:DesignHeight="360"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
     xmlns:b="using:AXamlIDE.Behaviors"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:testing="using:AXamlIDE.Services.Testing"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
@@ -170,10 +177,16 @@
                         Text="Select a test to see its result. Double-click it to open its code."
                         TextWrapping="Wrap" />
                     <StackPanel DataContext="{Binding SelectedNode}" IsVisible="{Binding $parent[UserControl].((vm:TestExplorerViewModel)DataContext).HasSelectedTest, FallbackValue=False}" x:DataType="vm:TestNode">
+                        <!--  As Visual Studio's Test Detail Summary: the method as the heading (a full name has no spaces to wrap at), its class under it.  -->
                         <SelectableTextBlock
                             FontWeight="SemiBold"
-                            Text="{Binding Test.FullName, FallbackValue=''}"
+                            Text="{Binding Test.DisplayMethodName, FallbackValue=''}"
                             TextWrapping="Wrap" />
+                        <TextBlock
+                            Opacity="0.7"
+                            Text="{Binding Test.ClassName, FallbackValue=''}"
+                            TextTrimming="LeadingCharacterEllipsis"
+                            ToolTip.Tip="{Binding Test.FullName, FallbackValue=''}" />
                         <StackPanel
                             Margin="0,4,0,0"
                             Orientation="Horizontal"

@@ -39,7 +39,8 @@ public partial class AgentChatView : UserControl
         if (_viewModel is null)
             return;
         _viewModel.FocusRequested += FocusPrompt;
-        _viewModel.EnsureStarted();   // the panel is being shown for the first time
+        if (!Design.IsDesignMode)   // not in the previewer: it shows the design data's made-up conversation
+            _viewModel.EnsureStarted();   // the panel is being shown for the first time
         if (_viewModel.TakePendingFocusRequest())
             FocusPrompt();
     }

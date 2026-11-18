@@ -1,10 +1,17 @@
 ﻿<UserControl
     x:Class="AXamlIDE.Views.PreviewPaneView"
     x:DataType="vm:PreviewPaneViewModel"
+    Design.DataContext="{x:Static design:DesignData.PreviewPane}"
+    d:DesignWidth="600"
+    d:DesignHeight="400"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:stylefolder="using:AXamlIDE.Styles"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
-    xmlns:stylefolder="using:AXamlIDE.Styles"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!--  Toolbar (zoom, theme) over the frame from the designer host; a message box while there is no frame.  -->

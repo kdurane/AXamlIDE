@@ -6,9 +6,16 @@
 <UserControl
     x:Class="AXamlIDE.Views.DebugValueTreeView"
     x:DataType="vm:DebugValueTree"
+    Design.DataContext="{x:Static design:DesignData.DebugValues}"
+    d:DesignWidth="700"
+    d:DesignHeight="260"
+    mc:Ignorable="d"
     x:Name="Root"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
     xmlns:local="using:AXamlIDE.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Styles>

@@ -11,7 +11,13 @@ the path to clone into (it follows the repository's name until edited), and git'
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.CloneRepositoryWindow"
     x:DataType="vm:CloneRepositoryViewModel"
+    Design.DataContext="{x:Static design:DesignData.CloneRepository}"
+    d:DesignWidth="560"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 

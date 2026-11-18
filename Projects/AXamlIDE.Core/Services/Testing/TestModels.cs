@@ -35,6 +35,9 @@ public sealed record TestCaseName(string FullName, string ClassName, string Meth
             : new TestCaseName(fullName, head[..dot], head[(dot + 1)..].Trim(), arguments);
     }
 
+    /// <summary>"Method(x: 1)": the method with a data-driven case's arguments, as a heading.</summary>
+    public string DisplayMethodName => MethodName + Arguments;
+
     /// <summary>"Ns.Class.Method": what <c>--filter FullyQualifiedName=</c> matches (no arguments).</summary>
     public string MethodFullName => ClassName.Length == 0 ? MethodName : $"{ClassName}.{MethodName}";
 }

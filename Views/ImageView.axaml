@@ -1,9 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:vm="using:AXamlIDE.ViewModels"
-             x:DataType="vm:ImageDockable"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:design="using:AXamlIDE.SampleData"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:AXamlIDE.ViewModels"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:DataType="vm:ImageDockable"
+             Design.DataContext="{x:Static design:DesignData.Image}"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="AXamlIDE.Views.ImageView">
 

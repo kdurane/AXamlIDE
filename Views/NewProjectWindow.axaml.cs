@@ -17,7 +17,7 @@ public partial class NewProjectWindow : Window
         Opened += async (_, _) =>
         {
             SearchBox.Focus();
-            if (ViewModel is { } viewModel)
+            if (ViewModel is { } viewModel && !Design.IsDesignMode)   // no dotnet new list in the previewer
                 await viewModel.LoadAsync();
         };
         DataContextChanged += OnDataContextChanged;

@@ -1,18 +1,22 @@
 ﻿<Window
     x:Class="AXamlIDE.Views.MainWindow"
     xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:msg="using:AXamlIDE.Messages"
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="AXamlIDE"
     MinWidth="800"
     d:DesignHeight="800"
     d:DesignWidth="1600"
     x:DataType="vm:MainWindowViewModel"
+    Design.DataContext="{x:Static design:DesignData.MainWindow}"
+    mc:Ignorable="d"
     Background="{DynamicResource AppWindowBackgroundBrush}"
     Foreground="{DynamicResource AppForegroundBrush}">
 

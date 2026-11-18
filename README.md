@@ -20,6 +20,12 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 - **Testing**: Test Explorer for xUnit, NUnit, MSTest and TUnit projects: run all, run failed, results in the tree.
 - **NuGet**: browse, install, update and uninstall packages; installed and transitive packages.
 - **Git**: status in the explorer, stage, unstage, commit, side-by-side diffs, history graph.
+- **Claude**: a Claude panel (Claude Code over the Agent Client Protocol), and the IDE as an MCP server on
+  `http://localhost:47613/mcp` so Claude, in the panel or in a terminal
+  (`claude mcp add --transport http axamlide http://localhost:47613/mcp`), can use what only the IDE knows: the
+  editor's caret, selection and unsaved edits; the Roslyn server's symbols, types, definitions and references;
+  one file's errors on demand, the Problems list and the IDE's build; AXAML rendered as a picture; the paused
+  debugger's call stack, locals and expressions; the Output pane and test results.
 - **Other**: Search Everywhere (double Shift, as Rider's: types, files, symbols, IDE actions and options), search in
   files, go to file and symbol, Problems panel, terminal, image viewer, dockable and floating
   panels, open files reload when changed on disk.

@@ -26,7 +26,7 @@ public sealed class EditorTheme
     public IRawTheme Load(RegistryOptions options) => _load(options);
 
     public static EditorTheme BuiltIn(ThemeName name) =>
-        new(name.ToString(), name.ToString(), r => r.LoadTheme(name));
+        new(name.ToString(), Services.Settings.SettingsDisplayNames.Theme(name.ToString()), r => r.LoadTheme(name));
 
     public static EditorTheme Custom(string id, string displayName, string avaresUri) =>
         new(id, displayName, _ =>

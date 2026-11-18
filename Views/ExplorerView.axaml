@@ -1,11 +1,18 @@
 ﻿<UserControl
     x:Class="AXamlIDE.Views.ExplorerView"
     x:DataType="vm:ExplorerViewModel"
+    Design.DataContext="{x:Static design:DesignData.Explorer}"
+    d:DesignWidth="320"
+    d:DesignHeight="520"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:AXamlIDE.Models"
     xmlns:shell="using:AXamlIDE.Shell"
-    xmlns:views="using:AXamlIDE.Views"
     xmlns:stylefolder="using:AXamlIDE.Styles"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 

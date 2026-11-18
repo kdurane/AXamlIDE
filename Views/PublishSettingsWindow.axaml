@@ -12,7 +12,13 @@ the Profile settings page with its File publish options underneath.
     WindowStartupLocation="CenterOwner"
     x:Class="AXamlIDE.Views.PublishSettingsWindow"
     x:DataType="vm:PublishSettingsViewModel"
+    Design.DataContext="{x:Static design:DesignData.PublishSettings}"
+    d:DesignWidth="580"
+    mc:Ignorable="d"
     xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
