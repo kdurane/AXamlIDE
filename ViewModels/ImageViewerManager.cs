@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using AXamlIDE.ViewModels;
 
-namespace AXamlIDE.Views;
+namespace AXamlIDE.ViewModels;
 
 /// <summary>Opens image files in an image tab (ImageDockable) instead of the text editor.</summary>
 public sealed class ImageViewerManager(DockLayoutViewModel docking)

@@ -7,7 +7,6 @@ using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Workspace;
-using AXamlIDE.Views;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 

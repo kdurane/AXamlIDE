@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Lsp;

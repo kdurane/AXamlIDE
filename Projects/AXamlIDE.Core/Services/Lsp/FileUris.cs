@@ -8,7 +8,7 @@ namespace AXamlIDE.Services.Lsp;
 /// to write a Windows drive: "file:///c:/src/a.cs", "file:///C:/src/a.cs" and VS Code's "file:///c%3A/src/a.cs"
 /// all mean the same file. .NET's <see cref="Uri.LocalPath"/> only recognises the first two; given the third it
 /// returns "/c:/src/a.cs", which <see cref="Path.GetFullPath(string)"/> then turns into "C:\c:\src\a.cs". So every
-/// URI from a server goes through <see cref="ToPath"/>, and URIs are compared with <see cref="SameFile"/>.
+/// URI from a server goes through <see cref="ToPath(string?)"/>, and URIs are compared with <see cref="SameFile"/>.
 /// </summary>
 public static class FileUris
 {

@@ -96,6 +96,9 @@ public sealed class NuGetVersion : IComparable<NuGetVersion>, IEquatable<NuGetVe
         => HashCode.Combine(_numbers[0], _numbers[1], _numbers[2], _numbers[3], string.Join('.', _releaseLabels).ToLowerInvariant());
     public override string ToString() => Original;
 
+    // Without these, == would compare references: two "1.2.0"s from different parses would be unequal.
+    public static bool operator ==(NuGetVersion? a, NuGetVersion? b) => a is null ? b is null : a.Equals(b);
+    public static bool operator !=(NuGetVersion? a, NuGetVersion? b) => !(a == b);
     public static bool operator <(NuGetVersion a, NuGetVersion b) => a.CompareTo(b) < 0;
     public static bool operator >(NuGetVersion a, NuGetVersion b) => a.CompareTo(b) > 0;
     public static bool operator <=(NuGetVersion a, NuGetVersion b) => a.CompareTo(b) <= 0;

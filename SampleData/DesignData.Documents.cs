@@ -11,7 +11,6 @@ using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Lsp;
-using AXamlIDE.Services.Publishing;
 using AXamlIDE.Services.Workspace;
 using AXamlIDE.Services.Xaml;
 using AXamlIDE.ViewModels;
@@ -115,7 +114,8 @@ public static partial class DesignData
         chat.Items.Add(new ToolCallItem(chat, new AcpToolCall("1", true, "Read OrdersViewModel.cs", "read", "completed", null,
             [new AcpLocation(SamplePath("Contoso.App/ViewModels/OrdersViewModel.cs"), 44)])));
         chat.Items.Add(new ToolCallItem(chat, new AcpToolCall("2", true, "Edit Order.cs", "edit", "completed",
-            [new AcpDiffContent(SamplePath("Contoso.App/Models/Order.cs"), "    public Customer Customer { get; set; }", "    public Customer? Customer { get; set; }")], null)));
+            [new AcpDiffContent(SamplePath("Contoso.App/Models/Order.cs"), "    public Customer Customer { get; set; }", "    public Customer? Customer { get; set; }"),
+             new AcpDiffContent(SamplePath("Contoso.App/Converters/NoneConverter.cs"), null, "public sealed class NoneConverter : IValueConverter")], null)));
         var plan = new PlanItem();
         plan.Show([new AcpPlanEntry("Find where Customer is read", "completed"), new AcpPlanEntry("Make Customer nullable", "in_progress"),
             new AcpPlanEntry("Show \"(none)\" in the list", "pending")]);

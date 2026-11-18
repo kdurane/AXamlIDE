@@ -38,6 +38,18 @@ public sealed class NuGetVersionTests
     [InlineData("1.0.0-")]
     [InlineData("[1.0,2.0)")]
     public void Rejects_what_isnt_a_version(string text) => Assert.Null(NuGetVersion.TryParse(text));
+
+    [Fact]
+    public void Equality_operators_compare_versions_not_references()
+    {
+        var a = NuGetVersion.TryParse("1.2.0");
+        var b = NuGetVersion.TryParse("1.2.0.0");
+        Assert.True(a == b);
+        Assert.False(a != b);
+        Assert.True(a != NuGetVersion.TryParse("1.2.1"));
+        Assert.True(a != null);
+        Assert.True((NuGetVersion?)null == null);
+    }
 }
 
 public sealed class NuGetCliTests

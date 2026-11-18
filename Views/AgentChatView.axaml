@@ -376,14 +376,24 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:AgentDiffItem">
                                         <StackPanel Margin="0,0,0,4">
-                                            <Button
+                                            <StackPanel
                                                 Margin="0,0,0,2"
-                                                Classes="link"
-                                                Command="{Binding $parent[ItemsControl].((vm:ToolCallItem)DataContext).OpenDiffFileCommand}"
-                                                CommandParameter="{Binding}"
-                                                Content="{Binding FileName}"
-                                                FontSize="11"
-                                                ToolTip.Tip="{Binding Path}" />
+                                                Orientation="Horizontal"
+                                                Spacing="6">
+                                                <Button
+                                                    Classes="link"
+                                                    Command="{Binding $parent[ItemsControl].((vm:ToolCallItem)DataContext).OpenDiffFileCommand}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="{Binding FileName}"
+                                                    FontSize="11"
+                                                    ToolTip.Tip="{Binding Path}" />
+                                                <TextBlock
+                                                    VerticalAlignment="Center"
+                                                    Classes="dim"
+                                                    FontSize="11"
+                                                    IsVisible="{Binding IsNewFile}"
+                                                    Text="new file" />
+                                            </StackPanel>
                                             <ItemsControl ItemsSource="{Binding Lines}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate x:DataType="vm:AgentDiffLine">

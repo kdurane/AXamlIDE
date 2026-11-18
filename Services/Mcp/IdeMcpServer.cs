@@ -7,7 +7,6 @@ using Avalonia.Threading;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
-using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Settings;

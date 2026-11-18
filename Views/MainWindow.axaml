@@ -595,7 +595,15 @@
                             Width="14"
                             Height="14"
                             Data="{StaticResource Icon.CSharp}"
-                            Foreground="{DynamicResource AppStatusBarForegroundBrush}" />
+                            Foreground="{DynamicResource AppStatusBarForegroundBrush}"
+                            IsVisible="{Binding !LanguageServerHasProblem}" />
+                        <!--  Stopped or couldn't start: a warning sign instead, so it isn't mistaken for running.  -->
+                        <PathIcon
+                            Width="14"
+                            Height="14"
+                            Data="{StaticResource Icon.AlertOutline}"
+                            Foreground="{DynamicResource AppStatusBarForegroundBrush}"
+                            IsVisible="{Binding LanguageServerHasProblem}" />
                         <TextBlock
                             MaxWidth="360"
                             Text="{Binding LanguageServerText}"

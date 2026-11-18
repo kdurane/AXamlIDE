@@ -223,6 +223,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
                 command,
                 arguments
             });
+            Trace("->", payload);
             await _transport.WriteMessageAsync(payload, cancellationToken);
         }
         catch
@@ -280,7 +281,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
                    && await _transport.ReadMessageAsync(_shutdown.Token) is { } payload)
             {
                 using var message = JsonDocument.Parse(payload);
-                // Trace("<-", payload); 
+                Trace("<-", payload);
                 var root = message.RootElement;
                 if (!root.TryGetProperty("type", out var type))
                     throw new InvalidDataException("NetCoreDbg sent a DAP message without a type.");
