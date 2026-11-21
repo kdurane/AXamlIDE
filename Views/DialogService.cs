@@ -31,11 +31,21 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow
         ?? throw new InvalidOperationException("Dialogs need the main window, which isn't open yet.");
 
+    /// <summary>
+    /// Shows a dialog built here with the app's own title bar (Views/WindowTitleBar.axaml), as the XAML windows have.
+    /// Message boxes have no caption buttons (their own buttons close them); pickers keep a close button.
+    /// </summary>
+    private static Task ShowWithTitleBar(Window dialog, bool closeButton = false)
+    {
+        WindowTitleBar.Apply(dialog, closeButton);
+        return dialog.ShowDialog(Owner);
+    }
+
     // ------------------------------------------------------------ save prompt
 
     public async Task<SaveChoice> AskSaveAsync(OpenDocument doc)
     {
-        var result = SaveChoice.Cancel; // closing the window with the X = cancel
+        var result = SaveChoice.Cancel; // closed any other way (Alt+F4) = cancel
         var dialog = new Window
         {
             Title = "Unsaved changes",
@@ -65,7 +75,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
                 }
             }
         };
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
         return result;
 
         Button Make(string text, SaveChoice choice)
@@ -128,7 +138,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             Children = { query, results }
         };
         window.Opened += (_, _) => query.Focus();
-        await window.ShowDialog(Owner);
+        await ShowWithTitleBar(window, closeButton: true);
         return selectedPath;
 
         void UpdateResults()
@@ -208,7 +218,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             args.Handled = true;
             Accept();
         };
-        await window.ShowDialog(Owner);
+        await ShowWithTitleBar(window, closeButton: true);
         return selected;
 
         void Accept()
@@ -258,7 +268,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
                 }
             }
         };
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
         return confirmed;
 
         Button Make(string text, bool accept)
@@ -317,7 +327,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             }
         };
 
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
         return confirmed;
 
         Button MakeButton(string text, bool accept)
@@ -392,7 +402,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = content
         };
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
         return choice;
 
         Button MakeButton(string text, bool accept)
@@ -432,7 +442,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
                 }
             }
         };
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
     }
 
     public async Task<bool> ConfirmAsync(string title, string message, string confirmText)
@@ -464,7 +474,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             }
         };
 
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
         return confirmed;
 
         Button MakeButton(string text, bool accept)
@@ -524,7 +534,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
             textBox.Focus();
             textBox.SelectAll();
         };
-        await dialog.ShowDialog(Owner);
+        await ShowWithTitleBar(dialog);
         return value;
 
         void Accept()

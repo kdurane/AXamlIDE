@@ -1,5 +1,7 @@
 ﻿<Window
     Background="{DynamicResource AppWindowBackgroundBrush}"
+    Classes="customChrome"
+    CanMinimize="False"
     Foreground="{DynamicResource AppForegroundBrush}"
     Height="560"
     MinHeight="380"
@@ -23,265 +25,268 @@
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Margin="20" RowDefinitions="Auto,*">
-        <TextBlock
-            FontSize="18"
-            FontWeight="SemiBold"
-            Margin="0,0,0,16"
-            Text="Settings" />
+    <DockPanel>
+        <views:WindowTitleBar DockPanel.Dock="Top" />
+        <Grid Margin="20" RowDefinitions="Auto,*">
+            <TextBlock
+                FontSize="18"
+                FontWeight="SemiBold"
+                Margin="0,0,0,16"
+                Text="Settings" />
 
-        <TabControl
-            Grid.Row="1"
-            Name="Pages"
-            TabStripPlacement="Left">
-            <!--  The editor: how it looks, and what it does as you type (VS: Text Editor > General)  -->
-            <TabItem FontSize="16" Header="Text Editor">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20,12" Spacing="10">
-                        <TextBlock Classes="SettingsHeading" Text="Appearance" />
+            <TabControl
+                Grid.Row="1"
+                Name="Pages"
+                TabStripPlacement="Left">
+                <!--  The editor: how it looks, and what it does as you type (VS: Text Editor > General)  -->
+                <TabItem FontSize="16" Header="Text Editor">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="20,12" Spacing="10">
+                            <TextBlock Classes="SettingsHeading" Text="Appearance" />
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Color theme" />
+                                <ComboBox
+                                    ItemsSource="{Binding AvailableThemes}"
+                                    MinWidth="220"
+                                    SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="models:EditorTheme">
+                                            <TextBlock Text="{Binding DisplayName}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Font family" />
+                                <ComboBox
+                                    ItemsSource="{Binding AvailableEditorFontFamilies}"
+                                    MinWidth="260"
+                                    SelectedItem="{Binding EditorFontFamily, Mode=TwoWay}">
+                                    <!--  The first family by name; the full setting (with its fallbacks) as the tooltip.  -->
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <TextBlock Text="{Binding Converter={x:Static views:SettingsConverters.FontName}}" ToolTip.Tip="{Binding}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <CheckBox Content="Enable font ligatures" IsChecked="{Binding FontLigatures, Mode=TwoWay}" />
+
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Font size" />
+                                <ComboBox
+                                    ItemsSource="{Binding AvailableEditorFontSizes}"
+                                    MinWidth="100"
+                                    SelectedItem="{Binding EditorFontSize, Mode=TwoWay}" />
+                            </StackPanel>
+
+                            <CheckBox Content="Show line numbers" IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}" />
+                            <CheckBox Content="Highlight current line" IsChecked="{Binding HighlightCurrentLine, Mode=TwoWay}" />
+
+                            <TextBlock Classes="SettingsHeading" Text="Highlighting" />
+                            <CheckBox Content="Semantic highlighting" IsChecked="{Binding SemanticHighlighting, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Colour names by what they are (class, parameter, local...), not only by syntax. C#." />
+                            <CheckBox Content="Highlight other occurrences of the selection" IsChecked="{Binding HighlightSelectionOccurrences, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Wherever the selected text appears in the file." />
+                            <CheckBox Content="Colour swatches" IsChecked="{Binding ColorSwatches, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="A swatch beside colour values; click it to pick a colour." />
+
+                            <TextBlock Classes="SettingsHeading" Text="Typing" />
+                            <CheckBox Content="Automatic brace completion" IsChecked="{Binding AutoCloseBraces, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Typing { adds the matching }." />
+                            <CheckBox Content="Close AXAML tags" IsChecked="{Binding AutoCloseXamlTags, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Typing the &gt; of a start tag adds its end tag." />
+                            <CheckBox Content="Make namespaces file-scoped on ;" IsChecked="{Binding FileScopedNamespaceOnSemicolon, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Typing ; after namespace X removes the namespace's braces and indentation (Ctrl+Z undoes it)." />
+
+                            <TextBlock Classes="SettingsHeading" Text="Formatting" />
+                            <CheckBox Content="Format documents on save when supported" IsChecked="{Binding FormatOnSave, Mode=TwoWay}" />
+                            <CheckBox
+                                Margin="24,0,0,0"
+                                Content="Include AXAML files"
+                                IsChecked="{Binding FormatXamlOnSave, Mode=TwoWay}"
+                                IsEnabled="{Binding FormatOnSave}" />
+                            <TextBlock
+                                Margin="24,0,0,0"
+                                Classes="SettingHint"
+                                Text="Off: AXAML is only formatted when you run Format Document." />
+
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="AXAML indent size" />
+                                <ComboBox
+                                    ItemsSource="{Binding AvailableIndentSizes}"
+                                    MinWidth="100"
+                                    SelectedItem="{Binding XamlIndentSize, Mode=TwoWay}" />
+                            </StackPanel>
+                            <TextBlock Classes="SettingHint" Text="Spaces per level. A Settings.XamlStyler file in the project overrides this, as in Visual Studio and Rider." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <!--  What pops up as you type or point (VS: Text Editor > C# > IntelliSense)  -->
+                <TabItem FontSize="16" Header="IntelliSense">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="20,12" Spacing="10">
+                            <TextBlock Classes="SettingsHeading" Text="IntelliSense" />
+                            <CheckBox Content="Show the completion list while typing" IsChecked="{Binding CompletionWhileTyping, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Off: it opens with Ctrl+Space, or after a character such as . or &lt;." />
+                            <CheckBox Content="Show items from namespaces that aren't imported" IsChecked="{Binding CompletionFromUnimportedNamespaces, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Picking one adds the using. C#." />
+                            <CheckBox Content="Show parameter info while typing" IsChecked="{Binding ParameterInfoWhileTyping, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="On ( and , in a call. Off: Ctrl+Shift+Space shows it." />
+                            <CheckBox Content="Show snippets in the completion list" IsChecked="{Binding SnippetsInCompletion, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="class, prop, ctor... below the other items. Off: Edit &gt; Insert Snippet (Ctrl+J) still lists them." />
+                            <CheckBox Content="Expand a snippet with Tab after its shortcut" IsChecked="{Binding TabExpandsSnippets, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Type prop, press Tab." />
+                            <CheckBox Content="Show Quick Info on hover" IsChecked="{Binding QuickInfoOnHover, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="What the name under the pointer is, and its documentation. Errors and warnings under the pointer always show." />
+
+                            <TextBlock Classes="SettingsHeading" Text="Code analysis (C#)" />
+                            <CheckBox Content="Analyse the entire solution" IsChecked="{Binding SolutionWideAnalysis, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Errors in files that aren't open show in the Problems list and the status bar. Uses more memory and CPU on a big solution." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <!--  Text shown in the code that isn't in the file (VS: C# > Advanced > Inline Hints, and CodeLens)  -->
+                <TabItem FontSize="16" Header="Inline Hints">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="20,12" Spacing="10">
+                            <TextBlock Classes="SettingsHeading" Text="Inline hints (C#)" />
+                            <CheckBox Content="Parameter names" IsChecked="{Binding InlayParameterHints, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Before literal arguments: Process(force: true)." />
+                            <CheckBox Content="Types" IsChecked="{Binding InlayTypeHints, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="The types behind var, lambda parameters and new()." />
+
+                            <TextBlock Classes="SettingsHeading" Text="CodeLens (C#)" />
+                            <CheckBox Content="Show references" IsChecked="{Binding CodeLens, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="&quot;3 references&quot; above declarations; click it for the list." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <!--  VS: Debugging > General  -->
+                <TabItem FontSize="16" Header="Debugging">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="20,12" Spacing="10">
+                            <TextBlock Classes="SettingsHeading" Text="While paused" />
+                            <CheckBox Content="Show inline values" IsChecked="{Binding InlineDebugValues, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="name = value at the end of the lines around the current statement." />
+
+                            <TextBlock Classes="SettingsHeading" Text="Exceptions" />
+                            <CheckBox Content="Break when any exception is thrown" IsChecked="{Binding BreakOnAllExceptions, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Off: break only when an exception isn't handled by your code, as Visual Studio does by default. Applies at once, even while debugging." />
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                <TabItem FontSize="16" Header="Environment">
+                    <StackPanel Margin="20,12" Spacing="16">
+                        <TextBlock Classes="SettingsHeading" Text="Window layout" />
+                        <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
+                        <StackPanel Spacing="4">
+                            <CheckBox Content="Track active item in Solution Explorer" IsChecked="{Binding TrackActiveItem, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Switching tabs selects that file in the explorer. Off: the explorer's Sync with Active Document button does it when you ask." />
+                        </StackPanel>
+                        <TextBlock Classes="SettingsHeading" Text="Claude" />
+                        <StackPanel Spacing="4">
+                            <CheckBox Content="Let Claude use the IDE's tools" IsChecked="{Binding ClaudeIdeTools, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="The Claude panel can render previews, read the Problems list and see what's open in the editor. Also the IDE button under the panel's message box. Applies at once." />
+                        </StackPanel>
+                        <TextBlock Classes="SettingsHeading" Text="Startup" />
                         <StackPanel Spacing="6">
-                            <TextBlock Text="Color theme" />
+                            <TextBlock Text="On startup, open" />
                             <ComboBox
-                                ItemsSource="{Binding AvailableThemes}"
+                                ItemsSource="{Binding StartupChoices}"
                                 MinWidth="220"
-                                SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
+                                SelectedItem="{Binding SelectedStartup, Mode=TwoWay}">
                                 <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="models:EditorTheme">
-                                        <TextBlock Text="{Binding DisplayName}" />
+                                    <DataTemplate x:DataType="vm:StartupChoice">
+                                        <TextBlock Text="{Binding Text}" />
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
                         </StackPanel>
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Font family" />
-                            <ComboBox
-                                ItemsSource="{Binding AvailableEditorFontFamilies}"
-                                MinWidth="260"
-                                SelectedItem="{Binding EditorFontFamily, Mode=TwoWay}">
-                                <!--  The first family by name; the full setting (with its fallbacks) as the tooltip.  -->
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="x:String">
-                                        <TextBlock Text="{Binding Converter={x:Static views:SettingsConverters.FontName}}" ToolTip.Tip="{Binding}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <CheckBox Content="Enable font ligatures" IsChecked="{Binding FontLigatures, Mode=TwoWay}" />
-
+                    </StackPanel>
+                </TabItem>
+                <!--
+                Visual Studio's Tools > Options > Environment > Keyboard: the mapping scheme, then every command
+                with its keys. The schemes are Services/Keymaps/*.json in AXamlIDE.Core.
+                -->
+                <TabItem FontSize="16" Header="Keyboard">
+                    <DockPanel Margin="20,12">
+                        <StackPanel
+                            DockPanel.Dock="Top"
+                            Margin="0,0,0,12"
+                            Spacing="16">
+                            <TextBlock Classes="SettingsHeading" Text="Keymap" />
+                            <StackPanel Spacing="6">
+                                <TextBlock Text="Keyboard mapping scheme" />
+                                <ComboBox
+                                    ItemsSource="{Binding AvailableKeymaps}"
+                                    MinWidth="220"
+                                    SelectedItem="{Binding SelectedKeymap, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="keymaps:KeymapProfile">
+                                            <TextBlock Text="{Binding Name}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <TextBox
+                                Classes="SearchBox"
+                                PlaceholderText="Show commands containing (name or keys, e.g. comment or Ctrl+K)"
+                                Text="{Binding ShortcutFilter}" />
                         </StackPanel>
 
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Font size" />
-                            <ComboBox
-                                ItemsSource="{Binding AvailableEditorFontSizes}"
-                                MinWidth="100"
-                                SelectedItem="{Binding EditorFontSize, Mode=TwoWay}" />
+                        <!--  The selected command's id (what keymap files use) and what it does  -->
+                        <StackPanel
+                            DockPanel.Dock="Bottom"
+                            Margin="0,8,0,0"
+                            Spacing="2">
+                            <TextBlock
+                                FontSize="12"
+                                Opacity="0.7"
+                                Text="{Binding #ShortcutTable.((models:KeyboardShortcutRow)SelectedItem).Id, FallbackValue=''}" />
+                            <TextBlock
+                                FontSize="13"
+                                Text="{Binding #ShortcutTable.((models:KeyboardShortcutRow)SelectedItem).Description, FallbackValue=''}"
+                                TextWrapping="Wrap" />
                         </StackPanel>
 
-                        <CheckBox Content="Show line numbers" IsChecked="{Binding ShowLineNumbers, Mode=TwoWay}" />
-                        <CheckBox Content="Highlight current line" IsChecked="{Binding HighlightCurrentLine, Mode=TwoWay}" />
-
-                        <TextBlock Classes="SettingsHeading" Text="Highlighting" />
-                        <CheckBox Content="Semantic highlighting" IsChecked="{Binding SemanticHighlighting, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Colour names by what they are (class, parameter, local...), not only by syntax. C#." />
-                        <CheckBox Content="Highlight other occurrences of the selection" IsChecked="{Binding HighlightSelectionOccurrences, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Wherever the selected text appears in the file." />
-                        <CheckBox Content="Colour swatches" IsChecked="{Binding ColorSwatches, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="A swatch beside colour values; click it to pick a colour." />
-
-                        <TextBlock Classes="SettingsHeading" Text="Typing" />
-                        <CheckBox Content="Automatic brace completion" IsChecked="{Binding AutoCloseBraces, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Typing { adds the matching }." />
-                        <CheckBox Content="Close AXAML tags" IsChecked="{Binding AutoCloseXamlTags, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Typing the &gt; of a start tag adds its end tag." />
-                        <CheckBox Content="Make namespaces file-scoped on ;" IsChecked="{Binding FileScopedNamespaceOnSemicolon, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Typing ; after namespace X removes the namespace's braces and indentation (Ctrl+Z undoes it)." />
-
-                        <TextBlock Classes="SettingsHeading" Text="Formatting" />
-                        <CheckBox Content="Format documents on save when supported" IsChecked="{Binding FormatOnSave, Mode=TwoWay}" />
-                        <CheckBox
-                            Margin="24,0,0,0"
-                            Content="Include AXAML files"
-                            IsChecked="{Binding FormatXamlOnSave, Mode=TwoWay}"
-                            IsEnabled="{Binding FormatOnSave}" />
-                        <TextBlock
-                            Margin="24,0,0,0"
-                            Classes="SettingHint"
-                            Text="Off: AXAML is only formatted when you run Format Document." />
-
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="AXAML indent size" />
-                            <ComboBox
-                                ItemsSource="{Binding AvailableIndentSizes}"
-                                MinWidth="100"
-                                SelectedItem="{Binding XamlIndentSize, Mode=TwoWay}" />
-                        </StackPanel>
-                        <TextBlock Classes="SettingHint" Text="Spaces per level. A Settings.XamlStyler file in the project overrides this, as in Visual Studio and Rider." />
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <!--  What pops up as you type or point (VS: Text Editor > C# > IntelliSense)  -->
-            <TabItem FontSize="16" Header="IntelliSense">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20,12" Spacing="10">
-                        <TextBlock Classes="SettingsHeading" Text="IntelliSense" />
-                        <CheckBox Content="Show the completion list while typing" IsChecked="{Binding CompletionWhileTyping, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Off: it opens with Ctrl+Space, or after a character such as . or &lt;." />
-                        <CheckBox Content="Show items from namespaces that aren't imported" IsChecked="{Binding CompletionFromUnimportedNamespaces, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Picking one adds the using. C#." />
-                        <CheckBox Content="Show parameter info while typing" IsChecked="{Binding ParameterInfoWhileTyping, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="On ( and , in a call. Off: Ctrl+Shift+Space shows it." />
-                        <CheckBox Content="Show snippets in the completion list" IsChecked="{Binding SnippetsInCompletion, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="class, prop, ctor... below the other items. Off: Edit &gt; Insert Snippet (Ctrl+J) still lists them." />
-                        <CheckBox Content="Expand a snippet with Tab after its shortcut" IsChecked="{Binding TabExpandsSnippets, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Type prop, press Tab." />
-                        <CheckBox Content="Show Quick Info on hover" IsChecked="{Binding QuickInfoOnHover, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="What the name under the pointer is, and its documentation. Errors and warnings under the pointer always show." />
-
-                        <TextBlock Classes="SettingsHeading" Text="Code analysis (C#)" />
-                        <CheckBox Content="Analyse the entire solution" IsChecked="{Binding SolutionWideAnalysis, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Errors in files that aren't open show in the Problems list and the status bar. Uses more memory and CPU on a big solution." />
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <!--  Text shown in the code that isn't in the file (VS: C# > Advanced > Inline Hints, and CodeLens)  -->
-            <TabItem FontSize="16" Header="Inline Hints">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20,12" Spacing="10">
-                        <TextBlock Classes="SettingsHeading" Text="Inline hints (C#)" />
-                        <CheckBox Content="Parameter names" IsChecked="{Binding InlayParameterHints, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Before literal arguments: Process(force: true)." />
-                        <CheckBox Content="Types" IsChecked="{Binding InlayTypeHints, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="The types behind var, lambda parameters and new()." />
-
-                        <TextBlock Classes="SettingsHeading" Text="CodeLens (C#)" />
-                        <CheckBox Content="Show references" IsChecked="{Binding CodeLens, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="&quot;3 references&quot; above declarations; click it for the list." />
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <!--  VS: Debugging > General  -->
-            <TabItem FontSize="16" Header="Debugging">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20,12" Spacing="10">
-                        <TextBlock Classes="SettingsHeading" Text="While paused" />
-                        <CheckBox Content="Show inline values" IsChecked="{Binding InlineDebugValues, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="name = value at the end of the lines around the current statement." />
-
-                        <TextBlock Classes="SettingsHeading" Text="Exceptions" />
-                        <CheckBox Content="Break when any exception is thrown" IsChecked="{Binding BreakOnAllExceptions, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Off: break only when an exception isn't handled by your code, as Visual Studio does by default. Applies at once, even while debugging." />
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-            <TabItem FontSize="16" Header="Environment">
-                <StackPanel Margin="20,12" Spacing="16">
-                    <TextBlock Classes="SettingsHeading" Text="Window layout" />
-                    <CheckBox Content="Show Solution Explorer on the right" IsChecked="{Binding SolutionExplorerOnRight, Mode=TwoWay}" />
-                    <StackPanel Spacing="4">
-                        <CheckBox Content="Track active item in Solution Explorer" IsChecked="{Binding TrackActiveItem, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="Switching tabs selects that file in the explorer. Off: the explorer's Sync with Active Document button does it when you ask." />
-                    </StackPanel>
-                    <TextBlock Classes="SettingsHeading" Text="Claude" />
-                    <StackPanel Spacing="4">
-                        <CheckBox Content="Let Claude use the IDE's tools" IsChecked="{Binding ClaudeIdeTools, Mode=TwoWay}" />
-                        <TextBlock Classes="SettingHint" Text="The Claude panel can render previews, read the Problems list and see what's open in the editor. Also the IDE button under the panel's message box. Applies at once." />
-                    </StackPanel>
-                    <TextBlock Classes="SettingsHeading" Text="Startup" />
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="On startup, open" />
-                        <ComboBox
-                            ItemsSource="{Binding StartupChoices}"
-                            MinWidth="220"
-                            SelectedItem="{Binding SelectedStartup, Mode=TwoWay}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate x:DataType="vm:StartupChoice">
-                                    <TextBlock Text="{Binding Text}" />
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
-                </StackPanel>
-            </TabItem>
-            <!--
-            Visual Studio's Tools > Options > Environment > Keyboard: the mapping scheme, then every command
-            with its keys. The schemes are Services/Keymaps/*.json in AXamlIDE.Core.
-            -->
-            <TabItem FontSize="16" Header="Keyboard">
-                <DockPanel Margin="20,12">
-                    <StackPanel
-                        DockPanel.Dock="Top"
-                        Margin="0,0,0,12"
-                        Spacing="16">
-                        <TextBlock Classes="SettingsHeading" Text="Keymap" />
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="Keyboard mapping scheme" />
-                            <ComboBox
-                                ItemsSource="{Binding AvailableKeymaps}"
-                                MinWidth="220"
-                                SelectedItem="{Binding SelectedKeymap, Mode=TwoWay}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate x:DataType="keymaps:KeymapProfile">
-                                        <TextBlock Text="{Binding Name}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
-                        <TextBox
-                            Classes="SearchBox"
-                            PlaceholderText="Show commands containing (name or keys, e.g. comment or Ctrl+K)"
-                            Text="{Binding ShortcutFilter}" />
-                    </StackPanel>
-
-                    <!--  The selected command's id (what keymap files use) and what it does  -->
-                    <StackPanel
-                        DockPanel.Dock="Bottom"
-                        Margin="0,8,0,0"
-                        Spacing="2">
-                        <TextBlock
-                            FontSize="12"
-                            Opacity="0.7"
-                            Text="{Binding #ShortcutTable.((models:KeyboardShortcutRow)SelectedItem).Id, FallbackValue=''}" />
-                        <TextBlock
+                        <DataGrid
+                            AutoGenerateColumns="False"
+                            CanUserResizeColumns="True"
+                            CanUserSortColumns="True"
                             FontSize="13"
-                            Text="{Binding #ShortcutTable.((models:KeyboardShortcutRow)SelectedItem).Description, FallbackValue=''}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <DataGrid
-                        AutoGenerateColumns="False"
-                        CanUserResizeColumns="True"
-                        CanUserSortColumns="True"
-                        FontSize="13"
-                        GridLinesVisibility="Horizontal"
-                        IsReadOnly="True"
-                        ItemsSource="{Binding ShortcutRows}"
-                        Name="ShortcutTable">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn
-                                Binding="{Binding Category}"
-                                Header="Category"
-                                Width="Auto"
-                                x:DataType="models:KeyboardShortcutRow" />
-                            <DataGridTextColumn
-                                Binding="{Binding Command}"
-                                Header="Command"
-                                Width="*"
-                                x:DataType="models:KeyboardShortcutRow" />
-                            <DataGridTextColumn
-                                Binding="{Binding Shortcuts}"
-                                Header="Shortcut"
-                                Width="Auto"
-                                x:DataType="models:KeyboardShortcutRow" />
-                            <DataGridTextColumn
-                                Binding="{Binding AppliesIn}"
-                                Header="Applies in"
-                                Width="Auto"
-                                x:DataType="models:KeyboardShortcutRow" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </DockPanel>
-            </TabItem>
-        </TabControl>
-    </Grid>
+                            GridLinesVisibility="Horizontal"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding ShortcutRows}"
+                            Name="ShortcutTable">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Binding="{Binding Category}"
+                                    Header="Category"
+                                    Width="Auto"
+                                    x:DataType="models:KeyboardShortcutRow" />
+                                <DataGridTextColumn
+                                    Binding="{Binding Command}"
+                                    Header="Command"
+                                    Width="*"
+                                    x:DataType="models:KeyboardShortcutRow" />
+                                <DataGridTextColumn
+                                    Binding="{Binding Shortcuts}"
+                                    Header="Shortcut"
+                                    Width="Auto"
+                                    x:DataType="models:KeyboardShortcutRow" />
+                                <DataGridTextColumn
+                                    Binding="{Binding AppliesIn}"
+                                    Header="Applies in"
+                                    Width="Auto"
+                                    x:DataType="models:KeyboardShortcutRow" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </DockPanel>
 </Window>

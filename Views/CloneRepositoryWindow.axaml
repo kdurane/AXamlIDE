@@ -4,6 +4,8 @@ the path to clone into (it follows the repository's name until edited), and git'
 -->
 <Window
     Background="{DynamicResource ThemeBackgroundBrush}"
+    Classes="customChrome"
+    CanMinimize="False"
     CanResize="False"
     SizeToContent="Height"
     Title="Clone a Repository"
@@ -19,66 +21,70 @@ the path to clone into (it follows the repository's name until edited), and git'
     xmlns:design="using:AXamlIDE.SampleData"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <StackPanel Margin="20" Spacing="6">
-        <TextBlock FontSize="18" Margin="0,0,0,8" Text="Clone a repository" />
+    <DockPanel>
+        <views:WindowTitleBar DockPanel.Dock="Top" />
+        <StackPanel Margin="20" Spacing="6">
+            <TextBlock FontSize="18" Margin="0,0,0,8" Text="Clone a repository" />
 
-        <TextBlock Text="Repository location" />
-        <TextBox
-            AutomationProperties.Name="Repository location"
-            IsEnabled="{Binding !IsCloning}"
-            Name="UrlBox"
-            PlaceholderText="https://github.com/owner/repository.git"
-            Text="{Binding Url}" />
-
-        <TextBlock Margin="0,8,0,0" Text="Path" />
-        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Repository location" />
             <TextBox
-                AutomationProperties.Name="Path"
+                AutomationProperties.Name="Repository location"
                 IsEnabled="{Binding !IsCloning}"
-                Text="{Binding TargetPath}" />
-            <Button
-                AutomationProperties.Name="Browse for a folder"
-                Command="{Binding BrowseCommand}"
-                Content="..."
-                Grid.Column="1"
-                IsEnabled="{Binding !IsCloning}"
-                Margin="6,0,0,0"
-                ToolTip.Tip="Browse" />
-        </Grid>
+                Name="UrlBox"
+                PlaceholderText="https://github.com/owner/repository.git"
+                Text="{Binding Url}" />
 
-        <TextBlock
-            Classes.error="{Binding StatusIsError}"
-            Margin="0,8,0,0"
-            MinHeight="18"
-            Opacity="0.85"
-            Text="{Binding Status}"
-            TextTrimming="CharacterEllipsis"
-            TextWrapping="Wrap">
-            <TextBlock.Styles>
-                <Style Selector="TextBlock.error">
-                    <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
-                </Style>
-            </TextBlock.Styles>
-        </TextBlock>
+            <TextBlock Margin="0,8,0,0" Text="Path" />
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox
+                    AutomationProperties.Name="Path"
+                    IsEnabled="{Binding !IsCloning}"
+                    Text="{Binding TargetPath}" />
+                <Button
+                    AutomationProperties.Name="Browse for a folder"
+                    Command="{Binding BrowseCommand}"
+                    Content="..."
+                    Grid.Column="1"
+                    IsEnabled="{Binding !IsCloning}"
+                    Margin="6,0,0,0"
+                    ToolTip.Tip="Browse" />
+            </Grid>
 
-        <StackPanel
-            HorizontalAlignment="Right"
-            Margin="0,8,0,0"
-            Orientation="Horizontal"
-            Spacing="8">
-            <Button
-                Classes="accent"
-                Command="{Binding CloneCommand}"
-                Content="Clone"
-                IsDefault="True"
-                MinWidth="80" />
-            <Button
-                Click="OnCancelClick"
-                Content="Cancel"
-                IsCancel="True"
-                MinWidth="80" />
+            <TextBlock
+                Classes.error="{Binding StatusIsError}"
+                Margin="0,8,0,0"
+                MinHeight="18"
+                Opacity="0.85"
+                Text="{Binding Status}"
+                TextTrimming="CharacterEllipsis"
+                TextWrapping="Wrap">
+                <TextBlock.Styles>
+                    <Style Selector="TextBlock.error">
+                        <Setter Property="Foreground" Value="{DynamicResource DiagnosticErrorBrush}" />
+                    </Style>
+                </TextBlock.Styles>
+            </TextBlock>
+
+            <StackPanel
+                HorizontalAlignment="Right"
+                Margin="0,8,0,0"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Classes="accent"
+                    Command="{Binding CloneCommand}"
+                    Content="Clone"
+                    IsDefault="True"
+                    MinWidth="80" />
+                <Button
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="80" />
+            </StackPanel>
         </StackPanel>
-    </StackPanel>
+    </DockPanel>
 </Window>

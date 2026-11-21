@@ -1,0 +1,126 @@
+<!--
+    The top bar of a window that draws its own chrome (Classes="customChrome", Styles/WindowStyles.axaml), as Visual
+    Studio and Rider do: drag the empty part to move the window, double-click it to maximize, and minimize / maximize /
+    close on the right. BarContent (the main window's menu and toolbar) fills the left; without it the window's title
+    shows. Which buttons show comes from the window and ShowCaptionButtons (WindowTitleBar.axaml.cs sets the classes).
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.WindowTitleBar"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:AXamlIDE.Views"
+    MinHeight="34"
+    d:DesignWidth="520"
+    Background="{DynamicResource AppTitleBarBackgroundBrush}"
+    Foreground="{DynamicResource AppTitleBarForegroundBrush}"
+    mc:Ignorable="d">
+
+    <UserControl.Resources>
+        <!--  A caption button: flat, full height, Windows sized; close goes red on hover, as every desktop does.  -->
+        <ControlTheme x:Key="CaptionButton" TargetType="Button">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppTitleBarForegroundBrush}" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <ContentPresenter
+                        x:Name="PART_ContentPresenter"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center"
+                        Background="{TemplateBinding Background}"
+                        Content="{TemplateBinding Content}"
+                        Foreground="{TemplateBinding Foreground}" />
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover, ^:pressed">
+                <Setter Property="Background" Value="{DynamicResource ListBoxItemBackgroundPointerOver}" />
+            </Style>
+            <Style Selector="^.close:pointerover, ^.close:pressed">
+                <Setter Property="Foreground" Value="#E81123" />
+                <!--<Setter Property="Foreground" Value="White" />-->
+            </Style>
+        </ControlTheme>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="views|WindowTitleBar:maximized PathIcon#MaximizeIcon">
+            <Setter Property="Data" Value="{DynamicResource Icon.WindowRestore}" />
+        </Style>
+        <Style Selector="views|WindowTitleBar:hasContent TextBlock#TitleText">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="views|WindowTitleBar:not(:canMinimize) Button#MinimizeButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="views|WindowTitleBar:not(:canMaximize) Button#MaximizeButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!--  Message boxes close through their own buttons; macOS keeps its traffic lights (top left, over the bar).  -->
+        <Style Selector="views|WindowTitleBar:noCaptionButtons StackPanel#CaptionButtons, views|WindowTitleBar:macos StackPanel#CaptionButtons">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="views|WindowTitleBar:macos ContentPresenter#BarContentPresenter">
+            <Setter Property="Margin" Value="72,0,0,0" />
+        </Style>
+        <Style Selector="views|WindowTitleBar:macos TextBlock#TitleText">
+            <Setter Property="Margin" Value="80,0,12,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid ColumnDefinitions="*,Auto">
+        <!--  Empty space moves the window; the menus and buttons on top take their own clicks.  -->
+        <Border
+            x:Name="DragArea"
+            Grid.ColumnSpan="2"
+            Background="Transparent" />
+        <TextBlock
+            x:Name="TitleText"
+            Margin="12,0"
+            VerticalAlignment="Center"
+            IsHitTestVisible="False"
+            Text="{Binding $parent[Window].Title}"
+            TextTrimming="CharacterEllipsis" />
+        <ContentPresenter
+            x:Name="BarContentPresenter"
+            HorizontalContentAlignment="Stretch"
+            VerticalContentAlignment="Stretch"
+            Content="{Binding $parent[views:WindowTitleBar].BarContent}" />
+        <StackPanel
+            x:Name="CaptionButtons"
+            Grid.Column="1"
+            Orientation="Horizontal">
+            <Button
+                x:Name="MinimizeButton"
+                AutomationProperties.Name="Minimize"
+                Theme="{StaticResource CaptionButton}">
+                <PathIcon
+                    Width="11"
+                    Height="11"
+                    Data="{DynamicResource Icon.Minus}" />
+            </Button>
+            <Button
+                x:Name="MaximizeButton"
+                AutomationProperties.Name="Maximize"
+                Theme="{StaticResource CaptionButton}">
+                <PathIcon
+                    x:Name="MaximizeIcon"
+                    Width="11"
+                    Height="11"
+                    Data="{DynamicResource Icon.SquareOutline}" />
+            </Button>
+            <Button
+                x:Name="CloseButton"
+                AutomationProperties.Name="Close"
+                Classes="close"
+                Theme="{StaticResource CaptionButton}">
+                <PathIcon
+                    Width="11"
+                    Height="11"
+                    Data="{DynamicResource Icon.Close}" />
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

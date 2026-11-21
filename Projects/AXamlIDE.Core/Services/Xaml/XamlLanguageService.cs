@@ -34,8 +34,16 @@ public sealed class XamlLanguageService
         _xamlCompletion.ForgetBuiltAssemblies();
     }
 
-    /// <summary>A build finished: completion looks for the project's DLL again, as the build may have moved it.</summary>
-    public void OnBuildFinished() => _xamlCompletion.ForgetBuiltAssemblies();
+    /// <summary>
+    /// A build finished: completion and the preview look for the project's DLL again, as the build may have written
+    /// it somewhere else (another configuration, or a stale publish folder like bin/Release/net10.0/linux-x64/ that
+    /// would otherwise stay picked because it never changes).
+    /// </summary>
+    public void OnBuildFinished()
+    {
+        _previewTargets.Clear();
+        _xamlCompletion.ForgetBuiltAssemblies();
+    }
 
     /// <summary>
     /// A file in the workspace was saved, added or removed (on disk). An .axaml one can add or remove x:Keys and style

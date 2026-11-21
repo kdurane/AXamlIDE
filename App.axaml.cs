@@ -70,7 +70,7 @@ public partial class App : Application
 
     /// <summary>
     /// What shows first (Settings > Environment > Startup, as in Visual Studio): the start window, which hands over to
-    /// the main window once something is chosen (or it's closed: the IDE opens with nothing in it); the main window with
+    /// the main window once something is chosen (closing it with its X quits, as Visual Studio's does); the main window with
     /// the last solution or folder reopened; or the main window empty.
     /// </summary>
     private static void Start(IClassicDesktopStyleApplicationLifetime desktop, ServiceProvider services)
@@ -100,23 +100,15 @@ public partial class App : Application
         // The start window is the main window until it hands over (dialogs it opens are owned by it).
         var window = new StartWindow { DataContext = start };
         desktop.MainWindow = window;
-        var handedOver = false;
-        void HandOver()
+        void Chosen()
         {
-            if (handedOver)
-                return;
-            handedOver = true;
             start.Finished -= Chosen;
             desktop.MainWindow = main;
             main.Show();      // before the start window closes, or the app would think its last window had gone
-        }
-        void Chosen()
-        {
-            HandOver();
             window.Close();
         }
         start.Finished += Chosen;
-        window.Closing += (_, _) => HandOver();   // its X: on into the IDE with nothing open
+        // Its X closes the app: it's still the main window, so nothing hands over (ShutdownMode.OnMainWindowClose).
     }
 
     /// <summary>

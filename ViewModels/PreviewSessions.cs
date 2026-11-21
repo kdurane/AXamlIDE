@@ -36,6 +36,8 @@ public sealed class PreviewSessions : IDisposable
 
     private void OnBuildFinished()
     {
+        // XamlCacheKeeper does this too, but message handlers run in no set order: forget the old DLL before resuming.
+        _xaml.OnBuildFinished();
         foreach (var preview in _previews.Values)
             preview.ResumeAfterBuild();
     }

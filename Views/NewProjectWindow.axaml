@@ -4,6 +4,8 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
 -->
 <Window
     Background="{DynamicResource ThemeBackgroundBrush}"
+    Classes="customChrome"
+    CanMinimize="False"
     Height="580"
     MinHeight="440"
     MinWidth="620"
@@ -22,6 +24,7 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:workspace="using:AXamlIDE.Services.Workspace"
+    xmlns:views="using:AXamlIDE.Views"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Window.Styles>
@@ -30,135 +33,138 @@ Create a new project (DataContext: ViewModels/NewProjectViewModel), Visual Studi
         </Style>
     </Window.Styles>
 
-    <Grid Margin="20" RowDefinitions="*,Auto,Auto">
+    <DockPanel>
+        <views:WindowTitleBar DockPanel.Dock="Top" />
+        <Grid Margin="20" RowDefinitions="*,Auto,Auto">
 
-        <!--  Step 1: the template  -->
-        <DockPanel IsVisible="{Binding IsChoosingTemplate}">
-            <TextBlock
-                DockPanel.Dock="Top"
-                FontSize="18"
-                Margin="0,0,0,12"
-                Text="	Choose a template" />
-            <Grid
-                ColumnDefinitions="*,Auto"
-                DockPanel.Dock="Top"
-                Margin="0,0,0,8">
-                <TextBox
-                    AutomationProperties.Name="Search for templates"
-                    Classes="SearchBox"
-                    Name="SearchBox"
-                    PlaceholderText="Search for templates"
-                    Text="{Binding Search}" />
-                <Button
-                    Command="{Binding InstallAvaloniaTemplatesCommand}"
-                    Content="Install Avalonia templates..."
-                    Grid.Column="1"
-                    IsVisible="{Binding AvaloniaTemplatesMissing}"
-                    Margin="8,0,0,0" />
-            </Grid>
-            <ListBox
-                DoubleTapped="OnTemplateDoubleTapped"
-                ItemsSource="{Binding Templates}"
-                SelectedItem="{Binding SelectedTemplate}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="workspace:ProjectTemplate">
-                        <StackPanel Margin="2,4" Spacing="2">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
-                                <TextBlock Opacity="0.6" Text="{Binding ShortName}" />
+            <!--  Step 1: the template  -->
+            <DockPanel IsVisible="{Binding IsChoosingTemplate}">
+                <TextBlock
+                    DockPanel.Dock="Top"
+                    FontSize="18"
+                    Margin="0,0,0,12"
+                    Text="	Choose a template" />
+                <Grid
+                    ColumnDefinitions="*,Auto"
+                    DockPanel.Dock="Top"
+                    Margin="0,0,0,8">
+                    <TextBox
+                        AutomationProperties.Name="Search for templates"
+                        Classes="SearchBox"
+                        Name="SearchBox"
+                        PlaceholderText="Search for templates"
+                        Text="{Binding Search}" />
+                    <Button
+                        Command="{Binding InstallAvaloniaTemplatesCommand}"
+                        Content="Install Avalonia templates..."
+                        Grid.Column="1"
+                        IsVisible="{Binding AvaloniaTemplatesMissing}"
+                        Margin="8,0,0,0" />
+                </Grid>
+                <ListBox
+                    DoubleTapped="OnTemplateDoubleTapped"
+                    ItemsSource="{Binding Templates}"
+                    SelectedItem="{Binding SelectedTemplate}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="workspace:ProjectTemplate">
+                            <StackPanel Margin="2,4" Spacing="2">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock Opacity="0.6" Text="{Binding ShortName}" />
+                                </StackPanel>
+                                <TextBlock
+                                    Opacity="0.75"
+                                    Text="{Binding Summary}"
+                                    TextTrimming="CharacterEllipsis" />
                             </StackPanel>
-                            <TextBlock
-                                Opacity="0.75"
-                                Text="{Binding Summary}"
-                                TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
 
-        <!--  Step 2: configure it  -->
-        <StackPanel IsVisible="{Binding IsConfiguring}" Spacing="6">
-            <TextBlock FontSize="18" Text="	Name and location" />
-            <TextBlock
-                Margin="0,0,0,10"
-                Opacity="0.75"
-                Text="{Binding SelectedTemplate.Name, FallbackValue=''}" />
+            <!--  Step 2: configure it  -->
+            <StackPanel IsVisible="{Binding IsConfiguring}" Spacing="6">
+                <TextBlock FontSize="18" Text="	Name and location" />
+                <TextBlock
+                    Margin="0,0,0,10"
+                    Opacity="0.75"
+                    Text="{Binding SelectedTemplate.Name, FallbackValue=''}" />
 
-            <TextBlock Text="Project name" />
-            <TextBox
-                AutomationProperties.Name="Project name"
-                Name="ProjectNameBox"
-                Text="{Binding ProjectName}" />
+                <TextBlock Text="Project name" />
+                <TextBox
+                    AutomationProperties.Name="Project name"
+                    Name="ProjectNameBox"
+                    Text="{Binding ProjectName}" />
 
-            <TextBlock Margin="0,8,0,0" Text="Location" />
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBox AutomationProperties.Name="Location" Text="{Binding Location}" />
-                <Button
-                    AutomationProperties.Name="Browse for a folder"
-                    Command="{Binding BrowseLocationCommand}"
-                    Content="..."
-                    Grid.Column="1"
-                    Margin="6,0,0,0"
-                    ToolTip.Tip="Browse" />
-            </Grid>
+                <TextBlock Margin="0,8,0,0" Text="Location" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox AutomationProperties.Name="Location" Text="{Binding Location}" />
+                    <Button
+                        AutomationProperties.Name="Browse for a folder"
+                        Command="{Binding BrowseLocationCommand}"
+                        Content="..."
+                        Grid.Column="1"
+                        Margin="6,0,0,0"
+                        ToolTip.Tip="Browse" />
+                </Grid>
 
-            <StackPanel IsVisible="{Binding AskSolutionName}" Spacing="6">
-                <TextBlock Margin="0,8,0,0" Text="Solution name" />
-                <TextBox AutomationProperties.Name="Solution name" Text="{Binding SolutionName}" />
+                <StackPanel IsVisible="{Binding AskSolutionName}" Spacing="6">
+                    <TextBlock Margin="0,8,0,0" Text="Solution name" />
+                    <TextBox AutomationProperties.Name="Solution name" Text="{Binding SolutionName}" />
+                </StackPanel>
+
+                <CheckBox
+                    Content="Keep the solution file in the project's folder"
+                    IsChecked="{Binding SolutionInProjectFolder}"
+                    Margin="0,8,0,0" />
+
+                <TextBlock
+                    Margin="0,8,0,0"
+                    Opacity="0.75"
+                    Text="{Binding Destination}"
+                    TextWrapping="Wrap" />
             </StackPanel>
 
-            <CheckBox
-                Content="Keep the solution file in the project's folder"
-                IsChecked="{Binding SolutionInProjectFolder}"
-                Margin="0,8,0,0" />
-
             <TextBlock
-                Margin="0,8,0,0"
-                Opacity="0.75"
-                Text="{Binding Destination}"
+                Classes.error="{Binding StatusIsError}"
+                Grid.Row="1"
+                Margin="0,10,0,0"
+                MinHeight="18"
+                Text="{Binding Status}"
+                TextTrimming="CharacterEllipsis"
                 TextWrapping="Wrap" />
-        </StackPanel>
 
-        <TextBlock
-            Classes.error="{Binding StatusIsError}"
-            Grid.Row="1"
-            Margin="0,10,0,0"
-            MinHeight="18"
-            Text="{Binding Status}"
-            TextTrimming="CharacterEllipsis"
-            TextWrapping="Wrap" />
-
-        <StackPanel
-            Grid.Row="2"
-            HorizontalAlignment="Right"
-            Margin="0,10,0,0"
-            Orientation="Horizontal"
-            Spacing="8">
-            <Button
-                Command="{Binding BackCommand}"
-                Content="Back"
-                IsVisible="{Binding IsConfiguring}"
-                MinWidth="80" />
-            <Button
-                Classes="accent"
-                Command="{Binding NextCommand}"
-                Content="Next"
-                IsDefault="{Binding IsChoosingTemplate}"
-                IsVisible="{Binding IsChoosingTemplate}"
-                MinWidth="80" />
-            <Button
-                Classes="accent"
-                Command="{Binding CreateCommand}"
-                Content="Create"
-                IsDefault="{Binding IsConfiguring}"
-                IsVisible="{Binding IsConfiguring}"
-                MinWidth="80" />
-            <Button
-                Click="OnCancelClick"
-                Content="Cancel"
-                IsCancel="True"
-                MinWidth="80" />
-        </StackPanel>
-    </Grid>
+            <StackPanel
+                Grid.Row="2"
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Command="{Binding BackCommand}"
+                    Content="Back"
+                    IsVisible="{Binding IsConfiguring}"
+                    MinWidth="80" />
+                <Button
+                    Classes="accent"
+                    Command="{Binding NextCommand}"
+                    Content="Next"
+                    IsDefault="{Binding IsChoosingTemplate}"
+                    IsVisible="{Binding IsChoosingTemplate}"
+                    MinWidth="80" />
+                <Button
+                    Classes="accent"
+                    Command="{Binding CreateCommand}"
+                    Content="Create"
+                    IsDefault="{Binding IsConfiguring}"
+                    IsVisible="{Binding IsConfiguring}"
+                    MinWidth="80" />
+                <Button
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="80" />
+            </StackPanel>
+        </Grid>
+    </DockPanel>
 </Window>

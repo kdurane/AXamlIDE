@@ -1,0 +1,91 @@
+<!--
+Windows that draw their own chrome, as Visual Studio and Rider do: Classes="customChrome" on the Window and a
+views:WindowTitleBar (Views/WindowTitleBar.axaml) at the top of its content. The client area extends into the title
+bar. On Linux the system keeps only the border (resize grips and shadow drawn by AppWindowDecorations), since Avalonia
+can't put its caption buttons there yet. On Windows and macOS the system frame stays, but the title bar is ours; macOS
+keeps its own traffic lights. Dock's floating windows (HostWindow, made in MainWindow.CreateFloatingWindow) get the
+same bar through their content template below.
+-->
+<Styles
+    xmlns="https://github.com/avaloniaui"
+    xmlns:dockControls="using:Dock.Model.Controls"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Styles.Resources>
+        <!--
+            What Avalonia draws around a customChrome window where the system doesn't: a thin frame and a shadow (the
+            resize grips come with them). No title bar or buttons; WindowTitleBar is the title bar.
+        -->
+        <ControlTheme x:Key="AppWindowDecorations" TargetType="WindowDrawnDecorations">
+            <Setter Property="DefaultTitleBarHeight" Value="34" />
+            <Setter Property="DefaultFrameThickness" Value="1" />
+            <Setter Property="DefaultShadowThickness" Value="8" />
+            <Setter Property="Template">
+                <WindowDrawnDecorationsTemplate>
+                    <WindowDrawnDecorationsContent>
+                        <WindowDrawnDecorationsContent.Underlay>
+                            <Panel x:Name="PART_UnderlayWrapper">
+                                <Border
+                                    x:Name="PART_WindowBorder"
+                                    Background="Transparent"
+                                    BorderBrush="{DynamicResource DockBorderSubtleBrush}"
+                                    BorderThickness="{TemplateBinding FrameThickness}"
+                                    IsHitTestVisible="False" />
+                            </Panel>
+                        </WindowDrawnDecorationsContent.Underlay>
+                        <WindowDrawnDecorationsContent.Overlay>
+                            <Panel x:Name="PART_OverlayWrapper" />
+                        </WindowDrawnDecorationsContent.Overlay>
+                    </WindowDrawnDecorationsContent>
+                </WindowDrawnDecorationsTemplate>
+            </Setter>
+
+            <Style Selector="^:has-shadow /template/ Panel#PART_UnderlayWrapper">
+                <Setter Property="Margin" Value="{TemplateBinding ShadowThickness}" />
+            </Style>
+            <Style Selector="^:has-shadow /template/ Border#PART_WindowBorder">
+                <Setter Property="BoxShadow" Value="0 2 10 2 #80000000" />
+            </Style>
+            <Style Selector="^:has-shadow /template/ Panel#PART_OverlayWrapper">
+                <Setter Property="Margin" Value="{TemplateBinding ShadowThickness}" />
+            </Style>
+        </ControlTheme>
+    </Styles.Resources>
+
+    <!--  :is(Window) so Dock's HostWindow (its own style key) matches too.  -->
+    <Style Selector=":is(Window).customChrome">
+        <Setter Property="Background" Value="{DynamicResource ThemeBackgroundBrush}" />
+        <Setter Property="ExtendClientAreaToDecorationsHint" Value="True" />
+        <Setter Property="WindowDecorationsTheme" Value="{DynamicResource AppWindowDecorations}" />
+    </Style>
+    <OnPlatform>
+        <OnPlatform.Default>
+            <Style Selector=":is(Window).customChrome">
+                <Setter Property="WindowDecorations" Value="Full" />
+            </Style>
+        </OnPlatform.Default>
+        <On Options="Linux">
+            <Style Selector=":is(Window).customChrome">
+                <Setter Property="WindowDecorations" Value="BorderOnly" />
+            </Style>
+        </On>
+    </OnPlatform>
+
+    <!--
+        A floating dock window: our title bar (the focused tab's title, which Dock puts in the window's Title) above the
+        layout, in place of Dock's template. Dragging the bar moves it through Dock, so it can be dropped back in a dock.
+    -->
+    <Style Selector="HostWindow.customChrome">
+        <Setter Property="ContentTemplate">
+            <DataTemplate x:DataType="dockControls:IRootDock">
+                <DockPanel>
+                    <views:WindowTitleBar DockPanel.Dock="Top" />
+                    <OverlayHost VisualTreeLifecycleBehavior.IsEnabled="True">
+                        <DockControl Layout="{Binding}" />
+                    </OverlayHost>
+                </DockPanel>
+            </DataTemplate>
+        </Setter>
+    </Style>
+</Styles>
