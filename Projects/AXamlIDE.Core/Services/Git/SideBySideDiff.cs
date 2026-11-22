@@ -14,8 +14,13 @@ public enum DiffLineKind
     Filler      // a blank line that keeps the two sides lined up
 }
 
+/// <summary>A run of characters in a line: <see cref="Start"/> counts from the line's first character.</summary>
+public readonly record struct DiffSpan(int Start, int Length);
+
 /// <param name="Number">The line's number in its file (null for filler lines).</param>
-public sealed record DiffLine(int? Number, string Text, DiffLineKind Kind);
+/// <param name="ChangedSpans">For a Modified line, the words that changed (removed on the left, added on the right);
+/// null otherwise.</param>
+public sealed record DiffLine(int? Number, string Text, DiffLineKind Kind, IReadOnlyList<DiffSpan>? ChangedSpans = null);
 
 /// <summary>
 /// Two texts lined up line by line for showing side by side: both sides have the same number of lines,
@@ -60,5 +65,30 @@ public sealed record SideBySideDiff(IReadOnlyList<DiffLine> Left, IReadOnlyList<
             ChangeType.Modified => DiffLineKind.Modified,
             ChangeType.Imaginary => DiffLineKind.Filler,
             _ => changed
-        })).ToList();
+        }, piece.Type == ChangeType.Modified ? ChangedSpans(piece) : null)).ToList();
+
+    /// <summary>
+    /// A modified line's changed words. DiffPlex splits the line into words (its sub-pieces, which put the line
+    /// back together in order); neighbouring changed words become one span.
+    /// </summary>
+    private static List<DiffSpan> ChangedSpans(DiffPiece line)
+    {
+        var spans = new List<DiffSpan>();
+        var position = 0;
+        foreach (var word in line.SubPieces)
+        {
+            var length = word.Text?.Length ?? 0;
+            if (length == 0)
+                continue;   // imaginary: a word only the other side has
+            if (word.Type != ChangeType.Unchanged)
+            {
+                if (spans.Count > 0 && spans[^1].Start + spans[^1].Length == position)
+                    spans[^1] = spans[^1] with { Length = spans[^1].Length + length };
+                else
+                    spans.Add(new DiffSpan(position, length));
+            }
+            position += length;
+        }
+        return spans;
+    }
 }

@@ -215,27 +215,31 @@ public sealed class BreakpointMargin : AbstractMargin
         if (TextView?.VisualLinesValid == true)
         {
             var breakpoints = _document?.Breakpoints;   // once per render, not per line
+            // VS's dot is about two thirds of the line height; it grows and shrinks with the font.
+            var radius = Math.Clamp(TextView.DefaultLineHeight * 0.34, 4, 8);
             foreach (var visualLine in TextView.VisualLines)
             {
                 double y = visualLine.VisualTop - TextView.VerticalOffset + visualLine.Height / 2;
+                var centre = new Point(10, y);
 
                 var lineNumber = visualLine.FirstDocumentLine.LineNumber;
                 if (breakpoints?.FirstOrDefault(b => b.Line == lineNumber) is { } breakpoint)
                 {
                     // VS: a filled dot; hollow when disabled; a white plus inside when it has Conditions.
                     if (breakpoint.IsEnabled)
-                        context.DrawEllipse(_markerBrush, _markerPen, new Point(10, y), 8, 8);
+                        context.DrawEllipse(_markerBrush, _markerPen, centre, radius, radius);
                     else
-                        context.DrawEllipse(null, new Pen(_markerPen.Brush, 1.5), new Point(10, y), 7, 7);
+                        context.DrawEllipse(null, new Pen(_markerPen.Brush, 1.5), centre, radius - 0.75, radius - 0.75);
                     if (breakpoint.HasCondition)
                     {
-                        var plus = new Pen(breakpoint.IsEnabled ? Brushes.White : _markerPen.Brush, 2);
-                        context.DrawLine(plus, new Point(6, y), new Point(14, y));
-                        context.DrawLine(plus, new Point(10, y - 4), new Point(10, y + 4));
+                        var arm = radius / 2;
+                        var plus = new Pen(breakpoint.IsEnabled ? Brushes.White : _markerPen.Brush, 1.5);
+                        context.DrawLine(plus, new Point(10 - arm, y), new Point(10 + arm, y));
+                        context.DrawLine(plus, new Point(10, y - arm), new Point(10, y + arm));
                     }
                 }
                 else if (_pointerOverLine == lineNumber)
-                    context.DrawEllipse(_pointerOverBrush, _pointerOverPen, new Point(10, y), 8, 8);
+                    context.DrawEllipse(_pointerOverBrush, _pointerOverPen, centre, radius, radius);
 
                 if (_statement is { } statement && statement.Line == visualLine.FirstDocumentLine.LineNumber)
                     DrawArrow(context, y, statement.IsTop);

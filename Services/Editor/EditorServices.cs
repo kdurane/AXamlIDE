@@ -1,4 +1,5 @@
 using AXamlIDE.Services.Dialogs;
+using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
@@ -22,4 +23,6 @@ public sealed record EditorServices(
     DebugSnapshotTracker DebugSnapshots,
     EditorGrammars Grammars,
     SnippetLibrary Snippets,
+    GitService Git,
+    GitStatusTracker GitStatus,
     IMessenger Messenger);

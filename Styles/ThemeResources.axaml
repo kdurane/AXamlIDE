@@ -256,10 +256,14 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource testing.iconFailed}" x:Key="TestFailedBrush" />
     <SolidColorBrush Color="{DynamicResource testing.iconSkipped}" x:Key="TestSkippedBrush" />
 
-    <!--  Diff view (Editor/Diff/DiffLineRenderer)  -->
+    <!--  Diff view (Editor/Diff/DiffLineRenderer, DiffOverviewRuler)  -->
     <SolidColorBrush Color="{DynamicResource diffEditor.insertedLineBackground}" x:Key="DiffInsertedLineBrush" />
     <SolidColorBrush Color="{DynamicResource diffEditor.removedLineBackground}" x:Key="DiffRemovedLineBrush" />
     <SolidColorBrush Color="{DynamicResource diffEditor.diagonalFill}" x:Key="DiffFillerLineBrush" />
+    <SolidColorBrush Color="{DynamicResource diffEditor.insertedTextBackground}" x:Key="DiffInsertedTextBrush" />
+    <SolidColorBrush Color="{DynamicResource diffEditor.removedTextBackground}" x:Key="DiffRemovedTextBrush" />
+    <SolidColorBrush Color="{DynamicResource diffEditorOverview.insertedForeground}" x:Key="DiffOverviewInsertedBrush" />
+    <SolidColorBrush Color="{DynamicResource diffEditorOverview.removedForeground}" x:Key="DiffOverviewRemovedBrush" />
 
     <!--  The Claude panel (Views/AgentChatView)  -->
     <SolidColorBrush Color="{DynamicResource textPreformat.foreground}" x:Key="ChatInlineCodeForegroundBrush" />
@@ -332,6 +336,14 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.infoForeground}" x:Key="OverviewRulerInfoBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.selectionHighlightForeground}" x:Key="OverviewRulerOccurrenceBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.border}" x:Key="OverviewRulerBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.addedForeground}" x:Key="OverviewRulerAddedBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.modifiedForeground}" x:Key="OverviewRulerModifiedBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.deletedForeground}" x:Key="OverviewRulerDeletedBrush" />
+
+    <!--  Git change bars beside the line numbers (Editor/GitChanges/GitChangeMargin)  -->
+    <SolidColorBrush Color="{DynamicResource editorGutter.addedBackground}" x:Key="GitGutterAddedBrush" />
+    <SolidColorBrush Color="{DynamicResource editorGutter.modifiedBackground}" x:Key="GitGutterModifiedBrush" />
+    <SolidColorBrush Color="{DynamicResource editorGutter.deletedBackground}" x:Key="GitGutterDeletedBrush" />
     <SolidColorBrush Color="{DynamicResource editorCursor.foreground}" x:Key="OverviewRulerCaretBrush" />
     <SolidColorBrush Color="{DynamicResource scrollbarSlider.background}" x:Key="OverviewRulerViewportBrush" />
     <SolidColorBrush Color="{DynamicResource scrollbarSlider.hoverBackground}" x:Key="OverviewRulerViewportHoverBrush" />

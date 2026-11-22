@@ -88,11 +88,14 @@ public sealed partial class DocumentCommands(
             return;
 
         var index = documents.Documents.IndexOf(document);
+        var wasActive = ReferenceEquals(documents.Active, document);
         if (!await CloseAsync(document))
             return;
 
+        // Only when the active tab closed: with a diff in front (no active document), closing a background tab
+        // mustn't bring another editor to the front.
         var open = documents.Documents;
-        if (open.Count > 0 && documents.Active is null)
+        if (wasActive && open.Count > 0 && documents.Active is null)
             documents.Active = open[Math.Min(index, open.Count - 1)];
     }
 
@@ -133,8 +136,8 @@ public sealed partial class DocumentCommands(
         foreach (var document in targets)
             documents.Close(document, force: true);
 
-        if (documents.Active is null && documents.Documents.Count > 0)
-            documents.Active = active is not null && documents.Documents.Contains(active) ? active : documents.Documents[^1];
+        if (active is not null && documents.Active is null && documents.Documents.Count > 0)
+            documents.Active = documents.Documents.Contains(active) ? active : documents.Documents[^1];
         return true;
     }
 

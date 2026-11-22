@@ -23,7 +23,8 @@ namespace AXamlIDE.ViewModels;
 ///
 ///   - one document tab per <see cref="DocumentManager.Documents"/> entry, added to the tab strip the
 ///     user is working in (the one holding the selected tab);
-///   - <see cref="DocumentManager.Active"/> and the tab the user is in follow each other, in any window;
+///   - <see cref="DocumentManager.Active"/> and the tab the user is in follow each other, in any window; with a page
+///     tab (a diff, NuGet) in front there is no active document, so Save / Format don't act on a hidden editor;
 ///   - closing a tab goes through <see cref="DocumentCommands"/> (so unsaved changes are asked about);
 ///   - closing a floating window moves its tabs back into the main window rather than losing them;
 ///   - <see cref="ShowToolTabMessage"/> brings a tool panel to the front (putting it back if needed);
@@ -50,6 +51,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private readonly Dictionary<OpenDocument, DocumentDockable> _tabs = [];
     private readonly Dictionary<string, PageDockable> _pages = [];
     private IDock? _lastActiveDock;
+    private PageDockable? _activePage;   // the page tab the user is in (then DocumentManager.Active is null)
     private PreviewMode _previewMode = PreviewMode.Split;      // new AXAML tabs start like the last one changed
     private PreviewSplit _previewSplit = PreviewSplit.SideBySide;
     private bool _previewFirst;
@@ -273,7 +275,9 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
 
     /// <summary>New documents open beside the selected tab (in its window), else in the main window.</summary>
     private IDock TargetDocumentDock()
-        => ActiveTab is { Owner: IDocumentDock dock } tab && _factory.IsInLayout(tab) ? dock : _factory.MainDocuments;
+        => ((IDockable?)ActiveTab ?? _activePage) is { Owner: IDocumentDock dock } front && _factory.IsInLayout(front)
+            ? dock
+            : _factory.MainDocuments;
 
     private DocumentDockable? ActiveTab
         => _documents.Active is { } active && _tabs.TryGetValue(active, out var tab) ? tab : null;
@@ -284,6 +288,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     {
         if (_syncing || document is null || !_tabs.TryGetValue(document, out var tab))
             return;
+        _activePage = null;
 
         _syncing = true;
         try
@@ -312,6 +317,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     {
         if (dockable is DocumentDockable tab)
             MakeActive(tab);
+        else if (dockable is PageDockable page)
+            MakePageActive(page);
     }
 
     /// <summary>
@@ -321,9 +328,13 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private void OnDockActiveDockableChanged(object? sender, ActiveDockableChangedEventArgs e)
     {
         if (e.Dockable is DocumentDockable tab
-            && (_documents.Active is null || ReferenceEquals(tab.Owner, ActiveTab?.Owner ?? _lastActiveDock)))
+            && ((_documents.Active is null && _activePage is null) || IsWorkingStrip(tab.Owner)))
             MakeActive(tab);
+        else if (e.Dockable is PageDockable page && IsWorkingStrip(page.Owner))
+            MakePageActive(page);
     }
+
+    private bool IsWorkingStrip(IDockable? owner) => ReferenceEquals(owner, ActiveTab?.Owner ?? _lastActiveDock);
 
     private void MakeActive(DocumentDockable tab)
     {
@@ -333,8 +344,28 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         _syncing = true;
         try
         {
+            _activePage = null;
             _documents.Active = tab.Document;
             _lastActiveDock = tab.Owner as IDock;
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    /// <summary>The user went to a page tab: no document is active while it's in front.</summary>
+    private void MakePageActive(PageDockable page)
+    {
+        if (_syncing || !_pages.ContainsValue(page))
+            return;
+
+        _syncing = true;
+        try
+        {
+            _activePage = page;
+            _documents.Active = null;
+            _lastActiveDock = page.Owner as IDock;
         }
         finally
         {
@@ -402,6 +433,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private void ForgetPage(PageDockable page)
     {
         _pages.Remove(page.Id);
+        if (ReferenceEquals(_activePage, page))
+            _activePage = null;
         page.Dispose();
         TabRemoved?.Invoke(page);
     }

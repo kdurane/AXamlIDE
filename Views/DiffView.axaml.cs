@@ -48,6 +48,7 @@ public partial class DiffView : UserControl
         _left = new Side(LeftEditor, isLeft: true, _grammars, diff.FilePath);
         _right = new Side(RightEditor, isLeft: false, _grammars, diff.FilePath);
         ApplySettings();
+        OverviewRuler.Attach(RightEditor);
 
         LeftEditor.TextArea.TextView.ScrollOffsetChanged += (_, _) => FollowScroll(LeftEditor, RightEditor);
         RightEditor.TextArea.TextView.ScrollOffsetChanged += (_, _) => FollowScroll(RightEditor, LeftEditor);
@@ -91,6 +92,7 @@ public partial class DiffView : UserControl
         var offset = LeftEditor.VerticalOffset;
         _left.Show(diff.Left);
         _right.Show(diff.Right);
+        OverviewRuler.Diff = diff;
         LeftEditor.ScrollToOffset(LeftEditor.HorizontalOffset, offset);
         RightEditor.ScrollToOffset(RightEditor.HorizontalOffset, offset);
     }

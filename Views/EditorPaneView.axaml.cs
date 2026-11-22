@@ -19,6 +19,7 @@ using AXamlIDE.Editor.ColorSwatches;
 using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Debugging;
 using AXamlIDE.Editor.Folding;
+using AXamlIDE.Editor.GitChanges;
 using AXamlIDE.Editor.Indentation;
 using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Editor.Hover;
@@ -70,6 +71,7 @@ public partial class EditorPaneView : UserControl,
     private CodeLensController _codeLens = null!;
     private SemanticHighlightController _semanticHighlighting = null!;
     private InlayHintController _inlayHints = null!;
+    private GitChangeController _gitChanges = null!;
 
     public EditorPaneView()
     {
@@ -107,7 +109,8 @@ public partial class EditorPaneView : UserControl,
         Editor.TextArea.TextView.BackgroundRenderers.Add(_diagnosticRenderer);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineRenderer);
         _occurrences = new OccurrenceController(_ctx);
-        OverviewRuler.Attach(_ctx, _occurrences);
+        _gitChanges = new GitChangeController(_ctx, services.Git, services.GitStatus);
+        OverviewRuler.Attach(_ctx, _occurrences, _gitChanges);
 
         // Our own selection drawing (not over code lenses); added after the occurrences so it's drawn over them.
         _selectionRenderer = new SelectionRenderer(Editor.TextArea);
@@ -163,6 +166,8 @@ public partial class EditorPaneView : UserControl,
         Editor.TextArea.LeftMargins.Insert(0, _breakpointMargin);
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
+        // After the line numbers; the folding arrows are added after it when a document is attached (as VS Code).
+        Editor.TextArea.LeftMargins.Add(new GitChangeMargin(_gitChanges));
         _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
         _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesTree, ReferencesTitle);
         // Not kept in fields: these wire themselves to the editor's events and live as long as it does.
@@ -205,6 +210,7 @@ public partial class EditorPaneView : UserControl,
         _codeLens.Dispose();
         _semanticHighlighting.Dispose();
         _inlayHints.Dispose();
+        _gitChanges.Dispose();
     }
 
     // ------------------------------------------------------------ the one direct input

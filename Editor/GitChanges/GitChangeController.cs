@@ -1,0 +1,160 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using Avalonia.Threading;
+using AXamlIDE.Models;
+using AXamlIDE.Services.Git;
+
+namespace AXamlIDE.Editor.GitChanges;
+
+/// <summary>
+/// Which lines of the editor's document differ from git (VS Code's quick diff, VS's and Rider's change markers):
+/// the text being edited, unsaved changes included, against the staged text, or the committed text when nothing
+/// is staged (the same base as the Git tab's "changes" diff). Drawn by <see cref="GitChangeMargin"/> beside the
+/// line numbers and by the overview ruler.
+///
+/// The base text is read when a document is attached and again when git's status says it may have changed (a
+/// commit, stage, checkout); the comparison runs off the UI thread a moment after typing stops. Untracked and
+/// ignored files, and files outside the repository, get no marks.
+/// </summary>
+public sealed class GitChangeController : IDisposable
+{
+    private static readonly TimeSpan TypingDelay = TimeSpan.FromMilliseconds(300);
+
+    private readonly EditorContext _ctx;
+    private readonly GitService _git;
+    private readonly GitStatusTracker _tracker;
+    private readonly DispatcherTimer _timer;
+    private string? _baseText;
+    private object? _baseKey;     // what the base text was read from; a status with the same key needn't re-read it
+    private int _baseVersion;     // bumped by every attach and base read, so a late read is dropped
+    private int _compareVersion;  // the same for comparisons
+
+    public GitChangeController(EditorContext ctx, GitService git, GitStatusTracker tracker)
+    {
+        _ctx = ctx;
+        _git = git;
+        _tracker = tracker;
+        _timer = new DispatcherTimer { Interval = TypingDelay };
+        _timer.Tick += (_, _) =>
+        {
+            _timer.Stop();
+            _ = CompareAsync();
+        };
+
+        ctx.Attached += OnAttached;
+        ctx.TextChanged += _ =>
+        {
+            if (_baseText is null)
+                return;
+            _timer.Stop();
+            _timer.Start();
+        };
+        tracker.Changed += OnStatusChanged;
+    }
+
+    /// <summary>The changed blocks, in line order; empty when there's nothing to show.</summary>
+    public IReadOnlyList<LineChange> Changes { get; private set; } = [];
+
+    /// <summary>Raised on the UI thread when <see cref="Changes"/> is replaced.</summary>
+    public event Action? Changed;
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        _ctx.Attached -= OnAttached;
+        _tracker.Changed -= OnStatusChanged;
+    }
+
+    private void OnAttached(OpenDocument? document)
+    {
+        _baseText = null;
+        _baseKey = null;
+        _timer.Stop();
+        ++_baseVersion;
+        ++_compareVersion;
+        Show([]);
+        if (document is not null)
+            _ = LoadBaseAsync(document);
+    }
+
+    private void OnStatusChanged()
+    {
+        if (_ctx.Active is { } document && !Equals(BaseKey(document), _baseKey))
+            _ = LoadBaseAsync(document);
+    }
+
+    /// <summary>
+    /// What the base text depends on, or null when the file has none (outside the repository, untracked, ignored).
+    /// Before the status is known, a key that always reads.
+    /// </summary>
+    private object? BaseKey(OpenDocument document)
+    {
+        if (_tracker.Current is not { } status || RelativePath(status.RepositoryRoot, document.Path) is null)
+            return null;
+        if (status.StateOfFile(document.Path) is GitFileState.Untracked or GitFileState.Ignored)
+            return null;
+        var change = status.ChangeFor(document.Path);
+        return (status.RepositoryRoot, status.HeadCommit, change?.HeadObject, change?.IndexObject, change?.IndexState);
+    }
+
+    private async Task LoadBaseAsync(OpenDocument document)
+    {
+        var version = ++_baseVersion;
+        var key = BaseKey(document);
+        string? baseText = null;
+        if (key is not null && _tracker.Current is { } status && RelativePath(status.RepositoryRoot, document.Path) is { } relative)
+        {
+            try
+            {
+                baseText = await _git.ReadStagedAsync(status.RepositoryRoot, relative)
+                           ?? await _git.ReadCommittedAsync(status.RepositoryRoot, relative);
+            }
+            catch (GitException)
+            {
+                // git went away or the repository is broken: no marks rather than wrong ones
+            }
+        }
+
+        if (version != _baseVersion || !ReferenceEquals(_ctx.Active, document))
+            return;
+        _baseKey = key;
+        _baseText = baseText?.ReplaceLineEndings("\n");
+        if (_baseText is null)
+        {
+            ++_compareVersion;   // a comparison against the old base mustn't land after this
+            Show([]);
+        }
+        else
+            await CompareAsync();
+    }
+
+    private async Task CompareAsync()
+    {
+        if (_baseText is not { } baseText || _ctx.Active is not { } document)
+            return;
+        var version = ++_compareVersion;
+        var text = document.Document.Text;   // read on the UI thread; compared off it
+        var changes = await Task.Run(() => LineChanges.Compare(baseText, text.ReplaceLineEndings("\n")));
+        if (version == _compareVersion && ReferenceEquals(_ctx.Active, document))
+            Show(changes);
+    }
+
+    private void Show(IReadOnlyList<LineChange> changes)
+    {
+        if (changes.Count == 0 && Changes.Count == 0)
+            return;
+        Changes = changes;
+        Changed?.Invoke();
+    }
+
+    /// <summary>The path relative to the repository, with '/' as git writes it, or null when it's outside.</summary>
+    private static string? RelativePath(string repositoryRoot, string path)
+    {
+        var relative = Path.GetRelativePath(repositoryRoot, path);
+        return relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative)
+            ? null
+            : relative.Replace('\\', '/');
+    }
+}

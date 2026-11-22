@@ -39,10 +39,12 @@
     <Color x:Key="gitDecoration.conflictingResourceForeground">#AD0707</Color>   <!-- default -->
     <Color x:Key="gitDecoration.ignoredResourceForeground">#CD5C5C</Color>   <!-- ours: IndianRed, as elsewhere in the app -->
 
-    <!--  Diff view: line backgrounds (alpha flattened onto editor.background).  -->
+    <!--  Diff view: line backgrounds (alpha flattened onto editor.background); changed words over them (alpha kept).  -->
     <Color x:Key="diffEditor.insertedLineBackground">#E7EDD9</Color>   <!-- default -->
     <Color x:Key="diffEditor.removedLineBackground">#FBC8C8</Color>   <!-- default -->
     <Color x:Key="diffEditor.diagonalFill">#E4E4E4</Color>   <!-- default -->
+    <Color x:Key="diffEditor.insertedTextBackground">#409CCC2C</Color>   <!-- default -->
+    <Color x:Key="diffEditor.removedTextBackground">#33FF0000</Color>   <!-- default -->
 
     <!--  Hover card and diagnostics (Editor/Hover).  -->
     <Color x:Key="editorHoverWidget.background">#F5F5F5</Color>   <!-- default -->
@@ -82,10 +84,20 @@
     <Color x:Key="editorOverviewRuler.infoForeground">#1A85FF</Color>   <!-- default -->
     <Color x:Key="editorOverviewRuler.selectionHighlightForeground">#CCA0A0A0</Color>   <!-- default -->
     <Color x:Key="editorOverviewRuler.border">#4D7F7F7F</Color>   <!-- default -->
+    <Color x:Key="diffEditorOverview.insertedForeground">#48985D</Color>   <!-- default -->
+    <Color x:Key="diffEditorOverview.removedForeground">#E51400</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.addedForeground">#992EA043</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.modifiedForeground">#99005FB8</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.deletedForeground">#99F85149</Color>   <!-- default -->
     <Color x:Key="editorCursor.foreground">#526FFF</Color>
     <Color x:Key="scrollbarSlider.background">#66646464</Color>   <!-- default -->
     <Color x:Key="scrollbarSlider.hoverBackground">#B3646464</Color>   <!-- default -->
     <Color x:Key="scrollbarSlider.activeBackground">#99000000</Color>   <!-- default -->
+
+    <!--  Git change bars beside the line numbers (Editor/GitChanges/GitChangeMargin).  -->
+    <Color x:Key="editorGutter.addedBackground">#2EA043</Color>   <!-- default -->
+    <Color x:Key="editorGutter.modifiedBackground">#005FB8</Color>   <!-- default -->
+    <Color x:Key="editorGutter.deletedBackground">#F85149</Color>   <!-- default -->
 
     <!--  Links in the editor text (URLs). Default: a soft blue on dark themes, so it isn't too saturated.  -->
     <Color x:Key="editorLink.activeForeground">#1A5FB4</Color>   <!-- default -->

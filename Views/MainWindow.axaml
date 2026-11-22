@@ -1,6 +1,7 @@
 ﻿<Window
     x:Class="AXamlIDE.Views.MainWindow"
     xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:design="using:AXamlIDE.SampleData"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -9,17 +10,16 @@
     xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:vm="using:AXamlIDE.ViewModels"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="AXamlIDE"
     MinWidth="800"
     d:DesignHeight="800"
     d:DesignWidth="1600"
     x:DataType="vm:MainWindowViewModel"
-    Design.DataContext="{x:Static design:DesignData.MainWindow}"
-    mc:Ignorable="d"
     Background="{DynamicResource AppWindowBackgroundBrush}"
     Classes="customChrome"
-    Foreground="{DynamicResource AppForegroundBrush}">
+    Design.DataContext="{x:Static design:DesignData.MainWindow}"
+    Foreground="{DynamicResource AppForegroundBrush}"
+    mc:Ignorable="d">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
@@ -354,8 +354,8 @@
                             while it runs); the arrow lists the startup projects to pick from.
                         -->
                         <SplitButton
-                            Classes="startButton"
                             AutomationProperties.Name="{Binding Run.StartOrStopToolTip}"
+                            Classes="startButton"
                             Command="{Binding Run.StartOrStopCommand}"
                             ToolTip.Tip="{Binding Run.StartOrStopToolTip}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
@@ -392,8 +392,9 @@
                     <!--  Search Everywhere (double Shift), as Rider's: types, files, symbols, actions, and Text for the Search window.  -->
                     <Button
                         Grid.Column="2"
-                        Width="280"
+                        Width="135"
                         Margin="4,3"
+                        VerticalAlignment="Stretch"
                         Classes="searchLauncher"
                         Command="{Binding SearchEverywhere.OpenCommand}"
                         CommandParameter="{x:Static models:SearchEverywhereTab.All}"
