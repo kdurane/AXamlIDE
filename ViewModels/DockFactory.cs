@@ -27,6 +27,7 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
 {
     private readonly WelcomeViewModel _welcome = welcome;
     private readonly Dictionary<string, ToolHome> _homes = [];
+    private readonly Dictionary<IDock, double> _defaultSizes = [];   // each sized dock's proportion as first laid out
 
     /// <summary>Where a tool goes back to: its dock, and where that dock sits if it has to be re-created.</summary>
     private sealed record ToolHome(IToolDock Dock, IDock Container, bool AtStart);
@@ -108,6 +109,10 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         _homes[properties.Id] = new ToolHome(propertiesDock, ExplorerColumn, AtStart: false);
         foreach (var tool in new[] { problems, output, console, terminal, tests, locals, watch, callStack })
             _homes[tool.Id] = new ToolHome(bottomDock, centre, AtStart: false);
+
+        _defaultSizes.Clear();
+        foreach (var dock in new IDock[] { MainDocuments, centre, MainRow, ExplorerColumn, explorerDock, propertiesDock, bottomDock })
+            _defaultSizes[dock] = dock.Proportion;
 
         var root = CreateRootDock();
         root.Id = "Root";
@@ -360,6 +365,29 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         foreach (var home in _homes.Values.Select(home => home.Dock).Distinct().Where(dock => dock.Id != "ExplorerTools"))
             yield return home;
     }
+
+    /// <summary>Give every dock its size from when the layout was made (Window > Reset Window Layout).</summary>
+    public void ResetSizes()
+    {
+        foreach (var (dock, proportion) in _defaultSizes)
+            dock.Proportion = proportion;
+
+        // A dock made without a size (the documents) takes what its sized neighbours leave, as on the first layout;
+        // left unsized now, the panel would share the space out differently.
+        foreach (var dock in _defaultSizes.Keys.Where(dock => double.IsNaN(dock.Proportion)))
+        {
+            if (dock.Owner is not IDock { VisibleDockables: { } siblings })
+                continue;
+            var others = siblings.Where(sibling => !ReferenceEquals(sibling, dock) && sibling is not IProportionalDockSplitter)
+                .Select(sibling => sibling.Proportion).Where(double.IsFinite).Sum();
+            if (others is > 0 and < 1)
+                dock.Proportion = 1 - others;
+        }
+    }
+
+    /// <summary>The tool is in the dock it started in (true for tools with no home dock, such as Search).</summary>
+    public bool IsAtHome(ToolDockable tool)
+        => !_homes.TryGetValue(tool.Id, out var home) || ReferenceEquals(tool.Owner, home.Dock);
 
     /// <summary>Take a tool out of the layout, wherever it is (a dock left empty goes too). <see cref="PutBack"/> brings it back.</summary>
     public void RemoveTool(ToolDockable tool)

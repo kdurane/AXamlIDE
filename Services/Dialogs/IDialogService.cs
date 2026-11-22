@@ -17,6 +17,8 @@ public interface IDialogService
 {
     // Prompts
     Task<SaveChoice> AskSaveAsync(OpenDocument doc);
+    /// <summary>One question for several unsaved documents (listed), as Visual Studio asks; the answer is for all.</summary>
+    Task<SaveChoice> AskSaveAsync(IReadOnlyList<OpenDocument> documents);
     /// <summary>A one-line text box; null if cancelled.</summary>
     Task<string?> PromptForTextAsync(string title, string placeholder, string acceptText = "OK", string initialText = "");
 

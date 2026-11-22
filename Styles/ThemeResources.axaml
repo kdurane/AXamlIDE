@@ -336,6 +336,7 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.infoForeground}" x:Key="OverviewRulerInfoBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.selectionHighlightForeground}" x:Key="OverviewRulerOccurrenceBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.border}" x:Key="OverviewRulerBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editorOverviewRuler.findMatchForeground}" x:Key="OverviewRulerFindMatchBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.addedForeground}" x:Key="OverviewRulerAddedBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.modifiedForeground}" x:Key="OverviewRulerModifiedBrush" />
     <SolidColorBrush Color="{DynamicResource editorOverviewRuler.deletedForeground}" x:Key="OverviewRulerDeletedBrush" />

@@ -268,8 +268,8 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     /// <summary>
     /// Before the workspace or the app closes, as Visual Studio does: "Do you want to stop debugging?" while a debug
-    /// session is going, then a save prompt for each document with unsaved changes. Nothing is stopped or saved until
-    /// every question has been answered, so a Cancel leaves everything as it was. The debug session is ended cleanly
+    /// session is going, then one save prompt listing the documents with unsaved changes. Nothing is stopped or saved
+    /// until every question has been answered, so a Cancel leaves everything as it was. The debug session is ended cleanly
     /// (the debugger is told to disconnect and end the program) before returning true.
     /// </summary>
     private async Task<bool> ConfirmLeaveAsync()
@@ -279,17 +279,15 @@ public sealed partial class MainWindowViewModel : ObservableObject,
             return false;
 
         var dirtyDocuments = _documents.Documents.Where(document => document.IsDirty).ToArray();
-        var decisions = new List<(OpenDocument Document, SaveChoice Choice)>(dirtyDocuments.Length);
-        foreach (var document in dirtyDocuments)
+        if (dirtyDocuments.Length > 0)
         {
-            var choice = await _dialogs.AskSaveAsync(document);
+            var choice = await _dialogs.AskSaveAsync(dirtyDocuments);   // one question for all, as Visual Studio asks
             if (choice == SaveChoice.Cancel) return false;
-            decisions.Add((document, choice));
+            if (choice == SaveChoice.Save)
+                foreach (var document in dirtyDocuments)
+                    if (!await _saver.SaveAsync(document))
+                        return false;   // a save failed: keep everything open
         }
-
-        foreach (var (document, choice) in decisions)
-            if (choice == SaveChoice.Save && !await _saver.SaveAsync(document))
-                return false;   // a save failed: keep everything open
 
         await Run.StopDebuggingAsync();
         return true;
@@ -368,6 +366,10 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     [RelayCommand]
     private void RestartLanguageServices() => _languages.Restart();
+
+    /// <summary>Window > Reset Window Layout, as in Visual Studio.</summary>
+    [RelayCommand]
+    private void ResetWindowLayout() => Docking.ResetLayout();
 
     [RelayCommand]
     private void ToggleSolutionExplorerSide()

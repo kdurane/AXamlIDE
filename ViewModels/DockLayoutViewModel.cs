@@ -525,6 +525,53 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
             _searchWindowBounds = (x, y, width, height);
     }
 
+    /// <summary>
+    /// Window > Reset Window Layout (Visual Studio's): tabs in floating windows come back to the main window
+    /// (documents and diffs into its document tabs, tools to their own docks), tools dragged elsewhere go home,
+    /// every dock gets its first size back, and the side bar and bottom panel are shown. Which tools are open, which
+    /// side the side bar is on, and document tabs split within the main window are kept; Search keeps its window.
+    /// </summary>
+    public void ResetLayout()
+    {
+        foreach (var window in Root.Windows?.ToArray() ?? [])
+        {
+            if (window.Layout is not { } layout)
+                continue;
+            window.Save();
+            var keep = false;
+            foreach (var tab in DockFactory.TabsIn(layout).ToArray())
+            {
+                if (tab is ToolDockable search && _factory.FloatsByDefault(search))
+                {
+                    keep = true;
+                    continue;
+                }
+                _factory.Detach(tab);
+                if (tab is ToolDockable tool)
+                    _factory.PutBack(tool);
+                else
+                    _factory.AddDockable(_factory.MainDocuments, tab);
+            }
+            if (!keep && Root.Windows?.Contains(window) == true)
+                _factory.RemoveWindow(window);
+        }
+
+        foreach (var tool in _factory.Tools.Values)
+            if (_factory.IsInLayout(tool) && !_factory.IsAtHome(tool))
+            {
+                _factory.RemoveTool(tool);
+                _factory.PutBack(tool);
+            }
+
+        if (!_factory.IsExplorerColumnShown)
+            ToggleExplorer();
+        if (!_factory.IsBottomPanelShown)
+            TogglePanel();
+        _factory.ResetSizes();   // last: putting docks back shares out the sizes again
+        SavePanel();
+        OnActiveDocumentChanged(_documents.Active);   // its tab may have moved
+    }
+
     /// <summary>The main window is closing: close the floating windows without moving anything.</summary>
     public void CloseFloatingWindows()
     {

@@ -86,6 +86,7 @@
     <Color x:Key="editorOverviewRuler.border">#4D7F7F7F</Color>   <!-- default -->
     <Color x:Key="diffEditorOverview.insertedForeground">#48985D</Color>   <!-- default -->
     <Color x:Key="diffEditorOverview.removedForeground">#E51400</Color>   <!-- default -->
+    <Color x:Key="editorOverviewRuler.findMatchForeground">#7ED18616</Color>   <!-- default -->
     <Color x:Key="editorOverviewRuler.addedForeground">#992EA043</Color>   <!-- default -->
     <Color x:Key="editorOverviewRuler.modifiedForeground">#99005FB8</Color>   <!-- default -->
     <Color x:Key="editorOverviewRuler.deletedForeground">#99F85149</Color>   <!-- default -->

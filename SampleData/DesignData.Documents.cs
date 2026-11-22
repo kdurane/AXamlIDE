@@ -155,6 +155,13 @@ public static partial class DesignData
 
     public static AddNewItemViewModel AddNewItem => new(SamplePath("Contoso.App/Views"), SampleRoot);
 
+    public static SaveChangesViewModel SaveChanges => new(
+    [
+        SamplePath("Contoso.App/Models/Order.cs"),
+        SamplePath("Contoso.App/Views/MainWindow.axaml"),
+        SamplePath("Contoso.App/ViewModels/MainWindowViewModel.cs"),
+    ]);
+
     public static CloneRepositoryViewModel CloneRepository => new(SampleRoot, Get<IDialogService>());
 
     public static PublishWizardViewModel PublishWizard => new(SamplePath("Contoso.App/Contoso.App.csproj"), "net10.0");

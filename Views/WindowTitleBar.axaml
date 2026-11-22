@@ -46,8 +46,20 @@
     </UserControl.Resources>
 
     <UserControl.Styles>
+        <!--  Maximize / Restore Down: set by styles only (a value on the element itself would beat the :maximized one).  -->
+        <Style Selector="views|WindowTitleBar PathIcon#MaximizeIcon">
+            <Setter Property="Data" Value="{DynamicResource Icon.SquareOutline}" />
+        </Style>
+        <Style Selector="views|WindowTitleBar Button#MaximizeButton">
+            <Setter Property="AutomationProperties.Name" Value="Maximize" />
+            <Setter Property="ToolTip.Tip" Value="Maximize" />
+        </Style>
         <Style Selector="views|WindowTitleBar:maximized PathIcon#MaximizeIcon">
             <Setter Property="Data" Value="{DynamicResource Icon.WindowRestore}" />
+        </Style>
+        <Style Selector="views|WindowTitleBar:maximized Button#MaximizeButton">
+            <Setter Property="AutomationProperties.Name" Value="Restore Down" />
+            <Setter Property="ToolTip.Tip" Value="Restore Down" />
         </Style>
         <Style Selector="views|WindowTitleBar:hasContent TextBlock#TitleText">
             <Setter Property="IsVisible" Value="False" />
@@ -95,26 +107,24 @@
             <Button
                 x:Name="MinimizeButton"
                 AutomationProperties.Name="Minimize"
+                ToolTip.Tip="Minimize"
                 Theme="{StaticResource CaptionButton}">
                 <PathIcon
                     Width="11"
                     Height="11"
                     Data="{DynamicResource Icon.Minus}" />
             </Button>
-            <Button
-                x:Name="MaximizeButton"
-                AutomationProperties.Name="Maximize"
-                Theme="{StaticResource CaptionButton}">
+            <Button x:Name="MaximizeButton" Theme="{StaticResource CaptionButton}">
                 <PathIcon
                     x:Name="MaximizeIcon"
                     Width="11"
-                    Height="11"
-                    Data="{DynamicResource Icon.SquareOutline}" />
+                    Height="11" />
             </Button>
             <Button
                 x:Name="CloseButton"
                 AutomationProperties.Name="Close"
                 Classes="close"
+                ToolTip.Tip="Close"
                 Theme="{StaticResource CaptionButton}">
                 <PathIcon
                     Width="11"

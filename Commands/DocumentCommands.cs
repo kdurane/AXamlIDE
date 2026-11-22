@@ -119,18 +119,16 @@ public sealed partial class DocumentCommands(
 
     private async Task<bool> CloseManyAsync(IReadOnlyList<OpenDocument> targets)
     {
-        var decisions = new List<(OpenDocument Document, SaveChoice Choice)>();
-        foreach (var document in targets.Where(d => d.IsDirty))
-        {
-            var choice = await dialogs.AskSaveAsync(document);
-            if (choice == SaveChoice.Cancel)
-                return false;
-            decisions.Add((document, choice));
-        }
+        // One question for all the unsaved ones, as Visual Studio asks.
+        var dirty = targets.Where(d => d.IsDirty).ToArray();
+        var choice = dirty.Length == 0 ? SaveChoice.Discard : await dialogs.AskSaveAsync(dirty);
+        if (choice == SaveChoice.Cancel)
+            return false;
 
-        foreach (var (document, choice) in decisions)
-            if (choice == SaveChoice.Save && !await saver.SaveAsync(document))
-                return false;   // a save failed: keep everything open
+        if (choice == SaveChoice.Save)
+            foreach (var document in dirty)
+                if (!await saver.SaveAsync(document))
+                    return false;   // a save failed: keep everything open
 
         var active = documents.Active;
         foreach (var document in targets)

@@ -76,6 +76,7 @@ public static class CommandCatalog
         new("View.Terminal", "Terminal", "Show the Terminal and type a command."),
         new("View.TestExplorer", "Test Explorer", "Show the Tests panel."),
         new("View.TogglePanel", "Show/Hide Panel", "Show or hide the bottom panel (Problems, Output, Terminal...)."),
+        new("View.ResetWindowLayout", "Reset Window Layout", "Put every panel back where it started, at its first size, and floating tabs back in the main window."),
         new("View.Claude", "Claude", "Open the Claude tab and type a message."),
 
         // ---- Claude

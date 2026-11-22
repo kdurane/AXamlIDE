@@ -1,0 +1,79 @@
+<!--
+The save prompt (DataContext: ViewModels/SaveChangesViewModel), as in Visual Studio: one question for every unsaved
+file being closed, with the files listed when there are several. Closes with a Models/SaveChoice (Cancel if closed
+any other way).
+-->
+<Window
+    Background="{DynamicResource ThemeBackgroundBrush}"
+    CanMinimize="False"
+    CanResize="False"
+    Classes="customChrome"
+    SizeToContent="Height"
+    Title="Unsaved changes"
+    Width="440"
+    WindowStartupLocation="CenterOwner"
+    x:Class="AXamlIDE.Views.SaveChangesWindow"
+    x:DataType="vm:SaveChangesViewModel"
+    Design.DataContext="{x:Static design:DesignData.SaveChanges}"
+    d:DesignWidth="440"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <DockPanel>
+        <views:WindowTitleBar DockPanel.Dock="Top" />
+        <StackPanel Margin="16" Spacing="12">
+            <TextBlock Text="{Binding Prompt}" TextWrapping="Wrap" />
+
+            <Border
+                BorderBrush="{DynamicResource HoverBorderBrush}"
+                BorderThickness="1"
+                IsVisible="{Binding ShowList}">
+                <ScrollViewer MaxHeight="220">
+                    <ItemsControl ItemsSource="{Binding Items}" Margin="6,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SaveChangesItem">
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        Opacity="0.6"
+                                        Text="{Binding Folder}"
+                                        TextTrimming="LeadingCharacterEllipsis"
+                                        ToolTip.Tip="{Binding Folder}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+            <StackPanel
+                HorizontalAlignment="Right"
+                Orientation="Horizontal"
+                Spacing="8">
+                <Button
+                    Classes="accent"
+                    Click="OnSaveClick"
+                    Content="Save"
+                    IsDefault="True"
+                    MinWidth="90" />
+                <Button
+                    Click="OnDiscardClick"
+                    Content="Don't Save"
+                    MinWidth="90" />
+                <Button
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="90" />
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
+</Window>

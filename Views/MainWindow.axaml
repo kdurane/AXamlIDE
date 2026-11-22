@@ -291,6 +291,7 @@
                             <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
                             <MenuItem Command="{Binding TogglePanelCommand}" Header="Show/Hide _Panel" />
                             <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="_Move Side Bar to Other Side" />
+                            <MenuItem Command="{Binding ResetWindowLayoutCommand}" Header="_Reset Window Layout" />
                             <Separator />
                             <MenuItem
                                 Classes="openDocuments"

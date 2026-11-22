@@ -17,7 +17,7 @@ namespace AXamlIDE.Editor.Highlighting;
 ///   ▒   the thumb: the part of the file on screen (drag it; click elsewhere to jump there)
 ///   ─   the caret line (full width)
 ///   ▏   lines changed since the last commit (a thin lane at the left, as in VS Code: Editor/GitChanges)
-///   ▌   other occurrences of the selected text (left half of the rest)
+///   ▌   other occurrences of the selected text, and the find panel's matches while it's open (left half of the rest)
 ///    ▐  errors, warnings and info (right half of the rest; errors drawn last, so on top)
 ///
 /// Scrolling is <see cref="EditorScrollRuler"/>'s; hover a diagnostic mark for its message. Declared in
@@ -32,9 +32,12 @@ public sealed class OverviewRuler : EditorScrollRuler
     private EditorContext? _ctx;
     private OccurrenceController? _occurrences;
     private GitChangeController? _gitChanges;
+    private FindMarksController? _findMarks;
 
-    public void Attach(EditorContext ctx, OccurrenceController occurrences, GitChangeController gitChanges)
+    public void Attach(EditorContext ctx, OccurrenceController occurrences, GitChangeController gitChanges, FindMarksController findMarks)
     {
+        _findMarks = findMarks;
+        findMarks.Changed += InvalidateVisual;
         _ctx = ctx;
         _occurrences = occurrences;
         _gitChanges = gitChanges;
@@ -67,6 +70,11 @@ public sealed class OverviewRuler : EditorScrollRuler
         if (_occurrences is { Segments.Count: > 0 } && ThemeBrushes.Get("OverviewRulerOccurrenceBrush") is { } occurrence)
             foreach (var segment in _occurrences.Segments)
                 context.FillRectangle(occurrence, MarkRect(textView, document.Document, segment.StartOffset, left, half, scale));
+
+        // Find matches: the same lane, over the occurrences (VS Code puts both in its middle lane).
+        if (_findMarks is { Offsets.Count: > 0 } find && ThemeBrushes.Get("OverviewRulerFindMatchBrush") is { } match)
+            foreach (var offset in find.Offsets)
+                context.FillRectangle(match, MarkRect(textView, document.Document, offset, left, half, scale));
 
         // Diagnostics: right half, least severe first so errors end up on top.
         // Faded-only code (an unused using) gets no mark, as in Visual Studio: it isn't a problem to go looking for.

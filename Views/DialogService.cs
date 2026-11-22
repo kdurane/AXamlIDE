@@ -43,51 +43,13 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
     // ------------------------------------------------------------ save prompt
 
-    public async Task<SaveChoice> AskSaveAsync(OpenDocument doc)
-    {
-        var result = SaveChoice.Cancel; // closed any other way (Alt+F4) = cancel
-        var dialog = new Window
-        {
-            Title = "Unsaved changes",
-            Width = 380,
-            SizeToContent = SizeToContent.Height,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner
-        };
-        dialog.Content = new StackPanel
-        {
-            Margin = new Thickness(16),
-            Spacing = 16,
-            Children =
-            {
-                new TextBlock { Text = $"Save changes to {doc.Title}?", TextWrapping = TextWrapping.Wrap },
-                new StackPanel
-                {
-                    Orientation = Orientation.Horizontal,
-                    Spacing = 8,
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    Children =
-                    {
-                        Make("Save", SaveChoice.Save),
-                        Make("Don't save", SaveChoice.Discard),
-                        Make("Cancel", SaveChoice.Cancel)
-                    }
-                }
-            }
-        };
-        await ShowWithTitleBar(dialog);
-        return result;
+    public Task<SaveChoice> AskSaveAsync(OpenDocument doc) => AskSaveAsync([doc]);
 
-        Button Make(string text, SaveChoice choice)
-        {
-            var b = new Button { Content = text, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
-            b.Click += (_, _) =>
-            {
-                result = choice;
-                dialog.Close();
-            };
-            return b;
-        }
+    public async Task<SaveChoice> AskSaveAsync(IReadOnlyList<OpenDocument> documents)
+    {
+        var window = new SaveChangesWindow { DataContext = new SaveChangesViewModel(documents.Select(d => d.Path).ToList()) };
+        // Closed any other way (Alt+F4) = Cancel.
+        return await window.ShowDialog<SaveChoice?>(Owner) ?? SaveChoice.Cancel;
     }
 
     // ------------------------------------------------------------- quick open

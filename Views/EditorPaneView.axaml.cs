@@ -110,7 +110,7 @@ public partial class EditorPaneView : UserControl,
         Editor.TextArea.TextView.BackgroundRenderers.Add(_currentLineRenderer);
         _occurrences = new OccurrenceController(_ctx);
         _gitChanges = new GitChangeController(_ctx, services.Git, services.GitStatus);
-        OverviewRuler.Attach(_ctx, _occurrences, _gitChanges);
+        OverviewRuler.Attach(_ctx, _occurrences, _gitChanges, new FindMarksController(_ctx));
 
         // Our own selection drawing (not over code lenses); added after the occurrences so it's drawn over them.
         _selectionRenderer = new SelectionRenderer(Editor.TextArea);
