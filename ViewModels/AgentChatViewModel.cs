@@ -64,6 +64,7 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     private System.Threading.CancellationTokenSource? _installCancel;
     private readonly IdeMcpServer _ideTools;   // given to every session: render_xaml, get_problems, get_editor_state...
     private readonly SettingsViewModel _settings;
+    private OpenDocument? _lastDocument;   // the editor the user was last in; stays while the Claude tab is in front
 
     public AgentChatViewModel(WorkspaceModel workspace, DocumentManager documents, IMessenger messenger, IDialogService dialogs,
         IdeMcpServer ideTools, SettingsViewModel settings)
@@ -83,7 +84,9 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
         _messenger = messenger;
         _dialogs = dialogs;
         workspace.WorkspaceRoots.CollectionChanged += OnWorkspaceChanged;
-        documents.ActiveChanged += _ => OnPropertyChanged(nameof(ActiveFileName));
+        _lastDocument = documents.Active;
+        documents.ActiveChanged += OnActiveDocumentChanged;
+        documents.Documents.CollectionChanged += OnDocumentsChanged;
         Items.CollectionChanged += OnItemsChanged;
     }
 
@@ -161,7 +164,28 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The front tab's file name, shown on the chip; null when no real file is open.</summary>
     public string? ActiveFileName => ActiveFilePath is { } path ? Path.GetFileName(path) : null;
 
-    private string? ActiveFilePath => _documents.Active is { IsReadOnly: false } document && File.Exists(document.Path) ? document.Path : null;
+    private string? ActiveFilePath => _lastDocument is { IsReadOnly: false } document && File.Exists(document.Path) ? document.Path : null;
+
+    /// <summary>
+    /// The Claude panel is a page tab, and going to a page tab leaves no active document, so the chip follows the
+    /// last editor instead (VS Code's "current file" is the last editor too): only another editor changes it.
+    /// </summary>
+    private void OnActiveDocumentChanged(OpenDocument? document)
+    {
+        if (document is null)
+            return;
+        _lastDocument = document;
+        OnPropertyChanged(nameof(ActiveFileName));
+    }
+
+    /// <summary>The last editor's tab closed: show the one in front now, if any.</summary>
+    private void OnDocumentsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_lastDocument is null || _documents.Documents.Contains(_lastDocument))
+            return;
+        _lastDocument = _documents.Active;
+        OnPropertyChanged(nameof(ActiveFileName));
+    }
 
     /// <summary>The conversation is empty: show the welcome text.</summary>
     public bool IsEmpty => Items.Count == 0;
@@ -358,6 +382,8 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _workspace.WorkspaceRoots.CollectionChanged -= OnWorkspaceChanged;
+        _documents.ActiveChanged -= OnActiveDocumentChanged;
+        _documents.Documents.CollectionChanged -= OnDocumentsChanged;
         _installCancel?.Cancel();
         CancelSignIn();
         DropClient();
