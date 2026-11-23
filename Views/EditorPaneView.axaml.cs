@@ -182,6 +182,7 @@ public partial class EditorPaneView : UserControl,
         _folding = new FoldingController(_ctx);
         _ = new IndentationController(_ctx);
         _ = new WhitespaceSelectionController(_ctx);
+        _ = new ScrollAnchorController(_ctx);
         _comments = new CommentController(_ctx);
 
         _textMate = Editor.InstallTextMate(_grammars);

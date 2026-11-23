@@ -59,10 +59,8 @@ public sealed class WorkspaceEditService
             foreach (var (Start, End, Text) in edits)
                 document.Document.Replace(Start, End - Start, Text);
 
-        // Move the caret of the selected tab to its first edit.
-        if (prepared.FirstOrDefault(item => ReferenceEquals(item.Document, _documents.Active)) is
-            { Document: { } activeDocument, Edits.Count: > 0 } activeEdit)
-            activeDocument.Reveal(activeEdit.Edits.Min(edit => edit.Start));
+        // The caret and the view stay where they are, as in Visual Studio and VS Code: a quick fix that adds a
+        // using at the top doesn't take you there (the editor's ScrollAnchorController keeps the view still).
     }
 
     /// <summary>
