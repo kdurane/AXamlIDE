@@ -92,7 +92,7 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         ExplorerColumn = Row("ExplorerColumn", Orientation.Vertical, explorerDock);
         ExplorerColumn.Proportion = 0.2;
         var bottomDock = ToolDock("BottomTools", Alignment.Bottom, 0.25, problems, output, console);
-        bottomDock.ActiveDockable = output;
+        bottomDock.ActiveDockable = problems;   // the Error List is in front at startup, as in Visual Studio
 
         var centre = Row("Centre", Orientation.Vertical, MainDocuments, new ProportionalDockSplitter(), bottomDock);
         _centre = centre;
