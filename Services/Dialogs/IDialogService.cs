@@ -28,6 +28,12 @@ public interface IDialogService
     /// <summary>A yes/no question; true if the user chose <paramref name="confirmText"/>.</summary>
     Task<bool> ConfirmAsync(string title, string message, string confirmText);
     /// <summary>
+    /// A warning before something that can't be undone, with a warning sign, the <paramref name="files"/> it touches
+    /// listed, a button per choice and Cancel (the default): the choice clicked, or null for Cancel.
+    /// </summary>
+    Task<string?> WarnAsync(string title, string message, IReadOnlyList<string> choices, IReadOnlyList<string>? files = null);
+
+    /// <summary>
     /// "Move X from A to B?", with Rider's "update namespaces" check box (ticked) and the list of what it changes
     /// (one line each, shown as given) when <paramref name="namespaceChanges"/> isn't empty.
     /// </summary>

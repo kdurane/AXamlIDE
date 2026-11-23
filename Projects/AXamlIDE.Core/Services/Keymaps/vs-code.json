@@ -37,6 +37,8 @@
     // ---- Claude and Git (VS Code has no default key for these)
     "Claude.NewChat": "Ctrl+Alt+N",
     "Git.GenerateCommitMessage": "Ctrl+Alt+M",
+    "Git.NextChange": "Alt+F5",
+    "Git.PreviousChange": "Shift+Alt+F5",
 
     // ---- Navigate
     "Navigate.FindAction": ["Ctrl+Shift+P", "F1"],

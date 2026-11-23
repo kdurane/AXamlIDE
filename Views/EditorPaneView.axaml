@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="AXamlIDE.Views.EditorPaneView"
     xmlns="https://github.com/avaloniaui"
     xmlns:edit="using:AvaloniaEdit"
@@ -64,6 +64,27 @@
                         Header="Add Watch"
                         Name="AddWatchMenuItem"
                         shell:KeyMap.CommandId="Debug.AddWatch" />
+                    <!--  On a block git says changed (shown by OnContextMenuOpening)  -->
+                    <MenuItem
+                        Click="OnRevertChangeClick"
+                        Header="Revert Change"
+                        Name="RevertChangeMenuItem"
+                        shell:KeyMap.CommandId="Git.RevertChange" />
+                    <!--  In a merge conflict's markers (shown by OnContextMenuOpening), as VS Code's inline actions  -->
+                    <MenuItem Header="Merge Conflict" Name="ConflictMenuItem">
+                        <MenuItem
+                            Click="OnAcceptCurrentClick"
+                            Header="Accept Current Change"
+                            shell:KeyMap.CommandId="Git.AcceptCurrentChange" />
+                        <MenuItem
+                            Click="OnAcceptIncomingClick"
+                            Header="Accept Incoming Change"
+                            shell:KeyMap.CommandId="Git.AcceptIncomingChange" />
+                        <MenuItem
+                            Click="OnAcceptBothClick"
+                            Header="Accept Both Changes"
+                            shell:KeyMap.CommandId="Git.AcceptBothChanges" />
+                    </MenuItem>
                     <MenuItem Header="-" />
                     <MenuItem
                         Click="OnSelectAllClick"
@@ -116,6 +137,67 @@
                 CornerRadius="4"
                 Padding="8">
                 <ColorView IsAccentColorsVisible="False" Name="ColorPicker" />
+            </Border>
+        </Popup>
+
+        <!--
+        A git change bar clicked (Editor/GitChanges/GitChangePeek fills and places it): what the lines were in git,
+        as VS Code's quick diff peek and Rider's change popup, with Previous / Next change and Revert (Ctrl+Z undoes it).
+        -->
+        <Popup
+            IsLightDismissEnabled="True"
+            Name="GitChangePopup"
+            Placement="AnchorAndGravity"
+            PlacementAnchor="TopLeft"
+            PlacementConstraintAdjustment="FlipY, SlideX"
+            PlacementGravity="BottomRight">
+            <Border
+                Background="{DynamicResource HoverBackgroundBrush}"
+                BorderBrush="{DynamicResource HoverBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="4"
+                MaxWidth="760"
+                MinWidth="320"
+                Padding="4"
+                TextElement.Foreground="{DynamicResource HoverForegroundBrush}">
+                <DockPanel>
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" DockPanel.Dock="Top" Margin="4,0,0,4">
+                        <TextBlock
+                            FontWeight="SemiBold"
+                            Name="GitChangeTitle"
+                            VerticalAlignment="Center" />
+                        <Button
+                            Classes="icon"
+                            Grid.Column="1"
+                            Name="GitChangePrevious"
+                            ToolTip.Tip="Previous change">
+                            <PathIcon Data="{DynamicResource Icon.ArrowUp}" />
+                        </Button>
+                        <Button
+                            Classes="icon"
+                            Grid.Column="2"
+                            Name="GitChangeNext"
+                            ToolTip.Tip="Next change">
+                            <PathIcon Data="{DynamicResource Icon.ArrowDown}" />
+                        </Button>
+                        <Button
+                            Classes="icon"
+                            Grid.Column="3"
+                            Name="GitChangeRevert"
+                            ToolTip.Tip="Revert this change (Ctrl+Z undoes it)">
+                            <PathIcon Data="{DynamicResource Icon.Undo}" />
+                        </Button>
+                    </Grid>
+                    <Border Background="{DynamicResource DiffRemovedLineBrush}" Name="GitChangeOldBorder">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto" MaxHeight="300">
+                            <SelectableTextBlock
+                                FontFamily="{Binding #Editor.FontFamily}"
+                                FontSize="{Binding #Editor.FontSize}"
+                                Margin="6,2"
+                                Name="GitChangeOldText" />
+                        </ScrollViewer>
+                    </Border>
+                </DockPanel>
             </Border>
         </Popup>
 

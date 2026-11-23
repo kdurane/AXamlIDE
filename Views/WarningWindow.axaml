@@ -1,0 +1,99 @@
+<!--
+A warning before something that can't be undone (DataContext: ViewModels/WarningViewModel), as VS Code asks before
+discarding: a warning sign, the question, the files it touches, a button per choice and Cancel. Cancel is the
+default, so Enter or Escape never throws anything away. Closes with the choice clicked (null for Cancel).
+-->
+<Window
+    Background="{DynamicResource ThemeBackgroundBrush}"
+    CanMinimize="False"
+    CanResize="False"
+    Classes="customChrome"
+    SizeToContent="Height"
+    Title="Warning"
+    Width="460"
+    WindowStartupLocation="CenterOwner"
+    x:Class="AXamlIDE.Views.WarningWindow"
+    x:DataType="vm:WarningViewModel"
+    Design.DataContext="{x:Static design:DesignData.Warning}"
+    d:DesignWidth="460"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <DockPanel>
+        <views:WindowTitleBar DockPanel.Dock="Top" />
+        <StackPanel Margin="16" Spacing="12">
+            <Grid ColumnDefinitions="Auto,*">
+                <PathIcon
+                    Data="{DynamicResource Icon.AlertOutline}"
+                    Foreground="{DynamicResource DiagnosticWarningBrush}"
+                    Height="28"
+                    Margin="0,0,12,0"
+                    VerticalAlignment="Top"
+                    Width="28" />
+                <TextBlock
+                    Grid.Column="1"
+                    Text="{Binding Message}"
+                    TextWrapping="Wrap"
+                    VerticalAlignment="Center" />
+            </Grid>
+
+            <Border
+                BorderBrush="{DynamicResource HoverBorderBrush}"
+                BorderThickness="1"
+                IsVisible="{Binding ShowList}">
+                <ScrollViewer MaxHeight="220">
+                    <ItemsControl ItemsSource="{Binding Items}" Margin="6,4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SaveChangesItem">
+                                <Grid ColumnDefinitions="Auto,*" Margin="0,2">
+                                    <TextBlock Text="{Binding Name}" />
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        Margin="8,0,0,0"
+                                        Opacity="0.6"
+                                        Text="{Binding Folder}"
+                                        TextTrimming="LeadingCharacterEllipsis"
+                                        ToolTip.Tip="{Binding Folder}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+
+            <StackPanel
+                HorizontalAlignment="Right"
+                Orientation="Horizontal"
+                Spacing="8">
+                <ItemsControl ItemsSource="{Binding Choices}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <Button
+                                Click="OnChoiceClick"
+                                Content="{Binding}"
+                                MinWidth="90" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button
+                    Classes="accent"
+                    Click="OnCancelClick"
+                    Content="Cancel"
+                    IsCancel="True"
+                    IsDefault="True"
+                    MinWidth="90" />
+            </StackPanel>
+        </StackPanel>
+    </DockPanel>
+</Window>

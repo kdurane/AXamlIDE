@@ -32,6 +32,15 @@ public sealed class FollowEndBehavior : Behavior<ScrollViewer>
         if (AssociatedObject is not { } scrollViewer)
             return;
 
+        // Scrolled up and no longer at the bottom: the user wants to read back. In a virtualized list this can come
+        // with an extent change (rows coming into view are measured for real), which must not snap it back down.
+        // (A shrinking extent also moves the offset up, but leaves it at the bottom: that's still following.)
+        if (e.OffsetDelta.Y < 0 && !IsAtBottom(scrollViewer))
+        {
+            _following = false;
+            return;
+        }
+
         if (e.ExtentDelta.Y != 0)
         {
             // Content grew or was cleared. The offset hasn't caught up yet, so "at the bottom?" would
@@ -44,8 +53,11 @@ public sealed class FollowEndBehavior : Behavior<ScrollViewer>
         }
 
         // The user scrolled, or the panel was resized.
-        _following = scrollViewer.Offset.Y + scrollViewer.Viewport.Height >= scrollViewer.Extent.Height - 1;
+        _following = IsAtBottom(scrollViewer);
     }
+
+    private static bool IsAtBottom(ScrollViewer scrollViewer)
+        => scrollViewer.Offset.Y + scrollViewer.Viewport.Height >= scrollViewer.Extent.Height - 1;
 
     /// <summary>Like ScrollToEnd, but keeps the horizontal position.</summary>
     private static void ScrollToBottom(ScrollViewer scrollViewer)

@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="AXamlIDE.Views.ExplorerView"
     x:DataType="vm:ExplorerViewModel"
     Design.DataContext="{x:Static design:DesignData.Explorer}"
@@ -263,6 +263,11 @@
                             CommandParameter="{Binding GitPath}"
                             Header="Unstage"
                             IsVisible="{Binding CanUnstage}" />
+                        <MenuItem
+                            Command="{Binding Explorer.Git.UndoPathCommand}"
+                            CommandParameter="{Binding GitPath}"
+                            Header="Undo Changes..."
+                            IsVisible="{Binding CanUndo}" />
                         <Separator IsVisible="{Binding ShowGitSeparator}" />
                         <MenuItem
                             Command="{Binding Explorer.Git.IgnoreCommand}"

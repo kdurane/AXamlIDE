@@ -84,6 +84,22 @@ public static class CommandCatalog
 
         // ---- Git
         new("Git.GenerateCommitMessage", "Generate Commit Message", "Have Claude write the commit message for the changes about to be committed."),
+        new("Git.Pull", "Git: Pull", "Pull the current branch from its remote."),
+        new("Git.Push", "Git: Push", "Push the current branch (publishing it if it isn't on a remote yet)."),
+        new("Git.Fetch", "Git: Fetch", "Fetch every remote's branches."),
+        new("Git.Sync", "Git: Sync", "Pull, then push the current branch."),
+        new("Git.UndoLastCommit", "Git: Undo Last Commit", "Take back the last commit, keeping its changes staged."),
+        new("Git.DiscardAll", "Git: Discard All Changes", "Put every changed file back as in the last commit (asks first)."),
+        new("Git.NewBranch", "Git: New Branch", "Create a branch and switch to it."),
+        new("Git.SwitchBranch", "Git: Switch Branch", "Check out another branch."),
+        new("Git.MergeBranch", "Git: Merge Branch", "Merge another branch into the current one."),
+        new("Git.Stash", "Git: Stash Changes", "Put every change aside, new files too."),
+        new("Git.NextChange", "Git: Next Change", "Go to the next changed block in the file and show what it was.", Editor),
+        new("Git.PreviousChange", "Git: Previous Change", "Go to the previous changed block in the file and show what it was.", Editor),
+        new("Git.RevertChange", "Git: Revert Change", "Put the changed block at the caret back as it is in git (Ctrl+Z undoes it).", Editor),
+        new("Git.AcceptCurrentChange", "Git: Accept Current Change", "In the merge conflict at the caret, keep the current side (ours).", Editor),
+        new("Git.AcceptIncomingChange", "Git: Accept Incoming Change", "In the merge conflict at the caret, keep the incoming side (theirs).", Editor),
+        new("Git.AcceptBothChanges", "Git: Accept Both Changes", "In the merge conflict at the caret, keep both sides, current first.", Editor),
 
         // ---- Navigate
         new("Navigate.SearchEverywhere", "Search Everywhere", "Find types, files, symbols, actions and options by name, as Rider's (also double Shift)."),

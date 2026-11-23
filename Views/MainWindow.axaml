@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="AXamlIDE.Views.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -155,6 +155,50 @@
                             <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
                             <MenuItem Command="{Binding TogglePanelCommand}" Header="Show/Hide P_anel" />
                             <MenuItem Command="{Binding ToggleSolutionExplorerSideCommand}" Header="Move Side Bar to Other Side" />
+                        </MenuItem>
+                        <!--  Visual Studio's Git menu: the same commands as the Git tab's "..." menu and its graph  -->
+                        <MenuItem Header="_Git">
+                            <MenuItem Command="{Binding Git.CommitCommand}" Header="_Commit Staged" IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.CommitAllCommand}" Header="Commit _All" IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.AmendCommand}" Header="A_mend Last Commit..." IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.UndoLastCommitCommand}" Header="_Undo Last Commit..." IsEnabled="{Binding Git.IsRepository}" />
+                            <Separator />
+                            <MenuItem Command="{Binding Git.FetchCommand}" Header="_Fetch" IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.PullCommand}" Header="_Pull" IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.PullRebaseCommand}" Header="Pull (_Rebase)" IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.PushCommand}" Header="{Binding Git.PushHeader}" IsEnabled="{Binding Git.IsRepository}" />
+                            <MenuItem Command="{Binding Git.SyncCommand}" Header="_Sync (Pull, then Push)" IsEnabled="{Binding Git.IsRepository}" />
+                            <Separator />
+                            <MenuItem Header="_Branch" IsEnabled="{Binding Git.IsRepository}">
+                                <MenuItem Command="{Binding Git.NewBranchCommand}" Header="_New Branch..." />
+                                <MenuItem Command="{Binding Git.SwitchBranchCommand}" Header="_Switch Branch..." />
+                                <MenuItem Command="{Binding Git.MergeBranchCommand}" Header="_Merge Branch..." />
+                                <Separator />
+                                <MenuItem Command="{Binding Git.RenameBranchCommand}" Header="_Rename Branch..." />
+                                <MenuItem Command="{Binding Git.DeleteBranchCommand}" Header="_Delete Branch..." />
+                                <Separator />
+                                <MenuItem Command="{Binding Git.AbortOperationCommand}" Header="_Abort Merge or Rebase..." />
+                            </MenuItem>
+                            <MenuItem Header="S_tash" IsEnabled="{Binding Git.IsRepository}">
+                                <MenuItem Command="{Binding Git.StashCommand}" Header="_Stash Changes..." />
+                                <MenuItem Command="{Binding Git.PopStashCommand}" Header="_Pop Latest Stash" />
+                                <Separator />
+                                <MenuItem Command="{Binding Git.ApplyStashCommand}" Header="_Apply Stash..." />
+                                <MenuItem Command="{Binding Git.PopStashPickedCommand}" Header="P_op Stash..." />
+                                <MenuItem Command="{Binding Git.DropStashCommand}" Header="_Drop Stash..." />
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Command="{Binding EditorCommands.NextChange}" Header="_Next Change" />
+                            <MenuItem Command="{Binding EditorCommands.PreviousChange}" Header="Pre_vious Change" />
+                            <MenuItem Command="{Binding EditorCommands.RevertChange}" Header="Revert Chang_e" />
+                            <Separator />
+                            <MenuItem Command="{Binding Git.DiscardAllCommand}" Header="_Discard All Changes..." IsEnabled="{Binding Git.IsRepository}" />
+                            <Separator />
+                            <MenuItem
+                                Command="{Binding ShowToolCommand}"
+                                CommandParameter="{x:Static msg:ToolTab.Git}"
+                                Header="Git C_hanges" />
+                            <MenuItem Command="{Binding Git.ShowGraphCommand}" Header="Git _Graph" />
                         </MenuItem>
                         <MenuItem Header="_Navigate">
                             <MenuItem Command="{Binding NavigateBackCommand}" Header="Navigate _Backward" />

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Models;
@@ -147,6 +148,47 @@ public sealed class GitChangeController : IDisposable
             return;
         Changes = changes;
         Changed?.Invoke();
+    }
+
+    // ------------------------------------------------------------- one change: what it was, putting it back
+
+    /// <summary>The change on a 1-based line (a deletion counts on the line it's below), or null.</summary>
+    public LineChange? ChangeAt(int line)
+        => Changes.Where(change => change.Contains(line)).Cast<LineChange?>().FirstOrDefault();
+
+    /// <summary>The next change after the line (or the previous one before it), wrapping round, as VS Code's Alt+F5.</summary>
+    public LineChange? Neighbour(int line, bool next)
+    {
+        if (Changes.Count == 0)
+            return null;
+        var current = ChangeAt(line);
+        return next
+            ? Changes.Where(change => Line(change) > (current is { } c ? Line(c) : line)).Cast<LineChange?>().FirstOrDefault() ?? Changes[0]
+            : Changes.Where(change => Line(change) < (current is { } c2 ? Line(c2) : line)).Cast<LineChange?>().LastOrDefault() ?? Changes[^1];
+    }
+
+    /// <summary>The line a change is shown on (a deletion at the top: line 1).</summary>
+    public static int Line(LineChange change) => Math.Max(1, change.FirstLine);
+
+    /// <summary>The lines the change replaced, as they are in git (empty for added lines).</summary>
+    public IReadOnlyList<string> BaseLines(LineChange change)
+        => _baseText is { } baseText ? LineChanges.BaseLines(baseText, change) : [];
+
+    /// <summary>
+    /// VS Code's Revert Change, Rider's Rollback Lines: put one block back as it is in git. An ordinary edit, so
+    /// Ctrl+Z brings it back. Nothing happens if the change is out of date (typing since).
+    /// </summary>
+    public bool Revert(LineChange change)
+    {
+        if (_baseText is null || _ctx.Active is not { } document || !Changes.Contains(change))
+            return false;
+        var text = document.Document.Text;
+        var edit = LineChanges.Revert(text, change, BaseLines(change));
+        if (edit.Offset + edit.Length > text.Length)
+            return false;
+        document.Document.Replace(edit.Offset, edit.Length, edit.Text);
+        _ = CompareAsync();
+        return true;
     }
 
     /// <summary>The path relative to the repository, with '/' as git writes it, or null when it's outside.</summary>

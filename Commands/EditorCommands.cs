@@ -1,4 +1,4 @@
-﻿using AXamlIDE.Messages;
+using AXamlIDE.Messages;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -44,6 +44,16 @@ public sealed class EditorCommands(IMessenger messenger)
 
     /// <summary>Debug > Toggle Breakpoint (F9): on the caret's line.</summary>
     public IRelayCommand ToggleBreakpoint { get; } = Make(messenger, EditorAction.ToggleBreakpoint);
+
+    /// <summary>Git in the editor: step through the changed blocks (showing what each was), put one back.</summary>
+    public IRelayCommand NextChange { get; } = Make(messenger, EditorAction.NextChange);
+    public IRelayCommand PreviousChange { get; } = Make(messenger, EditorAction.PreviousChange);
+    public IRelayCommand RevertChange { get; } = Make(messenger, EditorAction.RevertChange);
+
+    /// <summary>A merge conflict at the caret: keep one side, or both (VS Code's inline merge actions).</summary>
+    public IRelayCommand AcceptCurrentChange { get; } = Make(messenger, EditorAction.AcceptCurrentChange);
+    public IRelayCommand AcceptIncomingChange { get; } = Make(messenger, EditorAction.AcceptIncomingChange);
+    public IRelayCommand AcceptBothChanges { get; } = Make(messenger, EditorAction.AcceptBothChanges);
 
     private static RelayCommand Make(IMessenger messenger, EditorAction action)
         => new(() => messenger.Send(new EditorActionMessage(action)));

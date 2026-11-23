@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using Avalonia.Input;
 using Avalonia;
 using Avalonia.Media;
 using AvaloniaEdit.Editing;
@@ -38,6 +40,39 @@ public sealed class GitChangeMargin : AbstractMargin
     }
 
     private void OnVisualLinesChanged(object? sender, EventArgs e) => InvalidateVisual();
+
+    /// <summary>A change bar was clicked (the editor shows what it was, with Revert).</summary>
+    public event Action<LineChange>? ChangeClicked;
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        Cursor = ChangeUnder(e) is not null ? new Cursor(StandardCursorType.Hand) : Cursor.Default;
+        base.OnPointerMoved(e);
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && ChangeUnder(e) is { } change)
+        {
+            e.Handled = true;
+            ChangeClicked?.Invoke(change);
+        }
+        base.OnPointerPressed(e);
+    }
+
+    /// <summary>The change on the line under the pointer (a deletion's wedge: the lines either side of it).</summary>
+    private LineChange? ChangeUnder(PointerEventArgs e)
+    {
+        if (TextView is not { VisualLinesValid: true } textView)
+            return null;
+        var y = e.GetPosition(this).Y + textView.VerticalOffset;
+        if (textView.GetVisualLineFromVisualTop(y) is not { } visualLine)
+            return null;
+        var line = visualLine.FirstDocumentLine.LineNumber;
+        return _changes.ChangeAt(line)
+               ?? _changes.Changes.Where(change => change.Kind == LineChangeKind.Deleted && change.FirstLine == line - 1)
+                   .Cast<LineChange?>().FirstOrDefault();
+    }
 
     protected override Size MeasureOverride(Size availableSize) => new(MarginWidth, 0);
 

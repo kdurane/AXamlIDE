@@ -59,10 +59,15 @@ public sealed class MarkdownText : ContentControl
         }
         if (change.Property != MarkdownProperty)
             return;
-        if (_rendered is null)
-            Render();            // the first text shows straight away
+        var markdown = change.GetNewValue<string?>() ?? "";
+        if (_rendered is null || !markdown.StartsWith(_rendered, StringComparison.Ordinal))
+        {
+            // The first text, or different text altogether (a reused row in a virtualized list): show it straight away.
+            _timer.Stop();
+            Render();
+        }
         else if (!_timer.IsEnabled)
-            _timer.Start();      // later pieces are gathered up
+            _timer.Start();      // a reply growing piece by piece: the pieces are gathered up
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

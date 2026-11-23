@@ -77,16 +77,44 @@ public sealed class LineChangesTests
 
         Assert.Equal(
         [
-            new LineChange(2, 1, LineChangeKind.Modified),
-            new LineChange(4, 1, LineChangeKind.Added),
-            new LineChange(5, 0, LineChangeKind.Deleted),   // "5" went from below line 5 ("4")
-        ], changes);
+            (2, 1, LineChangeKind.Modified),
+            (4, 1, LineChangeKind.Added),
+            (5, 0, LineChangeKind.Deleted),   // "5" went from below line 5 ("4")
+        ], changes.Select(change => (change.FirstLine, change.LineCount, change.Kind)));
+        Assert.Equal(["2"], LineChanges.BaseLines("1\n2\n3\n4\n5\n", changes[0]));
+        Assert.Empty(LineChanges.BaseLines("1\n2\n3\n4\n5\n", changes[1]));
+        Assert.Equal(["5"], LineChanges.BaseLines("1\n2\n3\n4\n5\n", changes[2]));
     }
 
     [Fact]
     public void Deleting_the_first_line_marks_above_line_one()
     {
-        Assert.Equal([new LineChange(0, 0, LineChangeKind.Deleted)], LineChanges.Compare("a\nb\n", "b\n"));
+        var change = Assert.Single(LineChanges.Compare("a\nb\n", "b\n"));
+        Assert.Equal((0, 0, LineChangeKind.Deleted), (change.FirstLine, change.LineCount, change.Kind));
+    }
+
+    [Theory]
+    [InlineData("1\n2\n3\n", "1\nTWO\n3\n")]              // modified
+    [InlineData("1\n2\n3\n", "1\n2\nnew\n3\n")]          // added in the middle
+    [InlineData("1\n2\n", "1\n2\nnew\nmore\n")]           // added at the end
+    [InlineData("1\n2", "1\n2\nnew")]                        // added at the end, no final line ending
+    [InlineData("1\n2\n", "new\n1\n2\n")]                  // added at the top
+    [InlineData("1\n2\n3\n", "1\n3\n")]                    // deleted
+    [InlineData("1\n2\n3\n", "2\n3\n")]                    // deleted at the top
+    [InlineData("1\n2\n3", "1\n2")]                          // deleted at the end
+    [InlineData("1\r\n2\r\n3\r\n", "1\r\nTWO\r\nTOO\r\n3\r\n")]   // Windows line endings
+    public void Reverting_every_change_gives_back_the_base(string baseText, string text)
+    {
+        var normalizedBase = baseText.ReplaceLineEndings("\n");
+        var changes = LineChanges.Compare(normalizedBase, text.ReplaceLineEndings("\n"));
+        Assert.NotEmpty(changes);
+        // From the bottom up, so the earlier changes' lines don't move.
+        foreach (var change in changes.Reverse())
+        {
+            var edit = LineChanges.Revert(text, change, LineChanges.BaseLines(normalizedBase, change));
+            text = text[..edit.Offset] + edit.Text + text[(edit.Offset + edit.Length)..];
+        }
+        Assert.Equal(baseText, text);
     }
 
     [Fact]

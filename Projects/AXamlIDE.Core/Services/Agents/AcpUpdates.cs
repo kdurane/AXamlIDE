@@ -32,6 +32,8 @@ public sealed record AcpMessageChunk(AcpChunkKind Kind, string Text, string? Mes
 /// <summary>
 /// A tool call starting (<see cref="IsNew"/>) or changing. Only the fields that changed are set; the rest are null,
 /// so merge it into what's already known. <see cref="Content"/> and <see cref="Locations"/> replace the old lists.
+/// <see cref="Command"/> and <see cref="Description"/> come from the tool's input (rawInput): a terminal command and
+/// the agent's one-line summary of it ("List files in current directory").
 /// </summary>
 public sealed record AcpToolCall(
     string Id,
@@ -40,7 +42,9 @@ public sealed record AcpToolCall(
     string? Kind,
     string? Status,
     IReadOnlyList<AcpToolContent>? Content,
-    IReadOnlyList<AcpLocation>? Locations) : AcpUpdate;
+    IReadOnlyList<AcpLocation>? Locations,
+    string? Command = null,
+    string? Description = null) : AcpUpdate;
 
 /// <summary>The agent's to-do list for the task. Each update is the whole list.</summary>
 public sealed record AcpPlan(IReadOnlyList<AcpPlanEntry> Entries) : AcpUpdate;
@@ -195,7 +199,9 @@ public static class AcpParser
                         location.TryGetProperty("line", out var line) && line.TryGetInt32(out var number) ? number : null))
             ];
 
-        return new AcpToolCall(id, isNew, String(update, "title"), String(update, "kind"), String(update, "status"), content, locations);
+        update.TryGetProperty("rawInput", out var input);
+        return new AcpToolCall(id, isNew, String(update, "title"), String(update, "kind"), String(update, "status"), content, locations,
+            String(input, "command"), String(input, "description"));
     }
 
     private static AcpToolContent? ToolContent(JsonElement item)

@@ -1,3 +1,4 @@
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -17,6 +18,16 @@ public partial class GitView : UserControl
     {
         if (sender is ListBox { SelectedItem: GitChangeItem item } && DataContext is GitViewModel viewModel)
             viewModel.OpenDiffCommand.Execute(item);
+    }
+
+    private void OnStagedSelectionChanged(object? sender, SelectionChangedEventArgs e) => PassSelection(sender, stagedSide: true);
+
+    private void OnChangesSelectionChanged(object? sender, SelectionChangedEventArgs e) => PassSelection(sender, stagedSide: false);
+
+    private void PassSelection(object? sender, bool stagedSide)
+    {
+        if (sender is ListBox { SelectedItems: { } selected } && DataContext is GitViewModel viewModel)
+            viewModel.SetSelection(stagedSide, selected.OfType<GitChangeItem>());
     }
 
     /// <summary>Clicking a row of the graph, as in VS Code: a commit opens or closes its files; a file opens its diff.</summary>

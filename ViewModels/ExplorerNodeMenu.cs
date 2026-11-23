@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using AXamlIDE.Models;
 
@@ -37,10 +37,11 @@ public sealed class ExplorerNodeMenu
         CanShowDiff = inRepository && IsFile && git.ChangeFor(GitPath) is not null;
         CanStage = inRepository && git.HasUnstagedChanges(GitPath);
         CanUnstage = inRepository && git.HasStagedChanges(GitPath);
+        CanUndo = inRepository && git.HasChanges(GitPath);
         var ignorable = inRepository && node.Kind is NodeKind.File or NodeKind.Directory or NodeKind.Folder;
         CanUnignore = ignorable && node.GitState == GitFileState.Ignored;
         CanIgnore = ignorable && !CanUnignore;
-        ShowGit = CanShowDiff || CanStage || CanUnstage || CanIgnore || CanUnignore;
+        ShowGit = CanShowDiff || CanStage || CanUnstage || CanUndo || CanIgnore || CanUnignore;
         IsProjectNode = node.Kind == NodeKind.Project && HasPath;
         // Open Containing Folder / Open in Terminal: anything on disk (a virtual solution folder has no path).
         CanOpenFolder = HasPath && node.Kind is NodeKind.File or NodeKind.Directory or NodeKind.Project or NodeKind.Solution or NodeKind.Folder
@@ -71,9 +72,11 @@ public sealed class ExplorerNodeMenu
     public bool CanShowDiff { get; }
     public bool CanStage { get; }
     public bool CanUnstage { get; }
+    /// <summary>Git > Undo Changes: the file, or something in the folder, has changed since the last commit.</summary>
+    public bool CanUndo { get; }
     public bool CanIgnore { get; }
     public bool CanUnignore { get; }
 
-    /// <summary>The separator between Diff/Add/Unstage and the .gitignore item.</summary>
-    public bool ShowGitSeparator => (CanShowDiff || CanStage || CanUnstage) && (CanIgnore || CanUnignore);
+    /// <summary>The separator between Diff/Add/Unstage/Undo and the .gitignore item.</summary>
+    public bool ShowGitSeparator => (CanShowDiff || CanStage || CanUnstage || CanUndo) && (CanIgnore || CanUnignore);
 }

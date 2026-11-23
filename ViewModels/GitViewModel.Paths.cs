@@ -29,6 +29,9 @@ public sealed partial class GitViewModel
     /// <summary>Whether the file, or anything inside the folder, can be staged.</summary>
     public bool HasUnstagedChanges(string fullPath) => ChangesAtOrUnder(fullPath).Any(change => change.HasUnstagedChanges);
 
+    /// <summary>Whether the file, or anything inside the folder, has changed (staged or not, or is new).</summary>
+    public bool HasChanges(string fullPath) => ChangesAtOrUnder(fullPath).Any();
+
     private IEnumerable<GitChange> ChangesAtOrUnder(string fullPath)
     {
         var folder = Path.TrimEndingDirectorySeparator(fullPath) + Path.DirectorySeparatorChar;

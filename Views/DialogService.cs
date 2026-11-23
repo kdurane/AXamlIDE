@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -406,6 +406,9 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         };
         await ShowWithTitleBar(dialog);
     }
+
+    public Task<string?> WarnAsync(string title, string message, IReadOnlyList<string> choices, IReadOnlyList<string>? files = null)
+        => new WarningWindow { Title = title, DataContext = new WarningViewModel(message, files ?? [], choices) }.ShowDialog<string?>(Owner);
 
     public async Task<bool> ConfirmAsync(string title, string message, string confirmText)
     {

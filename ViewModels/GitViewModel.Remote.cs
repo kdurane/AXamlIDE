@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,8 +10,9 @@ using CommunityToolkit.Mvvm.Messaging;
 namespace AXamlIDE.ViewModels;
 
 /// <summary>
-/// The Git tab's "..." menu: pull, push, fetch, sync, commit all / amend, discard, branches, stashes, remotes,
-/// and setting up sign-in (Git Credential Manager) when a remote needs it.
+/// The Git tab's "..." menu: pull, push, fetch, sync, commit all / amend, remotes, and setting up sign-in
+/// (Git Credential Manager) when a remote needs it. Branches and stashes are GitViewModel.Branches.cs; discarding
+/// and undoing GitViewModel.Undo.cs.
 /// </summary>
 public sealed partial class GitViewModel
 {
@@ -19,6 +20,10 @@ public sealed partial class GitViewModel
 
     [RelayCommand]
     private Task Pull() => RunRemoteAsync(_git.PullAsync, "Pulling...", "Pulled.");
+
+    /// <summary>VS Code's Pull (Rebase): the branch's own commits go on top of the remote's, with no merge commit.</summary>
+    [RelayCommand]
+    private Task PullRebase() => RunRemoteAsync(_git.PullRebaseAsync, "Pulling (rebase)...", "Pulled.");
 
     /// <summary>Push; a new branch is published (to the only remote, or one the user picks).</summary>
     [RelayCommand]
@@ -74,47 +79,6 @@ public sealed partial class GitViewModel
         if (await RunAsync(root => _git.CommitAsync(root, message, amend: true), null, "Amended the last commit."))
             CommitMessage = "";
     }
-
-    [RelayCommand]
-    private async Task DiscardAll()
-    {
-        if (await _dialogs.ConfirmAsync("Discard All Changes",
-                "Throw away every change to tracked files, staged or not? New (untracked) files are kept. This can't be undone.",
-                "Discard"))
-            await RunAsync(root => _git.DiscardTrackedChangesAsync(root), null, "Discarded the changes.");
-    }
-
-    [RelayCommand]
-    private async Task NewBranch()
-    {
-        if (await _dialogs.PromptForTextAsync("New Branch", "Branch name", "Create") is { } name && name.Trim().Length > 0)
-            await RunAsync(root => _git.CreateBranchAsync(root, name.Trim()), null, $"Switched to the new branch {name.Trim()}.");
-    }
-
-    [RelayCommand]
-    private async Task SwitchBranch()
-    {
-        if (_tracker.RepositoryRoot is not { } root)
-            return;
-        IReadOnlyList<string> branches;
-        try
-        {
-            branches = await _git.GetBranchesAsync(root);
-        }
-        catch (GitException ex)
-        {
-            Report(ex.Message);
-            return;
-        }
-        if (await _dialogs.PickAsync("Switch Branch", "Choose a branch (a remote one gets a local branch that tracks it).", branches) is { } branch)
-            await RunAsync(r => _git.SwitchBranchAsync(r, branch), null, $"Switched to {branch}.");
-    }
-
-    [RelayCommand]
-    private Task Stash() => RunAsync(_git.StashAsync, null, "Stashed the changes.");
-
-    [RelayCommand]
-    private Task PopStash() => RunAsync(_git.PopStashAsync, null, "Restored the latest stash.");
 
     /// <summary>Link the repository to a remote (e.g. a new GitHub repository's URL).</summary>
     [RelayCommand]

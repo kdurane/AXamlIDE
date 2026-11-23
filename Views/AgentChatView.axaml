@@ -338,7 +338,7 @@
                                     Opacity="0.8" />
                                 <TextBlock
                                     Grid.Column="2"
-                                    Text="{Binding Title}"
+                                    Text="{Binding Heading}"
                                     TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </Button>
@@ -371,6 +371,8 @@
                             Margin="6,0,6,6"
                             IsVisible="{Binding IsExpanded}"
                             Spacing="6">
+                            <!--  A terminal command's script: hidden until the row is expanded, as VS Code does  -->
+                            <views:MarkdownText IsVisible="{Binding HasCommand}" Markdown="{Binding CommandMarkdown}" />
                             <!--  Each edit, as a unified diff  -->
                             <ItemsControl ItemsSource="{Binding Diffs}">
                                 <ItemsControl.ItemTemplate>
@@ -441,7 +443,7 @@
                     <StackPanel Spacing="6">
                         <TextBlock FontWeight="SemiBold" Text="Allow Claude to run this?" />
                         <TextBlock
-                            Classes="mono"
+                            Classes.mono="{Binding !HasCommand}"
                             Text="{Binding Title}"
                             TextWrapping="Wrap" />
                         <TextBlock
@@ -449,6 +451,22 @@
                             IsVisible="{Binding HasDetail}"
                             Text="{Binding Detail}"
                             TextWrapping="Wrap" />
+                        <!--  The script it wants to run, folded away until asked for  -->
+                        <ToggleButton
+                            HorizontalAlignment="Left"
+                            Classes="row expander"
+                            IsChecked="{Binding IsCommandShown}"
+                            IsVisible="{Binding HasCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <PathIcon
+                                    Width="8"
+                                    Height="8"
+                                    Margin="0,0,6,0"
+                                    Classes="chevron triangle" />
+                                <TextBlock Classes="dim" Text="Command" />
+                            </StackPanel>
+                        </ToggleButton>
+                        <views:MarkdownText IsVisible="{Binding IsCommandShown}" Markdown="{Binding CommandMarkdown}" />
                         <ItemsControl IsVisible="{Binding IsWaiting}" ItemsSource="{Binding Options}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
@@ -744,8 +762,19 @@
                     TextWrapping="Wrap" />
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
                     <StackPanel Margin="10,6,10,4">
-                        <!--  No gap between rows: the timeline's line runs through them (ContentControl.timeline)  -->
-                        <ItemsControl ItemsSource="{Binding Items}" />
+                        <!--
+                            No gap between rows: the timeline's line runs through them (ContentControl.timeline).
+                            Virtualized: only the rows in view are made and measured, so a long conversation costs
+                            no more than a short one when its tab comes back to the front (rows are reused while
+                            scrolling; anything a row remembers, such as an open "Thinking", lives in its item).
+                        -->
+                        <ItemsControl ItemsSource="{Binding Items}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
                     </StackPanel>
                     <Interaction.Behaviors>
                         <b:FollowEndBehavior />

@@ -183,20 +183,179 @@ public sealed class GitServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Discard_resets_tracked_files_only_and_amend_keeps_one_commit()
+    public async Task Discard_all_keeps_new_files_unless_asked_and_amend_keeps_one_commit()
     {
         var file = await CommitFileAsync("A.cs", "one");
         File.WriteAllText(file, "changed");
         var added = _workspace.Write("New.cs", "new");
+        var staged = _workspace.Write("Staged.cs", "staged");
+        await _git.StageAsync(_workspace.Root, [staged]);
 
-        await _git.DiscardTrackedChangesAsync(_workspace.Root);
+        await _git.DiscardAllAsync(_workspace.Root, deleteUntracked: false);
         Assert.Equal("one", File.ReadAllText(file));
         Assert.True(File.Exists(added));
+        Assert.False(File.Exists(staged));   // added since the last commit: gone, as the commit doesn't have it
 
         await _git.StageAsync(_workspace.Root, [added]);
         await _git.CommitAsync(_workspace.Root, "", amend: true);
         Assert.Empty((await _git.GetStatusAsync(_workspace.Root)).Changes);
         Assert.Equal("1", GitOutput("rev-list", "--count", "HEAD").Trim());
+
+        File.WriteAllText(file, "changed again");
+        var untracked = _workspace.Write("Folder/Untracked.cs", "new");
+        await _git.DiscardAllAsync(_workspace.Root, deleteUntracked: true);
+        Assert.Equal("one", File.ReadAllText(file));
+        Assert.False(Directory.Exists(Path.GetDirectoryName(untracked)));
+        Assert.Empty((await _git.GetStatusAsync(_workspace.Root)).Changes);
+    }
+
+    [Fact]
+    public async Task Undo_changes_by_file_on_each_side()
+    {
+        var file = await CommitFileAsync("A.cs", "one");
+        var other = await CommitFileAsync("B.cs", "b");
+
+        // Unstaged: back to what's staged.
+        File.WriteAllText(file, "staged");
+        await _git.StageAsync(_workspace.Root, [file]);
+        File.WriteAllText(file, "staged, then changed");
+        await _git.DiscardUnstagedAsync(_workspace.Root, [file]);
+        Assert.Equal("staged", File.ReadAllText(file));
+
+        // Staged: back to the last commit, on both sides; a rename goes back to its old name.
+        await _git.UndoChangesAsync(_workspace.Root, [file]);
+        Assert.Equal("one", File.ReadAllText(file));
+        Git("mv", "B.cs", "C.cs");
+        await _git.UndoChangesAsync(_workspace.Root, [Path.Combine(_workspace.Root, "C.cs"), other]);
+        Assert.True(File.Exists(other));
+        Assert.False(File.Exists(Path.Combine(_workspace.Root, "C.cs")));
+
+        // New files: deleted.
+        var added = _workspace.Write("New.cs", "new");
+        await _git.DeleteUntrackedAsync(_workspace.Root, [added]);
+        Assert.False(File.Exists(added));
+        Assert.Empty((await _git.GetStatusAsync(_workspace.Root)).Changes);
+    }
+
+    [Fact]
+    public async Task Undo_changes_before_the_first_commit_deletes_added_files()
+    {
+        var file = _workspace.Write("A.cs", "one");
+        await _git.StageAsync(_workspace.Root, [file]);
+
+        await _git.UndoChangesAsync(_workspace.Root, [file]);
+
+        Assert.False(File.Exists(file));
+    }
+
+    [Fact]
+    public async Task Undo_last_commit_keeps_its_changes_staged()
+    {
+        await CommitFileAsync("A.cs", "one");
+        var second = await CommitFileAsync("B.cs", "two");
+
+        await _git.UndoLastCommitAsync(_workspace.Root);
+        Assert.Equal("1", GitOutput("rev-list", "--count", "HEAD").Trim());
+        Assert.True((await _git.GetStatusAsync(_workspace.Root)).ChangeFor(second)!.IsStaged);
+
+        Git("commit", "-q", "-m", "Again");
+        Git("reset", "-q", "--soft", "HEAD~1");
+        await _git.UndoLastCommitAsync(_workspace.Root);   // the first commit: no commits left, both files staged
+        var status = await _git.GetStatusAsync(_workspace.Root);
+        Assert.Null(status.HeadCommit);
+        Assert.Equal(2, status.Staged.Count());
+    }
+
+    [Fact]
+    public async Task Branches_merge_rename_and_delete()
+    {
+        await CommitFileAsync("A.cs", "one");
+        await _git.CreateBranchAsync(_workspace.Root, "feature");
+        var b = await CommitFileAsync("B.cs", "two");
+        await _git.SwitchBranchAsync(_workspace.Root, "main");
+
+        await Assert.ThrowsAsync<GitException>(() => _git.DeleteBranchAsync(_workspace.Root, "feature", force: false));   // not merged
+        await _git.MergeAsync(_workspace.Root, "feature");
+        Assert.True(File.Exists(b));
+
+        await _git.RenameBranchAsync(_workspace.Root, "feature", "done");
+        Assert.Equal(["done", "main"], await _git.GetLocalBranchesAsync(_workspace.Root));
+        await _git.DeleteBranchAsync(_workspace.Root, "done", force: false);
+        Assert.Equal(["main"], await _git.GetLocalBranchesAsync(_workspace.Root));
+    }
+
+    [Fact]
+    public async Task Stashes_list_apply_and_drop()
+    {
+        var file = await CommitFileAsync("A.cs", "one");
+        File.WriteAllText(file, "first");
+        await _git.StashAsync(_workspace.Root, "First try");
+        File.WriteAllText(file, "second");
+        await _git.StashAsync(_workspace.Root);
+
+        var stashes = await _git.GetStashesAsync(_workspace.Root);
+        Assert.Equal(2, stashes.Count);
+        Assert.StartsWith("stash@{1}: On main: First try", stashes[1]);
+
+        await _git.ApplyStashAsync(_workspace.Root, "stash@{1}", drop: false);
+        Assert.Equal("first", File.ReadAllText(file));
+        Assert.Equal(2, (await _git.GetStashesAsync(_workspace.Root)).Count);
+
+        await _git.DropStashAsync(_workspace.Root, "stash@{1}");
+        Assert.Single(await _git.GetStashesAsync(_workspace.Root));
+    }
+
+    [Fact]
+    public async Task Commits_revert_cherry_pick_tag_reset_and_check_out()
+    {
+        var file = await CommitFileAsync("A.cs", "one");
+        var first = GitOutput("rev-parse", "HEAD").Trim();
+        File.WriteAllText(file, "two");
+        Git("commit", "-q", "-am", "Two");
+        var two = GitOutput("rev-parse", "HEAD").Trim();
+
+        await _git.RevertCommitAsync(_workspace.Root, two);
+        Assert.Equal("one", File.ReadAllText(file));
+
+        await _git.CreateBranchAsync(_workspace.Root, "old", first);
+        Assert.Equal("old", (await _git.GetStatusAsync(_workspace.Root)).Branch);
+        await _git.CherryPickAsync(_workspace.Root, two);
+        Assert.Equal("two", File.ReadAllText(file));
+
+        await _git.CreateTagAsync(_workspace.Root, "v1", first);
+        Assert.Equal(first, GitOutput("rev-parse", "v1").Trim());
+
+        File.WriteAllText(file, "uncommitted");
+        await _git.ResetAsync(_workspace.Root, first, GitResetMode.Hard);
+        Assert.Equal("one", File.ReadAllText(file));
+        Assert.Equal(first, GitOutput("rev-parse", "HEAD").Trim());
+
+        await _git.CheckoutCommitAsync(_workspace.Root, two);
+        Assert.Null((await _git.GetStatusAsync(_workspace.Root)).Branch);   // detached
+    }
+
+    [Fact]
+    public async Task Abort_stops_a_merge_with_conflicts()
+    {
+        var file = await CommitFileAsync("A.cs", "one");
+        Assert.Null(await _git.AbortOperationAsync(_workspace.Root));
+
+        await _git.CreateBranchAsync(_workspace.Root, "feature");
+        File.WriteAllText(file, "feature");
+        Git("commit", "-q", "-am", "Feature");
+        await _git.SwitchBranchAsync(_workspace.Root, "main");
+        File.WriteAllText(file, "main");
+        Git("commit", "-q", "-am", "Main");
+        await Assert.ThrowsAsync<GitException>(() => _git.MergeAsync(_workspace.Root, "feature"));
+
+        Assert.Equal("merge", await _git.AbortOperationAsync(_workspace.Root));
+        Assert.Equal("main", File.ReadAllText(file));
+
+        await Assert.ThrowsAsync<GitException>(() => _git.MergeAsync(_workspace.Root, "feature"));
+        Assert.True((await _git.GetStatusAsync(_workspace.Root)).ChangeFor(file)!.IsConflicted);
+        await _git.TakeConflictSideAsync(_workspace.Root, [file], current: false);
+        Assert.Equal("feature", File.ReadAllText(file));
+        Assert.False((await _git.GetStatusAsync(_workspace.Root)).ChangeFor(file)!.IsConflicted);
     }
 
     [Fact]

@@ -25,7 +25,13 @@ public enum EditorAction
     Find,
     Replace,
     GoToLine,
-    ToggleBreakpoint
+    ToggleBreakpoint,
+    NextChange,
+    PreviousChange,
+    RevertChange,
+    AcceptCurrentChange,
+    AcceptIncomingChange,
+    AcceptBothChanges
 }
 
 /// <summary>Ask the editor pane to perform an action on the active document. Handled by EditorPaneView.</summary>

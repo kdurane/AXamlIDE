@@ -159,12 +159,62 @@ public sealed partial class ToolCallItem : AgentChatItem
     public string Id { get; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Heading), nameof(ShownCommand), nameof(HasCommand), nameof(CommandMarkdown))]
     public partial string Title { get; set; } = "Tool";
 
     /// <summary>read, edit, delete, move, search, execute, think, fetch, switch_mode or other.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IconKey))]
+    [NotifyPropertyChangedFor(nameof(IconKey), nameof(Heading), nameof(ShownCommand), nameof(HasCommand), nameof(CommandMarkdown))]
     public partial string Kind { get; set; } = "other";
+
+    /// <summary>A terminal command's text, which the agent also sends as the title.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Heading), nameof(ShownCommand), nameof(HasCommand), nameof(CommandMarkdown))]
+    public partial string? Command { get; set; }
+
+    /// <summary>The agent's one-line summary of a command ("List files in current directory").</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Heading))]
+    public partial string? Description { get; set; }
+
+    private bool IsCommand => Kind == "execute";
+
+    /// <summary>
+    /// The command, shown only when the row is expanded, as VS Code does: a script can be many lines of shorthand.
+    /// The agent puts the command in the title too, so that's used when the input didn't come with it.
+    /// </summary>
+    public string? ShownCommand => IsCommand ? Command is { Length: > 0 } command ? command : Title : null;
+
+    public bool HasCommand => ShownCommand is { Length: > 0 };
+
+    /// <summary>The command as a shell code block, for MarkdownText to colour.</summary>
+    public string CommandMarkdown => CommandBlock(ShownCommand);
+
+    /// <summary>A fenced bash block; the fence is longer than any run of backticks in the command, so it can't end early.</summary>
+    public static string CommandBlock(string? command)
+    {
+        if (command is not { Length: > 0 })
+            return "";
+        int longest = 0, run = 0;
+        foreach (var c in command)
+            longest = Math.Max(longest, run = c == '`' ? run + 1 : 0);
+        var fence = new string('`', Math.Max(3, longest + 1));
+        return $"{fence}bash\n{command.TrimEnd()}\n{fence}";
+    }
+
+    /// <summary>The row's one line: for a command, its summary (or its first line); otherwise the title.</summary>
+    public string Heading => IsCommand ? CommandHeading(Description, ShownCommand) ?? Title : Title;
+
+    /// <summary>The summary, or else the command's first line, with "…" when there's more to it.</summary>
+    public static string? CommandHeading(string? description, string? command)
+    {
+        if (description?.Trim() is { Length: > 0 } summary)
+            return summary;
+        if (command?.Trim() is not { Length: > 0 } text)
+            return null;
+        var end = text.IndexOf('\n');
+        return end < 0 ? text : text[..end].TrimEnd() + " …";
+    }
 
     /// <summary>pending, in_progress, completed or failed; "cancelled" when the turn was stopped first.</summary>
     [ObservableProperty]
@@ -215,10 +265,16 @@ public sealed partial class ToolCallItem : AgentChatItem
             Kind = kind;
         if (call.Status is { Length: > 0 } status)
             Status = status;
+        if (call.Command is { Length: > 0 } command)
+            Command = command;
+        if (call.Description is { Length: > 0 } description)
+            Description = description;
 
         if (call.Content is { } content)
         {
-            Output = string.Join("\n\n", content.OfType<AcpTextContent>().Select(text => text.Text));
+            // A command's first content is its summary, already the heading, so it isn't shown twice.
+            Output = string.Join("\n\n", content.OfType<AcpTextContent>().Select(text => text.Text)
+                .Where(text => !(IsCommand && text.Trim() == Description?.Trim())));
             var diffs = content.OfType<AcpDiffContent>().ToList();
             if (diffs.Count > 0 || Diffs.Count > 0)
             {
@@ -267,12 +323,32 @@ public sealed partial class PermissionItem : AgentChatItem
 
     public PermissionItem(AcpPermissionRequest request)
     {
-        Title = request.ToolCall.Title ?? "Run a tool";
-        Detail = request.ToolCall.Content?.OfType<AcpTextContent>().FirstOrDefault()?.Text;
+        var call = request.ToolCall;
+        Title = call.Title ?? "Run a tool";
+        Detail = call.Content?.OfType<AcpTextContent>().FirstOrDefault()?.Text ?? call.Description;
         Options = request.Options;
+
+        // A terminal command: its summary up top, the script itself behind "Show command".
+        if (call.Command is { Length: > 0 } command)
+        {
+            Command = command;
+            Title = ToolCallItem.CommandHeading(Detail, command) ?? Title;
+            if (Detail?.Trim() == Title)
+                Detail = null;
+        }
     }
 
     public string Title { get; }
+
+    /// <summary>The command it asks to run, shown when expanded.</summary>
+    public string? Command { get; }
+
+    public bool HasCommand => Command is { Length: > 0 };
+
+    public string CommandMarkdown => ToolCallItem.CommandBlock(Command);
+
+    [ObservableProperty]
+    public partial bool IsCommandShown { get; set; }
 
     /// <summary>What the tool says it's for ("Create empty file made.txt").</summary>
     public string? Detail { get; }

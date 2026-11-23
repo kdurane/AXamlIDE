@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -28,6 +28,9 @@ public sealed record GitChangeItem(GitChange Change, bool IsStagedSide)
     public GitFileState State => Change.IsConflicted ? GitFileState.Conflicted
         : IsStagedSide ? Change.IndexState
         : Change.WorkTreeState;
+
+    /// <summary>Stopped on a merge conflict: Take Current / Take Incoming / Mark as Resolved apply.</summary>
+    public bool IsConflicted => Change.IsConflicted;
 
     public string ToolTip => Change.OriginalRelativePath is { } original
         ? $"{Change.RelativePath} (renamed from {original})"
@@ -144,11 +147,39 @@ public sealed partial class GitViewModel : ObservableObject
         _ = LoadGraphAsync();
     }
 
+    /// <summary>Show the new list, unless it's the same as before (so a refresh that changed nothing keeps the selection).</summary>
     private static void Replace(ObservableCollection<GitChangeItem> list, IEnumerable<GitChangeItem>? items)
     {
+        var newItems = items?.ToList() ?? [];
+        if (list.SequenceEqual(newItems))
+            return;
         list.Clear();
-        foreach (var item in items ?? [])
+        foreach (var item in newItems)
             list.Add(item);
+    }
+
+    // ------------------------------------------------------------- selection (several files at once)
+
+    private IReadOnlyList<GitChangeItem> _selectedStaged = [];
+    private IReadOnlyList<GitChangeItem> _selectedChanges = [];
+
+    /// <summary>The view tells which rows are selected in a list (Ctrl+click and Shift+click pick several).</summary>
+    public void SetSelection(bool stagedSide, IEnumerable<GitChangeItem> items)
+    {
+        if (stagedSide)
+            _selectedStaged = [.. items];
+        else
+            _selectedChanges = [.. items];
+    }
+
+    /// <summary>
+    /// What a row's button or menu acts on: every selected row on its side when it's one of them (as VS Code
+    /// does), else just that row.
+    /// </summary>
+    private IReadOnlyList<GitChangeItem> Targets(GitChangeItem item)
+    {
+        var selected = item.IsStagedSide ? _selectedStaged : _selectedChanges;
+        return selected.Contains(item) && selected.Count > 1 ? selected : [item];
     }
 
     // ------------------------------------------------------------- commands
@@ -158,11 +189,66 @@ public sealed partial class GitViewModel : ObservableObject
 
     [RelayCommand]
     private Task Stage(GitChangeItem? item)
-        => item is null ? Task.CompletedTask : RunAsync(root => _git.StageAsync(root, [item.Change.FullPath]));
+        => item is null ? Task.CompletedTask : RunAsync(root => _git.StageAsync(root, Targets(item).Select(target => target.Change.FullPath)));
 
     [RelayCommand]
     private Task Unstage(GitChangeItem? item)
-        => item is null ? Task.CompletedTask : RunAsync(root => _git.UnstageAsync(root, [item.Change.FullPath]));
+        => item is null ? Task.CompletedTask : RunAsync(root => _git.UnstageAsync(root, Targets(item).Select(target => target.Change.FullPath)));
+
+    // ------------------------------------------------------------- merge conflicts
+
+    /// <summary>Visual Studio's Take Current: the conflicted files as the current branch has them, marked resolved.</summary>
+    [RelayCommand]
+    private Task TakeCurrent(GitChangeItem? item) => TakeSideAsync(item, current: true);
+
+    /// <summary>Visual Studio's Take Incoming: the conflicted files as the branch being merged has them, marked resolved.</summary>
+    [RelayCommand]
+    private Task TakeIncoming(GitChangeItem? item) => TakeSideAsync(item, current: false);
+
+    private async Task TakeSideAsync(GitChangeItem? item, bool current)
+    {
+        if (item is null)
+            return;
+        var files = Targets(item).Where(target => target.IsConflicted).Select(target => target.Change.FullPath).ToList();
+        if (files.Count == 0)
+            return;
+        var side = current ? "current (ours)" : "incoming (theirs)";
+        var what = files.Count == 1 ? $"'{Path.GetFileName(files[0])}'" : $"these {files.Count} files";
+        if (await _dialogs.WarnAsync(current ? "Take Current" : "Take Incoming",
+                $"Replace {what} with the {side} version, dropping the other side's changes and any merging you've done in it?",
+                [current ? "Take Current" : "Take Incoming"], files.Count > 1 ? files : null) is null)
+            return;
+        await RunAsync(root => _git.TakeConflictSideAsync(root, files, current), null,
+            $"Took the {side} version of {(files.Count == 1 ? Path.GetFileName(files[0]) : $"{files.Count} files")}.");
+    }
+
+    /// <summary>Mark as Resolved: stage the conflicted files once their markers are sorted out (git add).</summary>
+    [RelayCommand]
+    private async Task MarkResolved(GitChangeItem? item)
+    {
+        if (item is null)
+            return;
+        var files = Targets(item).Where(target => target.IsConflicted).Select(target => target.Change.FullPath).ToList();
+        var withMarkers = files.Where(HasConflictMarkers).ToList();
+        if (withMarkers.Count > 0
+            && await _dialogs.WarnAsync("Mark as Resolved",
+                "Some files still have conflict markers (<<<<<<<) in them. Mark them resolved anyway?",
+                ["Mark Resolved"], withMarkers) is null)
+            return;
+        await RunAsync(root => _git.StageAsync(root, files), null, "Marked as resolved.");
+    }
+
+    private static bool HasConflictMarkers(string path)
+    {
+        try
+        {
+            return File.Exists(path) && MergeConflicts.Find(File.ReadAllText(path)).Count > 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
 
     [RelayCommand]
     private Task StageAll()

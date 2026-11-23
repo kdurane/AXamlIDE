@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     x:Class="AXamlIDE.Views.GitView"
     x:DataType="vm:GitViewModel"
     Design.DataContext="{x:Static design:DesignData.Git}"
@@ -19,7 +19,7 @@
         <DataTemplate x:DataType="vm:GitChangeItem" x:Key="GitChangeTemplate">
             <Grid
                 Background="Transparent"
-                ColumnDefinitions="Auto,*,Auto,Auto"
+                ColumnDefinitions="Auto,*,Auto,Auto,Auto"
                 ToolTip.Tip="{Binding ToolTip}">
                 <Grid.ContextMenu>
                     <ContextMenu>
@@ -42,6 +42,31 @@
                             CommandParameter="{Binding}"
                             Header="Unstage"
                             IsVisible="{Binding IsStagedSide}" />
+                        <Separator IsVisible="{Binding IsConflicted}" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).TakeCurrentCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Take Current (Ours)..."
+                            IsVisible="{Binding IsConflicted}" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).TakeIncomingCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Take Incoming (Theirs)..."
+                            IsVisible="{Binding IsConflicted}" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).MarkResolvedCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Mark as Resolved"
+                            IsVisible="{Binding IsConflicted}" />
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).UndoChangesCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Undo Changes...">
+                            <MenuItem.Icon>
+                                <PathIcon Data="{DynamicResource Icon.Undo}" />
+                            </MenuItem.Icon>
+                        </MenuItem>
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <TextBlock
@@ -62,11 +87,20 @@
                     Margin="6,0"
                     Text="{Binding State, Converter={x:Static views:GitStateConverters.Letter}}"
                     VerticalAlignment="Center" />
+                <!--  Undo Changes (Visual Studio's; VS Code's Discard Changes) warns before it does anything  -->
+                <Button
+                    Classes="icon"
+                    Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).UndoChangesCommand}"
+                    CommandParameter="{Binding}"
+                    Grid.Column="3"
+                    ToolTip.Tip="Undo changes">
+                    <PathIcon Data="{DynamicResource Icon.Undo}" />
+                </Button>
                 <Button
                     Classes="icon"
                     Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).StageCommand}"
                     CommandParameter="{Binding}"
-                    Grid.Column="3"
+                    Grid.Column="4"
                     IsVisible="{Binding !IsStagedSide}"
                     ToolTip.Tip="Stage">
                     <PathIcon Data="{DynamicResource Icon.Plus}" />
@@ -75,7 +109,7 @@
                     Classes="icon"
                     Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).UnstageCommand}"
                     CommandParameter="{Binding}"
-                    Grid.Column="3"
+                    Grid.Column="4"
                     IsVisible="{Binding IsStagedSide}"
                     ToolTip.Tip="Unstage">
                     <PathIcon Data="{DynamicResource Icon.Minus}" />
@@ -141,6 +175,32 @@
                             Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CopyCommitMessageCommand}"
                             CommandParameter="{Binding}"
                             Header="Copy Commit Message" />
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CheckoutCommitCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Checkout (Detached)" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CreateBranchFromCommitCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Create Branch..." />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CreateTagAtCommitCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Create Tag..." />
+                        <Separator />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).CherryPickCommitCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Cherry-Pick" />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).RevertCommitCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Revert Commit..." />
+                        <MenuItem
+                            Command="{Binding $parent[views:GitView].((vm:GitViewModel)DataContext).ResetToCommitCommand}"
+                            CommandParameter="{Binding}"
+                            Header="Reset Current Branch to Here..." />
                     </ContextMenu>
                 </Grid.ContextMenu>
                 <views:GitGraphCell
@@ -243,27 +303,40 @@
                 <PathIcon Data="{DynamicResource Icon.DotsHorizontal}" />
                 <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
-                        <MenuItem Command="{Binding PullCommand}" Header="Pull" />
-                        <MenuItem Command="{Binding PushCommand}" Header="{Binding PushHeader}" />
-                        <MenuItem Command="{Binding FetchCommand}" Header="Fetch" />
-                        <MenuItem Command="{Binding SyncCommand}" Header="Sync (Pull, then Push)" />
+                        <MenuItem Command="{Binding PullCommand}" Header="Pull" shell:KeyMap.CommandId="Git.Pull" />
+                        <MenuItem Command="{Binding PullRebaseCommand}" Header="Pull (Rebase)" />
+                        <MenuItem Command="{Binding PushCommand}" Header="{Binding PushHeader}" shell:KeyMap.CommandId="Git.Push" />
+                        <MenuItem Command="{Binding FetchCommand}" Header="Fetch" shell:KeyMap.CommandId="Git.Fetch" />
+                        <MenuItem Command="{Binding SyncCommand}" Header="Sync (Pull, then Push)" shell:KeyMap.CommandId="Git.Sync" />
                         <Separator />
                         <MenuItem Command="{Binding CommitCommand}" Header="Commit Staged" InputGesture="Ctrl+Enter" />
                         <MenuItem Command="{Binding CommitAllCommand}" Header="Commit All" />
                         <MenuItem Command="{Binding AmendCommand}" Header="Amend Last Commit..." />
-                        <MenuItem Command="{Binding GenerateCommitMessageCommand}" Header="Generate Commit Message" />
+                        <MenuItem Command="{Binding UndoLastCommitCommand}" Header="Undo Last Commit..." shell:KeyMap.CommandId="Git.UndoLastCommit" />
+                        <MenuItem Command="{Binding GenerateCommitMessageCommand}" Header="Generate Commit Message" shell:KeyMap.CommandId="Git.GenerateCommitMessage" />
                         <Separator />
                         <MenuItem Command="{Binding StageAllCommand}" Header="Stage All Changes" />
                         <MenuItem Command="{Binding UnstageAllCommand}" Header="Unstage All" />
-                        <MenuItem Command="{Binding DiscardAllCommand}" Header="Discard All Changes..." />
+                        <MenuItem Command="{Binding UndoAllUnstagedCommand}" Header="Undo Unstaged Changes..." />
+                        <MenuItem Command="{Binding DiscardAllCommand}" Header="Discard All Changes..." shell:KeyMap.CommandId="Git.DiscardAll" />
                         <Separator />
                         <MenuItem Header="Branch">
-                            <MenuItem Command="{Binding NewBranchCommand}" Header="New Branch..." />
-                            <MenuItem Command="{Binding SwitchBranchCommand}" Header="Switch Branch..." />
+                            <MenuItem Command="{Binding NewBranchCommand}" Header="New Branch..." shell:KeyMap.CommandId="Git.NewBranch" />
+                            <MenuItem Command="{Binding SwitchBranchCommand}" Header="Switch Branch..." shell:KeyMap.CommandId="Git.SwitchBranch" />
+                            <MenuItem Command="{Binding MergeBranchCommand}" Header="Merge Branch..." shell:KeyMap.CommandId="Git.MergeBranch" />
+                            <Separator />
+                            <MenuItem Command="{Binding RenameBranchCommand}" Header="Rename Branch..." />
+                            <MenuItem Command="{Binding DeleteBranchCommand}" Header="Delete Branch..." />
+                            <Separator />
+                            <MenuItem Command="{Binding AbortOperationCommand}" Header="Abort Merge or Rebase..." />
                         </MenuItem>
                         <MenuItem Header="Stash">
-                            <MenuItem Command="{Binding StashCommand}" Header="Stash Changes" />
+                            <MenuItem Command="{Binding StashCommand}" Header="Stash Changes..." shell:KeyMap.CommandId="Git.Stash" />
                             <MenuItem Command="{Binding PopStashCommand}" Header="Pop Latest Stash" />
+                            <Separator />
+                            <MenuItem Command="{Binding ApplyStashCommand}" Header="Apply Stash..." />
+                            <MenuItem Command="{Binding PopStashPickedCommand}" Header="Pop Stash..." />
+                            <MenuItem Command="{Binding DropStashCommand}" Header="Drop Stash..." />
                         </MenuItem>
                         <MenuItem Header="Remote">
                             <MenuItem Command="{Binding AddRemoteCommand}" Header="Add Remote..." />
@@ -340,18 +413,28 @@
                                     <PathIcon Data="{DynamicResource Icon.Minus}" />
                                 </Button>
                             </Grid>
+                            <!--  Ctrl+click / Shift+click pick several: a row's buttons and menu then act on all of them  -->
                             <ListBox
                                 Classes="compact"
                                 DoubleTapped="OnChangeDoubleTapped"
                                 ItemTemplate="{StaticResource GitChangeTemplate}"
-                                ItemsSource="{Binding Staged}" />
+                                ItemsSource="{Binding Staged}"
+                                SelectionChanged="OnStagedSelectionChanged"
+                                SelectionMode="Multiple" />
 
-                            <Grid ColumnDefinitions="*,Auto" Margin="8,8,4,2">
+                            <Grid ColumnDefinitions="*,Auto,Auto" Margin="8,8,4,2">
                                 <TextBlock Classes="section" Text="{Binding ChangesHeader}" />
                                 <Button
                                     Classes="icon"
-                                    Command="{Binding StageAllCommand}"
+                                    Command="{Binding UndoAllUnstagedCommand}"
                                     Grid.Column="1"
+                                    ToolTip.Tip="Undo all unstaged changes">
+                                    <PathIcon Data="{DynamicResource Icon.Undo}" />
+                                </Button>
+                                <Button
+                                    Classes="icon"
+                                    Command="{Binding StageAllCommand}"
+                                    Grid.Column="2"
                                     ToolTip.Tip="Stage all">
                                     <PathIcon Data="{DynamicResource Icon.Plus}" />
                                 </Button>
@@ -360,7 +443,9 @@
                                 Classes="compact"
                                 DoubleTapped="OnChangeDoubleTapped"
                                 ItemTemplate="{StaticResource GitChangeTemplate}"
-                                ItemsSource="{Binding Changes}" />
+                                ItemsSource="{Binding Changes}"
+                                SelectionChanged="OnChangesSelectionChanged"
+                                SelectionMode="Multiple" />
                         </StackPanel>
                     </ScrollViewer>
                 </DockPanel>

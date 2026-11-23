@@ -55,6 +55,28 @@ public sealed class AcpParserTests
     }
 
     [Fact]
+    public void Reads_a_commands_text_and_summary_from_its_input()
+    {
+        var update = Assert.IsType<AcpToolCall>(Parse("""
+            {"toolCallId":"toolu_2","sessionUpdate":"tool_call","name":"Bash",
+             "rawInput":{"command":"ls -la\npwd","description":"List files"},"status":"pending","title":"ls -la\npwd","kind":"execute",
+             "content":[{"type":"content","content":{"type":"text","text":"List files"}}]}
+            """));
+
+        Assert.Equal("ls -la\npwd", update.Command);
+        Assert.Equal("List files", update.Description);
+    }
+
+    [Fact]
+    public void A_tool_without_a_command_has_none()
+    {
+        var update = Assert.IsType<AcpToolCall>(Parse("""{"toolCallId":"t","sessionUpdate":"tool_call","rawInput":{"command":3},"title":"x"}"""));
+
+        Assert.Null(update.Command);
+        Assert.Null(update.Description);
+    }
+
+    [Fact]
     public void An_update_only_carries_what_changed()
     {
         var update = Assert.IsType<AcpToolCall>(Parse("""

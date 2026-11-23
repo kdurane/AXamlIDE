@@ -135,6 +135,72 @@ public sealed partial class GitViewModel
             await _clipboard.SetTextAsync(item.Commit.Subject);
     }
 
+    // ------------------------------------------------------------- a commit's right-click menu (VS Code's graph)
+
+    /// <summary>Check out the commit on its own (a detached HEAD), to look at or build it.</summary>
+    [RelayCommand]
+    private Task CheckoutCommit(GitGraphCommitItem? item)
+        => item is null ? Task.CompletedTask
+            : RunAsync(root => _git.CheckoutCommitAsync(root, item.Commit.Hash), null, $"Checked out {item.Commit.ShortHash} (detached HEAD).");
+
+    [RelayCommand]
+    private async Task CreateBranchFromCommit(GitGraphCommitItem? item)
+    {
+        if (item is not null
+            && await _dialogs.PromptForTextAsync("Create Branch", $"Branch name (from {item.Commit.ShortHash})", "Create") is { } name
+            && name.Trim().Length > 0)
+            await RunAsync(root => _git.CreateBranchAsync(root, name.Trim(), item.Commit.Hash), null, $"Switched to the new branch {name.Trim()}.");
+    }
+
+    [RelayCommand]
+    private async Task CreateTagAtCommit(GitGraphCommitItem? item)
+    {
+        if (item is not null
+            && await _dialogs.PromptForTextAsync("Create Tag", $"Tag name (on {item.Commit.ShortHash})", "Create") is { } name
+            && name.Trim().Length > 0)
+            await RunAsync(root => _git.CreateTagAsync(root, name.Trim(), item.Commit.Hash), null, $"Tagged {item.Commit.ShortHash} as {name.Trim()}.");
+    }
+
+    /// <summary>Copy the commit onto the current branch.</summary>
+    [RelayCommand]
+    private Task CherryPickCommit(GitGraphCommitItem? item)
+        => item is null ? Task.CompletedTask
+            : RunAsync(root => _git.CherryPickAsync(root, item.Commit.Hash), null, $"Cherry-picked {item.Commit.ShortHash}.");
+
+    /// <summary>A new commit that undoes this one (Visual Studio's Revert): history is kept, so it's safe once pushed.</summary>
+    [RelayCommand]
+    private async Task RevertCommit(GitGraphCommitItem? item)
+    {
+        if (item is null
+            || !await _dialogs.ConfirmAsync("Revert Commit", $"Make a new commit that undoes '{item.Subject}' ({item.Commit.ShortHash})?", "Revert"))
+            return;
+        await RunAsync(root => _git.RevertCommitAsync(root, item.Commit.Hash), null, $"Reverted {item.Commit.ShortHash}.");
+    }
+
+    /// <summary>
+    /// Visual Studio's Reset: move the current branch back to the commit, keeping the later changes (staged with
+    /// Soft, unstaged with Mixed) or deleting them and every uncommitted change (Hard).
+    /// </summary>
+    [RelayCommand]
+    private async Task ResetToCommit(GitGraphCommitItem? item)
+    {
+        if (item is null)
+            return;
+        const string soft = "Soft: Keep Changes Staged";
+        const string mixed = "Mixed: Keep Changes";
+        const string hard = "Hard: Delete Changes";
+        var branch = _tracker.Current?.Branch ?? "HEAD";
+        var choice = await _dialogs.WarnAsync("Reset Current Branch",
+            $"Move {branch} to '{item.Subject}' ({item.Commit.ShortHash})? The commits after it leave the branch. " +
+            "Mixed keeps what they changed as unstaged changes; Soft keeps it staged; Hard deletes it, with every " +
+            "uncommitted change, and can't be undone. Don't reset past commits that are already pushed.",
+            [mixed, soft, hard]);
+        if (choice is null)
+            return;
+        var mode = choice == soft ? GitResetMode.Soft : choice == hard ? GitResetMode.Hard : GitResetMode.Mixed;
+        await RunAsync(root => _git.ResetAsync(root, item.Commit.Hash, mode), null, $"Reset {branch} to {item.Commit.ShortHash}.");
+    }
+
     /// <summary>The current branch's line is drawn in its label's colour from its label down, and so is its upstream's (VS Code).</summary>
     private static int? LabelColor(GitCommit commit, string? upstream)
         => commit.Refs.Any(label => label.Kind is GitRefKind.CurrentBranch or GitRefKind.DetachedHead) ? GitGraphLayout.CurrentBranchColor

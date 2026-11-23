@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -20,6 +20,7 @@ using AXamlIDE.Editor.CodeCompletion;
 using AXamlIDE.Editor.Debugging;
 using AXamlIDE.Editor.Folding;
 using AXamlIDE.Editor.GitChanges;
+using AXamlIDE.Services.Git;
 using AXamlIDE.Editor.Indentation;
 using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Editor.Hover;
@@ -72,6 +73,8 @@ public partial class EditorPaneView : UserControl,
     private SemanticHighlightController _semanticHighlighting = null!;
     private InlayHintController _inlayHints = null!;
     private GitChangeController _gitChanges = null!;
+    private GitChangePeek _gitPeek = null!;
+    private ConflictRenderer _conflicts = null!;
 
     public EditorPaneView()
     {
@@ -167,7 +170,12 @@ public partial class EditorPaneView : UserControl,
 
         _codeActions = new CodeActionController(_ctx, services.WorkspaceEdits); // inserts its margin at index 1
         // After the line numbers; the folding arrows are added after it when a document is attached (as VS Code).
-        Editor.TextArea.LeftMargins.Add(new GitChangeMargin(_gitChanges));
+        var gitMargin = new GitChangeMargin(_gitChanges);
+        Editor.TextArea.LeftMargins.Add(gitMargin);
+        _gitPeek = new GitChangePeek(_ctx, _gitChanges, gitMargin, GitChangePopup, GitChangeTitle, GitChangeOldText, GitChangeOldBorder,
+            GitChangePrevious, GitChangeNext, GitChangeRevert);
+        _conflicts = new ConflictRenderer(_ctx);
+        Editor.TextArea.TextView.BackgroundRenderers.Add(_conflicts);
         _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
         _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesTree, ReferencesTitle);
         // Not kept in fields: these wire themselves to the editor's events and live as long as it does.
@@ -400,6 +408,12 @@ public partial class EditorPaneView : UserControl,
             case EditorAction.Find: OpenSearchPanel(replace: false); break;
             case EditorAction.Replace: OpenSearchPanel(replace: true); break;
             case EditorAction.GoToLine: _ = GoToLineAsync(); break;
+            case EditorAction.NextChange: _gitPeek.Move(next: true); break;
+            case EditorAction.PreviousChange: _gitPeek.Move(next: false); break;
+            case EditorAction.RevertChange: _gitPeek.RevertAtCaret(); break;
+            case EditorAction.AcceptCurrentChange: _conflicts.Resolve(ConflictChoice.Current); break;
+            case EditorAction.AcceptIncomingChange: _conflicts.Resolve(ConflictChoice.Incoming); break;
+            case EditorAction.AcceptBothChanges: _conflicts.Resolve(ConflictChoice.Both); break;
             case EditorAction.ToggleBreakpoint:
                 if (_ctx.Active is { } breakpointDocument)
                     breakpointDocument.ToggleBreakpoint(Editor.TextArea.Caret.Line);
@@ -485,7 +499,18 @@ public partial class EditorPaneView : UserControl,
         RenameMenuItem.IsVisible = csharp;
         ToggleCommentMenuItem.IsVisible = language is LanguageIds.CSharp or LanguageIds.Axaml or LanguageIds.Xml;
         AddWatchMenuItem.IsVisible = csharp && _services.DebugSnapshots.Current is not null;
+        var line = Editor.TextArea.Caret.Line;
+        RevertChangeMenuItem.IsVisible = _gitChanges.ChangeAt(line) is not null;
+        ConflictMenuItem.IsVisible = _conflicts.ConflictAt(line) is not null;
     }
+
+    private void OnRevertChangeClick(object? sender, RoutedEventArgs e) => _gitPeek.RevertAtCaret();
+
+    private void OnAcceptCurrentClick(object? sender, RoutedEventArgs e) => _conflicts.Resolve(ConflictChoice.Current);
+
+    private void OnAcceptIncomingClick(object? sender, RoutedEventArgs e) => _conflicts.Resolve(ConflictChoice.Incoming);
+
+    private void OnAcceptBothClick(object? sender, RoutedEventArgs e) => _conflicts.Resolve(ConflictChoice.Both);
 
     private void OnAddWatchClick(object? sender, RoutedEventArgs e) => AddWatchAtCaret();
 

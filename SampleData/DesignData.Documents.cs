@@ -116,6 +116,9 @@ public static partial class DesignData
         chat.Items.Add(new ToolCallItem(chat, new AcpToolCall("2", true, "Edit Order.cs", "edit", "completed",
             [new AcpDiffContent(SamplePath("Contoso.App/Models/Order.cs"), "    public Customer Customer { get; set; }", "    public Customer? Customer { get; set; }"),
              new AcpDiffContent(SamplePath("Contoso.App/Converters/NoneConverter.cs"), null, "public sealed class NoneConverter : IValueConverter")], null)));
+        const string script = "python3 - <<'EOF'\nimport json, sys\nd = json.load(open('orders.json'))\nprint(sum(1 for o in d if o.get('customer') is None))\nEOF";
+        chat.Items.Add(new ToolCallItem(chat, new AcpToolCall("3", true, script, "execute", "completed",
+            [new AcpTextContent("```console\n12\n```")], null, script, "Count orders with no customer")));
         var plan = new PlanItem();
         plan.Show([new AcpPlanEntry("Find where Customer is read", "completed"), new AcpPlanEntry("Make Customer nullable", "in_progress"),
             new AcpPlanEntry("Show \"(none)\" in the list", "pending")]);
@@ -161,6 +164,11 @@ public static partial class DesignData
         SamplePath("Contoso.App/Views/MainWindow.axaml"),
         SamplePath("Contoso.App/ViewModels/MainWindowViewModel.cs"),
     ]);
+
+    public static WarningViewModel Warning => new(
+        "Are you sure you want to undo the changes in these 2 files? This can't be undone.",
+        [SamplePath("Contoso.App/Models/Order.cs"), SamplePath("Contoso.App/Views/MainWindow.axaml")],
+        ["Undo Changes"]);
 
     public static CloneRepositoryViewModel CloneRepository => new(SampleRoot, Get<IDialogService>());
 
