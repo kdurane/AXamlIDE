@@ -124,6 +124,7 @@ public partial class RunViewModel
             IsRunning = true;
             IsDebugStopped = false;
             DebugStatus = $"Starting {Path.GetFileName(programPath)}...";
+            ConsoleOutput.Clear();   // a fresh session starts with an empty Console, as a run does (and VS's Debug pane)
             _messenger.Send(new ShowToolTabMessage(ToolTab.Console));
             session.OutputReceived += AppendConsoleOutput;
             session.EventReceived += message => OnDebugAdapterEvent(session, message);

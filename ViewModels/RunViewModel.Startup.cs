@@ -101,6 +101,8 @@ public partial class RunViewModel
     private void OnWorkspaceClosed()
     {
         ClearBuildProblems();
+        BuildOutput.Clear();     // the closed solution's builds and runs don't carry over to the next one (VS)
+        ConsoleOutput.Clear();
         _startupProjectsGeneration++;
         _rememberedStartupProject = null;
         StartupProject = null;

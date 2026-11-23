@@ -28,6 +28,8 @@ namespace AXamlIDE.Editor.Hover;
 ///   - It stays open while the pointer is over the hovered text or the card itself (so its text can be selected
 ///     and the link clicked), and closes as soon as the pointer is over neither (VS Code). No hide timer: every
 ///     pointer move - in the editor, elsewhere in the window, or leaving the card - just checks where it is.
+///   - It closes when the window is deactivated or the pointer leaves the IDE: on Linux the card is its own
+///     always-on-top window, and the IDE sees no more pointer moves once the pointer is over another app.
 ///   - A card that's been clicked in (text selected, a DataTip expanded, its menu opened) is "used": it stays
 ///     until the pointer moves well away from it, so its menus and a slightly wandering pointer don't close it.
 ///   - Quick fixes are only listed when asked for (the link, the lightbulb, or Ctrl+.), never on hover.
@@ -44,10 +46,15 @@ public sealed class HoverController
     /// <summary>How far (DIPs) the pointer can stray outside a card that's been used before it closes.</summary>
     private const double StickyMargin = 48;
 
+    /// <summary>How long the pointer can be off both the window and the card before the card closes (crossing between
+    /// them, the pointer is briefly on neither).</summary>
+    private static readonly TimeSpan LeftIdeDelay = TimeSpan.FromMilliseconds(250);
+
     private readonly EditorContext _ctx;
     private readonly CodeActionController _codeActions;
     private readonly DataTips _dataTips;
     private readonly DispatcherTimer _showTimer = new() { Interval = ShowDelay };
+    private readonly DispatcherTimer _leftIdeTimer = new() { Interval = LeftIdeDelay };
     private readonly Popup _popup;
     private CancellationTokenSource? _hoverCts;
     private int? _hoverOffset;               // the character the pointer rests on
@@ -84,6 +91,7 @@ public sealed class HoverController
         editor.TextChanged += (_, _) => Hide(resetOffset: true);
 
         _showTimer.Tick += OnShowTimer;
+        _leftIdeTimer.Tick += OnLeftIdeTimer;
 
         codeActions.FlyoutOpening += () => Hide(resetOffset: true);
     }
@@ -135,6 +143,19 @@ public sealed class HoverController
         }
         if (_popup.IsOpen && !_sticky && !KeepsCardOpen(point))
             Hide(resetOffset: true);
+        else if (_popup.IsOpen)
+            _leftIdeTimer.Start();
+    }
+
+    /// <summary>
+    /// The pointer left the editor, the window or the card a moment ago with the card left open: if it's now on none of
+    /// them it has gone to another app (or the desktop), which the IDE gets no pointer moves from, so close the card.
+    /// </summary>
+    private void OnLeftIdeTimer(object? sender, EventArgs e)
+    {
+        _leftIdeTimer.Stop();
+        if (_popup.IsOpen && _card is { IsPointerOver: false } && _watchedWindow is { IsPointerOver: false })
+            Hide(resetOffset: true);
     }
 
     /// <summary>
@@ -183,7 +204,8 @@ public sealed class HoverController
     private async void OnShowTimer(object? sender, EventArgs e)
     {
         _showTimer.Stop();
-        if (_ctx.Active is not { } document || _hoverOffset is not { } offset || offset >= document.Document.TextLength)
+        if (_ctx.Active is not { } document || _hoverOffset is not { } offset || offset >= document.Document.TextLength
+            || !_ctx.Editor.IsPointerOver)
             return;
 
         _hoverCts?.Cancel();
@@ -192,7 +214,7 @@ public sealed class HoverController
         // Paused in the debugger: the value of the expression under the pointer (Visual Studio's DataTip).
         if (await _dataTips.CreateAsync(document, offset, _ctx.Editor.FontSize, () => Hide(resetOffset: true)) is { } dataTip)
         {
-            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
+            if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active) || !_ctx.Editor.IsPointerOver)
                 return;
             ShowCard(dataTip.View, dataTip.Range, dataTip.AnchorOffset);
             // Expanding is using it; and the popup has to grow with it.
@@ -225,6 +247,8 @@ public sealed class HoverController
             : default;
         if (cts.IsCancellationRequested || offset != _hoverOffset || !ReferenceEquals(document, _ctx.Active))
             return;   // the pointer moved on, or the tab changed, while we were waiting
+        if (!_ctx.Editor.IsPointerOver)
+            return;   // ...or left the editor (quickly out of the window, its PointerExited can look like it's still inside)
 
         if (segments.Count == 0 && symbolRange is { } symbol)
             range = symbol;
@@ -317,8 +341,12 @@ public sealed class HoverController
             // Raised while the popup is being torn down too (Hide, light dismiss): the card isn't on screen any more.
             if (TopLevel.GetTopLevel(card) is null)
                 return;
-            if (ReferenceEquals(_card, card) && !_sticky && !KeepsCardOpen(ScreenPoint(e, card)))
+            if (!ReferenceEquals(_card, card))
+                return;
+            if (!_sticky && !KeepsCardOpen(ScreenPoint(e, card)))
                 Hide(resetOffset: true);
+            else
+                _leftIdeTimer.Start();
         };
         // Clicking in it (an expander, a link, selecting text, its menu) means it's being used.
         card.AddHandler(InputElement.PointerPressedEvent, (_, _) => _sticky = true, RoutingStrategies.Tunnel, handledEventsToo: true);
@@ -365,9 +393,31 @@ public sealed class HoverController
     {
         if (ReferenceEquals(window, _watchedWindow))
             return;
-        _watchedWindow?.RemoveHandler(InputElement.PointerMovedEvent, OnWindowPointerMoved);
+        if (_watchedWindow is not null)
+        {
+            _watchedWindow.RemoveHandler(InputElement.PointerMovedEvent, OnWindowPointerMoved);
+            _watchedWindow.PointerExited -= OnWindowPointerExited;
+            if (_watchedWindow is WindowBase old)
+                old.Deactivated -= OnWindowDeactivated;
+        }
         _watchedWindow = window;
-        _watchedWindow?.AddHandler(InputElement.PointerMovedEvent, OnWindowPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+        if (_watchedWindow is not null)
+        {
+            _watchedWindow.AddHandler(InputElement.PointerMovedEvent, OnWindowPointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
+            _watchedWindow.PointerExited += OnWindowPointerExited;
+            if (_watchedWindow is WindowBase watched)
+                watched.Deactivated += OnWindowDeactivated;
+        }
+    }
+
+    // Another app came in front: the card would stay on top of it.
+    private void OnWindowDeactivated(object? sender, EventArgs e) => Hide(resetOffset: true);
+
+    // Off the window: onto the card (fine), or out of the IDE, after which no more moves arrive (OnLeftIdeTimer).
+    private void OnWindowPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (_popup.IsOpen)
+            _leftIdeTimer.Start();
     }
 
     private void OnWindowPointerMoved(object? sender, PointerEventArgs e)
@@ -393,6 +443,7 @@ public sealed class HoverController
     public void Hide(bool resetOffset = false)
     {
         _showTimer.Stop();
+        _leftIdeTimer.Stop();
         _hoverCts?.Cancel();   // abandons an in-flight hover request (and tells the server)
         if (resetOffset)
             _hoverOffset = null;

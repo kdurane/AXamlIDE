@@ -36,6 +36,7 @@ public partial class App : Application
             ReportUnhandledExceptions(services.GetRequiredService<IMessenger>());
             services.GetRequiredService<ThemeSwitcher>().Apply();
             TextBoxCaret.Install();   // every text box's caret clear of the last letter (Avalonia draws it over it)
+            ToolTipCloser.Install();  // no tooltip left on top of other apps after leaving or switching away from a window
             services.GetRequiredService<GitTreeDecorator>();   // colours the explorer tree from then on (nothing else needs it)
             services.GetRequiredService<DocumentReloader>();   // keeps open tabs in step with the disk (nothing else needs it)
             services.GetRequiredService<XamlCacheKeeper>();    // keeps XAML completion's caches current (nothing else needs it)

@@ -79,32 +79,25 @@ public sealed class CodeActionController
             var start = document.Document.GetLocation(startOffset);
             var end = document.Document.GetLocation(endOffset);
             var range = new LspRange(start.Line - 1, start.Column - 1, end.Line - 1, end.Column - 1);
-            var diagnostics = document.Diagnostics.Select(segment =>
-            {
-                var diagnosticStart = document.Document.GetLocation(segment.StartOffset);
-                var diagnosticEnd = document.Document.GetLocation(segment.EndOffset);
-                return new LspDiagnostic(
-                    diagnosticStart.Line - 1, diagnosticStart.Column - 1,
-                    diagnosticEnd.Line - 1, diagnosticEnd.Column - 1,
-                    segment.Severity, segment.Message, segment.RawDiagnostic);
-            }).Where(diagnostic => LspHelpers.RangesOverlap(
-                range,
-                new LspRange(
-                    diagnostic.StartLine,
-                    diagnostic.StartChar,
-                    diagnostic.EndLine,
-                    diagnostic.EndChar)))
-                .ToArray();
+            var all = document.Diagnostics.Select(segment => ToLsp(document, segment)).ToArray();
+            var diagnostics = all.Where(diagnostic => LspHelpers.RangesOverlap(range, RangeOf(diagnostic))).ToArray();
             var actions = await client.CodeActionsAsync(document.Uri, range, diagnostics);
-            if (diagnostics.Length > 0)
-            {
-                actions = [.. actions.Where(action => action.Kind == "quickfix")];
-            }
+
+            // Fixes first, then refactorings, as Visual Studio lists them. An error with no fix still gets the
+            // refactorings (Roslyn has no fix for many knock-on errors, e.g. CS9174 when the type itself is missing).
+            var fixes = actions.Where(IsQuickFix).ToList();
+            var refactorings = actions.Where(action => !IsQuickFix(action)).ToList();
+            var hasError = diagnostics.Any(diagnostic => diagnostic.Severity == LspDiagnosticSeverity.Error);
+            var usingsElsewhere = hasError && fixes.Count == 0
+                ? await MissingUsingsElsewhereAsync(document, client, all.Except(diagnostics))
+                : [];
             if (!ReferenceEquals(document, _ctx.Active))
                 return false;
-            if (actions.Count == 0)
+            if (actions.Count == 0 && usingsElsewhere.Count == 0)
             {
-                _ctx.Status("No quick actions are available at the caret or selection.");
+                _ctx.Status(diagnostics.Length > 0
+                    ? "No quick fixes are available for this problem."
+                    : "No quick actions are available at the caret or selection.");
                 return false;
             }
 
@@ -112,7 +105,8 @@ public sealed class CodeActionController
                 Environment.NewLine,
                 diagnostics.Select(diagnostic => diagnostic.Message).Distinct(StringComparer.Ordinal));
             FlyoutOpening?.Invoke();
-            ShowCodeActionFlyout(actions, client, header, startOffset);
+            ShowCodeActionFlyout(new CodeActionMenu(fixes, refactorings, usingsElsewhere, NoFixHere: hasError && fixes.Count == 0),
+                client, header, startOffset);
             return true;
         }
         catch (Exception ex)
@@ -122,11 +116,68 @@ public sealed class CodeActionController
         }
     }
 
+    private static bool IsQuickFix(LspCodeAction action)
+        => action.Kind is { } kind && (kind == "quickfix" || kind.StartsWith("quickfix.", StringComparison.Ordinal));
+
+    private static LspDiagnostic ToLsp(OpenDocument document, Models.DiagnosticSegment segment)
+    {
+        var start = document.Document.GetLocation(segment.StartOffset);
+        var end = document.Document.GetLocation(segment.EndOffset);
+        return new LspDiagnostic(start.Line - 1, start.Column - 1, end.Line - 1, end.Column - 1,
+            segment.Severity, segment.Message, segment.RawDiagnostic);
+    }
+
+    private static LspRange RangeOf(LspDiagnostic diagnostic)
+        => new(diagnostic.StartLine, diagnostic.StartChar, diagnostic.EndLine, diagnostic.EndChar);
+
+    /// <summary>At most this many other errors are asked about for a missing using (one request each).</summary>
+    private const int MaxErrorsElsewhere = 10;
+
     /// <summary>
-    /// The quick-fix list: the diagnostics it's for (in their colour), then one item per fix. A MenuFlyout, so
-    /// it's light dismissable and keyboard-driven (it takes focus on purpose: it was asked for).
+    /// The error here has no fix: it's often a knock-on of a missing using elsewhere in the file (a type that can't be
+    /// found makes errors wherever it's used). The add-using fixes of the file's other errors, offered here as
+    /// Rider's "Import missing references in file" is, each with the line it's for.
     /// </summary>
-    private void ShowCodeActionFlyout(IReadOnlyList<LspCodeAction> actions, LspClient client, string? diagnosticHeader, int offset)
+    private static async Task<IReadOnlyList<(LspCodeAction Action, int Line)>> MissingUsingsElsewhereAsync(
+        OpenDocument document, LspClient client, IEnumerable<LspDiagnostic> others)
+    {
+        var errors = others
+            .Where(diagnostic => diagnostic.Severity == LspDiagnosticSeverity.Error)
+            .DistinctBy(diagnostic => (diagnostic.StartLine, diagnostic.StartChar))
+            .Take(MaxErrorsElsewhere)
+            .ToList();
+        var results = await Task.WhenAll(errors.Select(async error =>
+        {
+            try
+            {
+                var actions = await client.CodeActionsAsync(document.Uri, RangeOf(error), [error]);
+                return actions.Where(action => IsQuickFix(action) && IsAddUsing(action)).Select(action => (action, error.StartLine + 1));
+            }
+            catch (Exception)
+            {
+                return [];   // one error's fixes failing shouldn't lose the others
+            }
+        }));
+        return [.. results.SelectMany(found => found).DistinctBy(found => found.action.Title, StringComparer.Ordinal)];
+    }
+
+    /// <summary>Roslyn's add-using fix is titled with the directive itself: "using System.Collections.ObjectModel;".</summary>
+    private static bool IsAddUsing(LspCodeAction action)
+        => action.Title.StartsWith("using ", StringComparison.Ordinal) && action.Title.EndsWith(';');
+
+    /// <summary>What the quick-actions menu lists, in its sections.</summary>
+    private sealed record CodeActionMenu(
+        IReadOnlyList<LspCodeAction> Fixes,
+        IReadOnlyList<LspCodeAction> Refactorings,
+        IReadOnlyList<(LspCodeAction Action, int Line)> UsingsElsewhere,
+        bool NoFixHere);
+
+    /// <summary>
+    /// The quick-actions list: the diagnostics it's for (in their colour), then the fixes, any missing usings from
+    /// elsewhere in the file (when the problem here has no fix), then the refactorings. A MenuFlyout, so it's light
+    /// dismissable and keyboard-driven (it takes focus on purpose: it was asked for).
+    /// </summary>
+    private void ShowCodeActionFlyout(CodeActionMenu menu, LspClient client, string? diagnosticHeader, int offset)
     {
         var flyout = new MenuFlyout();
         if (!string.IsNullOrWhiteSpace(diagnosticHeader))
@@ -145,7 +196,25 @@ public sealed class CodeActionController
             flyout.Items.Add(new Separator());
         }
 
-        foreach (var action in actions)
+        foreach (var action in menu.Fixes)
+            flyout.Items.Add(CreateActionItem(action, client));
+        if (menu.NoFixHere)
+            flyout.Items.Add(new MenuItem
+            {
+                IsEnabled = false,
+                Header = menu.UsingsElsewhere.Count > 0
+                    ? "No fix for this problem here; it may come from a missing using:"
+                    : "No fix for this problem"
+            });
+        foreach (var (action, usingLine) in menu.UsingsElsewhere)
+        {
+            var item = CreateActionItem(action, client);
+            item.Header = new TextBlock { Text = $"{action.Title}   (line {usingLine})", TextWrapping = TextWrapping.Wrap, MaxWidth = 360 };
+            flyout.Items.Add(item);
+        }
+        if (menu.Refactorings.Count > 0 && flyout.Items.Count > 0 && flyout.Items[^1] is not Separator)
+            flyout.Items.Add(new Separator());
+        foreach (var action in menu.Refactorings)
             flyout.Items.Add(CreateActionItem(action, client));
 
         var editor = _ctx.Editor;

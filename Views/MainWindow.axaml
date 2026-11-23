@@ -551,14 +551,22 @@
                         Classes="toolbar"
                         Command="{Binding EditorCommands.Undo}"
                         ToolTip.Tip="Undo (Ctrl+Z)">
-                        <PathIcon Data="{DynamicResource Icon.Undo}" />
+                        <PathIcon Data="{DynamicResource Icon.Undo}">
+                            <PathIcon.RenderTransform>
+                                <RotateTransform Angle="-45" />
+                            </PathIcon.RenderTransform>
+                        </PathIcon>
                     </Button>
                     <Button
                         AutomationProperties.Name="Redo"
                         Classes="toolbar"
                         Command="{Binding EditorCommands.Redo}"
                         ToolTip.Tip="Redo (Ctrl+Y)">
-                        <PathIcon Data="{DynamicResource Icon.Redo}" />
+                        <PathIcon Data="{DynamicResource Icon.Redo}">
+                            <PathIcon.RenderTransform>
+                                <RotateTransform Angle="45" />
+                            </PathIcon.RenderTransform>
+                        </PathIcon>
                     </Button>
                 </StackPanel>
             </DockPanel>
