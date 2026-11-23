@@ -1,6 +1,6 @@
 <!--
     The Problems panel, like Visual Studio's Error List (DataContext: ProblemsViewModel): a toolbar with the scope box, filter
-    buttons with counts and a search box, then the rows. Double-click or Enter opens the problem in the editor; the
+    buttons with counts and a search box, a note when Entire Solution can only list the open files, then the rows. Double-click or Enter opens the problem in the editor; the
     right-click menu (and its keys) copy the description or the whole row, or search the web for it, as in Visual Studio.
 -->
 <UserControl
@@ -40,9 +40,17 @@
         <Style Selector="TextBlock.cell">
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style Selector="StackPanel.note > TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="StackPanel.note > Button">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </UserControl.Styles>
 
-    <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto,*">
+    <Grid Grid.IsSharedSizeScope="True" RowDefinitions="Auto,Auto,Auto,*">
 
         <!--  Toolbar: the scope, the three kinds (click one to hide it), and the search box.  -->
         <DockPanel Margin="4,2" Grid.Row="0">
@@ -97,10 +105,36 @@
             </StackPanel>
         </DockPanel>
 
+        <!--  Entire Solution with nothing looking at the closed files: say so, and offer the two ways to look.  -->
+        <StackPanel
+            Classes="note"
+            Grid.Row="1"
+            IsVisible="{Binding ListsOnlyOpenFiles}"
+            Margin="8,0,8,4"
+            Orientation="Horizontal"
+            Spacing="6">
+            <PathIcon
+                Data="{StaticResource Icon.InformationOutline}"
+                Height="13"
+                Width="13" />
+            <TextBlock Opacity="0.8" Text="Only open files and the last build are listed." />
+            <Button
+                Classes="link"
+                Command="{Binding TurnOnSolutionAnalysisCommand}"
+                Content="Turn on solution-wide analysis"
+                ToolTip.Tip="Check every file for compiler errors as you type (the status bar's analysis button)" />
+            <TextBlock Opacity="0.8" Text="or" />
+            <Button
+                Classes="link"
+                Command="{Binding RunCodeAnalysisCommand}"
+                Content="run code analysis once"
+                ToolTip.Tip="Analyze &gt; Run Code Analysis on Solution: every analyzer over every file" />
+        </StackPanel>
+
         <!--  Header row (the columns share their widths with the rows).  -->
         <Grid
             ColumnDefinitions="22,Auto,*,Auto,Auto,Auto,Auto"
-            Grid.Row="1"
+            Grid.Row="2"
             Margin="6,2">
             <Grid Grid.Column="1" Margin="0,0,8,0">
                 <Grid.ColumnDefinitions>
@@ -139,7 +173,7 @@
             Classes="compact"
             Background="Transparent"
             DoubleTapped="OnProblemDoubleTapped"
-            Grid.Row="2"
+            Grid.Row="3"
             ItemsSource="{Binding Problems}"
             KeyDown="OnListKeyDown"
             Name="List"

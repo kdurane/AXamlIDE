@@ -110,4 +110,20 @@ public class RoslynCompletionTests
         Assert.Null(RoslynSettings.Get("visual_basic|inlay_hints.dotnet_enable_inlay_hints_for_parameters", defaults));
         Assert.Null(RoslynSettings.Get("csharp|code_style.formatting.indentation_and_spacing.tab_width", defaults));   // Roslyn's default
     }
+
+    [Fact]
+    public void Solution_wide_analysis_widens_only_the_compilers_scope_and_a_code_analysis_run_widens_both()
+    {
+        const string compiler = "csharp|background_analysis.dotnet_compiler_diagnostics_scope";
+        const string analyzers = "csharp|background_analysis.dotnet_analyzer_diagnostics_scope";
+        var off = new AXamlIDE.Models.EditorFeatureSettings();
+        var on = off with { SolutionWideAnalysis = true };
+
+        Assert.Equal("openFiles", RoslynSettings.Get(compiler, off));
+        Assert.Equal("openFiles", RoslynSettings.Get(analyzers, off));
+        Assert.Equal("fullSolution", RoslynSettings.Get(compiler, on));
+        Assert.Equal("openFiles", RoslynSettings.Get(analyzers, on));   // every analyzer on every keystroke is too slow
+        Assert.Equal("fullSolution", RoslynSettings.Get(compiler, off, codeAnalysisRunning: true));
+        Assert.Equal("fullSolution", RoslynSettings.Get(analyzers, off, codeAnalysisRunning: true));
+    }
 }

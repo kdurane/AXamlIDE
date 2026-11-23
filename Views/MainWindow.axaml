@@ -315,16 +315,20 @@
                             <Separator />
                             <MenuItem Command="{Binding Tests.NewTestProjectCommand}" Header="_New Test Project..." />
                         </MenuItem>
+                        <!--  Visual Studio's Analyze menu  -->
+                        <MenuItem Header="Analy_ze">
+                            <MenuItem Command="{Binding StatusBar.RunCodeAnalysisCommand}" Header="Run Code _Analysis on Solution" />
+                            <Separator />
+                            <MenuItem
+                                Command="{Binding StatusBar.ToggleSolutionAnalysisCommand}"
+                                Header="_Solution-Wide Analysis"
+                                IsChecked="{Binding StatusBar.IsSolutionAnalysisOn, Mode=OneWay}"
+                                ToggleType="CheckBox" />
+                        </MenuItem>
                         <MenuItem Header="_Tools">
                             <MenuItem Command="{Binding NuGet.ManagePackagesForCurrentProjectCommand}" Header="Manage _NuGet Packages..." />
                             <MenuItem Command="{Binding RestartLanguageServicesCommand}" Header="_Restart Language Servers" />
                             <MenuItem Command="{Binding EditSnippetsCommand}" Header="Edit S_nippets..." />
-                            <Separator />
-                            <MenuItem
-                                Command="{Binding StatusBar.ToggleSolutionAnalysisCommand}"
-                                Header="Solution-Wide _Analysis"
-                                IsChecked="{Binding StatusBar.IsSolutionAnalysisOn, Mode=OneWay}"
-                                ToggleType="CheckBox" />
                             <Separator />
                             <MenuItem Command="{Binding OpenSettingsCommand}" Header="_Settings..." />
                         </MenuItem>
@@ -703,6 +707,7 @@
                                     Command="{Binding ShowSolutionErrorsCommand}"
                                     Header="Show _Errors in Problems"
                                     IsEnabled="{Binding IsSolutionAnalysisOn}" />
+                                <MenuItem Command="{Binding RunCodeAnalysisCommand}" Header="Run Code _Analysis on Solution" />
                                 <Separator />
                                 <MenuItem
                                     Command="{Binding ToggleSolutionAnalysisCommand}"

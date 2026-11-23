@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
@@ -184,11 +185,27 @@ public sealed partial class StatusBarViewModel : ObservableObject,
 
     public void Receive(DiagnosticsChangedMessage message) => UpdateSolutionAnalysis();
 
-    public void Receive(SolutionDiagnosticsChangedMessage message) => UpdateSolutionAnalysis();
+    public void Receive(SolutionDiagnosticsChangedMessage message)
+    {
+        RunCodeAnalysisCommand.NotifyCanExecuteChanged();
+        UpdateSolutionAnalysis();
+    }
 
     /// <summary>Tools > Solution-Wide Analysis, and the status bar's menu: switch it on or off (saved in the settings).</summary>
     [RelayCommand]
     private void ToggleSolutionAnalysis() => _settings.SolutionWideAnalysis = !_settings.SolutionWideAnalysis;
+
+    /// <summary>Analyze > Run Code Analysis on Solution (Visual Studio's, Alt+F11): every analyzer over every file, once.
+    /// Its results go in the Problems list, which it shows.</summary>
+    [RelayCommand(CanExecute = nameof(CanRunCodeAnalysis))]
+    private async Task RunCodeAnalysis()
+    {
+        _problems.Scope = ProblemScope.EntireSolution;
+        _messenger.Send(new ShowToolTabMessage(ToolTab.Problems));
+        await _solutionAnalysis.RunCodeAnalysisAsync();
+    }
+
+    private bool CanRunCodeAnalysis() => !_solutionAnalysis.IsRunningCodeAnalysis;
 
     /// <summary>Show every error in the solution: the Problems list, with the Entire Solution scope.</summary>
     [RelayCommand]
@@ -201,11 +218,19 @@ public sealed partial class StatusBarViewModel : ObservableObject,
     private void UpdateSolutionAnalysis()
     {
         IsSolutionAnalysisOn = _settings.SolutionWideAnalysis;
+        if (_solutionAnalysis.IsRunningCodeAnalysis)
+        {
+            SolutionHasErrors = SolutionIsClean = false;
+            SolutionAnalysisText = "Running code analysis…";
+            SolutionAnalysisTip = "Running every analyzer over every file in the solution (Analyze > Run Code Analysis on Solution).";
+            return;
+        }
+
         if (!IsSolutionAnalysisOn)
         {
             SolutionHasErrors = SolutionIsClean = false;
             SolutionAnalysisText = "";
-            SolutionAnalysisTip = "Solution-wide analysis is off: only open files are checked as you type. Click to turn it on.";
+            SolutionAnalysisTip = "Solution-wide analysis is off: only open files are checked as you type. Click to turn it on, or to run code analysis once.";
             return;
         }
 
@@ -236,7 +261,7 @@ public sealed partial class StatusBarViewModel : ObservableObject,
         SolutionAnalysisText = total == 0
             ? "No errors"
             : $"{Count(total, "error")} in {Count(errorsByFile.Count, "file")}";
-        SolutionAnalysisTip = "Solution-wide analysis: every file in the solution is checked. Click for the errors, or to turn it off.";
+        SolutionAnalysisTip = "Solution-wide analysis: every file in the solution is checked for compiler errors as you type. Click for the errors, to run code analysis (every analyzer), or to turn it off.";
     }
 
     // ---------------------------------------------------------------- the language server

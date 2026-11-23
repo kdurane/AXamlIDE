@@ -75,7 +75,8 @@ public static class AppServices
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<IEditorSettings>();
-            return new LspManager(LspServers.Defaults(() => settings.Features));   // some settings are server options
+            var codeAnalysis = sp.GetRequiredService<CodeAnalysisRun>();
+            return new LspManager(LspServers.Defaults(() => settings.Features, () => codeAnalysis.IsRunning));   // some settings are server options
         });
         services.AddSingleton<XamlLanguageService>();
         services.AddSingleton<DocumentReloader>();      // reloads or flags those tabs
@@ -86,7 +87,8 @@ public static class AppServices
         services.AddSingleton<GitStatusTracker>();
         services.AddSingleton<CommitMessageWriter>();   // the commit box's sparkle button (claude -p)
         services.AddSingleton<LanguageSessionService>();
-        services.AddSingleton<SolutionAnalysisService>();   // errors in closed files, when solution-wide analysis is on
+        services.AddSingleton<CodeAnalysisRun>();
+        services.AddSingleton<SolutionAnalysisService>();   // errors in closed files; Analyze > Run Code Analysis
         services.AddSingleton<XamlCacheKeeper>();          // tells XAML completion when its caches go stale
         services.AddSingleton<XamlAnalysisService>();      // AXAML diagnostics: unused and undeclared xmlns prefixes
 

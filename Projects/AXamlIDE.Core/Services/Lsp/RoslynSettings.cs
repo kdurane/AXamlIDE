@@ -35,7 +35,9 @@ public static class RoslynSettings
     };
 
     /// <summary>The answer for one section, or null to leave Roslyn's default (and for other languages: Visual Basic, Razor).</summary>
-    public static object? Get(string section, EditorFeatureSettings features)
+    /// <param name="codeAnalysisRunning">Analyze > Run Code Analysis on Solution is collecting its one pass: analyse
+    /// every file with everything, whatever the settings say.</param>
+    public static object? Get(string section, EditorFeatureSettings features, bool codeAnalysisRunning = false)
     {
         if (section.StartsWith(CSharpPrefix, StringComparison.Ordinal))
             section = section[CSharpPrefix.Length..];
@@ -49,13 +51,18 @@ public static class RoslynSettings
             "inlay_hints.csharp_enable_inlay_hints_for_types" => features.InlayTypeHints,
             "code_lens.dotnet_enable_references_code_lens" => features.CodeLens,   // no counting references nobody sees
             // Which files Roslyn analyses in the background: its analyzers (IDE0005, CA1822...) and the compiler (CS0103...).
-            "background_analysis.dotnet_analyzer_diagnostics_scope" => AnalysisScope(features),
-            "background_analysis.dotnet_compiler_diagnostics_scope" => AnalysisScope(features),
+            "background_analysis.dotnet_analyzer_diagnostics_scope" => Scope(codeAnalysisRunning),
+            "background_analysis.dotnet_compiler_diagnostics_scope" => Scope(codeAnalysisRunning || features.SolutionWideAnalysis),
             _ => Defaults.GetValueOrDefault(section)
         };
     }
 
-    /// <summary>"fullSolution" reports every file through workspace/diagnostic; "openFiles" (Roslyn's default) only the open ones.</summary>
-    private static string AnalysisScope(EditorFeatureSettings features)
-        => features.SolutionWideAnalysis ? "fullSolution" : "openFiles";
+    /// <summary>
+    /// "fullSolution" reports every file through workspace/diagnostic; "openFiles" (Roslyn's default) only the open ones.
+    /// Solution-wide analysis only widens the compiler's scope, as Rider does (errors everywhere, inspections in the
+    /// open files) and as Visual Studio's "Show compiler errors and warnings for: Entire solution" does. Every analyzer
+    /// on every file after each keystroke is Visual Studio's Run Code Analysis, far too slow to keep running; that's
+    /// the one-off Analyze menu command instead.
+    /// </summary>
+    private static string Scope(bool fullSolution) => fullSolution ? "fullSolution" : "openFiles";
 }

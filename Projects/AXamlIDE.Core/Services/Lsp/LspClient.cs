@@ -433,6 +433,18 @@ public sealed partial class LspClient : ILspSender, IDisposable
     public void RefreshSourceGenerators()
         => Notify("workspace/_roslyn_refreshSourceGenerators", new { forceRegeneration = false });
 
+    /// <summary>
+    /// Roslyn: open a closed file with the text it has on disk and close it again. Nothing in it changes, but Roslyn
+    /// counts it as a change, which matters twice for Run Code Analysis: Roslyn holds every workspace/diagnostic request
+    /// (even one with no result ids) until a document it tracks changes, and a changed option doesn't count; and it
+    /// keeps each project's answer until the project changes, even if the analysis scope has widened since.
+    /// </summary>
+    public void TouchClosedDocument(string uri, string text)
+    {
+        DidOpen(uri, "csharp", 1, text);
+        DidClose(uri);
+    }
+
     /// <summary>The settings changed: the server asks for the ones it uses again (workspace/configuration).</summary>
     public void DidChangeConfiguration()
         => Notify("workspace/didChangeConfiguration", new { settings = (object?)null });

@@ -139,8 +139,11 @@ public static class CommandCatalog
         new("Test.RunAll", "Run All Tests", "Run every test in the workspace's test projects."),
         new("Test.RunFailed", "Run Failed Tests", "Run the tests that failed last time."),
 
+        // ---- Analyze (Visual Studio's menu)
+        new("Analyze.RunCodeAnalysisOnSolution", "Run Code Analysis on Solution", "Run every analyzer (IDE0005, CA1822...) over every file in the solution, once, and list what they find in Problems."),
+
         // ---- Tools
-        new("Tools.SolutionWideAnalysis", "Solution-Wide Analysis", "Turn checking every file in the solution (not just the open ones) on or off."),
+        new("Tools.SolutionWideAnalysis", "Solution-Wide Analysis", "Turn checking every file in the solution (not just the open ones) for compiler errors as you type on or off."),
         new("Tools.Settings", "Settings", "Open the settings window."),
     ];
 

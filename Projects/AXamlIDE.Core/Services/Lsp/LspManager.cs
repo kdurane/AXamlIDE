@@ -82,6 +82,10 @@ public sealed class LspManager : IDisposable
 
     public bool Handles(string languageId) => _byLanguage.ContainsKey(languageId);
 
+    /// <summary>This language's server has loaded the solution's projects (until then it knows no files).</summary>
+    public bool HasLoadedProjects(string languageId)
+        => _byLanguage.TryGetValue(languageId, out var state) && state.Client is not null && state.ProjectsLoaded;
+
     /// <summary>The state of the servers that have been started (see <see cref="LanguageServerSummary"/>).</summary>
     public LanguageServerSummary Summary
     {

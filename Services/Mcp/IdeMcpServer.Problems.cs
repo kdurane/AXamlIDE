@@ -66,8 +66,12 @@ public sealed partial class IdeMcpServer
             ? $"last build {Ago(last.Finished)} {(last.Succeeded ? "succeeded" : "failed")} ({last.Errors} errors, {last.Warnings} warnings)"
             : "not built this session";
         var analysis = _solutionAnalysis.IsEnabled
-            ? _solutionAnalysis.HasResults ? "every file analysed (solution-wide analysis)" : "solution-wide analysis still starting"
-            : "only open files analysed (solution-wide analysis is off)";
+            ? _solutionAnalysis.HasResults ? "every file checked for compiler errors (solution-wide analysis)" : "solution-wide analysis still starting"
+            : "only open files analysed as you type (solution-wide analysis is off)";
+        if (_solutionAnalysis.IsRunningCodeAnalysis)
+            analysis += "; code analysis running";
+        else if (_solutionAnalysis.HasCodeAnalysisResults)
+            analysis += "; every analyzer's findings from the last Run Code Analysis (closed files; stale for files edited since)";
         var servers = _servers.Summary;
         var busy = servers.BusyText is { } doing ? $"; language server busy: {doing}" : "";
         var broken = servers.ProblemText is { } problem ? $"; {problem}" : "";

@@ -39,8 +39,9 @@ public static class LspServers
 {
     /// <summary>The language servers enabled by default.</summary>
     /// <param name="features">The user's current editor settings: some are Roslyn options (inlay hints...).</param>
-    public static IReadOnlyList<LspServerConfig> Defaults(Func<EditorFeatureSettings> features)
-        => [Roslyn with { Settings = section => RoslynSettings.Get(section, features()) }];
+    /// <param name="codeAnalysisRunning">Run Code Analysis on Solution is collecting its pass (RoslynSettings).</param>
+    public static IReadOnlyList<LspServerConfig> Defaults(Func<EditorFeatureSettings> features, Func<bool>? codeAnalysisRunning = null)
+        => [Roslyn with { Settings = section => RoslynSettings.Get(section, features(), codeAnalysisRunning?.Invoke() ?? false) }];
 
     // AXSG is temporarily disabled while the in-process completion engine is evaluated.
     private static LspServerConfig Axaml { get; } = new(

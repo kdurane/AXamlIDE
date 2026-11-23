@@ -196,6 +196,8 @@ public sealed class KeyMap
             ["Test.RunAll"] = (shell.Tests.RunAllCommand, null),
             ["Test.RunFailed"] = (shell.Tests.RunFailedCommand, null),
 
+            ["Analyze.RunCodeAnalysisOnSolution"] = (shell.StatusBar.RunCodeAnalysisCommand, null),
+
             ["Tools.SolutionWideAnalysis"] = (shell.StatusBar.ToggleSolutionAnalysisCommand, null),
             ["Tools.Settings"] = (shell.OpenSettingsCommand, null),
         };
