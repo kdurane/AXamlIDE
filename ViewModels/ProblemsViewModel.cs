@@ -4,8 +4,11 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Lsp;
@@ -36,6 +39,8 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     private readonly WorkspaceModel _workspace;
     private readonly SolutionAnalysisService _solutionAnalysis;
     private readonly IMessenger _messenger;
+    private readonly IClipboardService _clipboard;
+    private readonly IDialogService _dialogs;
     private readonly ProblemNavigationService _navigation = new();
     private readonly Dictionary<OpenDocument, PreviewError> _previewErrors = [];
     private readonly List<ProblemItem> _all = [];
@@ -45,8 +50,10 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     private readonly Dictionary<string, string?> _projectOfFile = new(GitStatus.PathComparer);
 
     public ProblemsViewModel(DocumentManager documents, WorkspaceModel workspace, SolutionAnalysisService solutionAnalysis,
-        IMessenger messenger)
+        IMessenger messenger, IClipboardService clipboard, IDialogService dialogs)
     {
+        _clipboard = clipboard;
+        _dialogs = dialogs;
         _solutionAnalysis = solutionAnalysis;
         _documents = documents;
         _workspace = workspace;
@@ -138,6 +145,35 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     {
         if (problem is not null)
             _messenger.Send(new NavigateToProblemMessage(problem));
+    }
+
+    /// <summary>Visual Studio's Copy (Ctrl+C): just the description, the part people paste into a search or a chat.</summary>
+    [RelayCommand]
+    private Task CopyProblem(ProblemItem? problem)
+        => problem is null ? Task.CompletedTask : _clipboard.SetTextAsync(problem.Message);
+
+    /// <summary>Visual Studio's Copy Row (Ctrl+Shift+C): every column, tab-separated under a header line.</summary>
+    [RelayCommand]
+    private Task CopyProblemRow(ProblemItem? problem)
+    {
+        if (problem is null)
+            return Task.CompletedTask;
+        var severity = problem.IsError ? "Error" : problem.IsWarning ? "Warning" : "Message";
+        var text = new StringBuilder()
+            .AppendLine("Severity\tCode\tDescription\tProject\tFile\tLine\tSource")
+            .AppendLine(string.Join('\t', severity, problem.Code, problem.Message, problem.ProjectName, problem.Path,
+                problem.LineText, problem.Source));
+        return _clipboard.SetTextAsync(text.ToString());
+    }
+
+    /// <summary>Visual Studio's Search the Web for Help (Ctrl+F1): the code and description in a Bing search.</summary>
+    [RelayCommand]
+    private Task SearchWebForProblem(ProblemItem? problem)
+    {
+        if (problem is null)
+            return Task.CompletedTask;
+        var query = problem.Code.Length > 0 ? $"{problem.Code} {problem.Message}" : problem.Message;
+        return _dialogs.OpenUrlAsync("https://www.bing.com/search?q=" + Uri.EscapeDataString(query));
     }
 
     /// <summary>Jump to the next (or previous) diagnostic after the caret, across open documents.</summary>

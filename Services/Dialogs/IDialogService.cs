@@ -57,6 +57,9 @@ public interface IDialogService
     /// <summary>Visual Studio's Open Containing Folder: the system file manager on the file's folder (selecting the file where it can).</summary>
     Task OpenContainingFolderAsync(string path);
 
+    /// <summary>Opens a web page in the system browser.</summary>
+    Task OpenUrlAsync(string url);
+
     // Windows
     /// <summary>Settings, at the page (a tab's header) and with the check box of that text focused, when given.</summary>
     Task ShowSettingsAsync(string? page = null, string? option = null);

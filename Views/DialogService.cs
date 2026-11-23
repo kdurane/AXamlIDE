@@ -543,6 +543,12 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
         await Owner.Launcher.LaunchDirectoryInfoAsync(new DirectoryInfo(folder));
     }
 
+    public async Task OpenUrlAsync(string url)
+    {
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            await Owner.Launcher.LaunchUriAsync(uri);
+    }
+
     public async Task<string?> PickFolderAsync()
     {
         var folders = await Owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions

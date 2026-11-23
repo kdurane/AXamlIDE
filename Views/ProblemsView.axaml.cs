@@ -1,5 +1,7 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using AXamlIDE.Models;
 using AXamlIDE.ViewModels;
 
@@ -13,7 +15,12 @@ public partial class ProblemsView : UserControl
         InitializeComponent();
     }
 
-    private void OnProblemDoubleTapped(object? sender, TappedEventArgs e) => OpenSelected();
+    /// <summary>A double-click anywhere on a row opens it (not on the empty space below the rows).</summary>
+    private void OnProblemDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if ((e.Source as Visual)?.FindAncestorOfType<ListBoxItem>(includeSelf: true) is not null)
+            OpenSelected();
+    }
 
     private void OnListKeyDown(object? sender, KeyEventArgs e)
     {

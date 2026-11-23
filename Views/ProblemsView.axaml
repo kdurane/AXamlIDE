@@ -1,6 +1,7 @@
 <!--
     The Problems panel, like Visual Studio's Error List (DataContext: ProblemsViewModel): a toolbar with the scope box, filter
-    buttons with counts and a search box, then the rows. Double-click or Enter opens the problem in the editor.
+    buttons with counts and a search box, then the rows. Double-click or Enter opens the problem in the editor; the
+    right-click menu (and its keys) copy the description or the whole row, or search the web for it, as in Visual Studio.
 -->
 <UserControl
     x:Class="AXamlIDE.Views.ProblemsView"
@@ -143,9 +144,40 @@
             KeyDown="OnListKeyDown"
             Name="List"
             ScrollViewer.VerticalScrollBarVisibility="Auto">
+            <ListBox.KeyBindings>
+                <KeyBinding Command="{Binding CopyProblemCommand}" CommandParameter="{Binding #List.SelectedItem}" Gesture="Ctrl+C" />
+                <KeyBinding Command="{Binding CopyProblemRowCommand}" CommandParameter="{Binding #List.SelectedItem}" Gesture="Ctrl+Shift+C" />
+                <KeyBinding Command="{Binding SearchWebForProblemCommand}" CommandParameter="{Binding #List.SelectedItem}" Gesture="Ctrl+F1" />
+            </ListBox.KeyBindings>
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem
+                        Command="{Binding OpenProblemCommand}"
+                        CommandParameter="{Binding #List.SelectedItem}"
+                        Header="_Go To Location"
+                        InputGesture="Enter" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding CopyProblemCommand}"
+                        CommandParameter="{Binding #List.SelectedItem}"
+                        Header="_Copy"
+                        InputGesture="Ctrl+C" />
+                    <MenuItem
+                        Command="{Binding CopyProblemRowCommand}"
+                        CommandParameter="{Binding #List.SelectedItem}"
+                        Header="Copy _Row"
+                        InputGesture="Ctrl+Shift+C" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding SearchWebForProblemCommand}"
+                        CommandParameter="{Binding #List.SelectedItem}"
+                        Header="_Search the Web for Help"
+                        InputGesture="Ctrl+F1" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="models:ProblemItem">
-                    <Grid ColumnDefinitions="22,Auto,*,Auto,Auto,Auto,Auto" ToolTip.Tip="{Binding ToolTip}">
+                    <Grid ColumnDefinitions="22,Auto,*,Auto,Auto,Auto,Auto">
                         <Panel Grid.Column="0" VerticalAlignment="Center">
                             <PathIcon
                                 Data="{StaticResource Icon.CloseCircleOutline}"
@@ -171,11 +203,11 @@
                             </Grid.ColumnDefinitions>
                             <TextBlock Classes="cell" Opacity="0.8" Text="{Binding Code}" />
                         </Grid>
-                        <SelectableTextBlock
+                        <TextBlock
+                            Classes="cell"
                             Grid.Column="2"
                             Text="{Binding Message}"
-                            TextTrimming="CharacterEllipsis"
-                            VerticalAlignment="Center" />
+                            TextTrimming="CharacterEllipsis" />
                         <Grid Grid.Column="3" Margin="12,0,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition SharedSizeGroup="ProjectCol" />

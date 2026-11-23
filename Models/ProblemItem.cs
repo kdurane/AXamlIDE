@@ -78,7 +78,4 @@ public sealed record ProblemItem(
 
     /// <summary>Navigation can take the user there: an open document, or a file with a line.</summary>
     public bool HasLocation => Document is not null || Path.Length > 0 && Line > 0 && File.Exists(Path);
-
-    /// <summary>The row's tooltip: the full path, and the project when known.</summary>
-    public string ToolTip => Project is { Length: > 0 } ? $"{Path}\n{Project}" : Path;
 }
