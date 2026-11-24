@@ -10,6 +10,7 @@
     xmlns:design="using:AXamlIDE.SampleData"
     xmlns:diff="using:AXamlIDE.Editor.Diff"
     xmlns:edit="using:AvaloniaEdit"
+    xmlns:editor="using:AXamlIDE.Editor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
@@ -71,9 +72,9 @@
         </Grid>
 
         <Grid ColumnDefinitions="*,4,*,Auto" Grid.Row="2">
-            <edit:TextEditor Name="LeftEditor" />
+            <editor:IdeTextEditor Name="LeftEditor" />
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
-            <edit:TextEditor Grid.Column="2" Name="RightEditor" />
+            <editor:IdeTextEditor Grid.Column="2" Name="RightEditor" />
 
             <!--  One scrollbar for both sides, with the changes mapped on it (Editor/Diff/DiffOverviewRuler)  -->
             <diff:DiffOverviewRuler

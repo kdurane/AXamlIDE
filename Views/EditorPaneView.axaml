@@ -1,7 +1,7 @@
 <UserControl
     x:Class="AXamlIDE.Views.EditorPaneView"
     xmlns="https://github.com/avaloniaui"
-    xmlns:edit="using:AvaloniaEdit"
+    xmlns:editor="using:AXamlIDE.Editor"
     xmlns:editing="using:AvaloniaEdit.Editing"
     xmlns:codeLens="using:AXamlIDE.Editor.CodeLens"
     xmlns:highlighting="using:AXamlIDE.Editor.Highlighting"
@@ -11,7 +11,7 @@
 
     <!--  No bindings to a parent view model: everything goes through EditorServices (see Initialize).  -->
     <Grid ColumnDefinitions="*,Auto">
-        <edit:TextEditor
+        <editor:IdeTextEditor
             FontFamily="Cascadia Code,Consolas,Menlo,Monospace"
             FontSize="13"
             FontWeight="Light"
@@ -20,7 +20,7 @@
             Name="Editor"
             ShowLineNumbers="True"
             VerticalScrollBarVisibility="Hidden">
-            <edit:TextEditor.ContextFlyout>
+            <editor:IdeTextEditor.ContextFlyout>
                 <MenuFlyout Opening="OnContextMenuOpening" FlyoutPresenterClasses="editorMenu">
                     <MenuItem
                         Click="OnCopyClick"
@@ -91,13 +91,13 @@
                         Header="Select All"
                         InputGesture="ctrl+A" />
                 </MenuFlyout>
-            </edit:TextEditor.ContextFlyout>
-            <edit:TextEditor.Styles>
+            </editor:IdeTextEditor.ContextFlyout>
+            <editor:IdeTextEditor.Styles>
                 <Style Selector="editing|LineNumberMargin">
                     <Setter Property="MinWidthInDigits" Value="3" />
                 </Style>
-            </edit:TextEditor.Styles>
-        </edit:TextEditor>
+            </editor:IdeTextEditor.Styles>
+        </editor:IdeTextEditor>
 
         <!--
         The vertical scrollbar, with the whole file mapped on it: diagnostics, occurrences, caret
