@@ -31,12 +31,13 @@ public sealed class WorkspaceStateStoreTests
             OpenFiles =
             [
                 new OpenFileState { Path = inside, CaretOffset = 12, VerticalOffset = 40, PreviewMode = "Split", PreviewFirst = true },
-                new OpenFileState { Path = outside, CaretOffset = 3 }
+                new OpenFileState { Path = outside, CaretOffset = 3, CollapsedFolds = [1, 14] }
             ],
             ActiveFile = inside,
             Layout = { ["ExplorerTools"] = 0.25 },
             StartupProject = Path.Combine(workspace.Root, "App", "App.csproj"),
-            Configuration = "Release"
+            Configuration = "Release",
+            ClosedFileFolds = { [Path.Combine(workspace.Root, "src", "Closed.cs")] = [3] }
         };
 
         Assert.Null(_store.Save(workspace.Root, state));
@@ -49,11 +50,15 @@ public sealed class WorkspaceStateStoreTests
         Assert.Equal(12, loaded.OpenFiles[0].CaretOffset);
         Assert.True(loaded.OpenFiles[0].PreviewFirst);
         Assert.Equal(outside, loaded.OpenFiles[1].Path);     // outside the workspace: kept absolute
+        Assert.Null(loaded.OpenFiles[0].CollapsedFolds);     // never shown: default folds
+        Assert.Equal([1, 14], loaded.OpenFiles[1].CollapsedFolds);
         Assert.Equal(inside, loaded.ActiveFile);
         Assert.Equal(0.25, loaded.Layout["ExplorerTools"]);
         Assert.Contains("\"App", json);                     // startup project stored relative too
         Assert.Equal(Path.Combine(workspace.Root, "App", "App.csproj"), loaded.StartupProject);
         Assert.Equal("Release", loaded.Configuration);
+        Assert.DoesNotContain(workspace.Root, json);                                       // closed files' folds stored relative
+        Assert.Equal([3], loaded.ClosedFileFolds[Path.Combine(workspace.Root, "src", "Closed.cs")]);
     }
 
     [Fact]

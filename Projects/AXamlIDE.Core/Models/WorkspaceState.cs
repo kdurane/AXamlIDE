@@ -30,6 +30,12 @@ public sealed record WorkspaceState
     /// <summary>The explorer nodes (folders, projects, files with children) that were expanded, by path.</summary>
     public List<string> ExpandedNodes { get; init; } = [];
 
+    /// <summary>
+    /// The collapsed fold lines of files that were closed (open files keep theirs in <see cref="OpenFiles"/>), by path,
+    /// so a file reopens folded as it was left, as in Rider. Only folds: closed files don't keep a caret or scroll.
+    /// </summary>
+    public Dictionary<string, List<int>> ClosedFileFolds { get; init; } = [];
+
 }
 
 /// <summary>One open file: where the caret and scroll were, and (for AXAML) how the preview was laid out.</summary>
@@ -41,4 +47,7 @@ public sealed record OpenFileState
     public string? PreviewMode { get; init; }
     public string? PreviewSplit { get; init; }
     public bool PreviewFirst { get; init; }
+
+    /// <summary>The lines whose fold was collapsed (#regions, usings, braces), or null to use the defaults.</summary>
+    public List<int>? CollapsedFolds { get; init; }
 }

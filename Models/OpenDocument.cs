@@ -107,6 +107,28 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
     public double VerticalOffset { get; set; }
     public double HorizontalOffset { get; set; }
 
+    /// <summary>
+    /// The lines whose fold is collapsed, kept current by the editor's folding (saved with the workspace session,
+    /// as VS and Rider remember outlining). Null until an editor has shown the file: its default folds apply.
+    /// </summary>
+    public IReadOnlyList<int>? CollapsedFolds { get; set; }
+
+    /// <summary>Folds restored by the session that the editor hasn't applied yet (see <see cref="RestoreFolds"/>).</summary>
+    public IReadOnlyList<int>? PendingFolds { get; private set; }
+
+    /// <summary>Raised by <see cref="RestoreFolds"/>; the editor showing this document applies them.</summary>
+    public event Action? FoldsRestoreRequested;
+
+    /// <summary>Collapse the folds starting on these lines (and expand the rest) once an editor has computed them.</summary>
+    public void RestoreFolds(IReadOnlyList<int> lines)
+    {
+        CollapsedFolds = PendingFolds = lines;
+        FoldsRestoreRequested?.Invoke();
+    }
+
+    /// <summary>The editor has applied <see cref="PendingFolds"/>.</summary>
+    public void ClearPendingFolds() => PendingFolds = null;
+
     public bool IsDirty => !Document.UndoStack.IsOriginalFile;
 
     /// <summary>

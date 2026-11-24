@@ -11,7 +11,8 @@ using AXamlIDE.Views;
 
 namespace AXamlIDE.Editor.Folding;
 
-internal sealed class FoldingCaretMargin(FoldingManager foldingManager) : AbstractMargin
+/// <summary>The fold chevrons. <paramref name="toggled"/> is called after the user folds or unfolds one.</summary>
+internal sealed class FoldingCaretMargin(FoldingManager foldingManager, Action toggled) : AbstractMargin
 {
     private const string ChevronKey = "Icon.ChevronDown";
     private Geometry? _chevron;
@@ -91,6 +92,7 @@ internal sealed class FoldingCaretMargin(FoldingManager foldingManager) : Abstra
             if (lineNumber > 0 && FindFolding(lineNumber) is { } folding)
             {
                 folding.IsFolded = !folding.IsFolded;
+                toggled();
                 e.Handled = true;
                 InvalidateVisual();
             }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AXamlIDE.Messages;
@@ -11,8 +12,8 @@ namespace AXamlIDE.ViewModels;
 
 /// <summary>
 /// Remembers each workspace's session in its <c>.axamlide/</c> folder (WorkspaceStateStore): the files
-/// that were open (caret, scroll, preview layout), which was selected, the dock sizes, and the toolbar's startup
-/// project and configuration.
+/// that were open (caret, scroll, collapsed folds, preview layout), which was selected, the dock sizes, and the toolbar's startup
+/// project and configuration. Closed files keep only their collapsed folds, so a file reopens folded as it was left.
 ///
 /// Restores it when a workspace opens. Saves it when the workspace is closed (MainWindowViewModel.CloseSolution
 /// calls <see cref="Close"/> before closing the documents), when another workspace is opened over it, and
@@ -29,6 +30,9 @@ public sealed class WorkspaceSession
     private readonly WorkspaceViewModel _tree;
     private readonly IMessenger _messenger;
     private string? _folder;   // the workspace whose session is live
+
+    // Closed files' collapsed fold lines, by path (open files carry theirs on the document).
+    private Dictionary<string, List<int>> _closedFolds = new(StringComparer.Ordinal);
 
     public WorkspaceSession(
         WorkspaceViewModel workspaceViewModel,
@@ -47,6 +51,21 @@ public sealed class WorkspaceSession
         _messenger = messenger;
         _tree = workspaceViewModel;
         workspaceViewModel.Opened += OnWorkspaceOpened;
+        documents.Opened += OnDocumentOpened;
+        documents.Closing += OnDocumentClosing;
+    }
+
+    private void OnDocumentOpened(OpenDocument document)
+    {
+        if (_closedFolds.Remove(document.Path, out var folds))
+            document.RestoreFolds(folds);
+    }
+
+    private void OnDocumentClosing(OpenDocument document)
+    {
+        // Not while the workspace itself closes (its session is already saved) or for read-only views.
+        if (_folder is not null && !document.IsReadOnly && document.CollapsedFolds is { } folds)
+            _closedFolds[document.Path] = [.. folds];
     }
 
     private void OnWorkspaceOpened()
@@ -75,7 +94,8 @@ public sealed class WorkspaceSession
                 VerticalOffset = document.VerticalOffset,
                 PreviewMode = tab?.PreviewMode.ToString(),
                 PreviewSplit = tab?.PreviewSplit.ToString(),
-                PreviewFirst = tab?.PreviewFirst ?? false
+                PreviewFirst = tab?.PreviewFirst ?? false,
+                CollapsedFolds = document.CollapsedFolds?.ToList()
             };
         }).ToList();
 
@@ -86,7 +106,11 @@ public sealed class WorkspaceSession
             Layout = _docking.CaptureLayout(),
             StartupProject = _run.StartupProjectPath,
             Configuration = _run.Configuration,
-            ExpandedNodes = _tree.ExpandedPaths()
+            ExpandedNodes = _tree.ExpandedPaths(),
+            ClosedFileFolds = _closedFolds
+                .Where(pair => !files.Any(file => string.Equals(file.Path, pair.Key, StringComparison.Ordinal))
+                               && File.Exists(pair.Key))   // forget deleted files
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal)
         };
 
         if (_store.Save(folder, state) is { } error)
@@ -98,11 +122,13 @@ public sealed class WorkspaceSession
     {
         Save();
         _folder = null;
+        _closedFolds.Clear();
     }
 
     private void Restore(string folder)
     {
         var state = _store.Load(folder);
+        _closedFolds = new Dictionary<string, List<int>>(state.ClosedFileFolds, StringComparer.Ordinal);
         _docking.ApplyLayout(state.Layout);
         _ = _tree.RestoreExpandedAsync(state.ExpandedNodes);
         _run.RestoreStartup(state.StartupProject, state.Configuration);
@@ -125,6 +151,8 @@ public sealed class WorkspaceSession
 
             document.CaretOffset = Math.Clamp(file.CaretOffset, 0, document.Document.TextLength);
             document.VerticalOffset = Math.Max(0, file.VerticalOffset);
+            if (file.CollapsedFolds is { } folds)
+                document.RestoreFolds(folds);
             if (_docking.TabFor(document) is { } tab)
             {
                 if (Enum.TryParse<PreviewMode>(file.PreviewMode, out var mode)) tab.PreviewMode = mode;

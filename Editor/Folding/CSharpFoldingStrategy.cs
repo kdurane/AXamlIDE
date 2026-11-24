@@ -11,6 +11,7 @@ internal static class CSharpFoldingStrategy
     {
         var text = document.Text;
         var openings = new Stack<int>();
+        var regions = new Stack<(int Start, string Name)>();
         var foldings = CreateUsingFoldings(document).ToList();
         var inBlockComment = false;
 
@@ -47,6 +48,9 @@ internal static class CSharpFoldingStrategy
                 case '\'':
                     offset = SkipCharacter(text, offset);
                     continue;
+                case '#' when IsFirstOnLine(text, offset):
+                    offset = ReadDirective(document, text, offset, regions, foldings);
+                    continue;
                 case '{':
                     openings.Push(offset);
                     break;
@@ -59,6 +63,47 @@ internal static class CSharpFoldingStrategy
         }
 
         return foldings.OrderBy(folding => folding.StartOffset);
+    }
+
+    /// <summary>
+    /// Read the preprocessor directive starting at <paramref name="hash"/> and return the offset of its
+    /// last character. The whole line is skipped so a quote or brace in a region's name can't throw
+    /// the scanner off. A <c>#region</c> folds to its matching <c>#endregion</c> and, as in Visual Studio,
+    /// shows the region's name when collapsed.
+    /// </summary>
+    private static int ReadDirective(TextDocument document, string text, int hash,
+        Stack<(int Start, string Name)> regions, List<NewFolding> foldings)
+    {
+        var lineEnd = document.GetLineByOffset(hash).EndOffset;
+        var directive = text[(hash + 1)..lineEnd].TrimStart();
+
+        if (IsDirective(directive, "region"))
+        {
+            var name = directive["region".Length..].Trim();
+            regions.Push((hash, name.Length > 0 ? name : "#region"));
+        }
+        else if (IsDirective(directive, "endregion") && regions.TryPop(out var region)
+                 && document.GetLineByOffset(region.Start).LineNumber != document.GetLineByOffset(hash).LineNumber)
+        {
+            foldings.Add(new NewFolding(region.Start, lineEnd) { Name = region.Name });
+        }
+
+        return lineEnd - 1;
+    }
+
+    private static bool IsDirective(string directive, string keyword)
+        => directive.StartsWith(keyword, System.StringComparison.Ordinal)
+           && (directive.Length == keyword.Length || char.IsWhiteSpace(directive[keyword.Length]));
+
+    private static bool IsFirstOnLine(string text, int offset)
+    {
+        for (var i = offset - 1; i >= 0 && text[i] is not '\r' and not '\n'; i--)
+        {
+            if (!char.IsWhiteSpace(text[i]))
+                return false;
+        }
+
+        return true;
     }
 
     private static IEnumerable<NewFolding> CreateUsingFoldings(TextDocument document)
