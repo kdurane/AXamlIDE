@@ -26,7 +26,7 @@ namespace AXamlIDE.ViewModels;
 /// The Problems tool tab, like Visual Studio's Error List: every diagnostic in every open document, the errors and
 /// warnings of the last build (in any file, open or not), with solution-wide analysis on the live errors of every
 /// file in the solution, after Run Code Analysis what every analyzer found in every file, and the preview's error for
-/// an AXAML file. With neither, Entire Solution can only list the open files and the build, and a note says so. The scope box
+/// an AXAML file. The scope box
 /// narrows the list to the open documents, the active document's project, or the active document; the three
 /// filter buttons (Errors / Warnings / Messages) show the counts within that scope and hide a kind; F8 / Shift+F8
 /// step through the problems in open documents. Rebuilds itself whenever diagnostics change, a build finishes, the
@@ -39,7 +39,6 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     private readonly DocumentManager _documents;
     private readonly WorkspaceModel _workspace;
     private readonly SolutionAnalysisService _solutionAnalysis;
-    private readonly SettingsViewModel _settings;
     private readonly IMessenger _messenger;
     private readonly IClipboardService _clipboard;
     private readonly IDialogService _dialogs;
@@ -52,9 +51,8 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     private readonly Dictionary<string, string?> _projectOfFile = new(GitStatus.PathComparer);
 
     public ProblemsViewModel(DocumentManager documents, WorkspaceModel workspace, SolutionAnalysisService solutionAnalysis,
-        SettingsViewModel settings, IMessenger messenger, IClipboardService clipboard, IDialogService dialogs)
+        IMessenger messenger, IClipboardService clipboard, IDialogService dialogs)
     {
-        _settings = settings;
         _clipboard = clipboard;
         _dialogs = dialogs;
         _solutionAnalysis = solutionAnalysis;
@@ -105,18 +103,6 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     [ObservableProperty] public partial string Filter { get; set; } = "";
 
     partial void OnFilterChanged(string value) => Refilter();
-
-    /// <summary>Entire Solution is chosen but nothing has looked at the closed files: only the open ones and the last
-    /// build are listed. The note above the rows says so, with the two ways to fix it.</summary>
-    [ObservableProperty] public partial bool ListsOnlyOpenFiles { get; private set; }
-
-    /// <summary>The note's link: switch solution-wide analysis on (the status bar's button does the same).</summary>
-    [RelayCommand]
-    private void TurnOnSolutionAnalysis() => _settings.SolutionWideAnalysis = true;
-
-    /// <summary>The note's other link: Analyze > Run Code Analysis on Solution.</summary>
-    [RelayCommand]
-    private Task RunCodeAnalysis() => _solutionAnalysis.RunCodeAnalysisAsync();
 
     public void Receive(DiagnosticsChangedMessage message) => Rebuild();
 
@@ -282,9 +268,6 @@ public sealed partial class ProblemsViewModel : ObservableObject,
     /// </summary>
     private void Refilter()
     {
-        ListsOnlyOpenFiles = Scope == ProblemScope.EntireSolution && !_solutionAnalysis.IsEnabled
-                             && !_solutionAnalysis.HasCodeAnalysisResults && !_solutionAnalysis.IsRunningCodeAnalysis;
-
         var inScope = _all.Where(InScope()).ToList();
         ErrorCount = inScope.Count(problem => problem.IsError);
         WarningCount = inScope.Count(problem => problem.IsWarning);

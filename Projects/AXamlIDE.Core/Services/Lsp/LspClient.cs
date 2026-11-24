@@ -100,6 +100,10 @@ public sealed partial class LspClient : ILspSender, IDisposable
     // Work-done progress per token, for the status bar. Locked on itself.
     private readonly Dictionary<string, (string Title, string? Message)> _progress = new();
 
+    // Requests waiting for partial results ($/progress with a partialResultToken we sent), by token (its raw JSON).
+    private readonly ConcurrentDictionary<string, Action<JsonElement>> _partialResults = new();
+    private int _nextPartialResultToken;
+
     // The last few server log lines, so a server that dies during startup can say why.
     private readonly Queue<string> _recentLog = new();
     public string RecentLog { get { lock (_recentLog) return string.Join(" | ", _recentLog); } }

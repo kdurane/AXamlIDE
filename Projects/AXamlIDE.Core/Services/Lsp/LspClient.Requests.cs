@@ -54,25 +54,52 @@ public sealed partial class LspClient
     /// Every file's diagnostics (workspace/diagnostic), for one identifier. Pass back the result ids of the last
     /// answer: files that haven't changed then come back as unchanged. The server may hold the request open until
     /// something does change (a "long poll"), so this can take minutes; cancel it to stop waiting.
+    /// <para>With <paramref name="partial"/>, the server may send the reports in batches as it checks the files
+    /// (LSP partial results); each batch goes to it, on the reading thread, and the returned list holds only what
+    /// came with the final answer (often nothing). Without it, the whole answer comes at the end.</para>
     /// </summary>
     public async Task<IReadOnlyList<LspWorkspaceDiagnosticReport>> WorkspaceDiagnosticsAsync(
-        string identifier, IReadOnlyDictionary<string, string> previousResultIds, CancellationToken ct)
+        string identifier, IReadOnlyDictionary<string, string> previousResultIds, CancellationToken ct,
+        Action<IReadOnlyList<LspWorkspaceDiagnosticReport>>? partial = null)
     {
-        var result = await RequestAsync("workspace/diagnostic", new
-        {
-            identifier,
-            previousResultIds = previousResultIds.Select(pair => new { uri = pair.Key, value = pair.Value }).ToArray()
-        }, ct);
+        var previous = previousResultIds.Select(pair => new { uri = pair.Key, value = pair.Value }).ToArray();
+        if (partial is null)
+            return ParseWorkspaceReports(await RequestAsync("workspace/diagnostic", new { identifier, previousResultIds = previous }, ct));
 
+        var token = $"axamlide-partial-{Interlocked.Increment(ref _nextPartialResultToken)}";
+        var key = JsonSerializer.Serialize(token);   // as HandleProgress sees it: the raw JSON
+        _partialResults[key] = value =>
+        {
+            if (ParseWorkspaceReports(value) is { Count: > 0 } reports)
+                partial(reports);
+        };
+        try
+        {
+            return ParseWorkspaceReports(await RequestAsync("workspace/diagnostic", new
+            {
+                identifier,
+                previousResultIds = previous,
+                partialResultToken = token
+            }, ct));
+        }
+        finally
+        {
+            _partialResults.TryRemove(key, out _);
+        }
+    }
+
+    /// <summary>The reports in a workspace/diagnostic answer or partial result (both are <c>{ items: [...] }</c>).</summary>
+    private static List<LspWorkspaceDiagnosticReport> ParseWorkspaceReports(JsonElement result)
+    {
+        var reports = new List<LspWorkspaceDiagnosticReport>();
         if (result.ValueKind != JsonValueKind.Object
             || !result.TryGetProperty("items", out var items)
             || items.ValueKind != JsonValueKind.Array)
-            return [];
+            return reports;
 
-        var reports = new List<LspWorkspaceDiagnosticReport>();
         foreach (var item in items.EnumerateArray())
         {
-            if (Str(item, "uri") is not { } uri)
+            if (item.ValueKind != JsonValueKind.Object || Str(item, "uri") is not { } uri)
                 continue;
             var unchanged = Str(item, "kind") == "unchanged";
             var diagnostics = !unchanged && item.TryGetProperty("items", out var list) && list.ValueKind == JsonValueKind.Array

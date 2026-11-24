@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
@@ -43,6 +44,12 @@ public sealed class SolutionAnalysisService
     /// once (instead of holding the request) isn't asked in a tight loop.</summary>
     private static readonly TimeSpan EmptyAnswerDelay = TimeSpan.FromSeconds(1);
 
+    /// <summary>The live analysis asks only once the typing has stopped for this long. Roslyn answers a waiting
+    /// request as soon as anything changes, by checking the whole solution again; asking while the user types
+    /// would mean a solution-wide check per keystroke, each one out of date before it finished. Short, since the
+    /// answer now streams in file by file (partial results) and typing cancels it anyway.</summary>
+    private static readonly TimeSpan QuietDelay = TimeSpan.FromMilliseconds(500);
+
     /// <summary>How long a code analysis run waits for each of Roslyn's steps in taking up the widened options
     /// (reading them, then asking for a refresh, about two seconds later) before going on anyway.</summary>
     private static readonly TimeSpan OptionsTimeout = TimeSpan.FromSeconds(10);
@@ -57,6 +64,15 @@ public sealed class SolutionAnalysisService
     // What each identifier last said about each file (by URI): its result id and diagnostics.
     private readonly Dictionary<string, Dictionary<string, (string? ResultId, IReadOnlyList<LspDiagnostic> Diagnostics)>> _reports = [];
     private CancellationTokenSource? _polling;
+
+    // Typing in any open document: when it last happened, and a token that's cancelled when it does (stopping the
+    // live requests that are out, which then wait for the typing to stop and ask again).
+    private DateTime _lastEdit = DateTime.MinValue;
+    private CancellationTokenSource _typing = new();
+
+    // A closed file's compiler diagnostics from when it was open (it was saved, so they're its own), by full path,
+    // until Roslyn reports it again; without them its errors from before it was opened would come back meanwhile.
+    private readonly Dictionary<string, IReadOnlyList<LspDiagnostic>> _closedSince = new(GitStatus.PathComparer);
     private int _generation = -1;
     private bool _enabled;
 
@@ -79,6 +95,9 @@ public sealed class SolutionAnalysisService
         servers.DiagnosticsRefreshNeeded += OnRefreshNeeded;
         servers.StatusChanged += OnServersChanged;
         documents.Opened += OnDocumentOpened;
+        documents.Closing += OnDocumentClosing;
+        foreach (var document in documents.Documents)
+            document.Document.TextChanged += OnTyped;
     }
 
     /// <summary>Solution-wide analysis is switched on (the setting; it's switched in SettingsViewModel).</summary>
@@ -143,11 +162,51 @@ public sealed class SolutionAnalysisService
         ClearLive();
     }
 
-    /// <summary>An opened file's own pulls take over; when it's closed again, the run's results for it would be stale.</summary>
+    /// <summary>
+    /// An opened file's own pulls take over. What was said about it while it was closed would be stale by the time
+    /// it's closed again, so it goes: the run's results, and the live analysis's report and result id (with no result
+    /// id, Roslyn reports the file in full once it's closed).
+    /// </summary>
     private void OnDocumentOpened(OpenDocument document)
     {
-        if (_codeAnalysis is not null && _codeAnalysis.Remove(document.Path))
-            Publish();
+        document.Document.TextChanged += OnTyped;
+        _codeAnalysis?.Remove(document.Path);
+        _closedSince.Remove(document.Path);
+        foreach (var files in _reports.Values)
+            files.Remove(document.Uri);
+        Publish();
+    }
+
+    /// <summary>A saved file is closing: keep its compiler diagnostics until Roslyn reports it (the next live answer).</summary>
+    private void OnDocumentClosing(OpenDocument document)
+    {
+        document.Document.TextChanged -= OnTyped;
+        if (!_enabled || document.IsDirty)
+            return;   // closed without saving: what it had open isn't what's on disk
+        var diagnostics = document.Diagnostics
+            .Where(segment => segment.RawDiagnostic is { } raw && raw.ValueKind == JsonValueKind.Object)
+            .Select(segment => LspClient.ParseDiagnostic(segment.RawDiagnostic!.Value))
+            .Where(IsCompilerDiagnostic)
+            .ToList();
+        if (diagnostics.Count > 0)
+            _closedSince[document.Path] = diagnostics;
+        Publish();
+    }
+
+    private void OnTyped(object? sender, EventArgs e)
+    {
+        _lastEdit = DateTime.UtcNow;
+        var typing = _typing;
+        _typing = new CancellationTokenSource();
+        typing.Cancel();
+        typing.Dispose();
+    }
+
+    /// <summary>Until nothing has been typed for <see cref="QuietDelay"/>.</summary>
+    private async Task WaitForQuietAsync(CancellationToken ct)
+    {
+        while (DateTime.UtcNow - _lastEdit is var since && since < QuietDelay)
+            await Task.Delay(QuietDelay - since, ct);
     }
 
     // ---------------------------------------------------------------- Run Code Analysis on Solution
@@ -336,14 +395,61 @@ public sealed class SolutionAnalysisService
         _polling = null;
     }
 
+    /// <summary>
+    /// One identifier's waiting request, asked again each time it's answered. Roslyn streams the answer as partial
+    /// results, a batch of files at a time as it checks them; each batch goes into the Problems list as it comes
+    /// (on the UI thread, in order, before the final answer), so files show up as they're done rather than when the
+    /// whole solution is.
+    /// </summary>
     private async Task PollAsync(LspClient client, string identifier, CancellationToken ct)
     {
+        var ui = SynchronizationContext.Current;
         while (!ct.IsCancellationRequested)
         {
             IReadOnlyList<LspWorkspaceDiagnosticReport> reports;
+            var streamed = 0;
+
+            // Batches come on the reading thread, often one file each. Those that arrive while the UI thread is busy
+            // are gathered and applied together, so the Problems list is rebuilt once per turn, not once per file.
+            var pending = new List<LspWorkspaceDiagnosticReport>();
+            void ApplyPending()
+            {
+                List<LspWorkspaceDiagnosticReport> batch;
+                lock (pending)
+                {
+                    batch = [.. pending];
+                    pending.Clear();
+                }
+                if (batch.Count == 0 || ct.IsCancellationRequested)
+                    return;   // stopped (servers restarted, or a code analysis run): these are stale
+                streamed += batch.Count;
+                Apply(identifier, batch);
+            }
+            void OnBatch(IReadOnlyList<LspWorkspaceDiagnosticReport> batch)
+            {
+                bool first;
+                lock (pending)
+                {
+                    first = pending.Count == 0;
+                    pending.AddRange(batch);
+                }
+                if (!first)
+                    return;   // already on its way to the UI thread
+                if (ui is null)
+                    ApplyPending();
+                else
+                    ui.Post(_ => ApplyPending(), null);
+            }
+
             try
             {
-                reports = await client.WorkspaceDiagnosticsAsync(identifier, ResultIds(identifier), ct);
+                await WaitForQuietAsync(ct);
+                using var request = CancellationTokenSource.CreateLinkedTokenSource(ct, _typing.Token);
+                reports = await client.WorkspaceDiagnosticsAsync(identifier, ResultIds(identifier), request.Token, OnBatch);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                continue;   // typing started: ask again when it stops (Roslyn has noted the change, so it answers then)
             }
             catch (OperationCanceledException)
             {
@@ -359,11 +465,10 @@ public sealed class SolutionAnalysisService
             if (ct.IsCancellationRequested)
                 return;
 
+            ApplyPending();   // normally already applied (posted before this continuation), but be sure before the next ask
             if (reports.Count > 0)
-            {
                 Apply(identifier, reports);
-            }
-            else
+            if (reports.Count == 0 && streamed == 0)
             {
                 try
                 {
@@ -398,6 +503,8 @@ public sealed class SolutionAnalysisService
                 files[report.Uri] = (report.ResultId ?? known.ResultId, known.Diagnostics);
             else
                 files[report.Uri] = (report.ResultId, report.Diagnostics);
+            if (FileUris.ToPath(report.Uri) is { } path)
+                _closedSince.Remove(path);
         }
 
         HasResults = true;
@@ -407,6 +514,7 @@ public sealed class SolutionAnalysisService
     private void ClearLive()
     {
         _reports.Clear();
+        _closedSince.Clear();
         HasResults = false;
         Publish();
     }
@@ -427,6 +535,8 @@ public sealed class SolutionAnalysisService
                     continue;   // source-generated files and the like have no path to open
                 live[path] = live.TryGetValue(path, out var earlier) ? [.. earlier, .. report.Diagnostics] : report.Diagnostics;
             }
+        foreach (var (path, diagnostics) in _closedSince)
+            live.TryAdd(path, diagnostics);
 
         if (_codeAnalysis is null)
         {

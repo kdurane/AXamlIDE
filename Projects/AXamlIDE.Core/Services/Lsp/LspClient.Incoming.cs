@@ -221,15 +221,22 @@ public sealed partial class LspClient
         }
     }
 
-    // $/progress for server-initiated work (window/workDoneProgress/create), e.g. loading projects.
+    // $/progress: a batch of partial results for one of our requests, or server-initiated work
+    // (window/workDoneProgress/create), e.g. loading projects.
     private void HandleProgress(JsonElement p)
     {
         if (!p.TryGetProperty("token", out var tokenElement)
-            || !p.TryGetProperty("value", out var value)
-            || value.ValueKind != JsonValueKind.Object)
+            || !p.TryGetProperty("value", out var value))
             return;
 
         var token = tokenElement.GetRawText();   // the token may be a string or a number
+        if (_partialResults.TryGetValue(token, out var partial))
+        {
+            partial(value);
+            return;
+        }
+        if (value.ValueKind != JsonValueKind.Object)
+            return;
         string? text;
 
         lock (_progress)
@@ -271,7 +278,7 @@ public sealed partial class LspClient
         DiagnosticsPublished?.Invoke(uri, list, version);
     }
 
-    private static LspDiagnostic ParseDiagnostic(JsonElement d)
+    public static LspDiagnostic ParseDiagnostic(JsonElement d)
     {
         var range = ParseRange(d.GetProperty("range"));
 
