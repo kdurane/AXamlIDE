@@ -2,10 +2,11 @@
 
 The third-party types and methods the code calls: what each one does, and where we call it. It is grouped by
 package, in the order the packages appear in the `.csproj` files. Paths without a folder prefix are in the app project
-(the repo root). `Core/` stands for `Projects/AXamlIDE.Core/` and `Host/` for `Projects/AXamlIDE.msbuildhost/`.
+(the repo root). `Core/` stands for `Projects/AXamlIDE.Core/`, `Host/` for `Projects/AXamlIDE.msbuildhost/` and
+`Ext/` for `Projects/AXamlIDE.RoslynExtension/`.
 
 **What's covered.** Every call to the smaller libraries (dnlib, ICSharpCode.Decompiler, ClrMD, DiffPlex, Irony, ClosedXML,
-Markdig, SkiaSharp, Microsoft.Build) is listed. **Avalonia** and **AvaloniaEdit** are used in hundreds of places, mostly
+Markdig, SkiaSharp, Microsoft.Build, Roslyn in the extension) is listed. **Avalonia** and **AvaloniaEdit** are used in hundreds of places, mostly
 for ordinary control properties (`IsVisible`, `Text`, `Grid.SetRow`...). For those two, this page lists the calls
 that do real work or are easy to miss, not every property set. Calls made only from XAML (bindings, styles) are left
 out, except where a package is used *only* from XAML.
@@ -302,3 +303,28 @@ SDK's copy instead.
 | `project.ReevaluateIfNecessary()` | Evaluates again after the XML was edited | `ItemProperties` (`Set`, `ChangeType`, `SetMetadata`) |
 | `ProjectRootElement.Open(path, collection, preserveFormatting: true)` | The project XML, for editing with formatting kept | `ItemProperties.Load`, `ItemPaths.Move` |
 | `root.Items`, `root.ItemGroups`, `CreateItemElement`, `AddItem`, `AddItemGroup`, `AppendChild`, `RemoveChild`, `ProjectItemElement.Include/Update/Remove`, `AddMetadata`, `root.Save()` | Edit and save the project file | `ItemProperties` (build action and metadata), `ItemPaths.Move` (rename, move or delete) |
+
+---
+
+## Microsoft.CodeAnalysis (Roslyn) — Roslyn extension only
+
+Not a package reference: the extension compiles against the installed `roslyn-language-server`'s own
+`Microsoft.CodeAnalysis*.dll` (`Private="false"`), and runs inside that server, on its copies. The extension API
+is experimental (`RSEXPERIMENTAL008`); see [architecture.md](architecture.md#when-roslyn-language-server-updates).
+All of these are in `Ext/ProjectsHandler.cs` and `Ext/ProjectDiagnosticsHandler.cs`.
+
+| API | What it does | Where we call it |
+|---|---|---|
+| `IExtensionWorkspaceMessageHandler<TMessage, TResponse>.ExecuteAsync(message, context, ct)` | A handler the server registers under the type's full name; it deserializes the message and serializes the answer with System.Text.Json's defaults | `ProjectsHandler`, `ProjectDiagnosticsHandler`, `ProjectCompilationDiagnosticsHandler` |
+| `ExtensionWorkspaceMessageContext.Solution` | The server's live solution, unsaved edits included | the three handlers |
+| `Solution.Projects`, `Solution.GetProject(ProjectId.CreateFromSerialized(guid))`, `ProjectId.Id` | The projects; one by the id we sent back | `ProjectsHandler`, `DiagnosticCache.FindProject` |
+| `Solution.GetDocumentIdsWithFilePath(path)` | Which projects have an open file, to check them first | `ProjectsHandler` |
+| `Project.GetDependentVersionAsync()` | Changes when anything in the project or a project it depends on does: tells the IDE what to ask about | `ProjectsHandler`, both diagnostics handlers |
+| `Project.GetDependentSemanticVersionAsync()` | Changes only with top-level (declaration) changes in the project or its dependencies: part of the cache key | `DiagnosticCache.KeyAsync` |
+| `Project.SupportsCompilation`, `GetCompilationAsync()`, `Documents`, `AnalyzerConfigDocuments`, `CompilationOptions`, `ParseOptions`, `GetSourceGeneratedDocumentsAsync()`, `GetDocument(tree)` | The project's compilation and what goes into it | `DiagnosticCache` |
+| `Document.SupportsSemanticModel`, `GetTextVersionAsync()`, `GetSyntaxTreeAsync()`; `SourceText.GetContentHash()` | A file's version (cache) and tree; a generated file's content, for the key | `DiagnosticCache` |
+| `Compilation.GetSemanticModel(tree).GetDiagnostics()` | One file's syntax, declaration and method body diagnostics, after `#pragma`, `.editorconfig` and options | `DiagnosticCache.DocumentDiagnosticsAsync` |
+| `CompilationOptions.Errors`, `Compilation.GetDeclarationDiagnostics()` | Diagnostics with no file: bad options, references | `DocumentDiagnosticsAsync` (project level) |
+| `Compilation.GetDiagnostics()` | Everything, including what only the whole compilation finds (unused fields, entry point) | `DiagnosticCache.CompilationOnlyDiagnosticsAsync` |
+| `Compilation.References` → `MetadataReference.Display` | The references, for the key | `KeyAsync` |
+| `Diagnostic.IsSuppressed`, `Severity`, `Id`, `GetMessage(culture)`, `Location.IsInSource`, `Location.SourceTree`, `Location.GetLineSpan()`, `Descriptor.HelpLinkUri`, `Descriptor.CustomTags` (`WellKnownDiagnosticTags.Unnecessary`) | Turned into the LSP's diagnostic shape | `DiagnosticCache.Convert` |

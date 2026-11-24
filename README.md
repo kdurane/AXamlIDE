@@ -34,7 +34,10 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - Roslyn language server, for C# features:
-  `dotnet tool install --global roslyn-language-server --prerelease`
+  `dotnet tool install --global roslyn-language-server --prerelease`.
+  It's needed to build, too: `Projects/AXamlIDE.RoslynExtension` compiles against its assemblies. Without it the
+  build warns, and solution-wide analysis uses Roslyn's slower `workspace/diagnostic` instead. After updating it,
+  see [what to check](docs/architecture.md#when-roslyn-language-server-updates).
 - `git` on `PATH`, for the Git features
 - Git credential manager, for cloning and pushing over HTTPS:
   `dotnet tool update -g git-credential-manager --version 3.0.1`
@@ -72,6 +75,7 @@ Tools > Settings (saved as JSON in the user's application data folder):
 | `AXamlIDE` | The app (Avalonia UI) |
 | `Projects/AXamlIDE.Core` | Everything without a UI: language server client, debugger, workspace, NuGet, Git, AXAML completion and formatting |
 | `Projects/AXamlIDE.msbuildhost` | MSBuild, run out of process |
+| `Projects/AXamlIDE.RoslynExtension` | Our code inside the Roslyn language server (it loads the assembly): solution-wide analysis |
 | `Projects/AXamlIDE.Tests` | xUnit tests for Core |
 
 How the parts fit together: [docs/architecture.md](docs/architecture.md). What happens step by step for the main

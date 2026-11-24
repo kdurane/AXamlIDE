@@ -12,6 +12,8 @@
         <Compile Remove="Projects/**/*.cs" />
         <!-- Built first, but not copied in: CopyMsBuildHost / PublishHelperProcesses put it in its own msbuildhost/ folder. -->
         <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" Private="false" />
+        <!-- Likewise our extension for the Roslyn language server, which loads it from roslynextension/ (CopyRoslynExtension). -->
+        <ProjectReference Include="Projects/AXamlIDE.RoslynExtension/AXamlIDE.RoslynExtension.csproj" ReferenceOutputAssembly="false" Private="false" />
         <ProjectReference Include="Projects/AXamlIDE.Core/AXamlIDE.Core.csproj" />
         <Compile Update="Views\EditorPaneView.axaml.cs">
           <DependentUpon>EditorPaneView.axaml</DependentUpon>
@@ -56,6 +58,12 @@
         </ItemGroup>
         <Copy SourceFiles="@(HostFiles)" DestinationFiles="@(HostFiles->'$(OutDir)msbuildhost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     </Target>
+    <Target Name="CopyRoslynExtension" AfterTargets="Build">
+        <ItemGroup>
+            <RoslynExtensionFiles Include="Projects/AXamlIDE.RoslynExtension/bin/$(Configuration)/$(TargetFramework)/*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(RoslynExtensionFiles)" DestinationFolder="$(OutDir)roslynextension" SkipUnchangedFiles="true" />
+    </Target>
     <!--
         The debugger (Samsung's netcoredbg) is copied next to the app, from:
           - Projects/netcoredbg, when it has this OS's executable (a local copy; the Windows one is committed), else
@@ -93,14 +101,21 @@
     </Target>
 
     <!--
-        Publish takes the MSBuild host and the debugger along, in the folders the app looks for them in (msbuildhost/ and
-        netcoredbg/ beside it, as the build does). They're separate programs, so a single-file publish leaves them as files.
+        Publish takes the MSBuild host, the Roslyn extension and the debugger along, in the folders the app looks for them
+        in (msbuildhost/, roslynextension/ and netcoredbg/ beside it, as the build does). They're loaded by other
+        processes, so a single-file publish leaves them as files.
     -->
     <Target Name="PublishHelperProcesses" AfterTargets="ComputeResolvedFilesToPublishList" DependsOnTargets="DownloadNetCoreDbg">
         <ItemGroup>
             <_HostPublishFile Include="Projects/AXamlIDE.msbuildhost/bin/$(Configuration)/$(TargetFramework)/**/*.*" />
             <ResolvedFileToPublish Include="@(_HostPublishFile)">
                 <RelativePath>msbuildhost/%(_HostPublishFile.RecursiveDir)%(_HostPublishFile.Filename)%(_HostPublishFile.Extension)</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            </ResolvedFileToPublish>
+            <_RoslynExtensionPublishFile Include="Projects/AXamlIDE.RoslynExtension/bin/$(Configuration)/$(TargetFramework)/*.*" />
+            <ResolvedFileToPublish Include="@(_RoslynExtensionPublishFile)">
+                <RelativePath>roslynextension/%(_RoslynExtensionPublishFile.Filename)%(_RoslynExtensionPublishFile.Extension)</RelativePath>
                 <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
                 <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
             </ResolvedFileToPublish>

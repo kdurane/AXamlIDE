@@ -1,22 +1,24 @@
 # Architecture
 
-AXamlIDE is an Avalonia desktop app plus one helper program of its own, and it starts several outside tools as child
-processes. This page shows the main parts and how they talk to each other. [flows.md](flows.md) follows individual
+AXamlIDE is an Avalonia desktop app plus one helper program of its own and one extension it loads into the Roslyn
+language server, and it starts several outside tools as child processes. This page shows the main parts and how they talk to each other. [flows.md](flows.md) follows individual
 actions through the code step by step, and [api-glossary.md](api-glossary.md) lists the third-party calls.
 
-## The three projects
+## The projects
 
 | Project | What it is | May reference |
 |---|---|---|
 | `AXamlIDE` (repo root) | The app: views, view models, the editor, DI wiring | Avalonia, AvaloniaEdit, Dock, `AXamlIDE.Core` |
 | `Projects/AXamlIDE.Core` | Everything that has no UI: LSP client, debug adapter client, workspace, Git, NuGet, search, the AXAML completion engine | **No Avalonia** (see the comment in `AXamlIDE.Core.csproj`) |
 | `Projects/AXamlIDE.msbuildhost` | A separate console program that evaluates `.csproj` files with the installed SDK's MSBuild | `Microsoft.Build`, `Microsoft.Build.Locator` |
+| `Projects/AXamlIDE.RoslynExtension` | An assembly the Roslyn language server loads into its own process, whose handlers work on the server's live `Solution` (see [below](#our-extension-inside-the-roslyn-server)) | The installed server's Roslyn assemblies, not copied |
 
 `AXamlIDE.Core` uses the same namespaces as the app (`AXamlIDE.Services.*`, `AXamlIDE.Models`), so whether a class
 lives in the app or in Core can't be told from its namespace. The folder tells you.
 
 `HostProtocol.cs` (the request and response records sent to the MSBuild host) is compiled into both the host and
-Core: `AXamlIDE.Core.csproj` links it in. That way the two sides can't drift apart.
+Core: `AXamlIDE.Core.csproj` links it in. That way the two sides can't drift apart. `ExtensionProtocol.cs` (the
+messages to and from the Roslyn extension) is shared the same way.
 
 ## Component diagram
 
@@ -67,6 +69,7 @@ flowchart TB
             APP["AvaloniaPreviewProcess"]
             GST["GitStatusTracker"]
             DST["DebugSnapshotTracker"]
+            SAS["SolutionAnalysisService<br/>(closed files' diagnostics)"]
         end
 
         MSG(["IMessenger<br/>(WeakReferenceMessenger.Default)"])
@@ -78,6 +81,7 @@ flowchart TB
         MBC["MsBuildHostClient"]
         LM["LspManager"]
         LC["LspClient"]
+        REC["RoslynExtensionClient"]
         XLS["XamlLanguageService"]
         XCS["XamlCompletionService<br/>→ CompletionEngine (dnlib)"]
         DPR["DotNetProjectRunner"]
@@ -91,6 +95,7 @@ flowchart TB
     subgraph External["Child processes"]
         HOST["AXamlIDE.msbuildhost"]
         ROS["roslyn-language-server"]
+        REXT["AXamlIDE.RoslynExtension<br/>(loaded into the server)"]
         NETDBG["netcoredbg"]
         DOTNET["dotnet build / run / publish"]
         DESIGN["Avalonia designer host<br/>(dotnet exec ... --method avalonia-remote)"]
@@ -116,6 +121,10 @@ flowchart TB
     LSS --> LM
     LM --> LC
     LC -- "JSON-RPC over stdio" --> ROS
+    SAS --> REC
+    SAS -- "workspace/diagnostic, if the extension won't load" --> LC
+    REC -- "extension messages, over the same connection" --> LC
+    ROS -- "loads, runs its handlers" --> REXT
 
     WVM --> WM
     WVM --> SL
@@ -281,6 +290,7 @@ and drag preview would otherwise try to show the same editor control a second ti
 |---|---|---|---|
 | `AXamlIDE.msbuildhost` | `MsBuildHostClient.Start` (first use of `WorkspaceModel.Host`) | One JSON line per request and response, stdin/stdout | `AXAMLIDE_HOST`, else `msbuildhost/` beside the app |
 | `roslyn-language-server` | `LspManager.StartAsync` → `LspClient.StartAsync` | LSP: JSON-RPC 2.0, `Content-Length` framing, stdio | `AXAMLIDE_ROSLYN`, else `~/.dotnet/tools`, else `PATH` (`LspServers.FindTool`) |
+| `AXamlIDE.RoslynExtension` (an assembly the server loads, not a program) | `RoslynExtensionClient.ActivateAsync`, the first time `SolutionAnalysisService` starts the live analysis on a server | `server/_vs_activateExtension`, then `workspace/_vs_dispatchExtensionMessage` (a message name and JSON text in, JSON text out) over the server's LSP connection | `roslynextension/` beside the app (`RoslynExtensionClient.AssemblyPath`) |
 | `netcoredbg` | `new NetCoreDbgSession(...)` in `RunViewModel.DebugProjectAsync` | Debug Adapter Protocol over stdio (`DebugAdapterTransport`) | `AXAMLIDE_NETCOREDBG_PATH`, else `netcoredbg/` beside the app, else `PATH` |
 | `dotnet` | `DotNetProjectRunner.ExecuteAsync` | Plain output lines | `PATH` |
 | Avalonia designer host | `AvaloniaPreviewProcess.StartAsync` (`dotnet exec ... --transport tcp-bson://127.0.0.1:<port>/ --method avalonia-remote`) | `Avalonia.Remote.Protocol` BSON over TCP | `XamlPreviewTarget.HostAppPath` (worked out by `XamlPreviewTargetResolver`) |
@@ -292,6 +302,50 @@ The MSBuild host is a separate process because it loads the installed SDK's MSBu
 `MSBuildLocator.RegisterDefaults()`. The `.csproj` comment explains why: shipping its own copies would cause version
 conflicts. `SolutionLoader` and the rest of Core never reference `Microsoft.Build`.
 
+## Our extension inside the Roslyn server
+
+Roslyn's own `workspace/diagnostic` goes through every file of the solution each time anything changes (about a minute
+for this repo), so solution-wide analysis asks our extension instead. The server loads
+`Projects/AXamlIDE.RoslynExtension` into its own process (`server/_vs_activateExtension`) and runs its handlers on
+the same live `Solution` its LSP features use, unsaved edits included. There's no second copy of Roslyn.
+
+- **The API.** The handlers implement `IExtensionWorkspaceMessageHandler<TMessage, TResponse>` from
+  `Microsoft.CodeAnalysis.Extensions` (in `Microsoft.CodeAnalysis.Workspaces`). It's public but marked experimental
+  (`RSEXPERIMENTAL008`, "subject to change or removal"), and no NuGet release has it yet (5.12.0 doesn't). So the
+  project compiles against the installed server's own assemblies (the `.csproj` comment says where it looks), and
+  the server's copies are used at run time. Everything else in the server (its LSP handlers, the `ExternalAccess`
+  assemblies) is internal and open only to Microsoft's own assemblies.
+- **The messages** (`ExtensionProtocol.cs`). `ProjectsHandler` returns the projects and their versions (cheap).
+  `ProjectDiagnosticsHandler` returns one project's compiler diagnostics, file by file. Each file's are cached
+  (`DiagnosticCache`) by its text version and a key for what all files depend on: the top-level semantic version,
+  generated sources, `.editorconfig`, options and references. So after an edit inside a method body only that file
+  is checked again (about 300 ms here). `ProjectCompilationDiagnosticsHandler` compiles the whole project for what
+  the file checks can't see (unused fields CS0169/CS0414/CS0649, no `Main` CS5001), less what they already report.
+  The extension can't send anything unasked, so the IDE asks: see [flows.md, flow 16](flows.md#16-solution-wide-analysis).
+- **The fallback.** If the extension isn't there (built without the server installed), won't load, or fails, the
+  IDE uses `workspace/diagnostic` (a long poll with partial results) and writes the reason to the debug output,
+  in lines starting `[solution analysis]`.
+
+### When roslyn-language-server updates
+
+The extension API is experimental, so check it after every server update, and above all when a stable (non-preview)
+release comes out:
+
+1. **Build.** The extension compiles against the new assemblies. A compile error in `Projects/AXamlIDE.RoslynExtension`
+   means the API changed. If the store has two versions after an update, the build uses the last one listed. Remove
+   the old one, or set `RoslynServerDir`.
+2. **Run.** Open a solution with solution-wide analysis on, then type an error into a file and close it. In the debug
+   output, `[solution analysis] <project>: N files checked in … ms` means the extension is working. `Roslyn extension
+   not loaded (…)` or `failed (…)` means the IDE fell back: the reason says why (a renamed request, a changed
+   message, a handler the server didn't register).
+3. **The package.** If a NuGet release of `Microsoft.CodeAnalysis.Workspaces.Common` now has
+   `Microsoft.CodeAnalysis.Extensions`, reference it instead of the tool's store (with `ExcludeAssets="runtime"`, as
+   the MSBuild host does), so building no longer needs the server installed. Take `RSEXPERIMENTAL008` out of the
+   `NoWarn` and build: if nothing complains, the API is no longer experimental and the `NoWarn` can stay out.
+4. **Is it still needed?** Roslyn's own `workspace/diagnostic` may have got faster. Time a full pass on a large
+   solution with and without the extension (delete `roslynextension/` from the output to force the fallback). If
+   they're close, the fallback alone may do.
+
 ## Where to look for...
 
 | To change... | Start in |
@@ -301,6 +355,7 @@ conflicts. `SolutionLoader` and the rest of Core never reference `Microsoft.Buil
 | The starting dock layout, or adding a tool panel | `ViewModels/DockFactory.cs`, `Shell/ToolPanels.cs`, `Messages/ToolTab.cs` |
 | A keyboard shortcut | `Shell/KeyMap.cs` (`WireCommands`), Core `Services/Keymaps/*.json` |
 | An editor feature | `Views/EditorPaneView.axaml.cs` (`Initialize`), then the controller in `Editor/` |
+| Solution-wide analysis (closed files' errors), Run Code Analysis | `Services/Languages/SolutionAnalysisService.cs`, Core `Services/Lsp/RoslynExtensionClient.cs`, `Projects/AXamlIDE.RoslynExtension/` |
 | AXAML diagnostics (xmlns problems, `[Obsolete]` uses, the preview's error) | `Services/Languages/XamlAnalysisService.cs`, Core `Services/Xaml/XamlNamespaceAnalysis.cs` / `XamlObsoleteAnalysis.cs`, Core `Services/Preview/PreviewErrorDiagnostic.cs` |
 | The Claude panel | `ViewModels/AgentChatViewModel*.cs` (start, turn, history, attachments), `Views/AgentChatView.axaml`, Core `Services/Agents/` |
 | The editor's find/replace bar | `Styles/SearchPanelTheme.axaml` (our template for AvaloniaEdit's `SearchPanel`) |

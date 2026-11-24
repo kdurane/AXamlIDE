@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <!--
+    Our code inside Microsoft's C# language server (roslyn-language-server): the server loads this assembly when the
+    IDE asks (server/_vs_activateExtension) and runs its handlers on its own live Solution, the same one its LSP
+    features use, unsaved edits included. See ExtensionProtocol.cs for the messages.
+
+    It's compiled against the Roslyn assemblies of the installed server, because the extension API
+    (Microsoft.CodeAnalysis.Extensions, experimental: RSEXPERIMENTAL008) isn't in a NuGet release yet, and because
+    those are the assemblies that load it. They aren't copied: the server has its own. Found, in order:
+      - $(RoslynServerDir), if set;
+      - the folder of AXAMLIDE_ROSLYN (the IDE's own override for the server), if it's set and has them;
+      - the dotnet tool's store (dotnet tool install, global, roslyn-language-server, prerelease).
+    With none, this builds an empty assembly (a warning says so) and the IDE uses Roslyn's workspace/diagnostic instead.
+
+    When the server updates (above all to a stable release), go through docs/architecture.md, "When
+    roslyn-language-server updates".
+    -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- The extension API is marked experimental; we accept that it may change with a server update. -->
+        <NoWarn>$(NoWarn);RSEXPERIMENTAL008</NoWarn>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(RoslynServerDir)' == '' And '$(AXAMLIDE_ROSLYN)' != ''">
+        <_RoslynOverrideDir>$([System.IO.Path]::GetDirectoryName('$(AXAMLIDE_ROSLYN)'))</_RoslynOverrideDir>
+        <RoslynServerDir Condition="Exists('$(_RoslynOverrideDir)/Microsoft.CodeAnalysis.Workspaces.dll')">$(_RoslynOverrideDir)</RoslynServerDir>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(RoslynServerDir)' == ''">
+        <_RoslynToolWorkspaces Include="$([System.Environment]::GetFolderPath(SpecialFolder.UserProfile))/.dotnet/tools/.store/roslyn-language-server/**/Microsoft.CodeAnalysis.Workspaces.dll" />
+    </ItemGroup>
+
+    <!-- The tool's store normally holds one version; if there are more, the last one listed wins. -->
+    <Target Name="FindRoslynServer" BeforeTargets="ResolveAssemblyReferences;CoreCompile">
+        <PropertyGroup Condition="'$(RoslynServerDir)' == '' And '@(_RoslynToolWorkspaces)' != ''">
+            <RoslynServerDir>%(_RoslynToolWorkspaces.RootDir)%(_RoslynToolWorkspaces.Directory)</RoslynServerDir>
+        </PropertyGroup>
+        <ItemGroup Condition="'$(RoslynServerDir)' != ''">
+            <Reference Include="$(RoslynServerDir)/Microsoft.CodeAnalysis.dll" Private="false" />
+            <Reference Include="$(RoslynServerDir)/Microsoft.CodeAnalysis.CSharp.dll" Private="false" />
+            <Reference Include="$(RoslynServerDir)/Microsoft.CodeAnalysis.Workspaces.dll" Private="false" />
+        </ItemGroup>
+        <ItemGroup Condition="'$(RoslynServerDir)' == ''">
+            <Compile Remove="@(Compile)" />
+            <Compile Include="ExtensionProtocol.cs" />
+        </ItemGroup>
+        <Warning Condition="'$(RoslynServerDir)' == ''"
+                 Text="roslyn-language-server isn't installed, so AXamlIDE's Roslyn extension is built empty; solution-wide analysis will use workspace/diagnostic. Install it with: dotnet tool install -g roslyn-language-server --prerelease" />
+    </Target>
+</Project>

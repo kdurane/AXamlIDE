@@ -24,6 +24,7 @@ Contents:
 13. [Close the solution](#13-close-the-solution)
 14. [AXAML diagnostics](#14-axaml-diagnostics)
 15. [Claude panel: send a message](#15-claude-panel-send-a-message)
+16. [Solution-wide analysis](#16-solution-wide-analysis)
 
 ---
 
@@ -578,3 +579,54 @@ reopening the tab brings the same chat back. It talks to `claude-agent-acp` thro
 **History**: the history button → `LoadHistoryCommand` → `client.ListSessionsAsync(folder)` (`session/list`).
 Picking one → `OpenSessionAsync` → `client.LoadSessionAsync` (`session/load`), and the agent replays the conversation
 as `session/update`s.
+
+## 16. Solution-wide analysis
+
+`SolutionAnalysisService` (`Services/Languages/SolutionAnalysisService.cs`) keeps the compiler diagnostics of every
+file in the solution in `Files`, for the Problems list and the status bar's error count. Open files' come from their
+own pulls ([flow 4](#4-type-in-a-c-file-sync-and-diagnostics)), and both readers skip open files in `Files`.
+
+**Starting**
+
+1. Turning it on (the setting, through `OnSettingsChanged` → `StartAsync`), Roslyn's projects finishing loading, or
+   Roslyn asking for a refresh (`LspManager.DiagnosticsRefreshNeeded` → `OnRefreshNeeded`) → `Poll(client)` → stops
+   the last live analysis → `LiveAsync`.
+2. `LiveAsync`, once per server: `RoslynExtensionClient.ActivateAsync` (Core `Services/Lsp/RoslynExtensionClient.cs`)
+   → `LspClient.ActivateExtensionAsync` (`server/_vs_activateExtension` with `roslynextension/AXamlIDE.RoslynExtension.dll`).
+   It needs all three handlers registered. Loaded → `WatchAsync` (below), once the projects have loaded. Not loaded
+   → `UseWorkspaceDiagnostics` → one `PollAsync` per identifier (Roslyn's own way, at the end).
+
+**Through the extension** (`WatchAsync`, until stopped)
+
+1. `WaitForQuietAsync`: until nothing has been typed for 0.5 s (`QuietDelay`).
+2. `CheckAsync`, cancelled by typing (`OnTyped` cancels `_typing`):
+   1. `RoslynExtensionClient.ProjectsAsync(open files)` → the extension's `ProjectsHandler`: each project's id and
+      version, the open files' projects first.
+   2. Each project whose version isn't the one in `_projects` → `DocumentDiagnosticsAsync` →
+      `ProjectDiagnosticsHandler` → `DiagnosticCache.DocumentDiagnosticsAsync` (in the server: only files whose text
+      or project key changed are checked, in parallel) → `RoslynExtensionClient.ParseDiagnostics` (the diagnostics are
+      in the LSP's shape, so `LspClient.ParseDiagnostic` reads them) → stored in `_projects` → `Publish`.
+   3. Then each project whose compilation step is older than its files step → `CompilationDiagnosticsAsync` →
+      `ProjectCompilationDiagnosticsHandler` (the whole project compiled, less what step 2 reported) → `Publish`.
+3. `WaitForChangeAsync`: until `Kick` (typing, a file closing) or 1 s (`WatchInterval`), which catches files changed
+   on disk by git or another program. Then back to step 1.
+4. If the extension throws (a server update changed it): back to `workspace/diagnostic` for this server.
+
+**Through workspace/diagnostic** (`PollAsync`, one per identifier)
+
+1. `WaitForQuietAsync`, then `LspClient.WorkspaceDiagnosticsAsync(identifier, result ids, partial)`. Roslyn holds the
+   request until something changes, then goes through the solution, sending files in batches as partial results
+   (`$/progress` with our `partialResultToken`, routed by `LspClient.HandleProgress`).
+2. The batches are gathered on the reading thread and applied on the UI thread, several at a time (`Apply` →
+   `Publish`). Typing cancels the request, and it's asked again when the typing stops.
+3. Roslyn leaves open files out, so a saved file's diagnostics are kept from when it closes (`_closedSince`) until
+   Roslyn reports it.
+
+**Publishing**: `Publish` merges the extension's reports (`ExtensionFiles`: a file in two projects, one per
+target framework, is listed once), `workspace/diagnostic`'s, `_closedSince`, and the last Run Code Analysis
+(`_codeAnalysis`, the analyzers' diagnostics, which the live analysis doesn't have) into `Files`, then sends
+`SolutionDiagnosticsChangedMessage` → `ProblemsViewModel` and `StatusBarViewModel` rebuild.
+
+**Run Code Analysis on Solution** (`RunCodeAnalysisAsync`) stops the live analysis, widens Roslyn's analyzer scope
+(`CodeAnalysisRun`, `WidenAsync`), touches a file per project, asks `workspace/diagnostic` once with no result ids,
+narrows the scope again, and restarts the live analysis.

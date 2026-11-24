@@ -27,10 +27,17 @@ namespace AXamlIDE.Services.Languages;
 /// Open files keep coming from LanguageSessionService's per-document pulls, which see unsaved text; Roslyn leaves
 /// them out of its answers here.
 ///
-/// How it asks: Roslyn's background analysis scope is a server option (RoslynSettings answers "fullSolution"), and the
-/// results come from workspace/diagnostic. For the live analysis that request is a long poll: the first answer is
-/// everything, and each later one (sent with the result ids we have) waits until something changes, then says what
-/// did. So there's one request always waiting per identifier, restarted whenever the server asks for a refresh.
+/// How the live analysis asks: through our extension inside the Roslyn server (<see cref="RoslynExtensionClient"/>),
+/// which works on the server's own Solution. Every second (and as soon as typing stops) it asks for the projects'
+/// versions; for each project that changed, it asks for the files' compiler diagnostics (only the changed files are
+/// checked again, so that's quick) and then for what only compiling the whole project finds (unused fields...). The
+/// open files' projects go first. Typing cancels what's being asked; it's asked again once the typing stops.
+///
+/// If the extension can't be loaded (not built, or a server whose extension API changed), it falls back to Roslyn's
+/// own workspace/diagnostic, which is slower: Roslyn's background analysis scope is a server option (RoslynSettings
+/// answers "fullSolution"), and that request is a long poll: the first answer is everything, and each later one (sent
+/// with the result ids we have) waits until something changes, then goes through the solution again, streaming what
+/// it finds. So there's one request always waiting per identifier, restarted whenever the server asks for a refresh.
 /// Roslyn has no "run code analysis" request, so a run widens the analyzers' scope too (<see cref="CodeAnalysisRun"/>),
 /// asks once with no result ids (everything, at once), and narrows it again. Roslyn holds even that request until a
 /// tracked document changes, and would answer it from what it worked out for the narrower scope, so the run first
@@ -50,6 +57,10 @@ public sealed class SolutionAnalysisService
     /// answer now streams in file by file (partial results) and typing cancels it anyway.</summary>
     private static readonly TimeSpan QuietDelay = TimeSpan.FromMilliseconds(500);
 
+    /// <summary>With the extension, how often to ask whether anything changed when nothing in the IDE said so (a file
+    /// changed on disk, by git or another program). Cheap: the server just reports its projects' versions.</summary>
+    private static readonly TimeSpan WatchInterval = TimeSpan.FromSeconds(1);
+
     /// <summary>How long a code analysis run waits for each of Roslyn's steps in taking up the widened options
     /// (reading them, then asking for a refresh, about two seconds later) before going on anyway.</summary>
     private static readonly TimeSpan OptionsTimeout = TimeSpan.FromSeconds(10);
@@ -61,8 +72,15 @@ public sealed class SolutionAnalysisService
     private readonly CodeAnalysisRun _run;
     private readonly IMessenger _messenger;
 
-    // What each identifier last said about each file (by URI): its result id and diagnostics.
+    // What each identifier last said about each file (by URI): its result id and diagnostics. (workspace/diagnostic only.)
     private readonly Dictionary<string, Dictionary<string, (string? ResultId, IReadOnlyList<LspDiagnostic> Diagnostics)>> _reports = [];
+
+    // Our extension in the C# server: loading it (once per server), and, once loaded, what it said about each project
+    // (by its id). A kick ends the wait between checks: something changed in the IDE.
+    private (LspClient Client, Task<(RoslynExtensionClient? Extension, string? Reason)> Loading)? _extension;
+    private readonly Dictionary<string, ProjectReport> _projects = [];
+    private TaskCompletionSource _kick = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool _usingExtension;
     private CancellationTokenSource? _polling;
 
     // Typing in any open document: when it last happened, and a token that's cancelled when it does (stopping the
@@ -158,6 +176,7 @@ public sealed class SolutionAnalysisService
         _generation = _servers.Generation;
         _codeAnalysisRun?.Cancel();
         _codeAnalysis = null;
+        _extension = null;   // a new server: it needs loading into that one
         Stop();
         ClearLive();
     }
@@ -177,11 +196,16 @@ public sealed class SolutionAnalysisService
         Publish();
     }
 
-    /// <summary>A saved file is closing: keep its compiler diagnostics until Roslyn reports it (the next live answer).</summary>
+    /// <summary>
+    /// A file is closing. With the extension, its diagnostics are already listed (from its open text; closed without
+    /// saving, the server goes back to what's on disk, which the next check picks up). Without it, Roslyn doesn't
+    /// report open files, so keep a saved file's compiler diagnostics until Roslyn reports it (the next live answer).
+    /// </summary>
     private void OnDocumentClosing(OpenDocument document)
     {
         document.Document.TextChanged -= OnTyped;
-        if (!_enabled || document.IsDirty)
+        Kick();
+        if (!_enabled || document.IsDirty || _usingExtension)
             return;   // closed without saving: what it had open isn't what's on disk
         var diagnostics = document.Diagnostics
             .Where(segment => segment.RawDiagnostic is { } raw && raw.ValueKind == JsonValueKind.Object)
@@ -200,7 +224,11 @@ public sealed class SolutionAnalysisService
         _typing = new CancellationTokenSource();
         typing.Cancel();
         typing.Dispose();
+        Kick();
     }
+
+    /// <summary>Something changed: end the extension's wait between checks (it then waits for the typing to stop).</summary>
+    private void Kick() => _kick.TrySetResult();
 
     /// <summary>Until nothing has been typed for <see cref="QuietDelay"/>.</summary>
     private async Task WaitForQuietAsync(CancellationToken ct)
@@ -380,14 +408,168 @@ public sealed class SolutionAnalysisService
 
     // ---------------------------------------------------------------- the live analysis
 
-    /// <summary>(Re)start the waiting requests, one per identifier, keeping the results we already have.</summary>
+    /// <summary>(Re)start the live analysis, keeping the results we already have: through the extension if it loads,
+    /// otherwise one waiting workspace/diagnostic request per identifier.</summary>
     private void Poll(LspClient client)
     {
         Stop();
         var polling = _polling = new CancellationTokenSource();
-        foreach (var identifier in client.WorkspaceDiagnosticIdentifiers)
-            _ = PollAsync(client, identifier, polling.Token);
+        _ = LiveAsync(client, polling.Token);
     }
+
+    private async Task LiveAsync(LspClient client, CancellationToken ct)
+    {
+        if (_extension?.Client != client)
+            _extension = (client, RoslynExtensionClient.ActivateAsync(client, CancellationToken.None));
+        var loading = _extension.Value.Loading;
+        var firstTime = !loading.IsCompleted;
+
+        (RoslynExtensionClient? Extension, string? Reason) loaded;
+        try
+        {
+            loaded = await loading.WaitAsync(ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            loaded = (null, ex.Message);
+        }
+        if (ct.IsCancellationRequested)
+            return;
+
+        if (loaded.Extension is { } extension)
+        {
+            if (!_servers.HasLoadedProjects(LanguageIds.CSharp))
+                return;   // it would see a half-loaded solution; the projects loading restarts this (OnRefreshNeeded)
+            if (!_usingExtension)
+                ClearLive();   // what workspace/diagnostic said (Roslyn leaves out the open files; the extension doesn't)
+            _usingExtension = true;
+            await WatchAsync(client, extension, ct);
+            return;
+        }
+
+        if (firstTime)
+            Debug.WriteLine($"[solution analysis] Roslyn extension not loaded ({loaded.Reason}); using workspace/diagnostic");
+        UseWorkspaceDiagnostics(client, ct);
+    }
+
+    private void UseWorkspaceDiagnostics(LspClient client, CancellationToken ct)
+    {
+        if (_usingExtension)
+            ClearLive();
+        _usingExtension = false;
+        foreach (var identifier in client.WorkspaceDiagnosticIdentifiers)
+            _ = PollAsync(client, identifier, ct);
+    }
+
+    // ---------------------------------------------------------------- the live analysis, through the extension
+
+    /// <summary>What the extension last said about one project: its files' diagnostics and what only compiling the
+    /// project found, each with the project version it was for.</summary>
+    private sealed class ProjectReport
+    {
+        public string? FilesVersion;
+        public IReadOnlyDictionary<string, IReadOnlyList<LspDiagnostic>> Files = new Dictionary<string, IReadOnlyList<LspDiagnostic>>();
+        public string? CompilationVersion;
+        public IReadOnlyDictionary<string, IReadOnlyList<LspDiagnostic>> Compilation = new Dictionary<string, IReadOnlyList<LspDiagnostic>>();
+    }
+
+    /// <summary>Check, then wait until something changes (or a second goes by), until stopped.</summary>
+    private async Task WatchAsync(LspClient client, RoslynExtensionClient extension, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await WaitForQuietAsync(ct);
+                using (var request = CancellationTokenSource.CreateLinkedTokenSource(ct, _typing.Token))
+                    await CheckAsync(extension, request.Token);
+                await WaitForChangeAsync(ct);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // typing started: check again once it stops
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                // The extension failed (its API changed under a server update, say): go back to Roslyn's own way.
+                Debug.WriteLine($"[solution analysis] Roslyn extension failed ({ex.Message}); using workspace/diagnostic");
+                _extension = (client, Task.FromResult<(RoslynExtensionClient?, string?)>((null, ex.Message)));
+                UseWorkspaceDiagnostics(client, ct);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ask which projects changed; for each, its files' diagnostics (each shown as it comes), then what only compiling
+    /// it finds. Projects that are gone are dropped.
+    /// </summary>
+    private async Task CheckAsync(RoslynExtensionClient extension, CancellationToken ct)
+    {
+        List<string> open = [.. _documents.Documents.Select(document => document.Path)];
+        if (_documents.Active is { } active)
+            open.Insert(0, active.Path);
+        var projects = await extension.ProjectsAsync(open, ct);
+
+        var current = projects.Select(project => project.Id).ToHashSet(StringComparer.Ordinal);
+        var gone = _projects.Keys.Where(id => !current.Contains(id)).ToList();
+        foreach (var id in gone)
+            _projects.Remove(id);
+        if (gone.Count > 0)
+            Publish();
+
+        foreach (var project in projects)
+        {
+            if (_projects.TryGetValue(project.Id, out var known) && known.FilesVersion == project.Version)
+                continue;
+            if (await extension.DocumentDiagnosticsAsync(project.Id, ct) is not { } result)
+                continue;   // gone since
+            if (!_projects.TryGetValue(project.Id, out var report))
+                _projects[project.Id] = report = new ProjectReport();
+            report.FilesVersion = result.Version;
+            report.Files = result.Files;
+            Debug.WriteLine($"[solution analysis] {project.Name}: {result.Checked} files checked in {result.Milliseconds} ms");
+            Publish();
+        }
+
+        if (!HasResults)
+        {
+            HasResults = true;
+            Publish();
+        }
+
+        foreach (var project in projects)
+        {
+            if (!_projects.TryGetValue(project.Id, out var report) || report.CompilationVersion == report.FilesVersion)
+                continue;
+            if (await extension.CompilationDiagnosticsAsync(project.Id, ct) is not { } result)
+                continue;
+            report.CompilationVersion = result.Version;
+            report.Compilation = result.Files;
+            Debug.WriteLine($"[solution analysis] {project.Name}: compiled in {result.Milliseconds} ms");
+            Publish();
+        }
+    }
+
+    /// <summary>Until something in the IDE changes (<see cref="Kick"/>), or <see cref="WatchInterval"/> goes by.</summary>
+    private async Task WaitForChangeAsync(CancellationToken ct)
+    {
+        var kick = _kick.Task;
+        await Task.WhenAny(kick, Task.Delay(WatchInterval, ct));
+        ct.ThrowIfCancellationRequested();
+        if (kick.IsCompleted)
+            _kick = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
+    // ---------------------------------------------------------------- the live analysis, through workspace/diagnostic
 
     private void Stop()
     {
@@ -514,6 +696,7 @@ public sealed class SolutionAnalysisService
     private void ClearLive()
     {
         _reports.Clear();
+        _projects.Clear();
         _closedSince.Clear();
         HasResults = false;
         Publish();
@@ -535,6 +718,8 @@ public sealed class SolutionAnalysisService
                     continue;   // source-generated files and the like have no path to open
                 live[path] = live.TryGetValue(path, out var earlier) ? [.. earlier, .. report.Diagnostics] : report.Diagnostics;
             }
+        foreach (var (path, diagnostics) in ExtensionFiles())
+            live[path] = live.TryGetValue(path, out var earlier) ? [.. earlier, .. diagnostics] : diagnostics;
         foreach (var (path, diagnostics) in _closedSince)
             live.TryAdd(path, diagnostics);
 
@@ -561,6 +746,28 @@ public sealed class SolutionAnalysisService
         }
 
         _messenger.Send(new SolutionDiagnosticsChangedMessage());
+    }
+
+    /// <summary>
+    /// The extension's reports merged by file: each project's files' and compilation's. A file in two projects (a
+    /// project built for two frameworks) is listed by both, so the same diagnostic is kept once.
+    /// </summary>
+    private Dictionary<string, IReadOnlyList<LspDiagnostic>> ExtensionFiles()
+    {
+        var merged = new Dictionary<string, List<LspDiagnostic>>(GitStatus.PathComparer);
+        var seen = new HashSet<(string, int, int, int, int, string)>();
+        foreach (var report in _projects.Values)
+            foreach (var files in (IEnumerable<IReadOnlyDictionary<string, IReadOnlyList<LspDiagnostic>>>)[report.Files, report.Compilation])
+                foreach (var (path, diagnostics) in files)
+                    foreach (var diagnostic in diagnostics)
+                    {
+                        if (!seen.Add((path, diagnostic.StartLine, diagnostic.StartChar, diagnostic.EndLine, diagnostic.EndChar, diagnostic.Message)))
+                            continue;
+                        if (!merged.TryGetValue(path, out var list))
+                            merged[path] = list = [];
+                        list.Add(diagnostic);
+                    }
+        return merged.ToDictionary(pair => pair.Key, pair => (IReadOnlyList<LspDiagnostic>)pair.Value, GitStatus.PathComparer);
     }
 
     /// <summary>The C# compiler's own diagnostics (CS0103...), which the live analysis also reports; the rest are
