@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using AvaloniaEdit.Document;
 using AvaloniaEdit.Rendering;
+using AXamlIDE.Models;
 
 namespace AXamlIDE.Editor;
 
@@ -8,10 +9,13 @@ namespace AXamlIDE.Editor;
 /// Keeps the text on screen still when an edit lands wholly above it, such as a quick fix adding a using at the
 /// top of the file. AvaloniaEdit keeps the pixel scroll offset, so on its own the view would slide down by the
 /// lines inserted. Visual Studio and VS Code instead keep the top visible line where it was.
+/// Only for edits made through <see cref="OpenDocument.EditKeepingView"/> (code actions): undo, redo and the
+/// like must still scroll to what they changed, which keeping the view still would fight (and flicker).
 /// </summary>
 public sealed class ScrollAnchorController
 {
     private readonly EditorContext _ctx;
+    private OpenDocument? _open;
     private TextDocument? _hooked;
 
     // The top visible line (as an anchor, so it follows the edits) and how far into it the view was scrolled.
@@ -24,6 +28,7 @@ public sealed class ScrollAnchorController
         ctx.Detaching += _ => Unhook();
         ctx.Attached += doc =>
         {
+            _open = doc;
             _hooked = doc?.Document;
             if (_hooked is null)
                 return;
@@ -40,13 +45,14 @@ public sealed class ScrollAnchorController
             _hooked.Changed -= OnChanged;
         }
         _hooked = null;
+        _open = null;
         _anchor = null;
     }
 
     private void OnChanging(object? sender, DocumentChangeEventArgs e)
     {
-        if (_anchor is not null || _hooked is not { } document)
-            return;   // already anchored for this run of edits
+        if (_anchor is not null || _hooked is not { } document || _open is not { KeepViewStill: true })
+            return;   // already anchored for this run of edits, or not a code action's edit
 
         var view = _ctx.Editor.TextArea.TextView;
         var scrollY = view.ScrollOffset.Y;

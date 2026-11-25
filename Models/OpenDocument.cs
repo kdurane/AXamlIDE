@@ -132,6 +132,26 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
     public bool IsDirty => !Document.UndoStack.IsOriginalFile;
 
     /// <summary>
+    /// True while a code action's edits (a quick fix adding a using, say) are applied: the editor showing this
+    /// document keeps its view still for edits above it. Other edits (typing, undo, redo) scroll as usual.
+    /// </summary>
+    public bool KeepViewStill { get; private set; }
+
+    /// <summary>Runs <paramref name="edit"/> with <see cref="KeepViewStill"/> set.</summary>
+    public void EditKeepingView(Action edit)
+    {
+        KeepViewStill = true;
+        try
+        {
+            edit();
+        }
+        finally
+        {
+            KeepViewStill = false;
+        }
+    }
+
+    /// <summary>
     /// A "show the user this range" request (from navigation, search, debugging...) that the editor
     /// showing this document hasn't applied yet. Navigation never needs to know which editor that is,
     /// or whether one exists yet: a newly created editor applies the pending request when it opens.

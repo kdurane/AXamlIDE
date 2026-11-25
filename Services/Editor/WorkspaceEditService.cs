@@ -56,8 +56,11 @@ public sealed class WorkspaceEditService
         }
 
         foreach (var (document, edits) in prepared)
-            foreach (var (Start, End, Text) in edits)
-                document.Document.Replace(Start, End - Start, Text);
+            document.EditKeepingView(() =>
+            {
+                foreach (var (Start, End, Text) in edits)
+                    document.Document.Replace(Start, End - Start, Text);
+            });
 
         // The caret and the view stay where they are, as in Visual Studio and VS Code: a quick fix that adds a
         // using at the top doesn't take you there (the editor's ScrollAnchorController keeps the view still).
