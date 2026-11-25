@@ -1,6 +1,6 @@
 <!--
-    The side bar's Debug tab (DebugSideBarViewModel), as VS Code's Run and Debug view: Diagnostics, Variables, Watch
-    and Call Stack as sections that open and close from their headers; the open ones share the height (drag the
+    The side bar's Debug tab (DebugSideBarViewModel), as VS Code's Run and Debug view: Diagnostics, Variables, Watch,
+    Call Stack and Breakpoints as sections that open and close from their headers; the open ones share the height (drag the
     line between two to resize them). The side bar is narrow, so the value views leave out their Type column
     and start with a narrower Name column (its line in the header still drags).
 -->
@@ -14,6 +14,7 @@
     xmlns="https://github.com/avaloniaui"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:shell="using:AXamlIDE.Shell"
     xmlns:views="using:AXamlIDE.Views"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:AXamlIDE.ViewModels"
@@ -40,6 +41,27 @@
         </views:CollapsiblePane>
         <views:CollapsiblePane Header="CALL STACK" IsExpanded="{Binding IsCallStackExpanded}">
             <views:CallStackView DataContext="{Binding CallStack}" />
+        </views:CollapsiblePane>
+        <views:CollapsiblePane Header="BREAKPOINTS" IsExpanded="{Binding IsBreakpointsExpanded}">
+            <views:CollapsiblePane.Actions>
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                        AutomationProperties.Name="Enable or Disable All Breakpoints"
+                        Classes="icon"
+                        Command="{Binding Breakpoints.ToggleAllEnabledCommand}"
+                        ToolTip.Tip="Enable or Disable All Breakpoints">
+                        <PathIcon Data="{DynamicResource Icon.CheckBox}" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="Delete All Breakpoints"
+                        Classes="icon"
+                        Command="{Binding Breakpoints.DeleteAllCommand}"
+                        shell:KeyMap.ShortcutTip="Delete All Breakpoints">
+                        <PathIcon Data="{DynamicResource Icon.TrashCan}" />
+                    </Button>
+                </StackPanel>
+            </views:CollapsiblePane.Actions>
+            <views:BreakpointsView DataContext="{Binding Breakpoints}" />
         </views:CollapsiblePane>
     </views:PaneStack>
 </UserControl>

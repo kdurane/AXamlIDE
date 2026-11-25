@@ -1,0 +1,118 @@
+<!--
+    The Debug tab's Breakpoints section (BreakpointsViewModel), as VS Code's: every breakpoint in the open documents,
+    by file then line. The check box turns one on or off; double-click or Enter goes to it; Delete removes it.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.BreakpointsView"
+    x:DataType="vm:BreakpointsViewModel"
+    Design.DataContext="{x:Static design:DesignData.Breakpoints}"
+    d:DesignWidth="300"
+    d:DesignHeight="160"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <!--  A list-row check box: just the box, no room around it  -->
+        <Style Selector="CheckBox.row">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Height" Value="16" />
+        </Style>
+        <Style Selector="CheckBox.row /template/ Border#NormalRectangle">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+        </Style>
+        <Style Selector="CheckBox.row /template/ Viewbox#CheckGlyph">
+            <Setter Property="Width" Value="9" />
+            <Setter Property="Height" Value="9" />
+        </Style>
+        <Style Selector="CheckBox.row /template/ Grid">
+            <Setter Property="Height" Value="16" />
+        </Style>
+        <Style Selector="TextBlock.dim">
+            <Setter Property="Opacity" Value="0.7" />
+        </Style>
+    </UserControl.Styles>
+    <Panel>
+        <ListBox
+            Background="Transparent"
+            Classes="compact"
+            DoubleTapped="OnDoubleTapped"
+            ItemsSource="{Binding Rows}"
+            Name="List"
+            SelectedItem="{Binding Selected}">
+            <ListBox.KeyBindings>
+                <KeyBinding
+                    Command="{Binding GoToCommand}"
+                    CommandParameter="{Binding Selected}"
+                    Gesture="Enter" />
+                <KeyBinding
+                    Command="{Binding DeleteCommand}"
+                    CommandParameter="{Binding Selected}"
+                    Gesture="Delete" />
+            </ListBox.KeyBindings>
+            <ListBox.ContextMenu>
+                <ContextMenu>
+                    <MenuItem
+                        Command="{Binding GoToCommand}"
+                        CommandParameter="{Binding Selected}"
+                        Header="_Go To Source Code"
+                        InputGesture="Enter" />
+                    <MenuItem
+                        Command="{Binding DeleteCommand}"
+                        CommandParameter="{Binding Selected}"
+                        Header="_Delete"
+                        InputGesture="Delete" />
+                    <Separator />
+                    <MenuItem
+                        Command="{Binding SetAllEnabledCommand}"
+                        CommandParameter="{x:True}"
+                        Header="_Enable All Breakpoints" />
+                    <MenuItem
+                        Command="{Binding SetAllEnabledCommand}"
+                        CommandParameter="{x:False}"
+                        Header="Disa_ble All Breakpoints" />
+                    <MenuItem Command="{Binding DeleteAllCommand}" Header="Delete _All Breakpoints" />
+                </ContextMenu>
+            </ListBox.ContextMenu>
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:BreakpointRow">
+                    <DockPanel ToolTip.Tip="{Binding ToolTip}">
+                        <CheckBox Classes="row" IsChecked="{Binding IsEnabled}" />
+                        <TextBlock
+                            Classes="dim"
+                            DockPanel.Dock="Right"
+                            Margin="8,0,4,0"
+                            Text="{Binding Line}"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            DockPanel.Dock="Left"
+                            Text="{Binding FileName}"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Classes="dim"
+                            Margin="6,0,0,0"
+                            Text="{Binding ConditionText}"
+                            TextTrimming="CharacterEllipsis"
+                            VerticalAlignment="Center" />
+                    </DockPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <TextBlock
+            HorizontalAlignment="Center"
+            IsVisible="{Binding IsEmpty}"
+            Margin="12,12,12,0"
+            Opacity="0.7"
+            Text="No breakpoints. Set one with F9 or by clicking left of a line number."
+            TextWrapping="Wrap"
+            VerticalAlignment="Top" />
+    </Panel>
+</UserControl>

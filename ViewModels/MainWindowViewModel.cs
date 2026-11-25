@@ -57,6 +57,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         StartViewModel start,
         PropertiesViewModel properties,
         GitViewModel git,
+        BreakpointsViewModel breakpoints,
         NuGetManager nuGet,
         PublishManager publish,
         VisualizerManager visualizers,
@@ -78,6 +79,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         _dialogs = dialogs;
         _messenger = messenger;
         DocumentCommands = documentCommands;
+        Breakpoints = breakpoints;
         EditorCommands = editorCommands;
         Workspace = workspace;
         Explorer = explorer;
@@ -135,6 +137,9 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public StartViewModel Start { get; }
     public PropertiesViewModel Properties { get; }
     public GitViewModel Git { get; }
+
+    /// <summary>The breakpoints in the open documents (the Debug menu's Delete All and Enable / Disable All).</summary>
+    public BreakpointsViewModel Breakpoints { get; }
     public NuGetManager NuGet { get; }
     public PublishManager Publish { get; }
 
@@ -291,31 +296,6 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
         await Run.StopDebuggingAsync();
         return true;
-    }
-
-    /// <summary>Debug > Delete All Breakpoints (Ctrl+Shift+F9), asking first as Visual Studio does.</summary>
-    [RelayCommand]
-    private async Task DeleteAllBreakpoints()
-    {
-        var withBreakpoints = _documents.Documents.Where(d => d.Breakpoints.Count > 0).ToArray();
-        if (withBreakpoints.Length == 0)
-        {
-            ShowStatusMessage("There are no breakpoints.");
-            return;
-        }
-        if (!await _dialogs.ConfirmAsync("Delete All Breakpoints", "Do you want to delete all breakpoints?", "Delete"))
-            return;
-        foreach (var document in withBreakpoints)
-            document.ClearBreakpoints();
-    }
-
-    /// <summary>Debug > Disable All Breakpoints / Enable All Breakpoints.</summary>
-    [RelayCommand]
-    private void SetAllBreakpointsEnabled(bool enabled)
-    {
-        foreach (var document in _documents.Documents)
-            foreach (var breakpoint in document.Breakpoints)
-                document.SetBreakpointEnabled(breakpoint.Line, enabled);
     }
 
     // ---------------------------------------------------------------- Window and Help menus

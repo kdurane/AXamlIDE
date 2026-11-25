@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Services.Debugging;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Editor;
+using AXamlIDE.Services.Lsp;
 using AXamlIDE.ViewModels;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -89,6 +91,25 @@ public static partial class DesignData
         return diagnostics;
     });
 
+    /// <summary>Breakpoints in two open files: one off, one with Conditions.</summary>
+    public static BreakpointsViewModel Breakpoints => LazyBreakpoints.Value;
+
+    private static readonly Lazy<BreakpointsViewModel> LazyBreakpoints = new(() =>
+    {
+        var breakpoints = Get<BreakpointsViewModel>();
+        var documents = Get<DocumentManager>();
+        var lines = string.Concat(Enumerable.Repeat("        // ...\n", 80));
+        var orders = documents.OpenReadOnly(SamplePath("Contoso.App/ViewModels/OrdersViewModel.cs"), lines, LanguageIds.CSharp);
+        var program = documents.OpenReadOnly(SamplePath("Contoso.App/Program.cs"), lines, LanguageIds.CSharp);
+        foreach (var line in (int[])[31, 57, 64])
+            orders.ToggleBreakpoint(line);
+        orders.SetBreakpointEnabled(64, false);
+        orders.SetBreakpointConditions(57, "order.Total > 100", null);
+        program.ToggleBreakpoint(12);
+        Dispatcher.UIThread.RunJobs();   // the list refreshes once things settle
+        return breakpoints;
+    });
+
     /// <summary>The side bar's Debug tab, paused, with every section filled.</summary>
     public static DebugSideBarViewModel DebugSideBar
     {
@@ -96,6 +117,7 @@ public static partial class DesignData
         {
             _ = Diagnostics;
             _ = Watch;
+            _ = Breakpoints;
             return Get<DebugSideBarViewModel>();
         }
     }

@@ -20,12 +20,13 @@ public static class ToolTab
     public const string Debug = "debug";
 
     // Sections of the Debug tab rather than panels of their own: showing one brings the Debug tab to the front and
-    // opens that section (Debug > Windows > Locals, Watch, Call Stack, Diagnostic Tools).
+    // opens that section (Debug > Windows > Locals, Watch, Call Stack, Breakpoints, Diagnostic Tools).
     public const string Locals = "locals";
     public const string Watch = "watch";
     public const string CallStack = "callstack";
+    public const string Breakpoints = "breakpoints";
     public const string Diagnostics = "diagnostics";
 
     /// <summary>The ids that are sections of the Debug tab.</summary>
-    public static bool IsDebugSection(string id) => id is Locals or Watch or CallStack or Diagnostics;
+    public static bool IsDebugSection(string id) => id is Locals or Watch or CallStack or Breakpoints or Diagnostics;
 }

@@ -135,6 +135,7 @@ public static class CommandCatalog
         new("Debug.Watch", "Watch Window", "Show the Debug tab's Watch section."),
         new("Debug.Locals", "Locals Window", "Show the Debug tab's Variables section."),
         new("Debug.CallStack", "Call Stack Window", "Show the Debug tab's Call Stack section."),
+        new("Debug.Breakpoints", "Breakpoints Window", "Show the Debug tab's Breakpoints section."),
         new("Debug.DiagnosticTools", "Diagnostic Tools", "Show the Debug tab's memory and CPU graphs."),
 
         // ---- Test

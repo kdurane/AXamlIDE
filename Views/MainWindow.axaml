@@ -274,13 +274,13 @@
                             <MenuItem Command="{Binding Run.StepOutCommand}" Header="Step O_ut" />
                             <Separator />
                             <MenuItem Command="{Binding EditorCommands.ToggleBreakpoint}" Header="Toggle _Breakpoint" />
-                            <MenuItem Command="{Binding DeleteAllBreakpointsCommand}" Header="_Delete All Breakpoints" />
+                            <MenuItem Command="{Binding Breakpoints.DeleteAllCommand}" Header="_Delete All Breakpoints" />
                             <MenuItem
-                                Command="{Binding SetAllBreakpointsEnabledCommand}"
+                                Command="{Binding Breakpoints.SetAllEnabledCommand}"
                                 CommandParameter="{x:False}"
                                 Header="Disa_ble All Breakpoints" />
                             <MenuItem
-                                Command="{Binding SetAllBreakpointsEnabledCommand}"
+                                Command="{Binding Breakpoints.SetAllEnabledCommand}"
                                 CommandParameter="{x:True}"
                                 Header="E_nable All Breakpoints" />
                             <Separator />
@@ -300,6 +300,10 @@
                                     Command="{Binding ShowToolCommand}"
                                     CommandParameter="{x:Static msg:ToolTab.CallStack}"
                                     Header="_Call Stack" />
+                                <MenuItem
+                                    Command="{Binding ShowToolCommand}"
+                                    CommandParameter="{x:Static msg:ToolTab.Breakpoints}"
+                                    Header="_Breakpoints" />
                                 <MenuItem
                                     Command="{Binding ShowToolCommand}"
                                     CommandParameter="{x:Static msg:ToolTab.Diagnostics}"

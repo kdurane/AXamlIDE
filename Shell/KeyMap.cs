@@ -188,11 +188,12 @@ public sealed class KeyMap
             ["Debug.StepInto"] = (run.StepIntoCommand, null),
             ["Debug.StepOut"] = (run.StepOutCommand, null),
             ["Debug.ToggleBreakpoint"] = (editor.ToggleBreakpoint, null),
-            ["Debug.DeleteAllBreakpoints"] = (shell.DeleteAllBreakpointsCommand, null),
+            ["Debug.DeleteAllBreakpoints"] = (shell.Breakpoints.DeleteAllCommand, null),
             ["Debug.AddWatch"] = (editor.AddWatch, null),
             ["Debug.Watch"] = (shell.ShowToolCommand, ToolTab.Watch),
             ["Debug.Locals"] = (shell.ShowToolCommand, ToolTab.Locals),
             ["Debug.CallStack"] = (shell.ShowToolCommand, ToolTab.CallStack),
+            ["Debug.Breakpoints"] = (shell.ShowToolCommand, ToolTab.Breakpoints),
             ["Debug.DiagnosticTools"] = (shell.ShowToolCommand, ToolTab.Diagnostics),
 
             ["Test.RunAll"] = (shell.Tests.RunAllCommand, null),

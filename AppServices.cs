@@ -113,6 +113,7 @@ public static class AppServices
         services.AddSingleton<LocalsViewModel>();          // the debugger's views (Locals, Watch, Call Stack, visualizers)
         services.AddSingleton<WatchViewModel>();
         services.AddSingleton<CallStackViewModel>();
+        services.AddSingleton<BreakpointsViewModel>();     // every breakpoint in the open documents
         services.AddSingleton<DiagnosticsViewModel>();     // the Debug tab's memory and CPU graphs
         services.AddSingleton<DebugSideBarViewModel>();    // the side bar's Debug tab (VS Code's Run and Debug view)
         services.AddSingleton<VisualizerManager>();
