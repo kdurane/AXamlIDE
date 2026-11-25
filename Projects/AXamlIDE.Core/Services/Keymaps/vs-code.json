@@ -27,6 +27,7 @@
     "View.ToggleSideBar": "Ctrl+B",
     "View.Explorer": "Ctrl+Shift+E",
     "View.Git": "Ctrl+Shift+G",
+    "View.RunAndDebug": "Ctrl+Shift+D",
     "View.Problems": "Ctrl+Shift+M",
     "View.Output": "Ctrl+Shift+U",
     "View.DebugConsole": "Ctrl+Shift+Y",

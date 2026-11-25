@@ -11,13 +11,13 @@ namespace AXamlIDE.ViewModels;
 /// <summary>
 /// Builds the starting dock layout and knows where each tool panel lives when it isn't moved:
 ///
-///   [Explorer, Git]  | [ Documents (each AXAML tab has its own preview)  ]
-///   [Properties]     | [ Problems, Output, Debug Console (+ Terminal, Tests, Locals, Watch, Call Stack) ]
+///   [Explorer, Git (+ Debug)] | [ Documents (each AXAML tab has its own preview)  ]
+///   [Properties]              | [ Problems, Output, Debug Console (+ Terminal, Tests) ]
 ///
 /// (Properties only while it's open; the explorer column is mirrored to the right by the "explorer on right" setting).
 /// The bottom row is VS Code's panel: it can be hidden and shown as a whole (<see cref="HideBottomPanel"/>). Problems,
 /// Output and the Debug Console are always in it; Terminal and Tests join it when opened and leave with their tab's X,
-/// as in Visual Studio, and Locals, Watch and Call Stack join it while debugging. Search has no dock: it
+/// as in Visual Studio. The Debug tab (VS Code's Run and Debug view) joins the side bar while debugging. Search has no dock: it
 /// opens in its own floating window (it can still be dragged into a dock).
 /// The user can then drag any tab anywhere, including out into its own window.
 /// To add a tool panel: add a <see cref="ToolTab"/> id, add it to a dock here, and give it a view
@@ -70,10 +70,9 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         var terminal = new ToolDockable(ToolTab.Terminal, "Terminal") { CanClose = true };
         var tests = new ToolDockable(ToolTab.Tests, "Tests") { CanClose = true };
         var search = new ToolDockable(ToolTab.Search, "Search");
-        var locals = new ToolDockable(ToolTab.Locals, "Locals") { CanClose = true };
-        var watch = new ToolDockable(ToolTab.Watch, "Watch") { CanClose = true };
-        var callStack = new ToolDockable(ToolTab.CallStack, "Call Stack") { CanClose = true };
-        Tools = new[] { explorer, git, properties, problems, output, console, terminal, tests, search, locals, watch, callStack }
+        // In the side bar while debugging (DockLayoutViewModel adds and removes it).
+        var debug = new ToolDockable(ToolTab.Debug, "Debug") { CanDrag = false, CanFloat = false };
+        Tools = new[] { explorer, git, debug, properties, problems, output, console, terminal, tests, search }
             .ToDictionary(tool => tool.Id);
 
         MainDocuments = new DocumentDock
@@ -106,8 +105,9 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         _homes.Clear();
         _homes[explorer.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[git.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
+        _homes[debug.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[properties.Id] = new ToolHome(propertiesDock, ExplorerColumn, AtStart: false);
-        foreach (var tool in new[] { problems, output, console, terminal, tests, locals, watch, callStack })
+        foreach (var tool in new[] { problems, output, console, terminal, tests })
             _homes[tool.Id] = new ToolHome(bottomDock, centre, AtStart: false);
 
         _defaultSizes.Clear();
@@ -200,7 +200,12 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
             return;
         }
 
-        if (IsInLayout(tool) || !_homes.TryGetValue(tool.Id, out var home))
+        if (!_homes.TryGetValue(tool.Id, out var home))
+            return;
+        // A side bar tool (View > Explorer...) shows the hidden side bar, as in VS Code, with its tabs as they were.
+        if (ReferenceEquals(home.Container, ExplorerColumn) && !IsExplorerColumnShown)
+            ShowExplorerColumn();
+        if (IsInLayout(tool))
             return;
         Detach(tool);
 
@@ -223,6 +228,23 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
             InsertDockable(home.Container, home.Dock, index + (home.AtStart ? 0 : 1));
         }
 
+        AddDockable(home.Dock, tool);
+    }
+
+    /// <summary>
+    /// Give a side bar tool (the Debug tab) its tab back without showing the side bar if it's hidden; the tab is
+    /// there for when it next is. With the side bar showing this is <see cref="PutBack"/>.
+    /// </summary>
+    public void AddToSideBar(ToolDockable tool)
+    {
+        if (IsExplorerColumnShown)
+        {
+            PutBack(tool);
+            return;
+        }
+        if (!_homes.TryGetValue(tool.Id, out var home) || home.Dock.VisibleDockables?.Contains(tool) == true)
+            return;
+        Detach(tool);
         AddDockable(home.Dock, tool);
     }
 

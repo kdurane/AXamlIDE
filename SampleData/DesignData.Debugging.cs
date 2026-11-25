@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AXamlIDE.Messages;
@@ -72,6 +73,32 @@ public static partial class DesignData
             Send(new AddWatchMessage(expression));
         return watch;
     });
+
+    /// <summary>The Debug tab's graphs: a program that loads some data, settles, then allocates while it's busy.</summary>
+    public static DiagnosticsViewModel Diagnostics => LazyDiagnostics.Value;
+
+    private static readonly Lazy<DiagnosticsViewModel> LazyDiagnostics = new(() =>
+    {
+        var diagnostics = Get<DiagnosticsViewModel>();
+        diagnostics.Show(Enumerable.Range(0, 90).Select(second =>
+        {
+            var megabytes = 38 + Math.Min(second, 20) * 2.1 + (second > 55 ? (second - 55) * 0.9 : 0) + Math.Sin(second / 3.0) * 1.5;
+            var cpu = second < 20 ? 22 + second % 4 * 3 : second > 55 && second < 75 ? 35 + Math.Sin(second) * 8 : 2 + second % 3;
+            return new ProcessUsage((long)(megabytes * 1024 * 1024), cpu);
+        }));
+        return diagnostics;
+    });
+
+    /// <summary>The side bar's Debug tab, paused, with every section filled.</summary>
+    public static DebugSideBarViewModel DebugSideBar
+    {
+        get
+        {
+            _ = Diagnostics;
+            _ = Watch;
+            return Get<DebugSideBarViewModel>();
+        }
+    }
 
     /// <summary>The value tree on its own (Locals and Watch are made of one).</summary>
     public static DebugValueTree DebugValues => Locals.Tree;

@@ -15,7 +15,17 @@ public static class ToolTab
     public const string Terminal = "terminal";
     public const string Tests = "tests";
     public const string Search = "search";
+
+    /// <summary>VS Code's Run and Debug view: a side bar tab while debugging (DebugSideBarViewModel).</summary>
+    public const string Debug = "debug";
+
+    // Sections of the Debug tab rather than panels of their own: showing one brings the Debug tab to the front and
+    // opens that section (Debug > Windows > Locals, Watch, Call Stack, Diagnostic Tools).
     public const string Locals = "locals";
     public const string Watch = "watch";
     public const string CallStack = "callstack";
+    public const string Diagnostics = "diagnostics";
+
+    /// <summary>The ids that are sections of the Debug tab.</summary>
+    public static bool IsDebugSection(string id) => id is Locals or Watch or CallStack or Diagnostics;
 }

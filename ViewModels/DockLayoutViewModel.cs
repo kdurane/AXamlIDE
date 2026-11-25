@@ -29,8 +29,8 @@ namespace AXamlIDE.ViewModels;
 ///   - closing a floating window moves its tabs back into the main window rather than losing them;
 ///   - <see cref="ShowToolTabMessage"/> brings a tool panel to the front (putting it back if needed);
 ///     Search opens in its own window, which remembers where it was;
-///   - the bottom panel comes back as it was left (showing or not, Terminal and Tests open or not: Settings.Panel),
-///     and the debugger windows join it while debugging;
+///   - the bottom panel comes back as it was left (showing or not, Terminal and Tests open or not: Settings.Panel);
+///   - the side bar has a Debug tab while debugging (VS Code's Run and Debug view);
 ///   - the layout's sizes can be captured and re-applied (WorkspaceSession keeps them per workspace).
 ///
 /// Nothing else talks to the dock model; the views (DockControl, DockViewCache) only show it.
@@ -39,9 +39,6 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
 {
     /// <summary>The bottom panel's tabs that can be closed and are remembered (Settings.Panel.OpenTools).</summary>
     private static readonly string[] OptionalTools = [ToolTab.Terminal, ToolTab.Tests];
-
-    /// <summary>VS's debugger windows: in the bottom panel only while debugging.</summary>
-    private static readonly string[] DebugTools = [ToolTab.Locals, ToolTab.Watch, ToolTab.CallStack];
 
     private readonly DockFactory _factory;
     private readonly DocumentManager _documents;
@@ -59,6 +56,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private bool _shuttingDown;
     private bool _debugging;
     private bool _hidePanelAfterDebugging;
+    private bool _hideSideBarAfterDebugging;
+    private IDockable? _sideBarTabBeforeDebugging;   // what the side bar goes back to when the Debug tab leaves
     private (double X, double Y, double Width, double Height)? _searchWindowBounds;
 
     public DockLayoutViewModel(
@@ -118,6 +117,8 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     /// <summary>Bring a tool panel to the front of its tab strip, wherever it is.</summary>
     public void ShowTool(string id)
     {
+        if (ToolTab.IsDebugSection(id))
+            id = ToolTab.Debug;   // Locals, Watch... are sections of the Debug tab (DebugSideBarViewModel opens them)
         if (!_factory.Tools.TryGetValue(id, out var tool))
             return;
 
@@ -148,6 +149,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     /// </summary>
     public void ToggleExplorer()
     {
+        _hideSideBarAfterDebugging = false;   // shown or hidden on purpose: leave it so after debugging
         if (_factory.IsExplorerColumnShown && _factory.ExplorerColumnHasTools)
         {
             _factory.HideExplorerColumn();
@@ -181,29 +183,41 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     }
 
     /// <summary>
-    /// Debugging started: Locals, Watch and Call Stack join the bottom panel, which shows even if it was hidden (as
-    /// in Visual Studio). Debugging ended: they leave, and the panel is hidden again if it was before.
+    /// Debugging started: the Debug tab joins the side bar, in front (VS Code's Run and Debug view). A hidden side
+    /// bar stays hidden until the program first pauses (Locals is shown then). The Debug Console brings up the
+    /// bottom panel. Debugging ended: the Debug tab leaves, the side bar goes back to the tab it showed before, and
+    /// the side bar and bottom panel are hidden again if debugging is what showed them.
     /// </summary>
     public void Receive(DebugSessionChangedMessage message)
     {
         if (message.IsDebugging == _debugging)
             return;
         _debugging = message.IsDebugging;
+        var debug = _factory.Tools[ToolTab.Debug];
 
         if (_debugging)
         {
             _hidePanelAfterDebugging = !_factory.IsBottomPanelShown;
-            foreach (var id in DebugTools)
-                _factory.PutBack(_factory.Tools[id]);
-            _factory.ShowBottomPanel();
+            _hideSideBarAfterDebugging = !_factory.IsExplorerColumnShown;
+            if (!_factory.IsOpen(debug))
+                _sideBarTabBeforeDebugging = (_factory.Tools[ToolTab.Explorer].Owner as IDock)?.ActiveDockable;
+            _factory.AddToSideBar(debug);
+            _factory.SetActiveDockable(debug);
             return;
         }
 
-        foreach (var id in DebugTools)
-            _factory.RemoveTool(_factory.Tools[id]);
+        var sideBar = debug.Owner as IDock;
+        var wasInFront = ReferenceEquals(sideBar?.ActiveDockable, debug);
+        _factory.RemoveTool(debug);
+        if (sideBar is { VisibleDockables: { Count: > 0 } tabs } && (wasInFront || !tabs.Contains(sideBar.ActiveDockable!)))
+            sideBar.ActiveDockable = _sideBarTabBeforeDebugging is { } before && tabs.Contains(before) ? before : tabs[0];
+        _sideBarTabBeforeDebugging = null;
         if (_hidePanelAfterDebugging)
             _factory.HideBottomPanel();
+        if (_hideSideBarAfterDebugging && _factory.IsExplorerColumnShown)
+            _factory.HideExplorerColumn();
         _hidePanelAfterDebugging = false;
+        _hideSideBarAfterDebugging = false;
     }
 
     /// <summary>Open the remembered optional tabs, then hide the panel if it was left hidden.</summary>

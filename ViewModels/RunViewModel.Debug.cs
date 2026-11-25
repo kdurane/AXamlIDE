@@ -306,6 +306,15 @@ public partial class RunViewModel
                     }
                 });
                 break;
+            case "process":
+                if (message.TryGetProperty("body", out var processBody)
+                    && processBody.TryGetProperty("systemProcessId", out var pid) && pid.TryGetInt32(out var processId))
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (ReferenceEquals(_debugSession, session))
+                            _messenger.Send(new DebuggeeStartedMessage(processId));
+                    });
+                break;
             case "terminated":
                 Dispatcher.UIThread.Post(() => EndDebugSession(session, "Debug session ended."));
                 break;

@@ -1,0 +1,76 @@
+<!--
+    The Debug tab's Diagnostics section (DiagnosticsViewModel), as Visual Studio's Diagnostic Tools: the debugged
+    program's memory and CPU as running graphs of the last two minutes, the newest reading at the right.
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.DiagnosticsView"
+    x:DataType="vm:DiagnosticsViewModel"
+    Design.DataContext="{x:Static design:DesignData.Diagnostics}"
+    d:DesignWidth="280"
+    d:DesignHeight="170"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:local="using:AXamlIDE.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.caption">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value="0.8" />
+        </Style>
+        <Style Selector="local|UsageGraph">
+            <Setter Property="Capacity" Value="{x:Static vm:DiagnosticsViewModel.HistoryLength}" />
+            <Setter Property="GridBrush" Value="{DynamicResource DockSeparatorBrush}" />
+            <Setter Property="MinHeight" Value="24" />
+        </Style>
+    </UserControl.Styles>
+    <Panel>
+        <Grid
+            IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNull}}"
+            Margin="10,4,10,8"
+            RowDefinitions="Auto,*,Auto,*">
+            <!--  Process Memory: now, and the most it has used  -->
+            <DockPanel Margin="0,0,0,2">
+                <TextBlock
+                    Classes="caption"
+                    DockPanel.Dock="Right"
+                    Text="{Binding PeakMemoryText}" />
+                <TextBlock Classes="caption">
+                    <Run Text="Process Memory" />
+                    <Run FontWeight="SemiBold" Text="{Binding MemoryText}" />
+                </TextBlock>
+            </DockPanel>
+            <local:UsageGraph
+                Grid.Row="1"
+                Stroke="{DynamicResource DiagnosticsMemoryBrush}"
+                ToolTip.Tip="The program's memory (working set) over the last two minutes"
+                Values="{Binding MemoryHistory}" />
+
+            <!--  CPU: percent of all processors  -->
+            <TextBlock
+                Classes="caption"
+                Grid.Row="2"
+                Margin="0,6,0,2">
+                <Run Text="CPU (% of all processors)" />
+                <Run FontWeight="SemiBold" Text="{Binding CpuText}" />
+            </TextBlock>
+            <local:UsageGraph
+                Grid.Row="3"
+                Maximum="100"
+                Stroke="{DynamicResource DiagnosticsCpuBrush}"
+                ToolTip.Tip="The program's CPU use, as a percentage of all processors, over the last two minutes"
+                Values="{Binding CpuHistory}" />
+        </Grid>
+        <TextBlock
+            HorizontalAlignment="Center"
+            IsVisible="{Binding Message, Converter={x:Static ObjectConverters.IsNotNull}}"
+            Margin="12,16,12,0"
+            Opacity="0.7"
+            Text="{Binding Message}"
+            TextWrapping="Wrap"
+            VerticalAlignment="Top" />
+    </Panel>
+</UserControl>

@@ -110,9 +110,11 @@ public static class AppServices
         services.AddSingleton<AgentChatViewModel>();      // the Claude panel (claude-agent-acp over ACP)
         services.AddSingleton(new RecentWorkspaces());      // recent.json: the start window's "Open recent"
         services.AddSingleton<StartViewModel>();          // the start window, File > Recent / New Project / Clone
-        services.AddSingleton<LocalsViewModel>();          // the debugger's windows (Locals, Watch, Call Stack, visualizers)
+        services.AddSingleton<LocalsViewModel>();          // the debugger's views (Locals, Watch, Call Stack, visualizers)
         services.AddSingleton<WatchViewModel>();
         services.AddSingleton<CallStackViewModel>();
+        services.AddSingleton<DiagnosticsViewModel>();     // the Debug tab's memory and CPU graphs
+        services.AddSingleton<DebugSideBarViewModel>();    // the side bar's Debug tab (VS Code's Run and Debug view)
         services.AddSingleton<VisualizerManager>();
         services.AddSingleton<DockLayoutViewModel>();
         services.AddSingleton<McpPreviewRenderer>();      // render_xaml's own designer host

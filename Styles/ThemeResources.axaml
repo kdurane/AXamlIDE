@@ -38,6 +38,9 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="testing.iconPassed">#73C991</Color>
             <Color x:Key="testing.iconFailed">#F14C4C</Color>
             <Color x:Key="testing.iconSkipped">#848484</Color>
+            <!--  The Debug tab's Diagnostics graphs (VS Code's chart colours)  -->
+            <Color x:Key="charts.yellow">#CCA700</Color>
+            <Color x:Key="charts.blue">#3794FF</Color>
             <!--  The Claude panel (VS Code's chat keys, with its defaults; app.chat.* are ours)  -->
             <Color x:Key="textPreformat.foreground">#D7BA7D</Color>
             <Color x:Key="textPreformat.background">#1AFFFFFF</Color>
@@ -85,6 +88,8 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
             <Color x:Key="testing.iconPassed">#388A34</Color>
             <Color x:Key="testing.iconFailed">#F14C4C</Color>
             <Color x:Key="testing.iconSkipped">#848484</Color>
+            <Color x:Key="charts.yellow">#BF8803</Color>
+            <Color x:Key="charts.blue">#1A85FF</Color>
             <Color x:Key="textPreformat.foreground">#A31515</Color>
             <Color x:Key="textPreformat.background">#1A000000</Color>
             <Color x:Key="textCodeBlock.background">#66DCDCDC</Color>
@@ -352,6 +357,9 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
 
     <!--  Run and debug buttons (the toolbar's play/stop, the debug toolbar)  -->
     <SolidColorBrush Color="{DynamicResource debugIcon.startForeground}" x:Key="DebugStartBrush" />
+    <!--  The Debug tab's Diagnostics graphs (Visual Studio's Diagnostic Tools: memory in yellow, CPU in blue)  -->
+    <SolidColorBrush Color="{DynamicResource charts.yellow}" x:Key="DiagnosticsMemoryBrush" />
+    <SolidColorBrush Color="{DynamicResource charts.blue}" x:Key="DiagnosticsCpuBrush" />
     <SolidColorBrush Color="{DynamicResource debugIcon.stopForeground}" x:Key="DebugStopBrush" />
     <SolidColorBrush Color="{DynamicResource debugIcon.restartForeground}" x:Key="DebugRestartBrush" />
     <SolidColorBrush Color="{DynamicResource debugIcon.continueForeground}" x:Key="DebugContinueBrush" />

@@ -127,6 +127,10 @@
                                 Command="{Binding ShowToolCommand}"
                                 CommandParameter="{x:Static msg:ToolTab.Git}"
                                 Header="_Git" />
+                            <MenuItem
+                                Command="{Binding ShowToolCommand}"
+                                CommandParameter="{x:Static msg:ToolTab.Debug}"
+                                Header="R_un and Debug" />
                             <MenuItem Command="{Binding Git.ShowGraphCommand}" Header="Git Gra_ph" />
                             <MenuItem Command="{Binding Properties.ShowCommand}" Header="P_roperties" />
                             <Separator />
@@ -296,6 +300,10 @@
                                     Command="{Binding ShowToolCommand}"
                                     CommandParameter="{x:Static msg:ToolTab.CallStack}"
                                     Header="_Call Stack" />
+                                <MenuItem
+                                    Command="{Binding ShowToolCommand}"
+                                    CommandParameter="{x:Static msg:ToolTab.Diagnostics}"
+                                    Header="Diagnostic _Tools" />
                                 <MenuItem
                                     Command="{Binding ShowToolCommand}"
                                     CommandParameter="{x:Static msg:ToolTab.Console}"

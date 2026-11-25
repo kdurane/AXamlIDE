@@ -27,9 +27,7 @@ public sealed class ToolPanels
         TerminalViewModel terminal,
         TestExplorerViewModel tests,
         SearchViewModel search,
-        LocalsViewModel locals,
-        WatchViewModel watch,
-        CallStackViewModel callStack)
+        DebugSideBarViewModel debug)
     {
         _create = new()
         {
@@ -42,9 +40,7 @@ public sealed class ToolPanels
             [ToolTab.Terminal] = () => new TerminalView { DataContext = terminal },
             [ToolTab.Tests] = () => new TestExplorerView { DataContext = tests },
             [ToolTab.Search] = () => new SearchView { DataContext = search },
-            [ToolTab.Locals] = () => new LocalsView { DataContext = locals },
-            [ToolTab.Watch] = () => new WatchView { DataContext = watch },
-            [ToolTab.CallStack] = () => new CallStackView { DataContext = callStack },
+            [ToolTab.Debug] = () => new DebugSideBarView { DataContext = debug },
         };
     }
 

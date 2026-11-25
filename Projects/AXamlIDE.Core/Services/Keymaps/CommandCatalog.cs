@@ -68,6 +68,7 @@ public static class CommandCatalog
         new("View.ToggleSideBar", "Show/Hide Side Bar", "Show or hide the side bar."),
         new("View.Explorer", "Explorer", "Show the Explorer."),
         new("View.Git", "Git", "Show the Git panel."),
+        new("View.RunAndDebug", "Run and Debug", "Show the side bar's Debug tab: diagnostics, variables, watches and the call stack."),
         new("View.GitGraph", "Git Graph", "Show the Git panel's graph of commits and branches."),
         new("View.Properties", "Properties", "Show the properties of the item selected in the explorer."),
         new("View.Problems", "Problems", "Show the Problems list."),
@@ -131,9 +132,10 @@ public static class CommandCatalog
         new("Debug.ToggleBreakpoint", "Toggle Breakpoint", "Set or remove a breakpoint on the caret's line.", Editor),
         new("Debug.DeleteAllBreakpoints", "Delete All Breakpoints", "Remove every breakpoint in the open documents."),
         new("Debug.AddWatch", "Add Watch", "Watch the selection, or the expression at the caret.", Editor),
-        new("Debug.Watch", "Watch Window", "Show the Watch window."),
-        new("Debug.Locals", "Locals Window", "Show the Locals window."),
-        new("Debug.CallStack", "Call Stack Window", "Show the Call Stack window."),
+        new("Debug.Watch", "Watch Window", "Show the Debug tab's Watch section."),
+        new("Debug.Locals", "Locals Window", "Show the Debug tab's Variables section."),
+        new("Debug.CallStack", "Call Stack Window", "Show the Debug tab's Call Stack section."),
+        new("Debug.DiagnosticTools", "Diagnostic Tools", "Show the Debug tab's memory and CPU graphs."),
 
         // ---- Test
         new("Test.RunAll", "Run All Tests", "Run every test in the workspace's test projects."),

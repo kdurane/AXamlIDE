@@ -1,0 +1,45 @@
+<!--
+    The side bar's Debug tab (DebugSideBarViewModel), as VS Code's Run and Debug view: Diagnostics, Variables, Watch
+    and Call Stack as sections that open and close from their headers; the open ones share the height (drag the
+    line between two to resize them). The side bar is narrow, so the value views leave out their Type column
+    and start with a narrower Name column (its line in the header still drags).
+-->
+<UserControl
+    x:Class="AXamlIDE.Views.DebugSideBarView"
+    x:DataType="vm:DebugSideBarViewModel"
+    Design.DataContext="{x:Static design:DesignData.DebugSideBar}"
+    d:DesignWidth="300"
+    d:DesignHeight="700"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:views="using:AXamlIDE.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Styles>
+        <Style Selector="views|DebugValueTreeView">
+            <Setter Property="ShowTypeColumn" Value="False" />
+            <Setter Property="NameColumnWidth" Value="120" />
+        </Style>
+    </UserControl.Styles>
+    <views:PaneStack>
+        <!--  Starts small: the graphs don't need much height, the values do.  -->
+        <views:CollapsiblePane
+            Header="DIAGNOSTICS"
+            IsExpanded="{Binding IsDiagnosticsExpanded}"
+            PaneHeight="160">
+            <views:DiagnosticsView DataContext="{Binding Diagnostics}" />
+        </views:CollapsiblePane>
+        <views:CollapsiblePane Header="VARIABLES" IsExpanded="{Binding IsLocalsExpanded}">
+            <views:LocalsView DataContext="{Binding Locals}" />
+        </views:CollapsiblePane>
+        <views:CollapsiblePane Header="WATCH" IsExpanded="{Binding IsWatchExpanded}">
+            <views:WatchView DataContext="{Binding Watch}" />
+        </views:CollapsiblePane>
+        <views:CollapsiblePane Header="CALL STACK" IsExpanded="{Binding IsCallStackExpanded}">
+            <views:CallStackView DataContext="{Binding CallStack}" />
+        </views:CollapsiblePane>
+    </views:PaneStack>
+</UserControl>

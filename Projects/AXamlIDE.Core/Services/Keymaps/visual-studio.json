@@ -72,6 +72,7 @@
     "Debug.Watch": "Alt+3",
     "Debug.Locals": "Alt+4",
     "Debug.CallStack": "Alt+7",
+    "Debug.DiagnosticTools": "Ctrl+Alt+F2",
 
     // ---- Test (VS's Ctrl+R, A clashes with Rename's Ctrl+R here, so VS Code's keys)
     "Test.RunAll": "Ctrl+;, A",

@@ -132,6 +132,7 @@ public sealed class KeyMap
             ["View.ToggleSideBar"] = (shell.ToggleExplorerCommand, null),
             ["View.Explorer"] = (shell.ShowToolCommand, ToolTab.Explorer),
             ["View.Git"] = (shell.ShowToolCommand, ToolTab.Git),
+            ["View.RunAndDebug"] = (shell.ShowToolCommand, ToolTab.Debug),
             ["View.GitGraph"] = (shell.Git.ShowGraphCommand, null),
             ["View.Properties"] = (properties.ShowCommand, null),
             ["View.Problems"] = (shell.ShowToolCommand, ToolTab.Problems),
@@ -192,6 +193,7 @@ public sealed class KeyMap
             ["Debug.Watch"] = (shell.ShowToolCommand, ToolTab.Watch),
             ["Debug.Locals"] = (shell.ShowToolCommand, ToolTab.Locals),
             ["Debug.CallStack"] = (shell.ShowToolCommand, ToolTab.CallStack),
+            ["Debug.DiagnosticTools"] = (shell.ShowToolCommand, ToolTab.Diagnostics),
 
             ["Test.RunAll"] = (shell.Tests.RunAllCommand, null),
             ["Test.RunFailed"] = (shell.Tests.RunFailedCommand, null),
