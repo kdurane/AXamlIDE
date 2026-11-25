@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using AXamlIDE.Models;
 using AXamlIDE.MsBuildHost;
 
@@ -20,7 +21,7 @@ namespace AXamlIDE.Services.Workspace;
 public sealed class MsBuildHostClient : IDisposable
 {
     private readonly string _hostPath;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private Process? _process;
     private string? _folder;                        // where the host runs (the workspace folder)
     private GlobalJsonStamp _globalJson;            // the global.json the running host started with

@@ -1,3 +1,4 @@
+using System.Linq;
 using AXamlIDE.Commands;
 using AXamlIDE.Editor.Highlighting;
 using AXamlIDE.Services.Agents;
@@ -111,6 +112,12 @@ public static class AppServices
         services.AddSingleton<TestExplorerViewModel>();   // the Tests panel (Test Explorer)
         services.AddSingleton<AgentChatViewModel>();      // the Claude panel (claude-agent-acp over ACP)
         services.AddSingleton(new RecentWorkspaces());      // recent.json: the start window's "Open recent"
+        services.AddSingleton(_ =>                         // trusted.json: folders whose code may run (Trust and Open)
+        {
+            var trust = new WorkspaceTrust();
+            trust.StartWith(new RecentWorkspaces().Load().Select(item => item.Path));   // first run: what was already opened
+            return trust;
+        });
         services.AddSingleton<StartViewModel>();          // the start window, File > Recent / New Project / Clone
         services.AddSingleton<LocalsViewModel>();          // the debugger's views (Locals, Watch, Call Stack, visualizers)
         services.AddSingleton<WatchViewModel>();

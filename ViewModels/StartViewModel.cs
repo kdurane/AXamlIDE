@@ -28,13 +28,16 @@ public sealed partial class StartViewModel : ObservableObject
     private const int MenuCount = 10;
 
     private readonly RecentWorkspaces _store;
+    private readonly WorkspaceTrust _trust;
     private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
     private IReadOnlyList<RecentWorkspace> _recent;
 
-    public StartViewModel(WorkspaceViewModel workspace, RecentWorkspaces store, IDialogService dialogs, IMessenger messenger)
+    public StartViewModel(WorkspaceViewModel workspace, RecentWorkspaces store, WorkspaceTrust trust, IDialogService dialogs,
+        IMessenger messenger)
     {
         _store = store;
+        _trust = trust;
         _dialogs = dialogs;
         _messenger = messenger;
         _recent = store.Load();
@@ -111,7 +114,10 @@ public sealed partial class StartViewModel : ObservableObject
     private async Task NewProject()
     {
         if (await _dialogs.NewProjectAsync(DefaultLocation) is { } solution)
+        {
+            _trust.Trust(WorkspaceTrust.FolderOf(solution));   // made here from our own templates: nothing to ask
             Choose(solution);
+        }
     }
 
     [RelayCommand]

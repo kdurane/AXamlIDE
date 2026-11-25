@@ -12,6 +12,7 @@ using AXamlIDE.Services.Languages;
 using AXamlIDE.Services.Settings;
 using AXamlIDE.Services.Snippets;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Workspace;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
@@ -36,6 +37,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     private readonly IDialogService _dialogs;
     private readonly SnippetLibrary _snippets;
     private readonly NavigationService _navigation;
+    private readonly WorkspaceTrust _trust;
     private readonly IMessenger _messenger;
 
     public MainWindowViewModel(
@@ -67,9 +69,11 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         SettingsViewModel settings,
         EditorSettingsLoadResult settingsLoad,
         SnippetLibrary snippets,
+        WorkspaceTrust trust,
         IDialogService dialogs,
         IMessenger messenger)
     {
+        _trust = trust;
         _snippets = snippets;
         _navigation = navigation;
         _documents = documents;
@@ -241,12 +245,47 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     /// <summary>Open a solution or folder from the start window, the recent list, a clone or a new project.</summary>
     public async void Receive(OpenWorkspaceMessage message) => await OpenWorkspaceAsync(message.Path);
 
-    /// <summary>Close what's open (asking about unsaved changes; false if the user cancels), then open <paramref name="path"/>.</summary>
+    /// <summary>
+    /// Ask whether <paramref name="path"/> is trusted when it isn't yet, close what's open (asking about unsaved
+    /// changes), then open it. False if the user cancels either question.
+    /// </summary>
     public async Task<bool> OpenWorkspaceAsync(string path)
     {
+        if (!await ConfirmTrustAsync(path))
+            return false;
         if (Workspace.IsOpen && !await CloseWorkspaceAsync())
             return false;
         return await Workspace.OpenAsync(path);
+    }
+
+    /// <summary>
+    /// Rider's "Trust and Open Project": opening a solution runs its code (MSBuild evaluates its projects, the language
+    /// server loads its analyzers and generators, previews load its assemblies), so a solution or folder from outside the
+    /// trusted folders (WorkspaceTrust) is asked about first. Cancel, the default, opens nothing. True if trusted.
+    /// </summary>
+    private async Task<bool> ConfirmTrustAsync(string path)
+    {
+        if (_trust.IsTrusted(path))
+            return true;
+
+        var folder = WorkspaceTrust.FolderOf(path);
+        // Its parent too (e.g. ~/RiderProjects, so the projects kept there are asked about once), but not the home
+        // folder or a drive's root, which would trust every download.
+        var parent = System.IO.Path.GetDirectoryName(folder);
+        if (parent is not null && (System.IO.Path.GetPathRoot(parent) == parent
+                                   || WorkspaceTrust.FolderOf(parent) == WorkspaceTrust.FolderOf(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile))))
+            parent = null;
+        var trustParent = parent is null ? null : $"Trust '{(System.IO.Path.GetFileName(parent) is { Length: > 0 } name ? name : parent)}'";
+        var choice = await _dialogs.WarnAsync("Trust and Open",
+            $"Opening '{System.IO.Path.GetFileName(path)}' runs code from it: building and loading its projects can run " +
+            "any command, and its analyzers, source generators and previews run as you.\n\n" +
+            "Only open it if you trust where it came from.",
+            trustParent is null ? ["Trust and Open"] : [trustParent, "Trust and Open"],
+            [folder]);
+        if (choice is null)
+            return false;
+        _trust.Trust(choice == trustParent ? parent! : folder);
+        return true;
     }
 
     /// <summary>
