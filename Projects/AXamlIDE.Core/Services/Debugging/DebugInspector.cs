@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,8 +23,9 @@ public sealed record StopSnapshot(
 }
 
 /// <summary>
-/// Listens to DebugSession events. On "stopped" it gathers the stack, locals and `this` members,
-/// writes the stack trace to the output pane, and raises <see cref="Stopped"/> (on the thread pool - marshal to UI yourself).
+/// Listens to DebugSession events. On "stopped" it gathers the stack, locals and `this` members and raises
+/// <see cref="Stopped"/> (on the thread pool - marshal to UI yourself). The Console pane only hears about exceptions
+/// (as VS's Output says "Exception thrown"): the stack is the Call Stack window's job.
 /// </summary>
 public sealed class DebugInspector
 {
@@ -78,13 +78,25 @@ public sealed class DebugInspector
             var values = new Dictionary<string, string>();
             var top = frames.FirstOrDefault(f => f.Path is not null);
             if (top is not null)
-                await CollectValuesAsync(top.Id, values, ct);
+            {
+                // The stop still shows (the line, stepping) when the values can't be read: SharpDbg 0.1.19 fails
+                // 'variables' in async methods ("Object is in a zombie state").
+                try
+                {
+                    await CollectValuesAsync(top.Id, values, ct);
+                }
+                catch (Exception ex)
+                {
+                    Output?.Invoke($"[debug] Could not read the values here: {ex.Message}");
+                }
+            }
 
             var exception = reason == "exception" ? await _session.GetExceptionTextAsync(threadId, ct) : null;
 
             var snapshot = new StopSnapshot(reason, threadId, frames, values, exception, _session, _attributes);
             Current = snapshot;
-            Output?.Invoke(FormatStop(snapshot));
+            if (exception is not null)
+                Output?.Invoke($"[debug] Exception thrown: {exception.Split('\n', 2)[0].TrimEnd()}");
             Stopped?.Invoke(snapshot);
         }
         catch (Exception ex)
@@ -111,21 +123,4 @@ public sealed class DebugInspector
 
     private static string Shorten(string value) =>
         value.Length <= 40 ? value : value[..39] + "…";
-
-    private static string FormatStop(StopSnapshot s)
-    {
-        var sb = new StringBuilder();
-        var top = s.Top;
-        sb.Append("[debug] Paused (").Append(s.Reason).Append(')');
-        if (top is not null)
-            sb.Append(" at ").Append(System.IO.Path.GetFileName(top.Path)).Append(':').Append(top.Line);
-        sb.AppendLine();
-        if (s.ExceptionText is not null)
-            sb.AppendLine(s.ExceptionText);
-        foreach (var f in s.Frames)
-            sb.Append("   at ").Append(f.Name)
-              .Append(f.Path is null ? "" : $" in {f.Path}:line {f.Line}")
-              .AppendLine();
-        return sb.ToString().TrimEnd();
-    }
 }

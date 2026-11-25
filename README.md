@@ -16,7 +16,7 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
   Solution Explorer with file operations; file properties (Build Action); startup project and configuration; build,
   run and publish.
 - **Debugging**: breakpoints (with conditions), stepping, locals, watch, call stack, exception settings, inline
-  values, data tips and collection visualizers (with export to Excel), through netcoredbg.
+  values, data tips and collection visualizers (with export to Excel), through SharpDbg or netcoredbg.
 - **Testing**: Test Explorer for xUnit, NUnit, MSTest and TUnit projects: run all, run failed, results in the tree.
 - **NuGet**: browse, install, update and uninstall packages; installed and transitive packages.
 - **Git**: status in the explorer, stage, unstage, commit, side-by-side diffs, history graph.
@@ -45,6 +45,20 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 The netcoredbg debugger needs no install. The Windows build is committed in `Projects/netcoredbg/`. On Linux and
 macOS the first build downloads the official release into `obj/` (set `NetCoreDbgDownload=false` to stop that and
 put your own copy in `Projects/netcoredbg/`).
+
+The debuggers need no install. Both are pinned to one version in `AXamlIDE.csproj` (`SharpDbgVersion`,
+`NetCoreDbgVersion`) and don't update themselves: change the number and rebuild to update.
+
+SharpDbg is the preferred debugger: DebuggerDisplay and type proxies, Set Next Statement, and the program runs in
+the IDE's terminal so a console program can read input. It comes from NuGet with the normal restore and is copied
+to `sharpdbg/` beside the app. It runs on .NET 11, so it's only used when a final (not preview) .NET 11 runtime is
+installed; without one, debugging uses netcoredbg. Settings > Debugging > Debugger picks one; Automatic, the
+default, takes SharpDbg when it can run.
+
+To try SharpDbg on a preview runtime, start the IDE with `AXAMLIDE_SHARPDBG_FX` set to that runtime's exact version
+(as `dotnet --list-runtimes` shows it), for example
+`AXAMLIDE_SHARPDBG_FX=11.0.0-rc.3.26522.148 ./AXamlIDE`. Remove it once the final runtime is installed: it pins
+SharpDbg to that one runtime, and it won't start once it's gone.
 
 ## Build and run
 
@@ -120,7 +134,8 @@ actions (open, type, save, debug...): [docs/flows.md](docs/flows.md). The third-
 **External tools**
 
 - [roslyn-language-server](https://www.nuget.org/packages/roslyn-language-server): C# language server
-- [netcoredbg](https://github.com/Samsung/netcoredbg): .NET debugger
+- [SharpDbg](https://github.com/MattParkerDev/SharpDbg): .NET debugger (preferred, needs .NET 11)
+- [netcoredbg](https://github.com/Samsung/netcoredbg): .NET debugger (fallback)
 
 ## Licence
 

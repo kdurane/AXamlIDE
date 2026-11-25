@@ -109,7 +109,7 @@ public partial class RunViewModel
             _hasStopped = false;
             var inspector = new DebugInspector(session);
             _inspector = inspector;
-            inspector.Output += AppendConsoleOutput;          // stack trace goes to the console pane
+            inspector.Output += AppendConsoleOutput;          // exceptions thrown, and stops it couldn't read, go to the console pane
             inspector.Stopped += snapshot => Dispatcher.UIThread.Post(() =>
             {
                 if (!ReferenceEquals(_debugSession, session))

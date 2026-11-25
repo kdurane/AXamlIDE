@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using AXamlIDE.ViewModels;
@@ -16,6 +17,9 @@ public partial class RunTerminalView : UserControl
     private RunTerminalViewModel? _viewModel;
     private TerminalRun? _current;
     private bool _templateApplied;
+    // Done once the control's terminal exists (its template is applied). A run can be asked for before that: the Run
+    // panel is brought forward at the same moment, and it lays out on the next pass.
+    private readonly TaskCompletionSource _terminalReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public RunTerminalView()
     {
@@ -28,6 +32,7 @@ public partial class RunTerminalView : UserControl
             _templateApplied = true;
             TerminalPalette.Apply(Terminal);
             Terminal.BeginReparent();   // keep the program running when Dock moves the panel (see TerminalView)
+            _terminalReady.TrySetResult();
         };
         Terminal.ActualThemeVariantChanged += (_, _) =>
         {
@@ -63,9 +68,21 @@ public partial class RunTerminalView : UserControl
         Stop();
         _current?.OnExited(null);
         _current = run;
+        var launch = run.Launch;
+        try
+        {
+            // A debugger waits for the process id, so give up rather than leave it waiting on a panel that never shows.
+            await _terminalReady.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        catch (TimeoutException)
+        {
+            run.OnStarted(null);
+            return;
+        }
+        if (!ReferenceEquals(_current, run))
+            return;   // another run replaced this one while the panel was getting ready
         Terminal.ClearScreen();
 
-        var launch = run.Launch;
         var environment = new System.Collections.Generic.Dictionary<string, string> { ["TERM_PROGRAM"] = "AXamlIDE" };
         foreach (var (name, value) in launch.Environment)
             if (value is not null)
@@ -74,12 +91,13 @@ public partial class RunTerminalView : UserControl
         try
         {
             await Terminal.LaunchProcess(launch.Folder, launch.CommandLine[0], [.. launch.CommandLine.Skip(1)]);
-            run.OnStarted(Terminal.IsLive && Terminal.Pid > 0 ? Terminal.Pid : null);
+            run.OnStarted(Terminal.Pid > 0 ? Terminal.Pid : null);   // a quick program may already have ended
         }
         catch (Exception ex)
         {
-            Terminal.Terminal.Write($"Couldn't start {launch.CommandLine[0]}: {ex.Message}\r\n");
-            run.OnStarted(null);
+            run.OnStarted(null);   // first: the debugger is waiting for the answer
+            if (_templateApplied)   // the control's Terminal getter throws until then
+                Terminal.Terminal.Write($"Couldn't start {launch.CommandLine[0]}: {ex.Message}\r\n");
         }
     }
 
