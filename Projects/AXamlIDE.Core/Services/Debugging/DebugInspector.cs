@@ -24,12 +24,12 @@ public sealed record StopSnapshot(
 }
 
 /// <summary>
-/// Listens to NetCoreDbgSession events. On "stopped" it gathers the stack, locals and `this` members,
+/// Listens to DebugSession events. On "stopped" it gathers the stack, locals and `this` members,
 /// writes the stack trace to the output pane, and raises <see cref="Stopped"/> (on the thread pool - marshal to UI yourself).
 /// </summary>
 public sealed class DebugInspector
 {
-    private readonly NetCoreDbgSession _session;
+    private readonly DebugSession _session;
     private readonly DebuggerAttributeIndex _attributes;
 
     public int ThreadId { get; private set; }
@@ -39,7 +39,7 @@ public sealed class DebugInspector
     public event Action? Resumed;
     public event Action<string>? Output;
 
-    public DebugInspector(NetCoreDbgSession session)
+    public DebugInspector(DebugSession session)
     {
         _session = session;
         _attributes = new DebuggerAttributeIndex(() => session.LoadedModules);

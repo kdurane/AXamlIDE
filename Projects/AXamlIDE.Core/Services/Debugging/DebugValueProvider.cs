@@ -71,8 +71,20 @@ public sealed partial class DebugValueProvider(IDebugEvaluator debugger, int fra
     {
         name ??= variable.Name;
         expression ??= variable.EvaluateName ?? (IsIdentifier(variable.Name) ? variable.Name : null);
+        if (debugger.FormatsValues && expression is not null && !IsExpression(expression))
+            expression = null;   // a row name like "Raw View", not something to evaluate
         var display = variable.Value;
         var type = variable.Type;
+
+        if (debugger.FormatsValues && variable.VariablesReference != 0)
+        {
+            // The adapter has done VS's work (display, proxies, Raw View): its children as they come.
+            var kind = CollectionShapes.IsArray(type) || CollectionShapes.For(type) is not null
+                ? DebugValueKind.Collection
+                : DebugValueKind.Object;
+            return new DebugValue(name, display, type, expression, kind,
+                new MemberChildren(variable.VariablesReference, type, Raw: true), kind == DebugValueKind.Collection ? CountIn(display) : null);
+        }
 
         if (variable.VariablesReference == 0 || display == "null" || !display.StartsWith('{'))
         {
@@ -92,6 +104,15 @@ public sealed partial class DebugValueProvider(IDebugEvaluator debugger, int fra
         return new DebugValue(name, display, type, expression, DebugValueKind.Object,
             new MemberChildren(variable.VariablesReference, type));
     }
+
+    /// <summary>Could be C# to evaluate: not a row name with spaces in it ("Raw View", "Static members").</summary>
+    private static bool IsExpression(string text) => !text.Contains(' ') || text.Contains('"') || text.Contains('(');
+
+    /// <summary>The count in an adapter's display: "Count = 3" -> 3, "int[6]" -> 6.</summary>
+    private static int? CountIn(string display)
+        => display.StartsWith("Count = ", StringComparison.Ordinal) && int.TryParse(display.AsSpan(8), out var count)
+            ? count
+            : ArrayLength(display);
 
     /// <summary>"{int[6]}" -> 6; "{int[3, 2]}" -> 6.</summary>
     private static int? ArrayLength(string display)
@@ -115,8 +136,8 @@ public sealed partial class DebugValueProvider(IDebugEvaluator debugger, int fra
     /// <summary>A better display: [DebuggerDisplay], "Count = n" for a collection, or the overridden ToString().</summary>
     public async Task<DebugValue> RefineAsync(DebugValue value, CancellationToken ct = default)
     {
-        if (value.Kind is not (DebugValueKind.Object or DebugValueKind.Collection) || value.Expression is not { } expression)
-            return value;
+        if (debugger.FormatsValues || value.Kind is not (DebugValueKind.Object or DebugValueKind.Collection) || value.Expression is not { } expression)
+            return value;   // (an adapter that formats values has already shown it as VS would)
         if (CollectionShapes.IsArray(value.Type))
             return value;   // "{int[6]}", as VS shows arrays
 

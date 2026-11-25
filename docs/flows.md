@@ -327,7 +327,7 @@ type, and only of a server that is already running.
 1. Clicking the gutter: `BreakpointMargin` → `OpenDocument.ToggleBreakpoint(line)`. This adds or removes a
    `TextAnchor` (`SurviveDeletion = true`, so the breakpoint follows its line as text is edited) and raises
    `BreakpointsChanged`.
-2. `RunViewModel.OnDocumentBreakpointsChanged`: if a session is running, `NetCoreDbgSession.SetBreakpointsAsync(path,
+2. `RunViewModel.OnDocumentBreakpointsChanged`: if a session is running, `DebugSession.SetBreakpointsAsync(path,
    lines)` (DAP `setBreakpoints`).
 
 **Starting** (F5 → `Debug.StartOrContinue` → `RunViewModel.StartOrContinueDebuggingCommand`)
@@ -337,7 +337,7 @@ type, and only of a server that is already running.
 2. `DebugProjectAsync`:
    1. `SaveAllAsync`, then `BuildWithNoticeAsync(BuildAsync)`. A failed build stops here.
    2. `Task.Run(() => ResolveDebugProgram(...))` → `Host.GetProjectFacts(project, configuration)` → the output DLL path.
-   3. `new NetCoreDbgSession(NetCoreDbgSession.ResolveExecutablePath())` starts `netcoredbg --interpreter=vscode` and
+   3. `new DebugSession(DebugSession.ResolveExecutablePath())` starts `netcoredbg --interpreter=vscode` and
       begins `PumpMessagesAsync` (reads DAP messages through `DebugAdapterTransport`).
    4. `new DebugInspector(session)` subscribes to `session.EventReceived`. `RunViewModel` subscribes to
       `inspector.Stopped`, `inspector.Resumed`, `session.OutputReceived`, `session.EventReceived`
@@ -350,7 +350,7 @@ type, and only of a server that is already running.
 
 **Stopping at a breakpoint**
 
-1. netcoredbg sends a `stopped` event → `NetCoreDbgSession.PumpMessagesAsync` → `EventReceived` →
+1. netcoredbg sends a `stopped` event → `DebugSession.PumpMessagesAsync` → `EventReceived` →
    `DebugInspector.OnEvent` → `HandleStoppedAsync` (fire and forget): `GetStackAsync`, `CollectValuesAsync` (top
    frame's locals), and `GetExceptionTextAsync` if it stopped on an exception. Then it builds a `StopSnapshot` and
    raises `Stopped`.

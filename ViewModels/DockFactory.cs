@@ -12,7 +12,7 @@ namespace AXamlIDE.ViewModels;
 /// Builds the starting dock layout and knows where each tool panel lives when it isn't moved:
 ///
 ///   [Explorer, Git (+ Debug)] | [ Documents (each AXAML tab has its own preview)  ]
-///   [Properties]              | [ Problems, Output, Debug Console (+ Terminal, Tests) ]
+///   [Properties]              | [ Problems, Output, Debug Console (+ Terminal, Run, Tests) ]
 ///
 /// (Properties only while it's open; the explorer column is mirrored to the right by the "explorer on right" setting).
 /// The bottom row is VS Code's panel: it can be hidden and shown as a whole (<see cref="HideBottomPanel"/>). Problems,
@@ -68,11 +68,12 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         var output = new ToolDockable(ToolTab.Output, "Output");
         var console = new ToolDockable(ToolTab.Console, "Debug Console");
         var terminal = new ToolDockable(ToolTab.Terminal, "Terminal") { CanClose = true };
+        var run = new ToolDockable(ToolTab.Run, "Run") { CanClose = true };   // joins when a program is run
         var tests = new ToolDockable(ToolTab.Tests, "Tests") { CanClose = true };
         var search = new ToolDockable(ToolTab.Search, "Search");
         // In the side bar while debugging (DockLayoutViewModel adds and removes it).
         var debug = new ToolDockable(ToolTab.Debug, "Debug") { CanDrag = false, CanFloat = false };
-        Tools = new[] { explorer, git, debug, properties, problems, output, console, terminal, tests, search }
+        Tools = new[] { explorer, git, debug, properties, problems, output, console, terminal, run, tests, search }
             .ToDictionary(tool => tool.Id);
 
         MainDocuments = new DocumentDock
@@ -107,7 +108,7 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         _homes[git.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[debug.Id] = new ToolHome(explorerDock, ExplorerColumn, AtStart: true);
         _homes[properties.Id] = new ToolHome(propertiesDock, ExplorerColumn, AtStart: false);
-        foreach (var tool in new[] { problems, output, console, terminal, tests })
+        foreach (var tool in new[] { problems, output, console, terminal, run, tests })
             _homes[tool.Id] = new ToolHome(bottomDock, centre, AtStart: false);
 
         _defaultSizes.Clear();

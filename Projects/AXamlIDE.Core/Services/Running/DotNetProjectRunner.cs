@@ -24,10 +24,6 @@ public sealed class DotNetProjectRunner : IDisposable
     public Task<int> CleanAsync(string projectPath, string configuration)
         => ExecuteAsync(projectPath, ["clean", projectPath, "--configuration", configuration], isRun: false);
 
-    /// <summary>Runs the already built project (<c>--no-build</c>); build it first with the same configuration.</summary>
-    public Task<int> RunAsync(string projectPath, string configuration)
-        => ExecuteAsync(projectPath, ["run", projectPath, "--configuration", configuration, "--no-build"], isRun: true);
-
     /// <summary><c>dotnet publish</c> with these arguments (PublishCommandLine's); output goes with the build's.</summary>
     public Task<int> PublishAsync(string projectPath, IReadOnlyList<string> arguments)
         => ExecuteAsync(projectPath, arguments, isRun: false);

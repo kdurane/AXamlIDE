@@ -40,12 +40,55 @@ public class DebugValueProviderTests
 
         public int? ProcessId => null;
 
+        /// <summary>Answer like SharpDbg (values already shown as VS shows them) rather than netcoredbg.</summary>
+        public bool FormatsValues { get; init; }
+
         public void Value(string expression, string value, string type = "int", int reference = 0)
             => Values[expression] = new DebugVariable(expression, value, type, reference, expression);
     }
 
     private static DebugVariable Var(string name, string value, string type, int reference = 0, string? evaluateName = null)
         => new(name, value, type, reference, evaluateName);
+
+    [Fact]
+    public async Task An_adapter_that_formats_values_is_taken_as_it_comes_with_expressions_built_from_the_parent()
+    {
+        // SharpDbg: DebuggerDisplay applied, type proxies as children, a Raw View row, child names only as evaluateName.
+        var debugger = new FakeDebugger { FormatsValues = true };
+        debugger.Locals.Add(Var("person", "\"Ada\" (36)", "Person", 1, "person"));
+        debugger.Locals.Add(Var("ages", "Count = 2", "System.Collections.Generic.Dictionary<string, int>", 2, "ages"));
+        debugger.Locals.Add(Var("set", "Count = 1", "System.Collections.Generic.HashSet<int>", 3, "set"));
+        debugger.Children[1] = [Var("Name", "\"Ada\"", "string", 0, "Name"), Var("Age", "36", "int", 0, "Age")];
+        debugger.Children[2] =
+        [
+            Var("[0]", "[\"Ada\"] = 36", "System.Collections.Generic.DebugViewDictionaryItem<string, int>", 4, "[0]"),
+            Var("Raw View", "", "", 5, "Raw View"),
+        ];
+        debugger.Children[3] = [Var("[0]", "7", "int", 0, "[0]")];
+        var provider = new DebugValueProvider(debugger, frameId: 1);
+
+        var locals = await provider.LocalsAsync();
+        Assert.Empty(debugger.Evaluated);                        // nothing re-worked: no ToString, Count or DebuggerDisplay
+        Assert.Equal("\"Ada\" (36)", locals[0].Display);
+        Assert.Equal(DebugValueKind.Collection, locals[1].Kind);
+        Assert.Equal(2, locals[1].Count);
+
+        var members = await provider.ChildrenAsync(locals[0]);
+        Assert.Equal(["person.Name", "person.Age"], members.Select(member => member.Expression));
+
+        var entries = await provider.ChildrenAsync(locals[1]);
+        Assert.Equal("[\"Ada\"]", entries[0].Name);           // VS names a dictionary entry by its key
+        Assert.Equal("36", entries[0].Display);
+        Assert.Equal("ages[\"Ada\"]", entries[0].Expression);
+        Assert.Equal(DebugValueKind.Group, entries[1].Kind);     // the Raw View
+        Assert.Null(entries[1].Expression);
+
+        var items = await provider.ItemsAsync(locals[1], 10);    // the visualizer: items only
+        Assert.Single(items);
+
+        var setItems = await provider.ChildrenAsync(locals[2]);
+        Assert.Null(setItems[0].Expression);                     // a HashSet has no indexer to write set[0] with
+    }
 
     [Fact]
     public async Task Objects_show_their_ToString_override_and_hide_noise()

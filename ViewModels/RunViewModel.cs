@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Avalonia.Threading;
 using AXamlIDE.Messages;
 using AXamlIDE.Models;
+using AXamlIDE.Services.Debugging;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
 using AXamlIDE.Services.Running;
@@ -42,6 +43,8 @@ public partial class RunViewModel : ObservableObject, IDisposable
     private readonly IDialogService _dialogs;
     private readonly Services.Settings.IEditorSettings _settings;
     private readonly IMessenger _messenger;
+    private readonly ClosedFileBreakpoints _closedBreakpoints;
+    private readonly RunTerminalViewModel _runTerminal;
     private bool _runStopRequested;
 
     public RunViewModel(
@@ -51,8 +54,11 @@ public partial class RunViewModel : ObservableObject, IDisposable
         DocumentSaveService saver,
         IDialogService dialogs,
         Services.Settings.IEditorSettings settings,
+        ClosedFileBreakpoints closedBreakpoints,
+        RunTerminalViewModel runTerminal,
         IMessenger messenger)
     {
+        _runTerminal = runTerminal;
         _settings = settings;
         settings.PropertyChanged += OnSettingsChanged;
         _workspace = workspace;
@@ -64,9 +70,11 @@ public partial class RunViewModel : ObservableObject, IDisposable
 
         _projectRunner.OutputReceived += AppendProcessOutput;
 
-        // Breakpoints of open documents are synced to the debugger.
+        // Breakpoints are synced to the debugger: open documents' and closed files'.
         _documents.Opened += TrackDocument;
         _documents.Closing += UntrackDocument;
+        _closedBreakpoints = closedBreakpoints;
+        closedBreakpoints.Changed += OnFileBreakpointsChanged;
 
         explorer.Opened += OnWorkspaceOpened;
         explorer.Closed += OnWorkspaceClosed;
@@ -202,18 +210,22 @@ public partial class RunViewModel : ObservableObject, IDisposable
                 return;
             }
 
-            BeginRunOutput($"Running {Path.GetFileName(projectPath)} ({configuration})");
+            // The built program itself, in the Run panel's terminal (a real console: input, colours), as the debugger
+            // runs it. One process, so Stop ends the program (not just a dotnet run in front of it).
+            var (programPath, workingDirectory) = await Task.Run(() => ResolveProgram(projectPath, configuration));
+            var name = Path.GetFileNameWithoutExtension(programPath);
             IsRunning = true;
-            var runExitCode = await _projectRunner.RunAsync(projectPath, configuration);
-            AppendConsoleOutput(_runStopRequested
-                ? "Application stopped."
-                : runExitCode == 0
-                    ? "Application exited."
-                    : $"Application exited with code {runExitCode}.");
+            ShowStatus($"Running {name} ({configuration}).");
+            var exitCode = await RunInTerminalAsync(
+                new TerminalLaunch(workingDirectory, [DotNetRuntimes.DotNetPath() ?? "dotnet", programPath], new Dictionary<string, string?>(), name),
+                $"{name} ({configuration})");
+            ShowStatus(_runStopRequested ? $"{name} stopped."
+                : exitCode is null ? $"{name} couldn't be started."
+                : exitCode == 0 ? $"{name} exited." : $"{name} exited with code {exitCode}.");
         }
         catch (Exception ex)
         {
-            AppendConsoleOutput($"Run failed: {ex}");
+            ShowStatus($"Run failed: {ex.Message}");
         }
         finally
         {
@@ -292,8 +304,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
             return;
 
         _runStopRequested = true;
-        AppendConsoleOutput("Stopping application...");
-        _projectRunner.Stop();
+        _runTerminal.Stop();
     }
 
     // --------------------------------------------------------------- output
@@ -307,11 +318,19 @@ public partial class RunViewModel : ObservableObject, IDisposable
         AppendBuildOutput(message);
     }
 
-    private void BeginRunOutput(string message)
+    /// <summary>Start a program in the Run panel (shown first, so it starts at once); its exit code, null if it never started.</summary>
+    private async Task<int?> RunInTerminalAsync(TerminalLaunch launch, string title)
     {
-        ConsoleOutput.Clear();
-        _messenger.Send(new ShowToolTabMessage(ToolTab.Console));
-        AppendConsoleOutput(message);
+        _messenger.Send(new ShowToolTabMessage(ToolTab.Run));
+        var run = _runTerminal.Start(launch, title);
+        return await run.Started is null ? null : await run.Exited;
+    }
+
+    /// <summary>Start a program in the Run panel for the debugger (runInTerminal); its process id once it's running.</summary>
+    private Task<int?> StartInTerminalAsync(TerminalLaunch launch, string title)
+    {
+        _messenger.Send(new ShowToolTabMessage(ToolTab.Run));
+        return _runTerminal.Start(launch, title).Started;
     }
 
     private void ShowBuildMessage(string message) => BeginBuildOutput(message);

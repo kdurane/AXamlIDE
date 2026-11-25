@@ -60,6 +60,9 @@ public sealed partial class DebugValueProvider
             ArrayChildren array => await ArrayItemsAsync(array.Reference, value.Expression, limit, ct),
             CollectionChildren collection => await CollectionItemsAsync(collection, value.Expression, limit, ct),
             ResultsChildren results => await ResultsAsync(results.Expression, ct),
+            // An adapter that shows type proxies: the proxy's items, without its Raw View row.
+            MemberChildren members when debugger.FormatsValues && value.Kind == DebugValueKind.Collection
+                => (await MembersAsync(members, value.Expression, ct)).Where(item => item.Name != RawView).Take(limit).ToList(),
             _ => []
         };
 
@@ -81,6 +84,11 @@ public sealed partial class DebugValueProvider
                     variable.VariablesReference > 0 ? new MemberChildren(variable.VariablesReference, null) : null);
                 continue;
             }
+            if (debugger.FormatsValues)
+            {
+                members.Add(AdapterMember(variable, expression, source.Type));
+                continue;
+            }
             if (!source.Raw && IsNoise(variable, source.Type))
                 continue;
 
@@ -99,6 +107,36 @@ public sealed partial class DebugValueProvider
         return members;
     }
 
+    /// <summary>
+    /// A child from an adapter that shows values as VS does (SharpDbg), as it comes, with what it leaves out: an
+    /// expression for it (its own are only the last step, "Name" for person.Name), the Raw View as a group, and a
+    /// dictionary entry named by its key (VS's ["Ada"] = 36; the adapter gives [0] = ["Ada"] = 36).
+    /// </summary>
+    private DebugValue AdapterMember(DebugVariable variable, string? parent, string? parentType)
+    {
+        variable = variable with { EvaluateName = null };   // only the last step: the expression is built here
+        if (variable.Name == RawView)
+            return new DebugValue(RawView, "", null, null, DebugValueKind.Group,
+                variable.VariablesReference > 0 ? new MemberChildren(variable.VariablesReference, variable.Type, Raw: true) : null);
+
+        if (DebuggerAttributeIndex.Key(variable.Type ?? "") == "System.Collections.Generic.DebugViewDictionaryItem"
+            && variable.Value.StartsWith('[') && variable.Value.IndexOf("] = ", StringComparison.Ordinal) is var end and > 0)
+        {
+            var key = variable.Value[..(end + 1)];
+            return Classify(variable with { Value = variable.Value[(end + 4)..] }, key, parent is null ? null : parent + key);
+        }
+
+        var expression = !variable.Name.StartsWith('[') ? Member(parent, variable.Name)
+            : IsIndexable(parentType) ? Member(parent, variable.Name)
+            : null;   // a HashSet or Queue item: no indexer to write it with
+        return Classify(variable, expression: expression);
+    }
+
+    /// <summary>A collection whose items can be written as x[i].</summary>
+    private static bool IsIndexable(string? type)
+        => CollectionShapes.IsArray(type)
+           || CollectionShapes.For(type) is CollectionShape.List or CollectionShape.Wrapper or CollectionShape.ImmutableArray or null;
+
     /// <summary>Rows VS doesn't show: explicit interface members, indexers ("Item" fails with a parameter count error), hidden members.</summary>
     private bool IsNoise(DebugVariable variable, string? type)
         => variable.Name.Contains('.')
@@ -108,7 +146,14 @@ public sealed partial class DebugValueProvider
     /// <summary>Framework types' private fields (_items, _version...): VS groups them as non-public.</summary>
     private static bool IsNonPublic(string name) => name.Length > 0 && (name[0] == '_' || name[0] == '<' || char.IsLower(name[0]));
 
-    private static string? Member(string? expression, string name) => expression is null ? null : $"{expression}.{name}";
+    /// <summary>
+    /// A child's expression from its parent's: person.Name, numbers[0] (an item, as type proxies name them); none for
+    /// rows that aren't members ("Raw View").
+    /// </summary>
+    private static string? Member(string? expression, string name)
+        => expression is null || name.Contains(' ') ? null
+            : name.StartsWith('[') ? expression + name
+            : $"{expression}.{name}";
 
     private static DebugValue Group(string name, IReadOnlyList<DebugValue> children)
         => new(name, "", null, null, DebugValueKind.Group, new FixedChildren(children));

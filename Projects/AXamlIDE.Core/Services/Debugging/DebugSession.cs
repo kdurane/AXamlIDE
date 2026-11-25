@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace AXamlIDE.Services.Debugging;
 
-public sealed partial class NetCoreDbgSession : IDisposable
+public sealed partial class DebugSession : IDisposable
 {
     private readonly Process _process;
     private readonly DebugAdapterTransport _transport;
@@ -33,44 +33,23 @@ public sealed partial class NetCoreDbgSession : IDisposable
     public event Action<JsonElement>? EventReceived;
     public event Action<Exception>? Failed;
 
-    public static string ResolveExecutablePath()
+    /// <summary>The debugger this session runs (SharpDbg or netcoredbg).</summary>
+    public DebugAdapter Adapter { get; }
+
+    /// <summary>
+    /// Start the program in a terminal (the adapter's runInTerminal request, for an adapter that
+    /// <see cref="DebugAdapter.RunsInTerminal"/>): its working folder, command line and extra environment; returns the
+    /// started process's id, or null if it couldn't be started. Set before <see cref="StartAsync"/>; without it the
+    /// program's console comes back through the adapter.
+    /// </summary>
+    public Func<TerminalLaunch, Task<int?>>? RunInTerminal { get; set; }
+
+    public DebugSession(DebugAdapter adapter)
     {
-        var overridePath = Environment.GetEnvironmentVariable("AXAMLIDE_NETCOREDBG_PATH");
-        if (!string.IsNullOrWhiteSpace(overridePath))
-        {
-            if (File.Exists(overridePath))
-                return overridePath;
-            throw new FileNotFoundException(
-                $"AXAMLIDE_NETCOREDBG_PATH points to a missing file: '{overridePath}'.", overridePath);
-        }
-
-        var executable = OperatingSystem.IsWindows() ? "netcoredbg.exe" : "netcoredbg";
-
-        // Copied next to the app at build time from Projects/netcoredbg (see AXamlIDE.csproj).
-        var bundled = Path.Combine(AppContext.BaseDirectory, "netcoredbg", executable);
-        if (File.Exists(bundled))
-            return bundled;
-
-        var path = Environment.GetEnvironmentVariable("PATH");
-        if (path is null)
-            throw new FileNotFoundException(
-                "NetCoreDbg was not found on PATH. Install the NetCoreDbg standalone executable or set AXAMLIDE_NETCOREDBG_PATH.");
-        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var candidate = Path.Combine(directory, executable);
-            if (File.Exists(candidate))
-                return candidate;
-        }
-
-        throw new FileNotFoundException(
-            "NetCoreDbg was not found on PATH. Install the NetCoreDbg standalone executable or set AXAMLIDE_NETCOREDBG_PATH.");
-    }
-
-    public NetCoreDbgSession(string executablePath)
-    {
+        Adapter = adapter;
         _process = new Process
         {
-            StartInfo = new ProcessStartInfo(executablePath)
+            StartInfo = new ProcessStartInfo(adapter.FileName)
             {
                 UseShellExecute = false,
                 RedirectStandardInput = true,
@@ -82,10 +61,10 @@ public sealed partial class NetCoreDbgSession : IDisposable
                 CreateNoWindow = true
             }
         };
-        _process.StartInfo.ArgumentList.Add("--interpreter=vscode");
-        _process.StartInfo.ArgumentList.Add("--engineLogging=" + Path.Combine(Path.GetTempPath(), "netcoredbg.log"));
+        foreach (var argument in adapter.Arguments)
+            _process.StartInfo.ArgumentList.Add(argument);
         if (!_process.Start())
-            throw new InvalidOperationException($"Could not start NetCoreDbg at '{executablePath}'.");
+            throw new InvalidOperationException($"Could not start {adapter.Name} at '{adapter.FileName}'.");
 
         _transport = new DebugAdapterTransport(_process.StandardOutput.BaseStream, _process.StandardInput.BaseStream, leaveOpen: true);
         _ = ReadStandardErrorAsync();
@@ -124,7 +103,8 @@ public sealed partial class NetCoreDbgSession : IDisposable
             cwd = workingDirectory,
             args = Array.Empty<string>(),
             stopAtEntry = false,
-            console = "internalConsole",
+            // In the IDE's terminal when the adapter can (a real console: input, colours), else through the adapter.
+            console = Adapter.RunsInTerminal && RunInTerminal is not null ? "integratedTerminal" : "internalConsole",
             justMyCode = true
         }, token);
         _ = launch.ContinueWith(
@@ -195,7 +175,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
         catch (Exception ex) when (ex is IOException or InvalidOperationException or OperationCanceledException
                                    or ObjectDisposedException)
         {
-            OutputReceived?.Invoke($"NetCoreDbg disconnect: {ex.Message}");
+            OutputReceived?.Invoke($"{Adapter.Name} disconnect: {ex.Message}");
         }
 
         if (!_process.HasExited)
@@ -264,6 +244,55 @@ public sealed partial class NetCoreDbgSession : IDisposable
         }
     }
 
+    /// <summary>
+    /// A request from the adapter (DAP's "reverse requests"). Only runInTerminal is answered with success: start the
+    /// program in the IDE's terminal and reply with its process id. Anything else is refused.
+    /// </summary>
+    private async Task AnswerRequestAsync(JsonElement request)
+    {
+        var sequence = request.GetProperty("seq").GetInt32();
+        var command = request.TryGetProperty("command", out var name) ? name.GetString() ?? "" : "";
+        object? body = null;
+        string? error = null;
+        try
+        {
+            if (command == "runInTerminal" && RunInTerminal is { } run
+                && request.TryGetProperty("arguments", out var arguments) && TerminalLaunch.From(arguments) is { } launch)
+            {
+                if (await run(launch) is { } processId)
+                    body = new { processId };
+                else
+                    error = "The program couldn't be started in the terminal.";
+            }
+            else
+            {
+                error = $"AXamlIDE doesn't handle '{command}'.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+
+        var reply = error is null
+            ? JsonSerializer.SerializeToUtf8Bytes(new { seq = 0, type = "response", request_seq = sequence, success = true, command, body })
+            : JsonSerializer.SerializeToUtf8Bytes(new { seq = 0, type = "response", request_seq = sequence, success = false, command, message = error });
+        await _requestWriteLock.WaitAsync();
+        try
+        {
+            Trace("->", reply);
+            await _transport.WriteMessageAsync(reply, _shutdown.Token);
+        }
+        catch (Exception ex) when (ex is IOException or ObjectDisposedException or OperationCanceledException)
+        {
+            // The session is ending.
+        }
+        finally
+        {
+            _requestWriteLock.Release();
+        }
+    }
+
     private void RememberModule(JsonElement message)
     {
         if (message.TryGetProperty("body", out var body)
@@ -284,13 +313,17 @@ public sealed partial class NetCoreDbgSession : IDisposable
                 Trace("<-", payload);
                 var root = message.RootElement;
                 if (!root.TryGetProperty("type", out var type))
-                    throw new InvalidDataException("NetCoreDbg sent a DAP message without a type.");
+                    throw new InvalidDataException($"{Adapter.Name} sent a DAP message without a type.");
 
                 if (type.GetString() == "response")
                 {
                     var requestSequence = root.GetProperty("request_seq").GetInt32();
                     if (_pending.TryRemove(requestSequence, out var completion))
                         completion.TrySetResult(JsonDocument.Parse(payload));
+                }
+                else if (type.GetString() == "request")
+                {
+                    _ = AnswerRequestAsync(root.Clone());   // not awaited: the reply may need more messages read first
                 }
                 else if (type.GetString() == "event")
                 {
@@ -307,7 +340,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
             }
 
             if (!_shutdown.IsCancellationRequested && !_process.HasExited)
-                throw new EndOfStreamException("NetCoreDbg closed its DAP output unexpectedly.");
+                throw new EndOfStreamException($"{Adapter.Name} closed its DAP output unexpectedly.");
         }
         catch (OperationCanceledException) when (_shutdown.IsCancellationRequested)
         {
@@ -328,7 +361,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
         try
         {
             while (await _process.StandardError.ReadLineAsync() is { } line)
-                OutputReceived?.Invoke($"[NetCoreDbg] {line}");
+                OutputReceived?.Invoke($"[{Adapter.Name}] {line}");
         }
         catch (ObjectDisposedException)
         {
@@ -352,7 +385,7 @@ public sealed partial class NetCoreDbgSession : IDisposable
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
-            OutputReceived?.Invoke($"Could not stop NetCoreDbg: {ex.Message}");
+            OutputReceived?.Invoke($"Could not stop {Adapter.Name}: {ex.Message}");
         }
         _process.Dispose();
         _shutdown.Dispose();

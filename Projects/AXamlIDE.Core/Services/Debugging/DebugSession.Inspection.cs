@@ -8,8 +8,10 @@ namespace AXamlIDE.Services.Debugging;
 
 public sealed record DebugFrame(int Id, string Name, string? Path, int Line);
 
-public sealed partial class NetCoreDbgSession : IDebugEvaluator
+public sealed partial class DebugSession : IDebugEvaluator
 {
+    public bool FormatsValues => Adapter.FormatsValues;
+
     public Task StepOverAsync(int threadId, CancellationToken ct = default) => SendAsync("next", new { threadId }, ct);
     public Task StepIntoAsync(int threadId, CancellationToken ct = default) => SendAsync("stepIn", new { threadId }, ct);
     public Task StepOutAsync(int threadId, CancellationToken ct = default) => SendAsync("stepOut", new { threadId }, ct);
@@ -109,6 +111,12 @@ public sealed partial class NetCoreDbgSession : IDebugEvaluator
                 body.TryGetProperty("type", out var t) ? t.GetString() : null,
                 body.TryGetProperty("variablesReference", out var vr) ? vr.GetInt32() : 0,
                 expression), null);
+        }
+        catch (DebugAdapterException ex) when (ex.AdapterMessage.Contains("not supported", StringComparison.OrdinalIgnoreCase))
+        {
+            // SharpDbg has no setExpression, but evaluates an assignment (as VS's Immediate window does).
+            var assigned = await EvaluateAsync(frameId, $"{expression} = {value}", "repl", ct);
+            return assigned.Value is { } result ? new DebugEvaluation(result with { Name = expression }, null) : assigned;
         }
         catch (DebugAdapterException ex)
         {

@@ -13,6 +13,9 @@ public static class ToolTab
     public const string Output = "output";
     public const string Console = "console";
     public const string Terminal = "terminal";
+
+    /// <summary>The program the IDE ran (Start Without Debugging, or debugged by SharpDbg), in a terminal.</summary>
+    public const string Run = "run";
     public const string Tests = "tests";
     public const string Search = "search";
 

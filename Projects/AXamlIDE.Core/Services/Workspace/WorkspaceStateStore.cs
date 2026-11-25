@@ -42,6 +42,7 @@ public sealed class WorkspaceStateStore
             ExpandedNodes = [.. state.ExpandedNodes.Select(path => Absolute(workspaceFolder, path))],
             ClosedFileFolds = (state.ClosedFileFolds ?? []).ToDictionary(
                 pair => Absolute(workspaceFolder, pair.Key), pair => pair.Value, StringComparer.Ordinal),
+            Breakpoints = [.. (state.Breakpoints ?? []).Select(breakpoint => breakpoint with { Path = Absolute(workspaceFolder, breakpoint.Path) })],
             ActiveFile = state.ActiveFile is { } active ? Absolute(workspaceFolder, active) : null,
             StartupProject = state.StartupProject is { } startup ? Absolute(workspaceFolder, startup) : null
         };
@@ -57,6 +58,7 @@ public sealed class WorkspaceStateStore
             ExpandedNodes = [.. state.ExpandedNodes.Select(path => Absolute(workspaceFolder, path))],
             ClosedFileFolds = state.ClosedFileFolds.ToDictionary(
                 pair => Relative(workspaceFolder, pair.Key), pair => pair.Value, StringComparer.Ordinal),
+            Breakpoints = [.. state.Breakpoints.Select(breakpoint => breakpoint with { Path = Relative(workspaceFolder, breakpoint.Path) })],
             ActiveFile = state.ActiveFile is { } active ? Relative(workspaceFolder, active) : null,
             StartupProject = state.StartupProject is { } startup ? Relative(workspaceFolder, startup) : null
         };

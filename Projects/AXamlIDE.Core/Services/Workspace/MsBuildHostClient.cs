@@ -12,6 +12,8 @@ namespace AXamlIDE.Services.Workspace;
 
 /// <summary>
 /// Long-lived helper process that evaluates projects with the system SDK's MSBuild.
+/// It runs in the workspace's folder (<see cref="UseFolder"/>), so it picks the SDK that folder's global.json asks
+/// for, as <c>dotnet build</c> there does; it restarts when the workspace or its global.json changes.
 /// Synchronous by design (one request in flight at a time); call it from Task.Run
 /// when you don't want to block the UI - ProjectTreeNode.PopulateAsync does.
 /// </summary>
@@ -20,11 +22,16 @@ public sealed class MsBuildHostClient : IDisposable
     private readonly string _hostPath;
     private readonly object _lock = new();
     private Process? _process;
+    private string? _folder;                        // where the host runs (the workspace folder)
+    private GlobalJsonStamp _globalJson;            // the global.json the running host started with
+    private long _globalJsonCheckedAt;              // Environment.TickCount64 of the last look
 
     private readonly ConcurrentDictionary<(string Path, string Configuration), CachedEvaluation> _evaluations = new();
 
-    public MsBuildHostClient(string hostExecutablePath)
+    /// <param name="folder">The workspace folder to run in (see <see cref="UseFolder"/>), or null.</param>
+    public MsBuildHostClient(string hostExecutablePath, string? folder = null)
     {
+        _folder = folder is null ? null : Path.GetFullPath(folder);
         if (!File.Exists(hostExecutablePath))
             throw new FileNotFoundException(
                 "MSBuild host executable not found - build AXamlIDE.msbuildhost first.", hostExecutablePath);
@@ -41,6 +48,8 @@ public sealed class MsBuildHostClient : IDisposable
         {
             StartInfo = new ProcessStartInfo(_hostPath)
             {
+                // MSBuildLocator picks the SDK the way dotnet does: by the global.json above the current folder.
+                WorkingDirectory = _folder is { } folder && Directory.Exists(folder) ? folder : "",
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -58,9 +67,61 @@ public sealed class MsBuildHostClient : IDisposable
             if (e.Data is not null) Debug.WriteLine("[msbuildhost] " + e.Data);
         };
 
+        _globalJson = GlobalJsonStamp.Read(_folder);
         process.Start();
         process.BeginErrorReadLine();
         _process = process;
+    }
+
+    /// <summary>
+    /// Evaluate projects as from this folder (the workspace's), so its global.json picks the SDK. A different folder
+    /// restarts the host and forgets what it evaluated.
+    /// </summary>
+    public void UseFolder(string? folder)
+    {
+        lock (_lock)
+        {
+            var full = folder is null ? null : Path.GetFullPath(folder);
+            if (string.Equals(full, _folder, StringComparison.Ordinal))
+                return;
+            _folder = full;
+            if (GlobalJsonStamp.Read(full) == _globalJson)
+                return;   // same SDK choice: no need to restart
+            Restart();
+            _evaluations.Clear();
+        }
+    }
+
+    /// <summary>
+    /// The global.json the host started with was added, edited or removed (the SDK may have changed): restart the
+    /// host and forget its evaluations. Looked at no more than once a second, as requests can come in bursts.
+    /// </summary>
+    private void RestartIfGlobalJsonChanged()
+    {
+        var now = Environment.TickCount64;
+        if (now - _globalJsonCheckedAt < 1000)
+            return;
+        _globalJsonCheckedAt = now;
+        if (GlobalJsonStamp.Read(_folder) == _globalJson)
+            return;
+        Debug.WriteLine("[msbuildhost] global.json changed: restarting");
+        Restart();
+        _evaluations.Clear();
+    }
+
+    /// <summary>The global.json dotnet would use from a folder (the nearest one at or above it) and its write time.</summary>
+    private readonly record struct GlobalJsonStamp(string? Path, DateTime WriteUtc)
+    {
+        public static GlobalJsonStamp Read(string? folder)
+        {
+            for (var directory = folder is null ? null : new DirectoryInfo(folder); directory is not null; directory = directory.Parent)
+            {
+                var candidate = System.IO.Path.Combine(directory.FullName, "global.json");
+                if (File.Exists(candidate))
+                    return new GlobalJsonStamp(candidate, File.GetLastWriteTimeUtc(candidate));
+            }
+            return default;
+        }
     }
 
     private void Restart()
@@ -146,6 +207,8 @@ public sealed class MsBuildHostClient : IDisposable
     /// </summary>
     private HostResponse GetProjectData(string projectPath, string? configuration = null)
     {
+        lock (_lock)
+            RestartIfGlobalJsonChanged();
         var key = (Path.GetFullPath(projectPath), configuration ?? "");
         if (_evaluations.TryGetValue(key, out var cached) && cached.IsCurrent())
             return cached.Response;

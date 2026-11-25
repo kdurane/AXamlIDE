@@ -101,7 +101,27 @@
     </Target>
 
     <!--
-        Publish takes the MSBuild host, the Roslyn extension and the debugger along, in the folders the app looks for them
+        The other debugger, SharpDbg (MIT, github.com/MattParkerDev/SharpDbg): a DAP server written in C#, from its NuGet
+        tool package, copied next to the app as sharpdbg/. It runs on .NET 11, so the IDE only uses it when a .NET 11
+        runtime is installed (Settings > Debugging > Debugger); netcoredbg is the fallback.
+    -->
+    <PropertyGroup>
+        <SharpDbgVersion>0.1.19</SharpDbgVersion>
+        <SharpDbgFolder>$(NuGetPackageRoot)sharpdbg.cli/$(SharpDbgVersion)/tools/net11.0/any/</SharpDbgFolder>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageDownload Include="SharpDbg.Cli" Version="[$(SharpDbgVersion)]" />
+    </ItemGroup>
+    <Target Name="CopySharpDbg" AfterTargets="Build">
+        <ItemGroup Condition="Exists('$(SharpDbgFolder)SharpDbg.Cli.dll')">
+            <SharpDbgFiles Include="$(SharpDbgFolder)**/*" Exclude="$(SharpDbgFolder)**/*.pdb" />
+        </ItemGroup>
+        <Copy Condition="'@(SharpDbgFiles)' != ''" SourceFiles="@(SharpDbgFiles)" DestinationFiles="@(SharpDbgFiles->'$(OutDir)sharpdbg/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+        <Warning Condition="'@(SharpDbgFiles)' == ''" Text="SharpDbg wasn't found at $(SharpDbgFolder): debugging will use netcoredbg." />
+    </Target>
+
+    <!--
+        Publish takes the MSBuild host, the Roslyn extension and the debuggers along, in the folders the app looks for them
         in (msbuildhost/, roslynextension/ and netcoredbg/ beside it, as the build does). They're loaded by other
         processes, so a single-file publish leaves them as files.
     -->
@@ -120,6 +140,14 @@
                 <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
             </ResolvedFileToPublish>
         </ItemGroup>
+        <ItemGroup Condition="Exists('$(SharpDbgFolder)SharpDbg.Cli.dll')">
+            <_SharpDbgPublishFile Include="$(SharpDbgFolder)**/*" Exclude="$(SharpDbgFolder)**/*.pdb" />
+            <ResolvedFileToPublish Include="@(_SharpDbgPublishFile)">
+                <RelativePath>sharpdbg/%(_SharpDbgPublishFile.RecursiveDir)%(_SharpDbgPublishFile.Filename)%(_SharpDbgPublishFile.Extension)</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            </ResolvedFileToPublish>
+        </ItemGroup>
         <ItemGroup Condition="Exists('$(NetCoreDbgFolder)$(NetCoreDbgExecutable)')">
             <_DebuggerPublishFile Include="$(NetCoreDbgFolder)**/*" Exclude="$(NetCoreDbgFolder).netcoredbg_hist" />
             <ResolvedFileToPublish Include="@(_DebuggerPublishFile)">
@@ -131,21 +159,21 @@
     </Target>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.6" />
-        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.1.6" />
+        <PackageReference Include="Avalonia" Version="12.2.0" />
+        <PackageReference Include="Avalonia.Controls.ColorPicker" Version="12.2.0" />
         <PackageReference Include="Avalonia.Controls.DataGrid" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.6" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.6" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.2.0" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.2.0" />
         <PackageReference Include="AvaloniaEdit.TextMate" Version="12.0.0" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-        <PackageReference Include="Dock.Avalonia" Version="12.1.5" />
-        <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.1.5" />
-        <PackageReference Include="Dock.Model.Mvvm" Version="12.1.5" />
+        <PackageReference Include="Dock.Avalonia" Version="12.2.0" />
+        <PackageReference Include="Dock.Avalonia.Themes.Fluent" Version="12.2.0" />
+        <PackageReference Include="Dock.Model.Mvvm" Version="12.2.0" />
         <PackageReference Include="Iciclecreek.Avalonia.Terminal" Version="4.1.4" />
         <PackageReference Include="Markdig" Version="1.6.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0" />
         <PackageReference Include="TextMateSharp" Version="2.0.5" />
-        <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.1.5" />
+        <PackageReference Include="Xaml.Behaviors.Avalonia" Version="12.2.0" />
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
         <PackageReference Include="TextMateSharp.Grammars" Version="2.0.5" />
         <PackageReference Include="ClosedXML" Version="0.105.1" />

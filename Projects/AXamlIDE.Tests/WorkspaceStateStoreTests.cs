@@ -21,6 +21,41 @@ public sealed class WorkspaceStateStoreTests
     }
 
     [Fact]
+    public void SaveThenLoad_RoundTripsBreakpoints_WithRelativePathsAndConditions()
+    {
+        using var workspace = new TempWorkspace();
+        var file = Path.Combine(workspace.Root, "src", "Orders.cs");
+        var state = new WorkspaceState
+        {
+            Breakpoints =
+            [
+                new BreakpointState { Path = file, Line = 12 },
+                new BreakpointState { Path = file, Line = 40, IsEnabled = false, Condition = "count > 3", HitCondition = "2" }
+            ]
+        };
+
+        Assert.Null(_store.Save(workspace.Root, state));
+        var json = File.ReadAllText(WorkspaceStateStore.StatePath(workspace.Root));
+        var loaded = _store.Load(workspace.Root);
+
+        Assert.DoesNotContain(workspace.Root, json);
+        Assert.Equal(2, loaded.Breakpoints.Count);
+        Assert.Equal(file, loaded.Breakpoints[0].Path);
+        Assert.True(loaded.Breakpoints[0].IsEnabled);
+        Assert.Equal(new BreakpointState { Path = file, Line = 40, IsEnabled = false, Condition = "count > 3", HitCondition = "2" },
+            loaded.Breakpoints[1]);
+    }
+
+    [Fact]
+    public void Load_OlderStateWithoutBreakpoints_HasNone()
+    {
+        using var workspace = new TempWorkspace();
+        workspace.Write(".axamlide/workspace.json", """{ "SchemaVersion": 1, "OpenFiles": [] }""");
+
+        Assert.Empty(_store.Load(workspace.Root).Breakpoints);
+    }
+
+    [Fact]
     public void SaveThenLoad_RoundTripsFilesAndLayout_StoringPathsInsideTheWorkspaceRelatively()
     {
         using var workspace = new TempWorkspace();

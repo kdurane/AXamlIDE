@@ -38,7 +38,7 @@ namespace AXamlIDE.ViewModels;
 public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecipient<DebugSessionChangedMessage>
 {
     /// <summary>The bottom panel's tabs that can be closed and are remembered (Settings.Panel.OpenTools).</summary>
-    private static readonly string[] OptionalTools = [ToolTab.Terminal, ToolTab.Tests];
+    private static readonly string[] OptionalTools = [ToolTab.Terminal, ToolTab.Run, ToolTab.Tests];
 
     private readonly DockFactory _factory;
     private readonly DocumentManager _documents;

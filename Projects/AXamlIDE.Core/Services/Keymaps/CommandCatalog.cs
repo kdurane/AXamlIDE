@@ -130,7 +130,7 @@ public static class CommandCatalog
         new("Debug.StepInto", "Step Into", "Step into the call on the current line."),
         new("Debug.StepOut", "Step Out", "Run to the end of the current method."),
         new("Debug.ToggleBreakpoint", "Toggle Breakpoint", "Set or remove a breakpoint on the caret's line.", Editor),
-        new("Debug.DeleteAllBreakpoints", "Delete All Breakpoints", "Remove every breakpoint in the open documents."),
+        new("Debug.DeleteAllBreakpoints", "Delete All Breakpoints", "Remove every breakpoint, in open and closed files."),
         new("Debug.AddWatch", "Add Watch", "Watch the selection, or the expression at the caret.", Editor),
         new("Debug.Watch", "Watch Window", "Show the Debug tab's Watch section."),
         new("Debug.Locals", "Locals Window", "Show the Debug tab's Variables section."),

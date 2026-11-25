@@ -38,6 +38,7 @@ Restored at build time and shipped in the app's output. The licence each package
 | DiffPlex | Apache-2.0 |
 | Irony | MIT |
 | Microsoft.Build, Microsoft.Build.Locator | MIT |
+| SharpDbg.Cli (the SharpDbg debugger, © 2026 Matthew Parker, [github.com/MattParkerDev/SharpDbg](https://github.com/MattParkerDev/SharpDbg)), copied to `sharpdbg/`. It bundles ICorDebugSharp, Microsoft's dbgshim, Roslyn's expression evaluator, Microsoft.Diagnostics.NETCore.Client, Microsoft.DiaSymReader, ICSharpCode.Decompiler, ZLinq, AsyncLock and Ardalis.GuardClauses (all MIT), and Debug Adapter Protocol types generated from Microsoft's schema (code MIT, documentation CC-BY) | MIT |
 | xunit, xunit.runner.visualstudio (tests only, not shipped) | Apache-2.0 |
 | Microsoft.NET.Test.Sdk (tests only, not shipped) | MIT |
 

@@ -109,6 +109,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
     private void OpenFolder(string path)
     {
         _workspace.SolutionProjects = [];
+        _workspace.UseFolder(path);
         _workspace.ClearProjectCaches();
         _xaml.ClearProjectCaches();
         SelectedNode = null;
@@ -123,6 +124,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
 
     private async Task OpenSolutionAsync(string path)
     {
+        _workspace.UseFolder(Path.GetDirectoryName(Path.GetFullPath(path))!);   // its global.json picks the SDK
         _workspace.ClearProjectCaches();   // before loading: the loader evaluates every project
         _messenger.Send(new StatusMessage($"Opening {Path.GetFileName(path)}..."));
         // Off the UI thread: the tree isn't shown until it's in Roots, so filling it there is safe.

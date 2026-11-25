@@ -1,5 +1,5 @@
 <!--
-    The Debug tab's Breakpoints section (BreakpointsViewModel), as VS Code's: every breakpoint in the open documents,
+    The Debug tab's Breakpoints section (BreakpointsViewModel), as VS Code's: every breakpoint, in open and closed files,
     by file then line. The check box turns one on or off; double-click or Enter goes to it; Delete removes it.
 -->
 <UserControl

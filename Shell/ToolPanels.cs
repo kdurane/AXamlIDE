@@ -25,6 +25,7 @@ public sealed class ToolPanels
         ProblemsViewModel problems,
         RunViewModel run,
         TerminalViewModel terminal,
+        RunTerminalViewModel runTerminal,
         TestExplorerViewModel tests,
         SearchViewModel search,
         DebugSideBarViewModel debug)
@@ -38,6 +39,7 @@ public sealed class ToolPanels
             [ToolTab.Output] = () => new OutputView { DataContext = run },
             [ToolTab.Console] = () => new ConsoleView { DataContext = run },
             [ToolTab.Terminal] = () => new TerminalView { DataContext = terminal },
+            [ToolTab.Run] = () => new RunTerminalView { DataContext = runTerminal },
             [ToolTab.Tests] = () => new TestExplorerView { DataContext = tests },
             [ToolTab.Search] = () => new SearchView { DataContext = search },
             [ToolTab.Debug] = () => new DebugSideBarView { DataContext = debug },

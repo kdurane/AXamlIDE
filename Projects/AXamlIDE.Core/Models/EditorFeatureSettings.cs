@@ -95,6 +95,15 @@ public sealed record EditorFeatureSettings
     /// <summary>Break as soon as any exception is thrown; off: only when user code doesn't handle it (VS's default).</summary>
     public bool BreakOnAllExceptions { get; init; }
 
+    /// <summary>
+    /// Keep each workspace's breakpoints when the IDE closes (in its .axamlide/workspace.json), as Visual Studio and
+    /// VS Code do. Off, they last until the workspace is closed. Either way a closed file keeps its breakpoints.
+    /// </summary>
+    public bool RememberBreakpoints { get; init; } = true;
+
+    /// <summary>Which debugger to use: SharpDbg when .NET 11 is installed (Automatic), or always one of them.</summary>
+    public Services.Debugging.DebuggerChoice Debugger { get; init; } = Services.Debugging.DebuggerChoice.Automatic;
+
     // ---- Claude
 
     /// <summary>

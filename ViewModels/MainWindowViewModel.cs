@@ -138,7 +138,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     public PropertiesViewModel Properties { get; }
     public GitViewModel Git { get; }
 
-    /// <summary>The breakpoints in the open documents (the Debug menu's Delete All and Enable / Disable All).</summary>
+    /// <summary>Every breakpoint, in open and closed files (the Debug menu's Delete All and Enable / Disable All).</summary>
     public BreakpointsViewModel Breakpoints { get; }
     public NuGetManager NuGet { get; }
     public PublishManager Publish { get; }

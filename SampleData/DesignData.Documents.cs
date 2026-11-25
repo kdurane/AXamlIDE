@@ -134,6 +134,9 @@ public static partial class DesignData
 
     public static TerminalViewModel Terminal => Get<TerminalViewModel>();
 
+    /// <summary>The Run panel before anything has run (a terminal shows nothing in the previewer).</summary>
+    public static RunTerminalViewModel RunTerminal => Get<RunTerminalViewModel>();
+
     // ------------------------------------------------------------ dialogs and windows
 
     public static NewProjectViewModel NewProject

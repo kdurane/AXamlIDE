@@ -64,6 +64,7 @@ public static class AppServices
         services.AddSingleton<WorkspaceStateStore>();
         services.AddSingleton<DocumentManager>();
         services.AddSingleton<DocumentSaveService>();
+        services.AddSingleton<ClosedFileBreakpoints>(); // breakpoints of files that aren't open (WorkspaceSession fills it)
         services.AddSingleton<FileChangeWatcher>();     // tells open tabs when their file changes on disk
         services.AddSingleton<DocumentCommands>();
         services.AddSingleton<IDocumentHost, DocumentHost>();
@@ -105,6 +106,7 @@ public static class AppServices
         services.AddSingleton<SearchViewModel>();
         services.AddSingleton<SearchEverywhereViewModel>();   // the top bar's box (double Shift)
         services.AddSingleton<RunViewModel>();
+        services.AddSingleton<RunTerminalViewModel>();    // the Run panel: the program the IDE ran, in a terminal
         services.AddSingleton<TerminalViewModel>();       // the Terminal panel's shell
         services.AddSingleton<TestExplorerViewModel>();   // the Tests panel (Test Explorer)
         services.AddSingleton<AgentChatViewModel>();      // the Claude panel (claude-agent-acp over ACP)

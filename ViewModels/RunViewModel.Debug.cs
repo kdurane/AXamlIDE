@@ -22,7 +22,7 @@ namespace AXamlIDE.ViewModels;
 /// </summary>
 public partial class RunViewModel
 {
-    private NetCoreDbgSession? _debugSession;
+    private DebugSession? _debugSession;
     private string? _debugProjectPath;   // what Restart rebuilds and relaunches
     private int _stoppedThreadId = 1;
     private readonly Dictionary<OpenDocument, Action> _breakpointHandlers = [];
@@ -95,8 +95,15 @@ public partial class RunViewModel
                 return;
             }
 
-            var (programPath, workingDirectory) = await Task.Run(() => ResolveDebugProgram(projectPath, configuration));
-            var session = new NetCoreDbgSession(NetCoreDbgSession.ResolveExecutablePath());
+            var (programPath, workingDirectory) = await Task.Run(() => ResolveProgram(projectPath, configuration));
+            var (adapter, note) = DebugAdapters.Choose(_settings.Features.Debugger);
+            if (note is not null)
+                ShowStatus(note);
+            var programName = Path.GetFileNameWithoutExtension(programPath);
+            var session = new DebugSession(adapter);
+            if (adapter.RunsInTerminal)   // the program gets the Run panel's terminal: it can read input
+                session.RunInTerminal = launch => Dispatcher.UIThread.InvokeAsync(
+                    () => StartInTerminalAsync(launch, $"{programName} ({configuration}, debugging)"));
             _debugSession = session;
             _debugProjectPath = projectPath;
             _hasStopped = false;
@@ -123,7 +130,7 @@ public partial class RunViewModel
             OnIsDebuggingChanged();
             IsRunning = true;
             IsDebugStopped = false;
-            DebugStatus = $"Starting {Path.GetFileName(programPath)}...";
+            DebugStatus = $"Starting {Path.GetFileName(programPath)} ({configuration}, {adapter.Name})...";
             ConsoleOutput.Clear();   // a fresh session starts with an empty Console, as a run does (and VS's Debug pane)
             _messenger.Send(new ShowToolTabMessage(ToolTab.Console));
             session.OutputReceived += AppendConsoleOutput;
@@ -137,11 +144,14 @@ public partial class RunViewModel
                     document => document.Path,
                     document => document.DebuggerBreakpoints,
                     PathComparer);
+            foreach (var (path, _) in _closedBreakpoints.All)   // a closed file's breakpoints still stop, as in VS
+                if (IsCSharpFile(path) && !breakpoints.ContainsKey(path) && BreakpointsFor(path) is { Count: > 0 } closed)
+                    breakpoints[path] = closed;
 
             _sentExceptionFilters = ExceptionFilterList();
             await session.StartAsync(programPath, workingDirectory, breakpoints, _sentExceptionFilters);
             if (ReferenceEquals(_debugSession, session))
-                DebugStatus = "Debugging. Execution will pause at enabled breakpoints.";
+                DebugStatus = $"Debugging ({configuration}, {adapter.Name}). Execution will pause at enabled breakpoints.";
         }
         catch (Exception ex)
         {
@@ -157,7 +167,7 @@ public partial class RunViewModel
         }
     }
 
-    private (string ProgramPath, string WorkingDirectory) ResolveDebugProgram(string projectPath, string configuration)
+    private (string ProgramPath, string WorkingDirectory) ResolveProgram(string projectPath, string configuration)
     {
         var facts = _workspace.Host.GetProjectFacts(projectPath, configuration);
         var assemblyName = facts.AssemblyName;
@@ -226,7 +236,7 @@ public partial class RunViewModel
     [RelayCommand(CanExecute = nameof(IsDebugStopped))] private Task StepIntoAsync() => StepAsync(s => s.StepIntoAsync(_stoppedThreadId), "step into");
     [RelayCommand(CanExecute = nameof(IsDebugStopped))] private Task StepOutAsync() => StepAsync(s => s.StepOutAsync(_stoppedThreadId), "step out");
 
-    private async Task StepAsync(Func<NetCoreDbgSession, Task> step, string what)
+    private async Task StepAsync(Func<DebugSession, Task> step, string what)
     {
         if (_debugSession is not { } session || !IsDebugStopped)
             return;
@@ -248,7 +258,7 @@ public partial class RunViewModel
     /// <summary>Stop the debug session (if there is one) and wait until it has ended: before the workspace or the app closes.</summary>
     public Task StopDebuggingAsync() => _debugSession is { } session ? StopDebugSessionAsync(session) : Task.CompletedTask;
 
-    private async Task StopDebugSessionAsync(NetCoreDbgSession session)
+    private async Task StopDebugSessionAsync(DebugSession session)
     {
         DebugStatus = "Stopping debug session...";
         try
@@ -265,7 +275,7 @@ public partial class RunViewModel
         }
     }
 
-    private void EndDebugSession(NetCoreDbgSession session, string message)
+    private void EndDebugSession(DebugSession session, string message)
     {
         if (!ReferenceEquals(_debugSession, session))
             return;
@@ -275,6 +285,8 @@ public partial class RunViewModel
         _inspector = null;
         _messenger.Send(new DebugSnapshotChangedMessage(null));
         session.Dispose();
+        if (session.RunInTerminal is not null)
+            _runTerminal.Stop();   // the program in the Run panel goes with the session
         OnIsDebuggingChanged();
         IsDebugStopped = false;
         IsRunning = false;
@@ -284,7 +296,7 @@ public partial class RunViewModel
 
     // --------------------------------------------------- adapter event handling
 
-    private void OnDebugAdapterEvent(NetCoreDbgSession session, JsonElement message)
+    private void OnDebugAdapterEvent(DebugSession session, JsonElement message)
     {
         if (!message.TryGetProperty("event", out var eventName))
             return;
@@ -340,9 +352,25 @@ public partial class RunViewModel
     {
         if (_breakpointHandlers.Remove(document, out var handler))
             document.BreakpointsChanged -= handler;
-        if (_debugSession is { } session && document.LanguageId == LanguageIds.CSharp)
-            _ = UpdateDebugBreakpointsAsync(session, document.Path, []);
+        // Once it has closed: its breakpoints may have moved to ClosedFileBreakpoints (they stay), or gone with it.
+        if (document.LanguageId == LanguageIds.CSharp)
+            Dispatcher.UIThread.Post(() => OnFileBreakpointsChanged(document.Path));
     }
+
+    /// <summary>A file's breakpoints changed outside its open document (it closed or opened, or the list changed them).</summary>
+    private void OnFileBreakpointsChanged(string path)
+    {
+        if (_debugSession is { } session && IsCSharpFile(path))
+            _ = UpdateDebugBreakpointsAsync(session, path, BreakpointsFor(path));
+    }
+
+    /// <summary>What the debugger should have for a file: its open document's enabled breakpoints, else its closed ones.</summary>
+    private IReadOnlyList<SourceBreakpoint> BreakpointsFor(string path)
+        => _documents.Documents.FirstOrDefault(document => PathComparer.Equals(document.Path, path)) is { } open
+            ? open.DebuggerBreakpoints
+            : [.. _closedBreakpoints.For(path).Where(b => b.IsEnabled).Select(b => new SourceBreakpoint(b.Line, b.Condition, b.HitCondition))];
+
+    private static bool IsCSharpFile(string path) => path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
 
     private void OnDocumentBreakpointsChanged(OpenDocument document)
     {
@@ -351,7 +379,7 @@ public partial class RunViewModel
         _ = UpdateDebugBreakpointsAsync(session, document.Path, document.DebuggerBreakpoints);
     }
 
-    private async Task UpdateDebugBreakpointsAsync(NetCoreDbgSession session, string path, IReadOnlyList<SourceBreakpoint> breakpoints)
+    private async Task UpdateDebugBreakpointsAsync(DebugSession session, string path, IReadOnlyList<SourceBreakpoint> breakpoints)
     {
         try
         {
@@ -384,7 +412,7 @@ public partial class RunViewModel
 
     private string[] _sentExceptionFilters = [];
 
-    private async Task UpdateExceptionFiltersAsync(NetCoreDbgSession session, string[] filters)
+    private async Task UpdateExceptionFiltersAsync(DebugSession session, string[] filters)
     {
         try
         {

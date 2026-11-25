@@ -19,7 +19,7 @@ public sealed class DebuggerAttributeIndex
     private readonly ConcurrentDictionary<string, string> _displays = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, HashSet<string>> _hidden = new(StringComparer.Ordinal);
 
-    /// <param name="modules">The assemblies loaded so far (NetCoreDbgSession.LoadedModules).</param>
+    /// <param name="modules">The assemblies loaded so far (DebugSession.LoadedModules).</param>
     public DebuggerAttributeIndex(Func<IReadOnlyCollection<string>> modules) => _modules = modules;
 
     /// <summary>The [DebuggerDisplay] format for a type as the adapter names it ("MyApp.Box&lt;int&gt;"), if it has one.</summary>

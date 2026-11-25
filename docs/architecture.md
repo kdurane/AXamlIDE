@@ -85,7 +85,7 @@ flowchart TB
         XLS["XamlLanguageService"]
         XCS["XamlCompletionService<br/>→ CompletionEngine (dnlib)"]
         DPR["DotNetProjectRunner"]
-        NCD["NetCoreDbgSession"]
+        NCD["DebugSession"]
         GS["GitService"]
         ACP["AcpClient"]
         CMW["CommitMessageWriter"]
@@ -190,7 +190,7 @@ Two kinds of object are **not** in the container and are created by hand:
   `new EditorPaneView()` + `Initialize(services)`. Each editor's controllers are created in
   `EditorPaneView.Initialize`.
 - per-document and per-session objects: `DocumentDockable`, `PreviewPaneViewModel` (made by `PreviewSessions.For`),
-  `NetCoreDbgSession` (made in `RunViewModel.DebugProjectAsync`), `LspClient` (made by `LspManager.StartAsync`).
+  `DebugSession` (made in `RunViewModel.DebugProjectAsync`), `LspClient` (made by `LspManager.StartAsync`).
 
 ### 2. C# events on `DocumentManager`
 
@@ -263,7 +263,7 @@ in their constructor, and `EditorPaneView` unregisters in `Shutdown()`.
 - `MsBuildHostClient` is synchronous: it allows one request at a time, under `_lock`. Callers move it off the UI thread
   with `Task.Run` (`WorkspaceViewModel.OpenSolutionAsync`, `ProjectTreeNode.PopulateAsync`,
   `XamlLanguageService.GetProjectAsync`, `RunViewModel.ResolveDebugProgram`).
-- Debugger events from `NetCoreDbgSession` and `DebugInspector` arrive off the UI thread. `RunViewModel.Debug` wraps
+- Debugger events from `DebugSession` and `DebugInspector` arrive off the UI thread. `RunViewModel.Debug` wraps
   its handlers in `Dispatcher.UIThread.Post`.
 
 ## Where the docking fits
@@ -291,7 +291,7 @@ and drag preview would otherwise try to show the same editor control a second ti
 | `AXamlIDE.msbuildhost` | `MsBuildHostClient.Start` (first use of `WorkspaceModel.Host`) | One JSON line per request and response, stdin/stdout | `AXAMLIDE_HOST`, else `msbuildhost/` beside the app |
 | `roslyn-language-server` | `LspManager.StartAsync` → `LspClient.StartAsync` | LSP: JSON-RPC 2.0, `Content-Length` framing, stdio | `AXAMLIDE_ROSLYN`, else `~/.dotnet/tools`, else `PATH` (`LspServers.FindTool`) |
 | `AXamlIDE.RoslynExtension` (an assembly the server loads, not a program) | `RoslynExtensionClient.ActivateAsync`, the first time `SolutionAnalysisService` starts the live analysis on a server | `server/_vs_activateExtension`, then `workspace/_vs_dispatchExtensionMessage` (a message name and JSON text in, JSON text out) over the server's LSP connection | `roslynextension/` beside the app (`RoslynExtensionClient.AssemblyPath`) |
-| `netcoredbg` | `new NetCoreDbgSession(...)` in `RunViewModel.DebugProjectAsync` | Debug Adapter Protocol over stdio (`DebugAdapterTransport`) | `AXAMLIDE_NETCOREDBG_PATH`, else `netcoredbg/` beside the app, else `PATH` |
+| `netcoredbg` | `new DebugSession(...)` in `RunViewModel.DebugProjectAsync` | Debug Adapter Protocol over stdio (`DebugAdapterTransport`) | `AXAMLIDE_NETCOREDBG_PATH`, else `netcoredbg/` beside the app, else `PATH` |
 | `dotnet` | `DotNetProjectRunner.ExecuteAsync` | Plain output lines | `PATH` |
 | Avalonia designer host | `AvaloniaPreviewProcess.StartAsync` (`dotnet exec ... --transport tcp-bson://127.0.0.1:<port>/ --method avalonia-remote`) | `Avalonia.Remote.Protocol` BSON over TCP | `XamlPreviewTarget.HostAppPath` (worked out by `XamlPreviewTargetResolver`) |
 | `git` | `GitService` (its own `ProcessStartInfo("git")`); `GitClone` (through `LineProcess.RunAsync`) | Plain output | `PATH` |

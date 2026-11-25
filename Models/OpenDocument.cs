@@ -82,6 +82,31 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
         BreakpointsChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Put back breakpoints the file had when it was last closed (or in the last session), with their state and
+    /// Conditions. Lines past the end (the file got shorter outside the IDE) and lines that already have one are skipped.
+    /// </summary>
+    public void RestoreBreakpoints(IEnumerable<BreakpointInfo> breakpoints)
+    {
+        var added = false;
+        foreach (var breakpoint in breakpoints)
+        {
+            if (breakpoint.Line < 1 || breakpoint.Line > Document.LineCount || EntryAt(breakpoint.Line) is not null)
+                continue;
+            var anchor = Document.CreateAnchor(Document.GetLineByNumber(breakpoint.Line).Offset);
+            anchor.SurviveDeletion = true;
+            _breakpoints.Add(new BreakpointEntry(anchor)
+            {
+                IsEnabled = breakpoint.IsEnabled,
+                Condition = breakpoint.Condition,
+                HitCondition = breakpoint.HitCondition
+            });
+            added = true;
+        }
+        if (added)
+            BreakpointsChanged?.Invoke();
+    }
+
     /// <summary>Debug > Delete All Breakpoints (for this document).</summary>
     public void ClearBreakpoints()
     {

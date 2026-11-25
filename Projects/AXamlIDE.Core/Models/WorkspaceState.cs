@@ -36,6 +36,19 @@ public sealed record WorkspaceState
     /// </summary>
     public Dictionary<string, List<int>> ClosedFileFolds { get; init; } = [];
 
+    /// <summary>Every breakpoint, in open and closed files (empty when Settings > Debugging says not to remember them).</summary>
+    public List<BreakpointState> Breakpoints { get; init; } = [];
+
+}
+
+/// <summary>One remembered breakpoint: its file and line, whether it's on, and its Conditions.</summary>
+public sealed record BreakpointState
+{
+    public required string Path { get; init; }
+    public int Line { get; init; }
+    public bool IsEnabled { get; init; } = true;
+    public string? Condition { get; init; }
+    public string? HitCondition { get; init; }
 }
 
 /// <summary>One open file: where the caret and scroll were, and (for AXAML) how the preview was laid out.</summary>

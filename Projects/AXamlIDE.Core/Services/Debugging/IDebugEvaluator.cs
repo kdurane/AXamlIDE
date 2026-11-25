@@ -15,7 +15,7 @@ public sealed record DebugVariable(string Name, string Value, string? Type, int 
 /// <summary>The result of evaluating an expression: a value, or the adapter's error message.</summary>
 public sealed record DebugEvaluation(DebugVariable? Value, string? Error);
 
-/// <summary>What the value views need from a paused debug session (NetCoreDbgSession; fakes in tests).</summary>
+/// <summary>What the value views need from a paused debug session (DebugSession; fakes in tests).</summary>
 public interface IDebugEvaluator
 {
     Task<IReadOnlyList<DebugVariable>> GetLocalsAsync(int frameId, CancellationToken ct = default);
@@ -33,4 +33,10 @@ public interface IDebugEvaluator
 
     /// <summary>The debuggee's process id, once it's running (for reading its memory directly: HeapTables).</summary>
     int? ProcessId { get; }
+
+    /// <summary>
+    /// The adapter shows values as Visual Studio does ([DebuggerDisplay], type proxies, "Count = 3", ToString, Raw View):
+    /// SharpDbg. Then <see cref="DebugValueProvider"/> takes them as they come; for netcoredbg it does that work itself.
+    /// </summary>
+    bool FormatsValues => false;
 }

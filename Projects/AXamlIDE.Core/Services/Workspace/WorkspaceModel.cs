@@ -19,6 +19,7 @@ public sealed class WorkspaceModel : IDisposable
     private readonly WorkspaceProjectResolver _projectResolver = new();
     private readonly object _hostGate = new();
     private MsBuildHostClient? _msbuildHost;
+    private string? _hostFolder;
 
     /// <summary>The tree the solution explorer binds to.</summary>
     public ObservableCollection<ProjectTreeNode> WorkspaceRoots { get; } = [];
@@ -104,7 +105,20 @@ public sealed class WorkspaceModel : IDisposable
         get
         {
             lock (_hostGate)
-                return _msbuildHost ??= new MsBuildHostClient(ResolveHostExecutablePath());
+                return _msbuildHost ??= new MsBuildHostClient(ResolveHostExecutablePath(), _hostFolder);
+        }
+    }
+
+    /// <summary>
+    /// The workspace being opened is in this folder: the MSBuild host runs there, so the folder's global.json
+    /// picks the SDK for evaluation as it does for <c>dotnet build</c>. Call before loading the workspace.
+    /// </summary>
+    public void UseFolder(string folder)
+    {
+        lock (_hostGate)
+        {
+            _hostFolder = folder;
+            _msbuildHost?.UseFolder(folder);   // not started yet: it starts there
         }
     }
 

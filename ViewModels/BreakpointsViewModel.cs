@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -14,12 +15,12 @@ using CommunityToolkit.Mvvm.Messaging;
 
 namespace AXamlIDE.ViewModels;
 
-/// <summary>One row of the Breakpoints list: a breakpoint in an open document. Its check box turns it on and off.</summary>
-public sealed partial class BreakpointRow(OpenDocument document, BreakpointInfo info) : ObservableObject
+/// <summary>One row of the Breakpoints list: a breakpoint in a file, open or not. Its check box turns it on and off.</summary>
+public sealed partial class BreakpointRow(string path, BreakpointInfo info, Action<BreakpointRow, bool> setEnabled) : ObservableObject
 {
     private bool _updating;
 
-    public OpenDocument Document { get; } = document;
+    public string Path { get; } = path;
 
     [ObservableProperty] public partial int Line { get; private set; } = info.Line;
     [ObservableProperty] public partial bool IsEnabled { get; set; } = info.IsEnabled;
@@ -27,16 +28,16 @@ public sealed partial class BreakpointRow(OpenDocument document, BreakpointInfo 
     /// <summary>"when count > 3, hit count 2", or null with no Conditions.</summary>
     [ObservableProperty] public partial string? ConditionText { get; private set; } = ConditionsOf(info);
 
-    public string FileName => Document.Title;
+    public string FileName => System.IO.Path.GetFileName(Path);
 
     /// <summary>The full path and line, and the Conditions in full.</summary>
-    public string ToolTip => ConditionText is { } conditions ? $"{Document.Path}:{Line}\n{conditions}" : $"{Document.Path}:{Line}";
+    public string ToolTip => ConditionText is { } conditions ? $"{Path}:{Line}\n{conditions}" : $"{Path}:{Line}";
 
-    /// <summary>The check box: tell the document (which tells the margin and the debugger).</summary>
+    /// <summary>The check box: tell the file's document, or the closed files' breakpoints (they tell the debugger).</summary>
     partial void OnIsEnabledChanged(bool value)
     {
         if (!_updating)
-            Document.SetBreakpointEnabled(Line, value);
+            setEnabled(this, value);
     }
 
     /// <summary>Take on the document's current state for this breakpoint (its line moves with edits).</summary>
@@ -69,21 +70,24 @@ public sealed partial class BreakpointRow(OpenDocument document, BreakpointInfo 
 
 /// <summary>
 /// The Debug tab's Breakpoints section (VS Code's Breakpoints view, Visual Studio's Breakpoints window): every
-/// breakpoint in the open documents, by file then line, kept up to date as breakpoints are set, switched and moved
-/// by edits. A check box turns one on or off; double-click or Enter goes to it; Delete removes it. It also has
+/// breakpoint, in open documents and in closed files (ClosedFileBreakpoints), by file then line, kept up to date
+/// as breakpoints are set, switched and moved by edits. A check box turns one on or off; double-click or Enter goes to it; Delete removes it. It also has
 /// the Debug menu's Delete All and Enable / Disable All.
 /// </summary>
 public sealed partial class BreakpointsViewModel : ObservableObject
 {
     private readonly DocumentManager _documents;
+    private readonly ClosedFileBreakpoints _closed;
     private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
     private readonly HashSet<OpenDocument> _watched = [];
     private bool _refreshPending;
 
-    public BreakpointsViewModel(DocumentManager documents, IDialogService dialogs, IMessenger messenger)
+    public BreakpointsViewModel(DocumentManager documents, ClosedFileBreakpoints closed, IDialogService dialogs, IMessenger messenger)
     {
         _documents = documents;
+        _closed = closed;
+        closed.Changed += _ => QueueRefresh();
         _dialogs = dialogs;
         _messenger = messenger;
         documents.Documents.CollectionChanged += OnDocumentsChanged;
@@ -105,20 +109,28 @@ public sealed partial class BreakpointsViewModel : ObservableObject
     private void GoTo(BreakpointRow? row)
     {
         if (row is not null)
-            _messenger.Send(new NavigateToDebugLocationMessage(row.Document.Path, row.Line));
+            _messenger.Send(new NavigateToDebugLocationMessage(row.Path, row.Line));
     }
 
     /// <summary>Delete (the key, the row's menu): remove the breakpoint.</summary>
     [RelayCommand]
     private void Delete(BreakpointRow? row)
     {
-        if (row is null || row.Document.BreakpointAt(row.Line) is null)
+        if (row is null)
             return;
         var index = Rows.IndexOf(row);
-        row.Document.ToggleBreakpoint(row.Line);
+        if (OpenDocumentFor(row.Path) is { } document)
+        {
+            if (document.BreakpointAt(row.Line) is not null)
+                document.ToggleBreakpoint(row.Line);
+        }
+        else
+        {
+            _closed.Remove(row.Path, row.Line);
+        }
         Refresh();
         if (Rows.Count > 0)
-            Selected = Rows[System.Math.Clamp(index, 0, Rows.Count - 1)];   // keep the keyboard on the list
+            Selected = Rows[Math.Clamp(index, 0, Rows.Count - 1)];   // keep the keyboard on the list
     }
 
     /// <summary>Debug > Delete All Breakpoints (Ctrl+Shift+F9), asking first as Visual Studio does.</summary>
@@ -126,7 +138,7 @@ public sealed partial class BreakpointsViewModel : ObservableObject
     private async Task DeleteAll()
     {
         var withBreakpoints = _documents.Documents.Where(d => d.Breakpoints.Count > 0).ToArray();
-        if (withBreakpoints.Length == 0)
+        if (withBreakpoints.Length == 0 && !_closed.All.Any())
         {
             _messenger.Send(new StatusMessage("There are no breakpoints."));
             return;
@@ -135,6 +147,7 @@ public sealed partial class BreakpointsViewModel : ObservableObject
             return;
         foreach (var document in withBreakpoints)
             document.ClearBreakpoints();
+        _closed.Clear();
     }
 
     /// <summary>Debug > Disable All Breakpoints / Enable All Breakpoints.</summary>
@@ -144,7 +157,20 @@ public sealed partial class BreakpointsViewModel : ObservableObject
         foreach (var document in _documents.Documents)
             foreach (var breakpoint in document.Breakpoints)
                 document.SetBreakpointEnabled(breakpoint.Line, enabled);
+        _closed.SetAllEnabled(enabled);
     }
+
+    /// <summary>A row's check box.</summary>
+    private void SetEnabled(BreakpointRow row, bool enabled)
+    {
+        if (OpenDocumentFor(row.Path) is { } document)
+            document.SetBreakpointEnabled(row.Line, enabled);
+        else
+            _closed.SetEnabled(row.Path, row.Line, enabled);
+    }
+
+    private OpenDocument? OpenDocumentFor(string path)
+        => _documents.Documents.FirstOrDefault(document => string.Equals(document.Path, path, StringComparison.Ordinal));
 
     /// <summary>The section's button (Visual Studio's "Enable or Disable All Breakpoints"): off if any are on, else on.</summary>
     [RelayCommand]
@@ -173,7 +199,7 @@ public sealed partial class BreakpointsViewModel : ObservableObject
         document.Document.LineCountChanged += OnLineCountChanged;   // lines added or removed above move breakpoints
     }
 
-    private void OnLineCountChanged(object? sender, System.EventArgs e) => QueueRefresh();
+    private void OnLineCountChanged(object? sender, EventArgs e) => QueueRefresh();
 
     /// <summary>Refresh once things settle (typing changes the line count often).</summary>
     private void QueueRefresh()
@@ -195,14 +221,15 @@ public sealed partial class BreakpointsViewModel : ObservableObject
     private void Refresh()
     {
         var current = _documents.Documents
-            .SelectMany(document => document.Breakpoints.Select(info => (Document: document, Info: info)))
-            .OrderBy(item => item.Document.Title, System.StringComparer.OrdinalIgnoreCase)
-            .ThenBy(item => item.Document.Path, System.StringComparer.Ordinal)
+            .SelectMany(document => document.Breakpoints.Select(info => (document.Path, Info: info)))
+            .Concat(_closed.All.SelectMany(file => file.Breakpoints.Select(info => (file.Path, Info: info))))
+            .OrderBy(item => System.IO.Path.GetFileName(item.Path), StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.Path, StringComparer.Ordinal)
             .ThenBy(item => item.Info.Line)
             .ToList();
 
         var sameShape = current.Count == Rows.Count
-                        && current.Select(item => item.Document).SequenceEqual(Rows.Select(row => row.Document));
+                        && current.Select(item => item.Path).SequenceEqual(Rows.Select(row => row.Path));
         if (sameShape)
         {
             for (var i = 0; i < current.Count; i++)
@@ -210,11 +237,11 @@ public sealed partial class BreakpointsViewModel : ObservableObject
             return;
         }
 
-        var selected = Selected is { } row ? (row.Document, row.Line) : default;
+        var selected = Selected is { } row ? (row.Path, row.Line) : default;
         Rows.Clear();
-        foreach (var (document, info) in current)
-            Rows.Add(new BreakpointRow(document, info));
-        Selected = Rows.FirstOrDefault(r => ReferenceEquals(r.Document, selected.Document) && r.Line == selected.Line);
+        foreach (var (path, info) in current)
+            Rows.Add(new BreakpointRow(path, info, SetEnabled));
+        Selected = Rows.FirstOrDefault(r => r.Path == selected.Path && r.Line == selected.Line);
         OnPropertyChanged(nameof(IsEmpty));
     }
 }

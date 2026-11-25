@@ -1,0 +1,68 @@
+<UserControl
+    x:Class="AXamlIDE.Views.RunTerminalView"
+    x:DataType="vm:RunTerminalViewModel"
+    Design.DataContext="{x:Static design:DesignData.RunTerminal}"
+    d:DesignWidth="800"
+    d:DesignHeight="250"
+    mc:Ignorable="d"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:design="using:AXamlIDE.SampleData"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:term="using:Iciclecreek.Terminal"
+    xmlns:vm="using:AXamlIDE.ViewModels"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+    The Run panel (DataContext: RunTerminalViewModel): the program the IDE started, in a real terminal, so it can read
+    the keyboard and its colours show (VS Code's integrated terminal, Rider's Run window). Same control and keys as the
+    Terminal panel: Ctrl+C goes to the program; copy and paste are Ctrl+Shift+C / Ctrl+Shift+V.
+    -->
+    <Grid RowDefinitions="Auto,*">
+        <DockPanel Grid.Row="0" Margin="6,0,2,0">
+            <StackPanel
+                DockPanel.Dock="Right"
+                Orientation="Horizontal"
+                Spacing="2">
+                <Button
+                    AutomationProperties.Name="Clear"
+                    Classes="icon"
+                    Click="OnClearClick"
+                    ToolTip.Tip="Clear the output">
+                    <PathIcon Data="{StaticResource Icon.TrashCan}" />
+                </Button>
+            </StackPanel>
+            <TextBlock
+                Opacity="0.7"
+                Text="{Binding Title}"
+                TextTrimming="CharacterEllipsis"
+                VerticalAlignment="Center" />
+        </DockPanel>
+
+        <Border
+            Background="{Binding #Terminal.Background}"
+            Grid.Row="1"
+            Padding="6,0,0,0">
+            <term:TerminalControl
+                AutomationProperties.Name="Run"
+                FontFamily="{Binding FontFamily}"
+                Name="Terminal">
+                <term:TerminalControl.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem
+                            Click="OnCopyClick"
+                            Header="_Copy"
+                            InputGesture="Ctrl+Shift+C" />
+                        <MenuItem
+                            Click="OnPasteClick"
+                            Header="_Paste"
+                            InputGesture="Ctrl+Shift+V" />
+                        <MenuItem Click="OnSelectAllClick" Header="Select _All" />
+                        <Separator />
+                        <MenuItem Click="OnClearClick" Header="C_lear" />
+                    </ContextMenu>
+                </term:TerminalControl.ContextMenu>
+            </term:TerminalControl>
+        </Border>
+    </Grid>
+</UserControl>

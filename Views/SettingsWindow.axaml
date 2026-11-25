@@ -168,6 +168,19 @@
                 <TabItem FontSize="16" Header="Debugging">
                     <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                         <StackPanel Margin="20,12" Spacing="10">
+                            <TextBlock Classes="SettingsHeading" Text="Debugger" />
+                            <ComboBox
+                                ItemsSource="{Binding AvailableDebuggers}"
+                                MinWidth="320"
+                                SelectedItem="{Binding SelectedDebugger, Mode=TwoWay}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:DebuggerOption">
+                                        <TextBlock Text="{Binding Label}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <TextBlock Classes="SettingHint" Text="{Binding DebuggerDescription}" />
+
                             <TextBlock Classes="SettingsHeading" Text="While paused" />
                             <CheckBox Content="Show inline values" IsChecked="{Binding InlineDebugValues, Mode=TwoWay}" />
                             <TextBlock Classes="SettingHint" Text="name = value at the end of the lines around the current statement." />
@@ -175,6 +188,10 @@
                             <TextBlock Classes="SettingsHeading" Text="Exceptions" />
                             <CheckBox Content="Break when any exception is thrown" IsChecked="{Binding BreakOnAllExceptions, Mode=TwoWay}" />
                             <TextBlock Classes="SettingHint" Text="Off: break only when an exception isn't handled by your code, as Visual Studio does by default. Applies at once, even while debugging." />
+
+                            <TextBlock Classes="SettingsHeading" Text="Breakpoints" />
+                            <CheckBox Content="Remember breakpoints between sessions" IsChecked="{Binding RememberBreakpoints, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Each workspace keeps its breakpoints when the IDE closes, as Visual Studio and VS Code do. Off: they last until the workspace is closed. Either way, closing a file keeps its breakpoints." />
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

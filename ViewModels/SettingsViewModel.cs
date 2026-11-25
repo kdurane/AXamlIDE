@@ -328,6 +328,35 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { BreakOnAllExceptions = value });
     }
 
+    /// <summary>The debugger choices, as Settings > Debugging lists them.</summary>
+    public IReadOnlyList<DebuggerOption> AvailableDebuggers { get; } =
+    [
+        new(Services.Debugging.DebuggerChoice.Automatic, "Automatic (SharpDbg when .NET 11 is installed)"),
+        new(Services.Debugging.DebuggerChoice.SharpDbg, "SharpDbg"),
+        new(Services.Debugging.DebuggerChoice.NetCoreDbg, "netcoredbg")
+    ];
+
+    public DebuggerOption SelectedDebugger
+    {
+        get => AvailableDebuggers.First(option => option.Choice == Features.Debugger);
+        set
+        {
+            if (value is null || value.Choice == Features.Debugger)
+                return;
+            SetFeatures(Features with { Debugger = value.Choice });
+            OnPropertyChanged(nameof(DebuggerDescription));
+        }
+    }
+
+    /// <summary>Which debugger the choice means on this machine (SharpDbg needs .NET 11).</summary>
+    public string DebuggerDescription => Services.Debugging.DebugAdapters.Describe(Features.Debugger);
+
+    public bool RememberBreakpoints
+    {
+        get => Features.RememberBreakpoints;
+        set => SetFeatures(Features with { RememberBreakpoints = value });
+    }
+
     /// <summary>Change the features; PropertyChanged names the property set (for its checkbox) and <c>Features</c> (for the editor).</summary>
     private void SetFeatures(EditorFeatureSettings features, [CallerMemberName] string? propertyName = null)
     {
@@ -363,3 +392,6 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
 
 /// <summary>One "On startup, open" choice in Settings > Environment.</summary>
 public sealed record StartupChoice(StartupAction Value, string Text);
+
+/// <summary>One choice in Settings > Debugging > Debugger.</summary>
+public sealed record DebuggerOption(AXamlIDE.Services.Debugging.DebuggerChoice Choice, string Label);
