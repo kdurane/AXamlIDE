@@ -167,7 +167,7 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
                          let toolsPath = Path.Combine(packageFolder, packagePath!, "tools")
                          where Directory.Exists(toolsPath)
                          from frameworkDirectory in Directory.EnumerateDirectories(toolsPath)
-                         let major = GetTargetFrameworkMajor(Path.GetFileName(frameworkDirectory))
+                         let major = DesignerFrameworkMajor(Path.GetFileName(frameworkDirectory))
                          where major is { } frameworkMajor && frameworkMajor <= runtimeMajor
                          let hostPath = Path.Combine(frameworkDirectory, "designer", "Avalonia.Designer.HostApp.dll")
                          where File.Exists(hostPath)
@@ -207,6 +207,13 @@ public sealed class XamlPreviewTargetResolver(MsBuildHostClient host)
         => Version.TryParse(version, out var parsed)
             ? parsed.Major
             : throw new InvalidDataException($"Invalid runtime framework version '{version}' in '{runtimeConfigPath}'.");
+
+    /// <summary>
+    /// A designer host's framework folder as a .NET major version. Avalonia 11 ships its host for .NET Standard only
+    /// (tools/netstandard2.0, beside net461 for .NET Framework), which runs on any .NET: 0, so a net8.0 one is preferred.
+    /// </summary>
+    private static int? DesignerFrameworkMajor(string directoryName)
+        => directoryName.StartsWith("netstandard", StringComparison.OrdinalIgnoreCase) ? 0 : GetTargetFrameworkMajor(directoryName);
 
     private static int? GetTargetFrameworkMajor(string? directoryName)
     {

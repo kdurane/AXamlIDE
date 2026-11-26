@@ -128,6 +128,7 @@ public static class AppServices
         services.AddSingleton<VisualizerManager>();
         services.AddSingleton<DockLayoutViewModel>();
         services.AddSingleton<McpPreviewRenderer>();      // render_xaml's own designer host
+        services.AddSingleton<McpUiHost>();               // ui_open/ui_act's host: the user's app, headless
         services.AddSingleton<IdeMcpServer>();            // the IDE's tools for Claude, on localhost (started in App)
         services.AddSingleton<WorkspaceSession>();
         services.AddSingleton<MainWindowViewModel>();

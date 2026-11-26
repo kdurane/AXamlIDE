@@ -46,6 +46,10 @@ public class DebugAdaptersTests
     }
 
     [Fact]
+    public void Automatic_uses_netcoredbg_for_now()
+        => Assert.StartsWith("netcoredbg is used for now", DebugAdapters.Describe(DebuggerChoice.Automatic));
+
+    [Fact]
     public void Netcoredbg_is_used_when_chosen()
         => Assert.Equal("netcoredbg", DebugAdapters.Describe(DebuggerChoice.NetCoreDbg)[..10]);
 }

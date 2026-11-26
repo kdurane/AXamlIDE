@@ -331,7 +331,7 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
     /// <summary>The debugger choices, as Settings > Debugging lists them.</summary>
     public IReadOnlyList<DebuggerOption> AvailableDebuggers { get; } =
     [
-        new(Services.Debugging.DebuggerChoice.Automatic, "Automatic (SharpDbg when .NET 11 is installed)"),
+        new(Services.Debugging.DebuggerChoice.Automatic, "Automatic (netcoredbg for now)"),
         new(Services.Debugging.DebuggerChoice.SharpDbg, "SharpDbg"),
         new(Services.Debugging.DebuggerChoice.NetCoreDbg, "netcoredbg")
     ];

@@ -25,7 +25,7 @@ namespace AXamlIDE.Services.Mcp;
 /// workspace live.
 ///
 /// The tools are grouped by what they look at, one partial file each: IdeMcpServer.Editor.cs (open files, the
-/// selection, unsaved edits), .Preview.cs (render_xaml), .Problems.cs (problems, check_file, build), .Code.cs (the
+/// selection, unsaved edits), .Preview.cs (render_xaml), .Ui.cs (ui_open, ui_act...: the app running headless), .Problems.cs (problems, check_file, build), .Code.cs (the
 /// language server), .Debug.cs (the paused debugger) and .Output.cs (Output and Tests).
 ///
 /// Answers are kept short on purpose (paths relative to the workspace, one line per item, pictures shrunk) since
@@ -45,6 +45,9 @@ public sealed partial class IdeMcpServer : IDisposable
         "Checking: check_file (fresh errors for one file, seconds, no build), get_problems, build (the IDE's build, " +
         "which also updates the previews). " +
         "Looking: render_xaml (an .axaml file as a picture, or its XAML error). " +
+        "Trying the UI: ui_open runs a view live in a hidden headless window and gives its control tree as text; ui_act " +
+        "clicks, types and presses keys in it and says what changed; ui_tree and ui_screenshot look again. Prefer these to " +
+        "pictures for checking behaviour: text is cheaper and exact. " +
         "Debugging: get_debug_state and evaluate_expression while the user's debugger is paused. " +
         "Output: get_output (build log, the running app's console), get_test_results. " +
         "Relative paths are from the workspace folder; lines and columns count from 1.";
@@ -57,6 +60,7 @@ public sealed partial class IdeMcpServer : IDisposable
     private readonly IDocumentHost _host;
     private readonly ProblemsViewModel _problems;
     private readonly McpPreviewRenderer _renderer;
+    private readonly McpUiHost _uiHost;
     private readonly LanguageSessionService _languages;
     private readonly LspManager _servers;
     private readonly SolutionAnalysisService _solutionAnalysis;
@@ -66,7 +70,7 @@ public sealed partial class IdeMcpServer : IDisposable
     private readonly TestExplorerViewModel _tests;
     private readonly McpServer _server;
 
-    public IdeMcpServer(WorkspaceModel workspace, DocumentManager documents, IDocumentHost host, ProblemsViewModel problems, McpPreviewRenderer renderer,
+    public IdeMcpServer(WorkspaceModel workspace, DocumentManager documents, IDocumentHost host, ProblemsViewModel problems, McpPreviewRenderer renderer, McpUiHost uiHost,
         LanguageSessionService languages, LspManager servers, SolutionAnalysisService solutionAnalysis, XamlLanguageService xaml,
         DebugSnapshotTracker debug, RunViewModel run, TestExplorerViewModel tests, IEditorSettings settings)
     {
@@ -75,6 +79,7 @@ public sealed partial class IdeMcpServer : IDisposable
         _host = host;
         _problems = problems;
         _renderer = renderer;
+        _uiHost = uiHost;
         _languages = languages;
         _servers = servers;
         _solutionAnalysis = solutionAnalysis;
@@ -89,6 +94,7 @@ public sealed partial class IdeMcpServer : IDisposable
             FindSymbol(), InspectSymbol(), FindReferences(),
             CheckFile(), GetProblems(), Build(),
             RenderXaml(),
+            UiOpen(), UiTree(), UiAct(), UiScreenshot(),
             GetDebugState(), EvaluateExpression(),
             GetOutput(), GetTestResults()
         ], Instructions)

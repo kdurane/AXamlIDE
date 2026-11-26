@@ -14,6 +14,8 @@
         <ProjectReference Include="Projects/AXamlIDE.msbuildhost/AXamlIDE.msbuildhost.csproj" ReferenceOutputAssembly="false" Private="false" />
         <!-- Likewise our extension for the Roslyn language server, which loads it from roslynextension/ (CopyRoslynExtension). -->
         <ProjectReference Include="Projects/AXamlIDE.RoslynExtension/AXamlIDE.RoslynExtension.csproj" ReferenceOutputAssembly="false" Private="false" />
+        <!-- And the ui_* tools' host, which runs on the user's app's own Avalonia from uihost/ (CopyUiHost). -->
+        <ProjectReference Include="Projects/AXamlIDE.UiHost/AXamlIDE.UiHost.csproj" ReferenceOutputAssembly="false" Private="false" />
         <ProjectReference Include="Projects/AXamlIDE.Core/AXamlIDE.Core.csproj" />
         <Compile Update="Views\EditorPaneView.axaml.cs">
           <DependentUpon>EditorPaneView.axaml</DependentUpon>
@@ -57,6 +59,12 @@
             <HostFiles Include="Projects/AXamlIDE.msbuildhost/bin/$(Configuration)/$(TargetFramework)/**/*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(HostFiles)" DestinationFiles="@(HostFiles->'$(OutDir)msbuildhost\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    </Target>
+    <Target Name="CopyUiHost" AfterTargets="Build">
+        <ItemGroup>
+            <UiHostFiles Include="Projects/AXamlIDE.UiHost/bin/$(Configuration)/net8.0/AXamlIDE.UiHost.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(UiHostFiles)" DestinationFolder="$(OutDir)uihost" SkipUnchangedFiles="true" />
     </Target>
     <Target Name="CopyRoslynExtension" AfterTargets="Build">
         <ItemGroup>
@@ -121,8 +129,8 @@
     </Target>
 
     <!--
-        Publish takes the MSBuild host, the Roslyn extension and the debuggers along, in the folders the app looks for them
-        in (msbuildhost/, roslynextension/ and netcoredbg/ beside it, as the build does). They're loaded by other
+        Publish takes the MSBuild host, the Roslyn extension, the UI host and the debuggers along, in the folders the app
+        looks for them in (msbuildhost/, roslynextension/, uihost/ and netcoredbg/ beside it, as the build does). They're loaded by other
         processes, so a single-file publish leaves them as files.
     -->
     <Target Name="PublishHelperProcesses" AfterTargets="ComputeResolvedFilesToPublishList" DependsOnTargets="DownloadNetCoreDbg">
@@ -130,6 +138,12 @@
             <_HostPublishFile Include="Projects/AXamlIDE.msbuildhost/bin/$(Configuration)/$(TargetFramework)/**/*.*" />
             <ResolvedFileToPublish Include="@(_HostPublishFile)">
                 <RelativePath>msbuildhost/%(_HostPublishFile.RecursiveDir)%(_HostPublishFile.Filename)%(_HostPublishFile.Extension)</RelativePath>
+                <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+                <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+            </ResolvedFileToPublish>
+            <_UiHostPublishFile Include="Projects/AXamlIDE.UiHost/bin/$(Configuration)/net8.0/AXamlIDE.UiHost.*" Exclude="**/*.pdb" />
+            <ResolvedFileToPublish Include="@(_UiHostPublishFile)">
+                <RelativePath>uihost/%(_UiHostPublishFile.Filename)%(_UiHostPublishFile.Extension)</RelativePath>
                 <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
                 <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
             </ResolvedFileToPublish>

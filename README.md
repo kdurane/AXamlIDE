@@ -25,7 +25,10 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
   (`claude mcp add --transport http axamlide http://localhost:47613/mcp`), can use what only the IDE knows: the
   editor's caret, selection and unsaved edits; the Roslyn server's symbols, types, definitions and references;
   one file's errors on demand, the Problems list and the IDE's build; AXAML rendered as a picture; the paused
-  debugger's call stack, locals and expressions; the Output pane and test results.
+  debugger's call stack, locals and expressions; the Output pane and test results. Claude can also try the UI
+  itself: `ui_open` runs a view of the app in a hidden headless window and gives its control tree as text, and
+  `ui_act` clicks, types and presses keys in it and says what changed (`ui_tree` and `ui_screenshot` look again).
+  Text costs Claude far less than screenshots and is exact.
 - **Other**: Search Everywhere (double Shift, as Rider's: types, files, symbols, IDE actions and options), search in
   files, go to file and symbol, Problems panel, terminal, image viewer, dockable and floating
   panels, open files reload when changed on disk.
@@ -42,18 +45,26 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 - Git credential manager, for cloning and pushing over HTTPS:
   `dotnet tool update -g git-credential-manager --version 3.0.1`
 
-The netcoredbg debugger needs no install. The Windows build is committed in `Projects/netcoredbg/`. On Linux and
-macOS the first build downloads the official release into `obj/` (set `NetCoreDbgDownload=false` to stop that and
-put your own copy in `Projects/netcoredbg/`).
+### Debuggers
 
 The debuggers need no install. Both are pinned to one version in `AXamlIDE.csproj` (`SharpDbgVersion`,
 `NetCoreDbgVersion`) and don't update themselves: change the number and rebuild to update.
 
-SharpDbg is the preferred debugger: DebuggerDisplay and type proxies, Set Next Statement, and the program runs in
-the IDE's terminal so a console program can read input. It comes from NuGet with the normal restore and is copied
-to `sharpdbg/` beside the app. It runs on .NET 11, so it's only used when a final (not preview) .NET 11 runtime is
-installed; without one, debugging uses netcoredbg. Settings > Debugging > Debugger picks one; Automatic, the
-default, takes SharpDbg when it can run.
+- **netcoredbg** is the one to use for now. The Windows build is committed in `Projects/netcoredbg/`. On Linux and
+  macOS the first build downloads the official release into `obj/` (set `NetCoreDbgDownload=false` to stop that and
+  put your own copy in `Projects/netcoredbg/`).
+- **SharpDbg** is kept in as an option for when it can debug async code. It has DebuggerDisplay and type proxies
+  and Set Next Statement, and it runs the program in the IDE's terminal so a console program can read input. But
+  the current version (0.1.19) can't read the locals of an async method: Locals fails with "Object is in a zombie
+  state" in every one (synchronous methods are fine). An Avalonia app is mostly async, so it isn't fit for Avalonia
+  work yet. Once a release fixes that, bump `SharpDbgVersion`, stop inside an async method and check Locals.
+  SharpDbg comes from NuGet with the normal restore and is copied to `sharpdbg/` beside the app. It runs on .NET 11,
+  so it can only be used when a final (not preview) .NET 11 runtime is installed.
+
+Settings > Debugging > Debugger picks one. Automatic, the default, uses netcoredbg for now; choosing SharpDbg there
+uses it anyway (when .NET 11 is installed). When a SharpDbg release reads async methods' locals, set
+`AutomaticUsesSharpDbg` in `DebugAdapters.cs` back to true and Automatic takes SharpDbg whenever it can run. If a
+stop can't read its locals, the IDE still shows the stop, the call stack and the source line.
 
 To try SharpDbg on a preview runtime, start the IDE with `AXAMLIDE_SHARPDBG_FX` set to that runtime's exact version
 (as `dotnet --list-runtimes` shows it), for example
@@ -70,6 +81,10 @@ dotnet run
 Tests: `dotnet test Projects/AXamlIDE.Tests`
 
 Optional environment variables (executable paths) are listed at the top of `Program.cs`.
+
+The UI tools (`ui_open`...) run the app on its own Avalonia version, so they need the Avalonia.Headless package in
+that same version. They take it from the NuGet cache (`~/.nuget/packages`) when a restore has put it there; otherwise
+they download it once from nuget.org into the user's local application data (`AXamlIDE.Packages`).
 
 ## Settings
 
@@ -90,6 +105,7 @@ Tools > Settings (saved as JSON in the user's application data folder):
 | `Projects/AXamlIDE.Core` | Everything without a UI: language server client, debugger, workspace, NuGet, Git, AXAML completion and formatting |
 | `Projects/AXamlIDE.msbuildhost` | MSBuild, run out of process |
 | `Projects/AXamlIDE.RoslynExtension` | Our code inside the Roslyn language server (it loads the assembly): solution-wide analysis |
+| `Projects/AXamlIDE.UiHost` | The `ui_*` tools' host: runs a view of the user's app headless (on the app's own Avalonia), out of process |
 | `Projects/AXamlIDE.Tests` | xUnit tests for Core |
 
 How the parts fit together: [docs/architecture.md](docs/architecture.md). What happens step by step for the main
@@ -122,6 +138,10 @@ actions (open, type, save, debug...): [docs/flows.md](docs/flows.md). The third-
 
 - [Microsoft.Build](https://www.nuget.org/packages/Microsoft.Build), [Microsoft.Build.Locator](https://www.nuget.org/packages/Microsoft.Build.Locator)
 
+**UI host**
+
+- [Avalonia](https://www.nuget.org/packages/Avalonia) (compiled against only; it runs on the app's own), and [Avalonia.Headless](https://www.nuget.org/packages/Avalonia.Headless) in the app's version, loaded at run time
+
 **Tests**
 
 - [xunit](https://www.nuget.org/packages/xunit), [Microsoft.NET.Test.Sdk](https://www.nuget.org/packages/Microsoft.NET.Test.Sdk)
@@ -134,8 +154,8 @@ actions (open, type, save, debug...): [docs/flows.md](docs/flows.md). The third-
 **External tools**
 
 - [roslyn-language-server](https://www.nuget.org/packages/roslyn-language-server): C# language server
-- [SharpDbg](https://github.com/MattParkerDev/SharpDbg): .NET debugger (preferred, needs .NET 11)
-- [netcoredbg](https://github.com/Samsung/netcoredbg): .NET debugger (fallback)
+- [netcoredbg](https://github.com/Samsung/netcoredbg): .NET debugger
+- [SharpDbg](https://github.com/MattParkerDev/SharpDbg): .NET debugger, an option for when it can read async methods' locals (needs .NET 11)
 
 ## Licence
 
