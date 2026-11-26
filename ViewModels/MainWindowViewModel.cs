@@ -240,7 +240,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     /// <summary>Ask about unsaved changes, then close every document and the workspace.</summary>
     [RelayCommand]
-    private Task CloseSolution() => CloseWorkspaceAsync();
+    private Task<bool> CloseSolution() => CloseWorkspaceAsync();
 
     /// <summary>Open a solution or folder from the start window, the recent list, a clone or a new project.</summary>
     public async void Receive(OpenWorkspaceMessage message) => await OpenWorkspaceAsync(message.Path);

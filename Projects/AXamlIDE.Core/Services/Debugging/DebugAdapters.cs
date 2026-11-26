@@ -34,8 +34,8 @@ public sealed record DebugAdapter(
 
 /// <summary>
 /// The debuggers that come with the IDE (copied next to it at build time), and which one to use:
-///  - SharpDbg (sharpdbg/, MIT, written in C#): DebuggerDisplay and type proxies, Set Next Statement, runs the program
-///    in the IDE's terminal. Needs a .NET 11 runtime (a final release, not a preview).
+///  - SharpDbg (sharpdbg/, MIT, written in C#): DebuggerDisplay and type proxies, LINQ and interpolation in watches,
+///    runs the program in the IDE's terminal. Needs a .NET 11 runtime (a final release, not a preview).
 ///  - netcoredbg (netcoredbg/, Samsung, MIT): runs anywhere; what Automatic uses for now.
 /// </summary>
 public static class DebugAdapters
@@ -72,7 +72,7 @@ public static class DebugAdapters
             DebuggerChoice.NetCoreDbg => "netcoredbg: works everywhere, but a console program can't read input while debugged.",
             DebuggerChoice.Automatic when !AutomaticUsesSharpDbg =>
                 "netcoredbg is used for now: SharpDbg can't yet read the locals of async methods. Choose SharpDbg to use it anyway.",
-            _ when sharpDbg => "SharpDbg is used: the program runs in its own terminal, and you get Set Next Statement and DebuggerDisplay.",
+            _ when sharpDbg => "SharpDbg is used: the program runs in its own terminal, and you get DebuggerDisplay and LINQ in watches.",
             DebuggerChoice.SharpDbg => $"SharpDbg needs a .NET 11 runtime ({SharpDbgUnavailableReason()}), so netcoredbg is used for now.",
             _ => $"netcoredbg is used for now: SharpDbg needs a .NET 11 runtime ({SharpDbgUnavailableReason()}). It's picked as soon as one is installed."
         };

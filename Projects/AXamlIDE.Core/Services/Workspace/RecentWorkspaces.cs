@@ -36,7 +36,7 @@ public sealed class RecentWorkspaces(string? storePath = null)
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    public string StorePath { get; } = storePath ?? System.IO.Path.Combine(
+    public string StorePath { get; } = storePath ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create), "AXamlIDE", "recent.json");
 
     /// <summary>The saved list, newest first; empty when there's none or it can't be read.</summary>
@@ -58,7 +58,7 @@ public sealed class RecentWorkspaces(string? storePath = null)
     {
         try
         {
-            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(StorePath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(StorePath)!);
             var temp = StorePath + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(items, JsonOptions));
             File.Move(temp, StorePath, overwrite: true);
@@ -78,7 +78,7 @@ public sealed class RecentWorkspaces(string? storePath = null)
     /// </summary>
     public static IReadOnlyList<RecentWorkspace> Opened(IReadOnlyList<RecentWorkspace> items, string path, DateTime now)
     {
-        var full = System.IO.Path.GetFullPath(path);
+        var full = Path.GetFullPath(path);
         var pinned = items.FirstOrDefault(item => SamePath(item.Path, full))?.Pinned ?? false;
         var rest = items.Where(item => !SamePath(item.Path, full)).ToList();
         var kept = rest.Where(item => item.Pinned).Concat(rest.Where(item => !item.Pinned).Take(pinned ? MaxUnpinned : MaxUnpinned - 1));
@@ -125,6 +125,6 @@ public sealed class RecentWorkspaces(string? storePath = null)
     }
 
     private static bool SamePath(string a, string b)
-        => string.Equals(System.IO.Path.GetFullPath(a), System.IO.Path.GetFullPath(b),
+        => string.Equals(Path.GetFullPath(a), Path.GetFullPath(b),
             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 }

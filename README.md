@@ -53,10 +53,11 @@ The debuggers need no install. Both are pinned to one version in `AXamlIDE.cspro
 - **netcoredbg** is the one to use for now. The Windows build is committed in `Projects/netcoredbg/`. On Linux and
   macOS the first build downloads the official release into `obj/` (set `NetCoreDbgDownload=false` to stop that and
   put your own copy in `Projects/netcoredbg/`).
-- **SharpDbg** is kept in as an option for when it can debug async code. It has DebuggerDisplay and type proxies
-  and Set Next Statement, and it runs the program in the IDE's terminal so a console program can read input. But
-  the current version (0.1.19) can't read the locals of an async method: Locals fails with "Object is in a zombie
-  state" in every one (synchronous methods are fine). An Avalonia app is mostly async, so it isn't fit for Avalonia
+- **SharpDbg** is kept in as an option for when it can debug async code. It has DebuggerDisplay and type proxies,
+  takes lambdas and string interpolation in watches, and runs the program in the IDE's terminal so a console program
+  can read input. But the current version (0.1.19) fails Locals in an async method ("Object is in a zombie state")
+  whenever a local's display runs code: a List or Dictionary, a ToString override, a type proxy. Synchronous methods
+  are fine. An Avalonia app is mostly async, so it isn't fit for Avalonia
   work yet. Once a release fixes that, bump `SharpDbgVersion`, stop inside an async method and check Locals.
   SharpDbg comes from NuGet with the normal restore and is copied to `sharpdbg/` beside the app. It runs on .NET 11,
   so it can only be used when a final (not preview) .NET 11 runtime is installed.
