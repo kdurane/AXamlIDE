@@ -92,6 +92,13 @@ public sealed record EditorFeatureSettings
     /// <summary>"name = value" at the end of the lines around the current statement while paused.</summary>
     public bool InlineDebugValues { get; init; } = true;
 
+    /// <summary>
+    /// Just My Code, as in Visual Studio: stepping and stops stay in the project's own code. Off, Step Into goes into
+    /// the framework and packages too, and Call Stack lists their frames; with SharpDbg their code is decompiled to
+    /// read and step through (DecompiledSources). Takes effect when debugging next starts.
+    /// </summary>
+    public bool JustMyCode { get; init; } = true;
+
     /// <summary>Break as soon as any exception is thrown; off: only when user code doesn't handle it (VS's default).</summary>
     public bool BreakOnAllExceptions { get; init; }
 

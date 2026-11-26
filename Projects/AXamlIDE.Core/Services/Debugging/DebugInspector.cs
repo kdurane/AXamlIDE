@@ -9,6 +9,8 @@ namespace AXamlIDE.Services.Debugging;
 
 /// <param name="Debugger">The paused session, for reading values (valid until the debuggee runs again).</param>
 /// <param name="Attributes">The session's [DebuggerDisplay] / [DebuggerBrowsable] index.</param>
+/// <param name="ResolveFrame">Gives a frame without source its decompiled source (Call Stack, when one is clicked);
+/// null when the debugger can't (Just My Code on, or netcoredbg).</param>
 public sealed record StopSnapshot(
     string Reason,
     int ThreadId,
@@ -16,9 +18,10 @@ public sealed record StopSnapshot(
     IReadOnlyDictionary<string, string> Values,
     string? ExceptionText,
     IDebugEvaluator Debugger,
-    DebuggerAttributeIndex Attributes)
+    DebuggerAttributeIndex Attributes,
+    Func<DebugFrame, CancellationToken, Task<DebugFrame?>>? ResolveFrame = null)
 {
-    /// <summary>First frame that has source (justMyCode already hides framework frames).</summary>
+    /// <summary>First frame that has source (Just My Code hides the framework's frames; without it, a decompiled frame has source too).</summary>
     public DebugFrame? Top => Frames.FirstOrDefault(f => f.Path is not null);
 }
 
@@ -93,7 +96,8 @@ public sealed class DebugInspector
 
             var exception = reason == "exception" ? await _session.GetExceptionTextAsync(threadId, ct) : null;
 
-            var snapshot = new StopSnapshot(reason, threadId, frames, values, exception, _session, _attributes);
+            var snapshot = new StopSnapshot(reason, threadId, frames, values, exception, _session, _attributes,
+                _session.CanResolveFrames ? _session.ResolveFrameAsync : null);
             Current = snapshot;
             if (exception is not null)
                 Output?.Invoke($"[debug] Exception thrown: {exception.Split('\n', 2)[0].TrimEnd()}");

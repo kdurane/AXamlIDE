@@ -181,6 +181,10 @@
                             </ComboBox>
                             <TextBlock Classes="SettingHint" Text="{Binding DebuggerDescription}" />
 
+                            <TextBlock Classes="SettingsHeading" Text="Stepping" />
+                            <CheckBox Content="Just My Code" IsChecked="{Binding JustMyCode, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Step and stop only in your own code, as Visual Studio does. Off: Step Into goes into the framework and packages too, and Call Stack lists their frames; with SharpDbg their code is decompiled so you can read it, step through it and set breakpoints in it. Applies the next time debugging starts." />
+
                             <TextBlock Classes="SettingsHeading" Text="While paused" />
                             <CheckBox Content="Show inline values" IsChecked="{Binding InlineDebugValues, Mode=TwoWay}" />
                             <TextBlock Classes="SettingHint" Text="name = value at the end of the lines around the current statement." />

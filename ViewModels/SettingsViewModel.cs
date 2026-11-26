@@ -351,6 +351,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
     /// <summary>Which debugger the choice means on this machine (SharpDbg needs .NET 11).</summary>
     public string DebuggerDescription => Services.Debugging.DebugAdapters.Describe(Features.Debugger);
 
+    public bool JustMyCode
+    {
+        get => Features.JustMyCode;
+        set => SetFeatures(Features with { JustMyCode = value });
+    }
+
     public bool RememberBreakpoints
     {
         get => Features.RememberBreakpoints;

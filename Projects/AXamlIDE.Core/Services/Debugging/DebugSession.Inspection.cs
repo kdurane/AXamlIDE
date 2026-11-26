@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
@@ -36,20 +37,41 @@ public sealed partial class DebugSession : IDebugEvaluator
     public async Task<IReadOnlyList<DebugFrame>> GetStackAsync(int threadId, int levels = 50, CancellationToken ct = default)
     {
         using var r = await RequestAsync("stackTrace", new { threadId, startFrame = 0, levels }, ct);
-        var list = new List<DebugFrame>();
-        foreach (var f in r.RootElement.GetProperty("body").GetProperty("stackFrames").EnumerateArray())
-        {
-            string? path = f.TryGetProperty("source", out var s) && s.TryGetProperty("path", out var p)
-                ? p.GetString()
-                : null;
-            list.Add(new DebugFrame(
-                f.GetProperty("id").GetInt32(),
-                f.TryGetProperty("name", out var n) ? n.GetString() ?? "?" : "?",
-                path,
-                f.TryGetProperty("line", out var l) ? l.GetInt32() : 0));
-        }
+        return [.. r.RootElement.GetProperty("body").GetProperty("stackFrames").EnumerateArray().Select(ReadFrame)];
+    }
 
-        return list;
+    /// <summary>
+    /// The debugger can decompile a frame that has no source (SharpDbg, with Just My Code off): Call Stack then lists
+    /// each external frame, and clicking one shows its decompiled code (<see cref="ResolveFrameAsync"/>).
+    /// </summary>
+    public bool CanResolveFrames => Adapter.DecompilesExternalCode && !JustMyCode;
+
+    /// <summary>
+    /// A frame without source, again with its source: SharpDbg decompiles the frame's assembly (its own
+    /// resolveStackFrame request). Null when it still has none (native code, or the debugger can't).
+    /// </summary>
+    public async Task<DebugFrame?> ResolveFrameAsync(DebugFrame frame, CancellationToken ct = default)
+    {
+        if (!CanResolveFrames)
+            return null;
+        using var r = await RequestAsync("resolveStackFrame", new { stackFrameId = frame.Id }, ct);
+        var resolved = ReadFrame(r.RootElement.GetProperty("body").GetProperty("stackFrame"));
+        return resolved.Path is null ? null : resolved;
+    }
+
+    /// <summary>A DAP stack frame. A decompiled frame's made-up path becomes the real file its source is written to.</summary>
+    private static DebugFrame ReadFrame(JsonElement f)
+    {
+        var path = f.TryGetProperty("source", out var s) && s.ValueKind == JsonValueKind.Object && s.TryGetProperty("path", out var p)
+            ? p.GetString()
+            : null;
+        if (DecompiledSources.IsDecompiledPath(path))
+            path = DecompiledSources.ToLocalFile(path!);
+        return new DebugFrame(
+            f.GetProperty("id").GetInt32(),
+            f.TryGetProperty("name", out var n) ? n.GetString() ?? "?" : "?",
+            path,
+            f.TryGetProperty("line", out var l) ? l.GetInt32() : 0);
     }
 
     /// <summary>Variables of every non-expensive scope of a frame (netcoredbg gives one "Locals" scope, including `this`).</summary>

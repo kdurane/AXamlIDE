@@ -69,7 +69,9 @@ public sealed class DocumentManager
         // (Encoding.UTF8 here would add a BOM to the file on its next save).
         using var reader = new StreamReader(path, Utf8WithoutBom, detectEncodingFromByteOrderMarks: true);
         var text = reader.ReadToEnd();
-        var doc = new OpenDocument(path, text, reader.CurrentEncoding, LanguageFor(path));
+        // Code the debugger decompiled can't be changed (DecompiledSources).
+        var doc = new OpenDocument(path, text, reader.CurrentEncoding, LanguageFor(path),
+            isReadOnly: Services.Debugging.DecompiledSources.IsInside(path));
 
         _byPath[path] = doc;
         Documents.Add(doc);

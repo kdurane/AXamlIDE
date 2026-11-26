@@ -154,7 +154,7 @@ public partial class RunViewModel
                     breakpoints[path] = closed;
 
             _sentExceptionFilters = ExceptionFilterList();
-            await session.StartAsync(programPath, workingDirectory, breakpoints, _sentExceptionFilters);
+            await session.StartAsync(programPath, workingDirectory, breakpoints, _sentExceptionFilters, _settings.Features.JustMyCode);
             if (ReferenceEquals(_debugSession, session))
                 DebugStatus = $"Debugging ({configuration}, {adapter.Name}). Execution will pause at enabled breakpoints.";
         }

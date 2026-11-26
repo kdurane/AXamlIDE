@@ -77,13 +77,18 @@ public sealed partial class DebugSession : IDisposable
         _messagePump = PumpMessagesAsync();
     }
 
+    /// <summary>Only the project's own code is stepped into and shown (the launch's justMyCode; Settings > Debugging).</summary>
+    public bool JustMyCode { get; private set; } = true;
+
     public async Task StartAsync(
         string programPath,
         string workingDirectory,
         IReadOnlyDictionary<string, IReadOnlyList<SourceBreakpoint>> breakpoints,
         IReadOnlyList<string> exceptionFilters,
+        bool justMyCode = true,
         CancellationToken cancellationToken = default)
     {
+        JustMyCode = justMyCode;
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         linkedCancellation.CancelAfter(TimeSpan.FromSeconds(45));
         var token = linkedCancellation.Token;
@@ -111,7 +116,8 @@ public sealed partial class DebugSession : IDisposable
             stopAtEntry = false,
             // In the IDE's terminal when the adapter can (a real console: input, colours), else through the adapter.
             console = Adapter.RunsInTerminal && RunInTerminal is not null ? "integratedTerminal" : "internalConsole",
-            justMyCode = true
+            // Off: step into and stop in code that isn't the project's (with SharpDbg, decompiled: DecompiledSources).
+            justMyCode
         }, token);
         _ = launch.ContinueWith(
             task => _ = task.Exception,

@@ -25,12 +25,15 @@ public enum DebuggerChoice
 /// through the adapter and it can't read input.</param>
 /// <param name="FormatsValues">It shows values as Visual Studio does ([DebuggerDisplay], type proxies, Count, ToString,
 /// Raw View), so the IDE takes them as they come rather than working them out (see IDebugEvaluator.FormatsValues).</param>
+/// <param name="DecompilesExternalCode">With Just My Code off it decompiles code that has no PDB when it reaches it,
+/// and answers SharpDbg's resolveStackFrame request (decompile one Call Stack frame): see DecompiledSources.</param>
 public sealed record DebugAdapter(
     string Name,
     string FileName,
     IReadOnlyList<string> Arguments,
     bool RunsInTerminal,
-    bool FormatsValues);
+    bool FormatsValues,
+    bool DecompilesExternalCode = false);
 
 /// <summary>
 /// The debuggers that come with the IDE (copied next to it at build time), and which one to use:
@@ -94,7 +97,7 @@ public static class DebugAdapters
         else if (!DotNetRuntimes.HasReleased(SharpDbgRuntime))
             return null;
         arguments.AddRange([SharpDbgPath, "--interpreter=vscode"]);
-        return new DebugAdapter("SharpDbg", dotnet, arguments, RunsInTerminal: true, FormatsValues: true);
+        return new DebugAdapter("SharpDbg", dotnet, arguments, RunsInTerminal: true, FormatsValues: true, DecompilesExternalCode: true);
     }
 
     private static string SharpDbgUnavailableReason()

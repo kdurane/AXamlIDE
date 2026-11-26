@@ -16,7 +16,9 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
   Solution Explorer with file operations; file properties (Build Action); startup project and configuration; build,
   run and publish.
 - **Debugging**: breakpoints (with conditions), stepping, locals, watch, call stack, exception settings, inline
-  values, data tips and collection visualizers (with export to Excel), through SharpDbg or netcoredbg.
+  values, data tips and collection visualizers (with export to Excel), through SharpDbg or netcoredbg. Just My Code
+  can be turned off (Settings > Debugging): with SharpDbg you then step into, and set breakpoints in, decompiled
+  framework and package code.
 - **Testing**: Test Explorer for xUnit, NUnit, MSTest and TUnit projects: run all, run failed, results in the tree.
 - **NuGet**: browse, install, update and uninstall packages; installed and transitive packages.
 - **Git**: status in the explorer, stage, unstage, commit, side-by-side diffs, history graph.
