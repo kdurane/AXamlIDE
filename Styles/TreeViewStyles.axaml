@@ -6,7 +6,9 @@
     </Border>
   </Design.PreviewWith>
 
-  <Style Selector="TreeViewItem > Panel#PART_ExpandCollapseChevronContainer">
+  <!-- Fluent's template sets the chevron margin itself (12,0,12,0, a StaticResource), and template values beat
+       plain style setters. A style with a pseudo-class trigger outranks the template, so match both states. -->
+  <Style Selector="TreeViewItem:disabled /template/ Panel#PART_ExpandCollapseChevronContainer, TreeViewItem:not(:disabled) /template/ Panel#PART_ExpandCollapseChevronContainer">
     <Setter Property="Margin" Value="{DynamicResource TreeViewItemExpandCollapseChevronMargin}"/>
   </Style>
 </Styles>
