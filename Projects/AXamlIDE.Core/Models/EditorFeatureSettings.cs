@@ -101,7 +101,7 @@ public sealed record EditorFeatureSettings
     /// </summary>
     public bool RememberBreakpoints { get; init; } = true;
 
-    /// <summary>Which debugger to use: Automatic (netcoredbg for now, see DebugAdapters.AutomaticUsesSharpDbg), or always one of them.</summary>
+    /// <summary>Which debugger to use: Automatic (SharpDbg when a .NET 11 runtime is installed, otherwise netcoredbg), or always one of them.</summary>
     public Services.Debugging.DebuggerChoice Debugger { get; init; } = Services.Debugging.DebuggerChoice.Automatic;
 
     // ---- Claude

@@ -46,8 +46,11 @@ public class DebugAdaptersTests
     }
 
     [Fact]
-    public void Automatic_uses_netcoredbg_for_now()
-        => Assert.StartsWith("netcoredbg is used for now", DebugAdapters.Describe(DebuggerChoice.Automatic));
+    public void Automatic_uses_SharpDbg_unless_there_is_no_dotnet_11()
+    {
+        var automatic = DebugAdapters.Describe(DebuggerChoice.Automatic);
+        Assert.True(automatic.StartsWith("SharpDbg is used") || automatic.Contains("SharpDbg needs a .NET 11 runtime"), automatic);
+    }
 
     [Fact]
     public void Netcoredbg_is_used_when_chosen()

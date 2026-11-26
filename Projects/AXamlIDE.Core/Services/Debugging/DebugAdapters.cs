@@ -8,7 +8,7 @@ namespace AXamlIDE.Services.Debugging;
 /// <summary>Settings > Debugging > Debugger.</summary>
 public enum DebuggerChoice
 {
-    /// <summary>netcoredbg for now (see <see cref="DebugAdapters.AutomaticUsesSharpDbg"/>).</summary>
+    /// <summary>SharpDbg when it can run (a final .NET 11 runtime is installed), otherwise netcoredbg.</summary>
     Automatic,
     SharpDbg,
     NetCoreDbg
@@ -36,24 +36,17 @@ public sealed record DebugAdapter(
 /// The debuggers that come with the IDE (copied next to it at build time), and which one to use:
 ///  - SharpDbg (sharpdbg/, MIT, written in C#): DebuggerDisplay and type proxies, LINQ and interpolation in watches,
 ///    runs the program in the IDE's terminal. Needs a .NET 11 runtime (a final release, not a preview).
-///  - netcoredbg (netcoredbg/, Samsung, MIT): runs anywhere; what Automatic uses for now.
+///  - netcoredbg (netcoredbg/, Samsung, MIT): runs anywhere; what Automatic falls back to without .NET 11.
 /// </summary>
 public static class DebugAdapters
 {
-    /// <summary>
-    /// Whether Automatic takes SharpDbg when it can run. Off for now: SharpDbg 0.1.19 can't read an async method's
-    /// locals ("Object is in a zombie state"), and an Avalonia app is mostly async. Turn it back on once a SharpDbg
-    /// release can (stop inside an async method and check Locals); choosing SharpDbg in Settings still uses it.
-    /// </summary>
-    public const bool AutomaticUsesSharpDbg = false;
-
     /// <summary>
     /// The debugger for <paramref name="choice"/>, and a note when it isn't what was asked for (SharpDbg chosen but no
     /// .NET 11 runtime): the status bar shows it.
     /// </summary>
     public static (DebugAdapter Adapter, string? Note) Choose(DebuggerChoice choice)
     {
-        if (choice == DebuggerChoice.SharpDbg || (choice == DebuggerChoice.Automatic && AutomaticUsesSharpDbg))
+        if (choice is DebuggerChoice.SharpDbg or DebuggerChoice.Automatic)
         {
             if (SharpDbg() is { } sharpDbg)
                 return (sharpDbg, null);
@@ -70,8 +63,6 @@ public static class DebugAdapters
         return choice switch
         {
             DebuggerChoice.NetCoreDbg => "netcoredbg: works everywhere, but a console program can't read input while debugged.",
-            DebuggerChoice.Automatic when !AutomaticUsesSharpDbg =>
-                "netcoredbg is used for now: SharpDbg can't yet read the locals of async methods. Choose SharpDbg to use it anyway.",
             _ when sharpDbg => "SharpDbg is used: the program runs in its own terminal, and you get DebuggerDisplay and LINQ in watches.",
             DebuggerChoice.SharpDbg => $"SharpDbg needs a .NET 11 runtime ({SharpDbgUnavailableReason()}), so netcoredbg is used for now.",
             _ => $"netcoredbg is used for now: SharpDbg needs a .NET 11 runtime ({SharpDbgUnavailableReason()}). It's picked as soon as one is installed."

@@ -50,22 +50,17 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
 The debuggers need no install. Both are pinned to one version in `AXamlIDE.csproj` (`SharpDbgVersion`,
 `NetCoreDbgVersion`) and don't update themselves: change the number and rebuild to update.
 
-- **netcoredbg** is the one to use for now. The Windows build is committed in `Projects/netcoredbg/`. On Linux and
-  macOS the first build downloads the official release into `obj/` (set `NetCoreDbgDownload=false` to stop that and
+- **SharpDbg** is the main one. It has DebuggerDisplay and type proxies, takes lambdas and string interpolation in
+  watches, and runs the program in the IDE's terminal so a console program can read input. It comes from NuGet with
+  the normal restore and is copied to `sharpdbg/` beside the app. It runs on .NET 11, so it can only be used when a
+  final (not preview) .NET 11 runtime is installed. (Before 0.1.20 it failed Locals in async methods and lambdas,
+  "Object is in a zombie state"; if that comes back, stop inside an async method and check Locals.)
+- **netcoredbg** is the fallback: it runs anywhere, but a console program can't read input. The Windows build is
+  committed in `Projects/netcoredbg/`. On Linux and macOS the first build downloads the official release into `obj/` (set `NetCoreDbgDownload=false` to stop that and
   put your own copy in `Projects/netcoredbg/`).
-- **SharpDbg** is kept in as an option for when it can debug async code. It has DebuggerDisplay and type proxies,
-  takes lambdas and string interpolation in watches, and runs the program in the IDE's terminal so a console program
-  can read input. But the current version (0.1.19) fails Locals in an async method ("Object is in a zombie state")
-  whenever a local's display runs code: a List or Dictionary, a ToString override, a type proxy. Synchronous methods
-  are fine. An Avalonia app is mostly async, so it isn't fit for Avalonia
-  work yet. Once a release fixes that, bump `SharpDbgVersion`, stop inside an async method and check Locals.
-  SharpDbg comes from NuGet with the normal restore and is copied to `sharpdbg/` beside the app. It runs on .NET 11,
-  so it can only be used when a final (not preview) .NET 11 runtime is installed.
 
-Settings > Debugging > Debugger picks one. Automatic, the default, uses netcoredbg for now; choosing SharpDbg there
-uses it anyway (when .NET 11 is installed). When a SharpDbg release reads async methods' locals, set
-`AutomaticUsesSharpDbg` in `DebugAdapters.cs` back to true and Automatic takes SharpDbg whenever it can run. If a
-stop can't read its locals, the IDE still shows the stop, the call stack and the source line.
+Settings > Debugging > Debugger picks one. Automatic, the default, uses SharpDbg when it can run and netcoredbg
+otherwise. If a stop can't read its locals, the IDE still shows the stop, the call stack and the source line.
 
 To try SharpDbg on a preview runtime, start the IDE with `AXAMLIDE_SHARPDBG_FX` set to that runtime's exact version
 (as `dotnet --list-runtimes` shows it), for example
@@ -156,7 +151,7 @@ actions (open, type, save, debug...): [docs/flows.md](docs/flows.md). The third-
 
 - [roslyn-language-server](https://www.nuget.org/packages/roslyn-language-server): C# language server
 - [netcoredbg](https://github.com/Samsung/netcoredbg): .NET debugger
-- [SharpDbg](https://github.com/MattParkerDev/SharpDbg): .NET debugger, an option for when it can read async methods' locals (needs .NET 11)
+- [SharpDbg](https://github.com/MattParkerDev/SharpDbg): .NET debugger, the main one (needs .NET 11; netcoredbg is the fallback)
 
 ## Licence
 
