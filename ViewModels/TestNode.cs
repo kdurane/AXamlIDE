@@ -44,6 +44,9 @@ public sealed partial class TestNode : ObservableObject
 
     public TestOutcome Outcome { get; set; }
 
+    /// <summary>The result is from an earlier run than the latest (Visual Studio shows those with outline icons).</summary>
+    public bool IsStale { get; set; }
+
     /// <summary>How many tests are under it (1 for a single test).</summary>
     public int TestCount { get; set; }
 
@@ -64,14 +67,14 @@ public sealed partial class TestNode : ObservableObject
     /// <summary>The failure's stack trace, a line per frame, with links where a frame names a source file.</summary>
     public IReadOnlyList<StackFrameLine> StackFrames => StackTraceFrames.Parse(Result?.StackTrace);
 
-    public string OutcomeText => Outcome switch
+    public string OutcomeText => (Outcome switch
     {
         TestOutcome.Passed => "Passed",
         TestOutcome.Failed => "Failed",
         TestOutcome.Skipped => "Skipped",
         TestOutcome.Running => "Running",
         _ => "Not run"
-    };
+    }) + (IsStale ? " (in an earlier run)" : "");
 
     /// <summary>The leaf tests under this row (itself, for a single test).</summary>
     public IEnumerable<TestNode> Leaves()

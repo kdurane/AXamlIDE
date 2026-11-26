@@ -365,12 +365,17 @@ public sealed partial class MainWindowViewModel : ObservableObject,
 
     /// <summary>Help > View Crash Log: the log of unhandled exceptions (Program.cs, App.axaml.cs), in a tab.</summary>
     [RelayCommand]
-    private void ViewCrashLog()
+    private void ViewCrashLog() => OpenLog(Services.Diagnostics.CrashLog.FilePath, "crash log", "No crashes have been logged.");
+
+    /// <summary>Help > View Timings Log: how long startup, opening a solution and builds took (PerfTimeline), in a tab.</summary>
+    [RelayCommand]
+    private void ViewTimingsLog() => OpenLog(Services.Diagnostics.PerfTimeline.FilePath, "timings log", "Nothing has been timed yet.");
+
+    private void OpenLog(string path, string what, string none)
     {
-        var path = Services.Diagnostics.CrashLog.FilePath;
         if (!System.IO.File.Exists(path))
         {
-            ShowStatusMessage("No crashes have been logged.");
+            ShowStatusMessage(none);
             return;
         }
         try
@@ -379,7 +384,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
-            ShowStatusMessage($"Couldn't open the crash log: {ex.Message}");
+            ShowStatusMessage($"Couldn't open the {what}: {ex.Message}");
         }
     }
 

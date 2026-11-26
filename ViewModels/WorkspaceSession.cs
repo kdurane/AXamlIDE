@@ -1,3 +1,4 @@
+using AXamlIDE.Services.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -200,5 +201,6 @@ public sealed class WorkspaceSession
 
         if (active is not null)
             _documents.Active = active;
+        PerfTimeline.Mark(PerfTimeline.Open, "files-restored", $"{_documents.Documents.Count} open");
     }
 }

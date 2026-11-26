@@ -62,4 +62,16 @@ public class RoslynExtensionClientTests
             """{"projects":[{"id":"8a03","name":"Core (net10.0)","filePath":"/src/Core.csproj","version":"v1"}]}""");
         Assert.Equal(new ProjectEntry("8a03", "Core (net10.0)", "/src/Core.csproj", "v1"), Assert.Single(projects!.Projects));
     }
+
+    [Fact]
+    public void Test_messages_use_the_names_the_other_side_expects()
+    {
+        Assert.Equal("""{"projectId":"p1"}""", JsonSerializer.Serialize(new ProjectTestsRequest("p1")));
+
+        var answer = JsonSerializer.Deserialize<ProjectTestsResponse>(JsonSerializer.Serialize(new ProjectTestsResponse(true, "v2",
+            [new TestMethodEntry("Ns.Outer+Inner", "Adds", true, "/src/T.cs", 4, 16)])));
+        Assert.Equal("v2", answer!.Version);
+        Assert.Equal(new TestMethodEntry("Ns.Outer+Inner", "Adds", true, "/src/T.cs", 4, 16), Assert.Single(answer.Tests));
+        Assert.Contains("\"isDataDriven\":true", JsonSerializer.Serialize(answer));
+    }
 }

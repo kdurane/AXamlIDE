@@ -181,13 +181,14 @@ public static partial class DesignData
     {
         var tests = Get<TestExplorerViewModel>();
         var project = SamplePath("Contoso.Tests/Contoso.Tests.csproj");
-        TestNode Test(string method, TestOutcome outcome, int milliseconds, string? error = null)
+        TestNode Test(string method, TestOutcome outcome, int milliseconds, string? error = null, bool stale = false)
         {
             var name = TestCaseName.Parse("Contoso.Tests.OrderServiceTests." + method);
             return new TestNode(TestNodeKind.Method, method, project, name.FullName)
             {
                 Test = name,
                 Outcome = outcome,
+                IsStale = stale,
                 TestCount = 1,
                 Duration = TimeSpan.FromMilliseconds(milliseconds),
                 Result = new TestResult(name, outcome, TimeSpan.FromMilliseconds(milliseconds), error,
@@ -198,7 +199,7 @@ public static partial class DesignData
         var cls = new TestNode(TestNodeKind.Class, "OrderServiceTests", project, "Contoso.Tests.OrderServiceTests") { Outcome = TestOutcome.Failed, TestCount = 4, IsExpanded = true };
         foreach (var test in new[]
                  {
-                     Test("Loads_orders", TestOutcome.Passed, 12), Test("Skips_closed_orders", TestOutcome.Passed, 3),
+                     Test("Loads_orders", TestOutcome.Passed, 12), Test("Skips_closed_orders", TestOutcome.Passed, 3, stale: true),
                      Test("Totals_include_tax", TestOutcome.Failed, 41, "Assert.Equal() Failure: Values differ\nExpected: 144.6\nActual:   120.5"),
                      Test("Exports_to_csv", TestOutcome.Skipped, 0)
                  })

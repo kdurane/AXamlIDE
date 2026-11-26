@@ -32,7 +32,9 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            PerfTimeline.Mark(PerfTimeline.Startup, "avalonia-ready");
             var services = AppServices.Build();
+            PerfTimeline.Mark(PerfTimeline.Startup, "services-built");
             ReportUnhandledExceptions(services.GetRequiredService<IMessenger>());
             services.GetRequiredService<ThemeSwitcher>().Apply();
             TextBoxCaret.Install();   // every text box's caret clear of the last letter (Avalonia draws it over it)
@@ -77,6 +79,9 @@ public partial class App : Application
     private static void Start(IClassicDesktopStyleApplicationLifetime desktop, ServiceProvider services)
     {
         var main = services.GetRequiredService<MainWindow>();
+        PerfTimeline.Mark(PerfTimeline.Startup, "main-window-created");
+        // Whichever window shows first (the main window after the start window is the user's choosing, not startup).
+        main.Opened += (_, _) => PerfTimeline.Mark(PerfTimeline.Startup, "window-shown", "main window");
         var start = services.GetRequiredService<StartViewModel>();
         var startup = services.GetRequiredService<SettingsViewModel>().Startup;
 
@@ -100,6 +105,7 @@ public partial class App : Application
 
         // The start window is the main window until it hands over (dialogs it opens are owned by it).
         var window = new StartWindow { DataContext = start };
+        window.Opened += (_, _) => PerfTimeline.Mark(PerfTimeline.Startup, "window-shown", "start window");
         desktop.MainWindow = window;
         void Chosen()
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AXamlIDE.Services.Diagnostics;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -81,6 +82,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         if (_opening)
             return false;   // one at a time: a second click while a solution loads is ignored
         _opening = true;
+        PerfTimeline.Begin(PerfTimeline.Open, Path.GetFileName(Path.TrimEndingDirectorySeparator(path)));
         try
         {
             if (RecentWorkspace.IsSolutionPath(path) && File.Exists(path))
@@ -117,6 +119,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         root.Populate();
         Roots.Clear();
         Roots.Add(root);
+        PerfTimeline.Mark(PerfTimeline.Open, "tree-shown");
         _languages.SetWorkspace(new LspWorkspace(path, SolutionPath: null, _workspace.ProjectFilesUnderRoot));
         OnPropertyChanged(nameof(IsOpen));
         Opened?.Invoke();
@@ -134,6 +137,8 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
             loaded.Populate();
             return loaded;
         });
+        PerfTimeline.Mark(PerfTimeline.Open, "projects-read",
+            $"{root.Children.Count(node => node.Kind == NodeKind.Project)} projects");
         _xaml.ClearProjectCaches();
         SelectedNode = null;
         _workspace.SolutionProjects =
@@ -145,6 +150,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject, IRecipient<Fi
         root.IsExpanded = true;
         Roots.Clear();
         Roots.Add(root);
+        PerfTimeline.Mark(PerfTimeline.Open, "tree-shown");
         _languages.SetWorkspace(new LspWorkspace(Path.GetDirectoryName(path)!, SolutionPath: path));
         OnPropertyChanged(nameof(IsOpen));
         _messenger.Send(new StatusMessage(""));

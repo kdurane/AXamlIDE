@@ -7,6 +7,10 @@ without a folder prefix are in the app project (the repo root). `Core/` stands f
 
 Line numbers are left out because they go stale. Search for the method name instead.
 
+Startup, opening a solution and builds mark their milestones on `PerfTimeline` (Core `Services/Diagnostics`):
+search for `PerfTimeline.Mark` to see where each step is timed. The marks go to `perf.log` (Help > View Timings Log)
+and to the MCP tool `get_timings`.
+
 Contents:
 
 1. [App startup](#1-app-startup)

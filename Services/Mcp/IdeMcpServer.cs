@@ -49,7 +49,7 @@ public sealed partial class IdeMcpServer : IDisposable
         "clicks, types and presses keys in it and says what changed; ui_tree and ui_screenshot look again. Prefer these to " +
         "pictures for checking behaviour: text is cheaper and exact. " +
         "Debugging: get_debug_state and evaluate_expression while the user's debugger is paused. " +
-        "Output: get_output (build log, the running app's console), get_test_results. " +
+        "Output: get_output (build log, the running app's console), get_test_results, get_timings (how long startup, opening and the last build took). " +
         "Relative paths are from the workspace folder; lines and columns count from 1.";
 
     /// <summary>The Claude panel's sessions connect with this (?client=panel), so its switch can turn just them away.</summary>
@@ -96,7 +96,7 @@ public sealed partial class IdeMcpServer : IDisposable
             RenderXaml(),
             UiOpen(), UiTree(), UiAct(), UiScreenshot(),
             GetDebugState(), EvaluateExpression(),
-            GetOutput(), GetTestResults()
+            GetOutput(), GetTestResults(), GetTimings()
         ], Instructions)
         {
             // Read on each call, so the switch works at once, in the conversation that's going on too.

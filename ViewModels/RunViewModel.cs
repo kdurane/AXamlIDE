@@ -1,3 +1,4 @@
+using AXamlIDE.Services.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -166,15 +167,12 @@ public partial class RunViewModel : ObservableObject, IDisposable
         IsBusy = true;
         try
         {
-            var exitCode = await BuildWithNoticeAsync(() => kind switch
+            await BuildWithNoticeAsync(() => kind switch
             {
                 BuildKind.Rebuild => _projectRunner.RebuildAsync(path, configuration),
                 BuildKind.Clean => _projectRunner.CleanAsync(path, configuration),
                 _ => _projectRunner.BuildAsync(path, configuration)
             }, done);
-            AppendBuildOutput(exitCode == 0
-                ? $"{done} succeeded."
-                : $"{done} failed with exit code {exitCode}.");
         }
         catch (Exception ex)
         {
@@ -243,6 +241,8 @@ public partial class RunViewModel : ObservableObject, IDisposable
     private async Task<int> BuildWithNoticeAsync(Func<Task<int>> build, string what = "Build")
     {
         _messenger.Send(new BuildStartedMessage());
+        PerfTimeline.Begin(PerfTimeline.Build, what);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         var exitCode = -1;
         try
         {
@@ -251,6 +251,10 @@ public partial class RunViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            PerfTimeline.Mark(PerfTimeline.Build, "finished", exitCode == 0 ? "succeeded" : $"failed ({exitCode})");
+            // As Visual Studio's "Build completed at ... and took ... seconds".
+            var outcome = exitCode == 0 ? "succeeded" : $"failed with exit code {exitCode}";
+            AppendBuildOutput($"{what} {outcome} at {DateTime.Now:HH:mm:ss} and took {clock.Elapsed.TotalSeconds:0.0} s.");
             _messenger.Send(new BuildFinishedMessage(exitCode == 0));
             PublishBuildProblems(exitCode, what);
         }

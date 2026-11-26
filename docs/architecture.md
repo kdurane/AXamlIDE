@@ -290,7 +290,7 @@ and drag preview would otherwise try to show the same editor control a second ti
 |---|---|---|---|
 | `AXamlIDE.msbuildhost` | `MsBuildHostClient.Start` (first use of `WorkspaceModel.Host`) | One JSON line per request and response, stdin/stdout | `AXAMLIDE_HOST`, else `msbuildhost/` beside the app |
 | `roslyn-language-server` | `LspManager.StartAsync` → `LspClient.StartAsync` | LSP: JSON-RPC 2.0, `Content-Length` framing, stdio | `AXAMLIDE_ROSLYN`, else `~/.dotnet/tools`, else `PATH` (`LspServers.FindTool`) |
-| `AXamlIDE.RoslynExtension` (an assembly the server loads, not a program) | `RoslynExtensionClient.ActivateAsync`, the first time `SolutionAnalysisService` starts the live analysis on a server | `server/_vs_activateExtension`, then `workspace/_vs_dispatchExtensionMessage` (a message name and JSON text in, JSON text out) over the server's LSP connection | `roslynextension/` beside the app (`RoslynExtensionClient.AssemblyPath`) |
+| `AXamlIDE.RoslynExtension` (an assembly the server loads, not a program) | `RoslynExtensionClient.ForAsync`, once per server, the first time `SolutionAnalysisService` or the Test Explorer asks for it (both share that loading) | `server/_vs_activateExtension`, then `workspace/_vs_dispatchExtensionMessage` (a message name and JSON text in, JSON text out) over the server's LSP connection | `roslynextension/` beside the app (`RoslynExtensionClient.AssemblyPath`) |
 | `netcoredbg` | `new DebugSession(...)` in `RunViewModel.DebugProjectAsync` | Debug Adapter Protocol over stdio (`DebugAdapterTransport`) | `AXAMLIDE_NETCOREDBG_PATH`, else `netcoredbg/` beside the app, else `PATH` |
 | `dotnet` | `DotNetProjectRunner.ExecuteAsync` | Plain output lines | `PATH` |
 | Avalonia designer host | `AvaloniaPreviewProcess.StartAsync` (`dotnet exec ... --transport tcp-bson://127.0.0.1:<port>/ --method avalonia-remote`) | `Avalonia.Remote.Protocol` BSON over TCP | `XamlPreviewTarget.HostAppPath` (worked out by `XamlPreviewTargetResolver`) |
@@ -322,6 +322,9 @@ the same live `Solution` its LSP features use, unsaved edits included. There's n
   is checked again (about 300 ms here). `ProjectCompilationDiagnosticsHandler` compiles the whole project for what
   the file checks can't see (unused fields CS0169/CS0414/CS0649, no `Main` CS5001), less what they already report.
   The extension can't send anything unasked, so the IDE asks: see [flows.md, flow 16](flows.md#16-solution-wide-analysis).
+  `ProjectTestsHandler` lists one project's test methods (xUnit, NUnit, MSTest and TUnit attributes, or ones derived
+  from them; inherited tests included) from its compilation, kept per project version, so the Test Explorer shows
+  them without building (`TestExplorerViewModel.Scan.cs`).
 - **The fallback.** If the extension isn't there (built without the server installed), won't load, or fails, the
   IDE uses `workspace/diagnostic` (a long poll with partial results) and writes the reason to the debug output,
   in lines starting `[solution analysis]`.

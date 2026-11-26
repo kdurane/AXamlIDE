@@ -10,6 +10,7 @@ using AXamlIDE.Messages;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Dialogs;
 using AXamlIDE.Services.Documents;
+using AXamlIDE.Services.Lsp;
 using AXamlIDE.Services.Testing;
 using AXamlIDE.Services.Workspace;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -24,9 +25,10 @@ namespace AXamlIDE.ViewModels;
 /// the tree (TestExplorerViewModel.Tree.cs). Double-click goes to the test's code; a failure's stack trace links to
 /// its lines. "New Test Project" sets up tests for a project that has none.
 ///
-/// Tests are listed the first time the panel is shown (the view calls <see cref="EnsureDiscovered"/>), on Refresh,
-/// and when another workspace opens while the panel has been shown. Listing and running build the projects, with
-/// the toolbar's configuration.
+/// Tests are read from the code the first time the panel is shown (the view calls <see cref="EnsureDiscovered"/>),
+/// when another workspace opens while the panel has been shown, and when a C# file is saved (TestExplorerViewModel.Scan.cs);
+/// without the C# server's extension they're listed by building instead. Refresh lists them by building (every data
+/// case shows); running builds too, with the toolbar's configuration.
 /// </summary>
 public sealed partial class TestExplorerViewModel : ObservableObject
 {
@@ -48,7 +50,9 @@ public sealed partial class TestExplorerViewModel : ObservableObject
         RunViewModel run,
         DocumentSaveService saver,
         IDialogService dialogs,
-        IMessenger messenger)
+        IMessenger messenger,
+        LspManager servers,
+        DocumentManager documents)
     {
         _workspace = workspace;
         _explorer = explorer;
@@ -56,7 +60,10 @@ public sealed partial class TestExplorerViewModel : ObservableObject
         _saver = saver;
         _dialogs = dialogs;
         _messenger = messenger;
+        _servers = servers;
 
+        servers.StatusChanged += OnServersChanged;
+        documents.Saved += OnDocumentSaved;
         _runner.OutputReceived += line => Dispatcher.UIThread.Post(() => AddLog(line));
         explorer.Opened += OnWorkspaceOpened;
         explorer.Closed += Reset;
@@ -93,14 +100,14 @@ public sealed partial class TestExplorerViewModel : ObservableObject
 
     // ------------------------------------------------------------- discovery
 
-    /// <summary>The panel was shown: list the tests the first time.</summary>
+    /// <summary>The panel was shown: show the tests the first time.</summary>
     public void EnsureDiscovered()
     {
         if (_shown)
             return;
         _shown = true;
         if (_workspace.RootDirectory is not null && _projects.Count == 0)
-            DiscoverCommand.Execute(null);
+            _ = ShowTestsAsync();
     }
 
     /// <summary>Refresh: find the test projects again and list their tests.</summary>
@@ -160,12 +167,13 @@ public sealed partial class TestExplorerViewModel : ObservableObject
     {
         Reset();
         if (_shown)
-            DiscoverCommand.Execute(null);
+            _ = ShowTestsAsync();
     }
 
     private void Reset()
     {
         _cancel?.Cancel();
+        _scanWhenLoaded = false;
         _projects.Clear();
         Roots.Clear();
         SelectedNode = null;
@@ -285,6 +293,7 @@ public sealed partial class TestExplorerViewModel : ObservableObject
         RebuildTree();
 
         var started = DateTime.Now;
+        var run = ++_runNumber;
         var buildFailures = 0;
         try
         {
@@ -294,7 +303,7 @@ public sealed partial class TestExplorerViewModel : ObservableObject
                 Status = $"Running tests in {Path.GetFileNameWithoutExtension(path)}...";
                 var report = await _runner.RunAsync(path, _run.Configuration, filter, _cancel.Token);
                 var project = ProjectFor(path);
-                project.AddResults(report.Results, tests);
+                project.AddResults(report.Results, tests, run);
                 project.BuildFailed = report.ExitCode != 0 && report.Results.Count == 0;
                 if (project.BuildFailed)
                     buildFailures++;
@@ -339,6 +348,11 @@ public sealed partial class TestExplorerViewModel : ObservableObject
         _cancel?.Dispose();
         _cancel = null;
         IsBusy = false;
+        if (_scanAgain)
+        {
+            _scanAgain = false;
+            _ = ScanAsync();   // a save came while the data was in use
+        }
     }
 
     private void AddLog(string line)
@@ -359,7 +373,8 @@ public sealed partial class TestExplorerViewModel : ObservableObject
             return;
 
         var folder = Path.GetDirectoryName(node.ProjectPath)!;
-        var found = await Task.Run(() => TestSourceLocator.Find(folder, test.ClassName, test.MethodName));
+        var found = ScannedLocation(node)
+                    ?? await Task.Run(() => TestSourceLocator.Find(folder, test.ClassName, test.MethodName));
         if (found is not { } location)
         {
             Status = $"Couldn't find {test.MethodName} in {Path.GetFileName(node.ProjectPath)}'s code.";

@@ -1,3 +1,4 @@
+using AXamlIDE.Services.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -420,7 +421,7 @@ public sealed class SolutionAnalysisService
     private async Task LiveAsync(LspClient client, CancellationToken ct)
     {
         if (_extension?.Client != client)
-            _extension = (client, RoslynExtensionClient.ActivateAsync(client, CancellationToken.None));
+            _extension = (client, RoslynExtensionClient.ForAsync(client));
         var loading = _extension.Value.Loading;
         var firstTime = !loading.IsCompleted;
 
@@ -543,6 +544,7 @@ public sealed class SolutionAnalysisService
         if (!HasResults)
         {
             HasResults = true;
+            PerfTimeline.Mark(PerfTimeline.Open, "first-solution-results");
             Publish();
         }
 
@@ -690,6 +692,7 @@ public sealed class SolutionAnalysisService
         }
 
         HasResults = true;
+        PerfTimeline.Mark(PerfTimeline.Open, "first-solution-results");
         Publish();
     }
 

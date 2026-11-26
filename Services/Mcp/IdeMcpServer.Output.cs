@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using AXamlIDE.Services.Testing;
 
 namespace AXamlIDE.Services.Mcp;
@@ -47,6 +48,16 @@ public sealed partial class IdeMcpServer
             text.AppendLine(_run.IsRunning ? "(the app is still running)" : "(the app isn't running)");
         return McpToolResult.Text(text.ToString().TrimEnd());
     }
+
+    // ------------------------------------------------------------ get_timings
+
+    private static McpTool GetTimings() => new("get_timings",
+        "How long the IDE's slow steps took this session, as milestones from each start: startup (from the process " +
+        "starting to the first window), opening the solution or folder (projects read, tree shown, files restored, each " +
+        "language server started and its projects loaded, the first solution-wide results) and the last build; then the " +
+        "IDE's memory. For questions like \"why is opening slow\". Earlier sessions are in the timings log (Help menu).",
+        McpArguments.Schema(),
+        (_, _) => Task.FromResult(McpToolResult.Text(Services.Diagnostics.PerfTimeline.Describe())));
 
     // ------------------------------------------------------------ get_test_results
 

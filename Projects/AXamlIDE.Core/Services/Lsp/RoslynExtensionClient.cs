@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +26,21 @@ public sealed class RoslynExtensionClient
 {
     private readonly LspClient _client;
 
-    private RoslynExtensionClient(LspClient client) => _client = client;
+    // Each server's loading of it, shared by everything that uses it (it's loaded into a server once).
+    private static readonly ConditionalWeakTable<LspClient, Task<(RoslynExtensionClient? Extension, string? Reason)>> Loaded = new();
+
+    private RoslynExtensionClient(LspClient client, bool supportsTests)
+    {
+        _client = client;
+        SupportsTests = supportsTests;
+    }
+
+    /// <summary>It answers <see cref="TestsAsync"/> (an extension built before that was added doesn't).</summary>
+    public bool SupportsTests { get; }
+
+    /// <summary>The extension in this server: loaded the first time it's asked for, then the same answer for everyone.</summary>
+    public static Task<(RoslynExtensionClient? Extension, string? Reason)> ForAsync(LspClient client)
+        => Loaded.GetValue(client, server => ActivateAsync(server, CancellationToken.None));
 
     /// <summary>Where the build and publish put it: roslynextension/ beside the app.</summary>
     public static string AssemblyPath { get; } = Path.Combine(AppContext.BaseDirectory, "roslynextension", "AXamlIDE.RoslynExtension.dll");
@@ -34,7 +49,7 @@ public sealed class RoslynExtensionClient
     /// Load it into the server. Null, with the reason, if it isn't there (built without the server installed) or the
     /// server won't load it (an older server without extensions, or one whose extension API changed).
     /// </summary>
-    public static async Task<(RoslynExtensionClient? Extension, string? Reason)> ActivateAsync(LspClient client, CancellationToken ct)
+    private static async Task<(RoslynExtensionClient? Extension, string? Reason)> ActivateAsync(LspClient client, CancellationToken ct)
     {
         if (!File.Exists(AssemblyPath))
             return (null, $"{AssemblyPath} isn't there");
@@ -50,7 +65,7 @@ public sealed class RoslynExtensionClient
         string[] needed = [ExtensionMessages.Projects, ExtensionMessages.ProjectDiagnostics, ExtensionMessages.ProjectCompilationDiagnostics];
         var missing = needed.Except(handlers).ToList();
         return missing.Count == 0
-            ? (new RoslynExtensionClient(client), null)
+            ? (new RoslynExtensionClient(client, handlers.Contains(ExtensionMessages.ProjectTests)), null)
             : (null, $"the server didn't register {string.Join(", ", missing)} (built empty, or its extension API changed)");
     }
 
@@ -69,6 +84,14 @@ public sealed class RoslynExtensionClient
     /// <summary>What only compiling the whole project finds (unused fields, no Main); null if the project is gone.</summary>
     public Task<RoslynProjectDiagnostics?> CompilationDiagnosticsAsync(string projectId, CancellationToken ct)
         => DiagnosticsAsync(ExtensionMessages.ProjectCompilationDiagnostics, projectId, ct);
+
+    /// <summary>The project's test methods, read from its code; null if the project is gone.</summary>
+    public async Task<ProjectTestsResponse?> TestsAsync(string projectId, CancellationToken ct)
+    {
+        var json = await _client.DispatchExtensionMessageAsync(ExtensionMessages.ProjectTests,
+            JsonSerializer.Serialize(new ProjectTestsRequest(projectId)), ct);
+        return JsonSerializer.Deserialize<ProjectTestsResponse>(json) is { Found: true } response ? response : null;
+    }
 
     private async Task<RoslynProjectDiagnostics?> DiagnosticsAsync(string message, string projectId, CancellationToken ct)
         => ParseDiagnostics(await _client.DispatchExtensionMessageAsync(message,

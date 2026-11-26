@@ -141,7 +141,7 @@
                     <TreeDataTemplate ItemsSource="{Binding Children}" x:DataType="vm:TestNode">
                         <StackPanel Orientation="Horizontal" Spacing="5">
                             <PathIcon
-                                Data="{Binding Outcome, Converter={x:Static views:TestConverters.Icon}}"
+                                Data="{Binding Converter={x:Static views:TestConverters.Icon}}"
                                 Foreground="{Binding Outcome, Converter={x:Static views:TestConverters.Brush}}"
                                 Height="12"
                                 Width="12" />
@@ -192,7 +192,7 @@
                             Orientation="Horizontal"
                             Spacing="6">
                             <PathIcon
-                                Data="{Binding Outcome, Converter={x:Static views:TestConverters.Icon}}"
+                                Data="{Binding Converter={x:Static views:TestConverters.Icon}}"
                                 Foreground="{Binding Outcome, Converter={x:Static views:TestConverters.Brush}}"
                                 Height="12"
                                 Width="12" />

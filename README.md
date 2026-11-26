@@ -24,7 +24,7 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
   `http://localhost:47613/mcp` so Claude, in the panel or in a terminal
   (`claude mcp add --transport http axamlide http://localhost:47613/mcp`), can use what only the IDE knows: the
   editor's caret, selection and unsaved edits; the Roslyn server's symbols, types, definitions and references;
-  one file's errors on demand, the Problems list and the IDE's build; AXAML rendered as a picture; the paused
+  one file's errors on demand, the Problems list and the IDE's build; how long startup, opening and building took; AXAML rendered as a picture; the paused
   debugger's call stack, locals and expressions; the Output pane and test results. Claude can also try the UI
   itself: `ui_open` runs a view of the app in a hidden headless window and gives its control tree as text, and
   `ui_act` clicks, types and presses keys in it and says what changed (`ui_tree` and `ui_screenshot` look again).

@@ -1,3 +1,4 @@
+using AXamlIDE.Services.Diagnostics;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -172,6 +173,7 @@ public sealed class LspManager : IDisposable
         {
             var args = config.BuildArgs?.Invoke(workspace) ?? [];
             var client = await LspClient.StartAsync(command, args, workspace.RootPath, config.Settings);
+            PerfTimeline.Mark(PerfTimeline.Open, $"{config.Id}-started");
 
             if (generation != Generation)   // workspace changed while we were starting
             {
@@ -206,6 +208,7 @@ public sealed class LspManager : IDisposable
             client.ProjectInitializationComplete += () => PostToUi(() =>
             {
                 if (generation != Generation) return;
+                PerfTimeline.Mark(PerfTimeline.Open, $"{config.Id}-projects-loaded");
                 state.ProjectsLoaded = true;
                 SetStatus(state, "running");
                 DiagnosticsRefreshNeeded?.Invoke(client);   // answers were empty until now

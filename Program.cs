@@ -28,6 +28,7 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        PerfTimeline.Mark(PerfTimeline.Startup, "main");   // after the runtime's own start
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
             if (e.ExceptionObject is Exception exception)

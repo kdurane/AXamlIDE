@@ -14,6 +14,7 @@ public static class ExtensionMessages
     public const string Projects = "AXamlIDE.RoslynExtension.ProjectsHandler";
     public const string ProjectDiagnostics = "AXamlIDE.RoslynExtension.ProjectDiagnosticsHandler";
     public const string ProjectCompilationDiagnostics = "AXamlIDE.RoslynExtension.ProjectCompilationDiagnosticsHandler";
+    public const string ProjectTests = "AXamlIDE.RoslynExtension.ProjectTestsHandler";
 }
 
 /// <summary>
@@ -84,3 +85,31 @@ public sealed record ExtensionPosition(
 
 public sealed record ExtensionCodeDescription(
     [property: JsonPropertyName("href")] string Href);
+
+/// <summary>Ask for one project's test methods, read from its code (unsaved edits included; nothing is built).</summary>
+public sealed record ProjectTestsRequest(
+    [property: JsonPropertyName("projectId")] string ProjectId);
+
+/// <summary>
+/// The project's tests: each method with a test attribute of xUnit, NUnit, MSTest or TUnit (or one derived from those),
+/// in every class that can run (not abstract), inherited ones included. <see cref="Version"/> is the project's version
+/// these are for; <see cref="Found"/> is false if there's no such project any more.
+/// </summary>
+public sealed record ProjectTestsResponse(
+    [property: JsonPropertyName("found")] bool Found,
+    [property: JsonPropertyName("version")] string Version,
+    [property: JsonPropertyName("tests")] IReadOnlyList<TestMethodEntry> Tests);
+
+/// <summary>
+/// One test method. <see cref="ClassName"/> is as the test frameworks name it: "Ns.Class", a nested class
+/// "Ns.Outer+Inner". <see cref="IsDataDriven"/>: it runs once per data row ([Theory], [TestCase], [DataRow]...), so a
+/// run reports cases under it. <see cref="Path"/> and the 0-based <see cref="Line"/> and <see cref="Column"/> are
+/// where its name is written (no path for a method inherited from a compiled base class).
+/// </summary>
+public sealed record TestMethodEntry(
+    [property: JsonPropertyName("className")] string ClassName,
+    [property: JsonPropertyName("methodName")] string MethodName,
+    [property: JsonPropertyName("isDataDriven")] bool IsDataDriven,
+    [property: JsonPropertyName("path")] string? Path,
+    [property: JsonPropertyName("line")] int Line,
+    [property: JsonPropertyName("column")] int Column);
