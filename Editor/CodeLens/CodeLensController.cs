@@ -11,8 +11,10 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using AXamlIDE.Editor.GitChanges;
 using AXamlIDE.Models;
 using AXamlIDE.Services.Editor;
+using AXamlIDE.Services.Git;
 using AXamlIDE.Services.Lsp;
 
 namespace AXamlIDE.Editor.CodeLens;
@@ -22,7 +24,9 @@ namespace AXamlIDE.Editor.CodeLens;
 /// Fetched when a document is shown or connected, a moment after typing stops, and when the server says they
 /// changed (workspace/codeLens/refresh). Clicking one lists the references (EditorPaneView.axaml's
 /// ReferencesPopup), grouped by file as VS Code's peek and Rider's usages list do; clicking a reference, or Enter,
-/// goes there.
+/// goes there. Beside the count, who last changed the member and when (Visual Studio's "Kieron, 28 days ago"):
+/// <c>git blame</c> of the editor's text, the latest change within the member's whole span (from the server's
+/// document symbols).
 /// </summary>
 public sealed class CodeLensController : IDisposable
 {
@@ -31,6 +35,11 @@ public sealed class CodeLensController : IDisposable
 
     private readonly EditorContext _ctx;
     private readonly NavigationService _navigation;
+    private readonly GitService _git;
+    private readonly GitStatusTracker _gitStatus;
+    // The last blame and what it was for (file, text, HEAD), so a fetch with nothing changed doesn't run git again.
+    private (string Path, string Text, string? Head)? _blameKey;
+    private IReadOnlyList<GitBlameLine> _blame = [];
     private readonly Popup _popup;
     private readonly TreeView _tree;
     private readonly TextBlock _title;
@@ -40,10 +49,13 @@ public sealed class CodeLensController : IDisposable
     private LspClient? _refreshSource;
     private int _retries;
 
-    public CodeLensController(EditorContext ctx, NavigationService navigation, Popup popup, TreeView tree, TextBlock title)
+    public CodeLensController(EditorContext ctx, NavigationService navigation, GitService git, GitStatusTracker gitStatus,
+        Popup popup, TreeView tree, TextBlock title)
     {
         _ctx = ctx;
         _navigation = navigation;
+        _git = git;
+        _gitStatus = gitStatus;
         _popup = popup;
         _tree = tree;
         _title = title;
@@ -114,13 +126,16 @@ public sealed class CodeLensController : IDisposable
             var resolved = await Task.WhenAll(lenses.Select(lens => client.ResolveCodeLensAsync(lens, ct)));
             if (ct.IsCancellationRequested || !ReferenceEquals(document, _ctx.Active))
                 return;
+            var authors = await AuthorsAsync(client, document, resolved, ct);
+            if (ct.IsCancellationRequested || !ReferenceEquals(document, _ctx.Active))
+                return;
 
             var text = document.Document;
             SetItems([.. resolved
                 .Where(lens => lens.Title is { Length: > 0 } && lens.Range.StartLine < text.LineCount)
                 .Select(lens => new CodeLensItem(
                     text.CreateAnchor(Math.Min(document.OffsetOf(lens.Range.StartLine, lens.Range.StartChar), text.TextLength)),
-                    lens.Title!, lens))]);
+                    lens.Title!, lens, authors.GetValueOrDefault(lens)))]);
             _retries = 0;
         }
         catch (OperationCanceledException)
@@ -136,6 +151,50 @@ public sealed class CodeLensController : IDisposable
         {
             System.Diagnostics.Debug.WriteLine($"[code lens] {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Each lens's "Kieron, 28 days ago": the latest change in its member's span. Empty when it's switched off, or the
+    /// file isn't in a Git repository (or is untracked), or git fails.
+    /// </summary>
+    private async Task<Dictionary<LspCodeLens, string>> AuthorsAsync(LspClient client, OpenDocument document,
+        IReadOnlyList<LspCodeLens> lenses, CancellationToken ct)
+    {
+        var authors = new Dictionary<LspCodeLens, string>();
+        if (!_ctx.Settings.Features.CodeLensAuthor || lenses.Count == 0
+            || _gitStatus.Current is not { } status
+            || GitChangeController.RelativePath(status.RepositoryRoot, document.Path) is not { } relative
+            || status.StateOfFile(document.Path) is GitFileState.Untracked or GitFileState.Ignored)
+            return authors;
+
+        var text = document.Document.Text;
+        try
+        {
+            var key = (document.Path, text, status.HeadCommit);
+            if (_blameKey != key)
+            {
+                _blame = await _git.BlameAsync(status.RepositoryRoot, relative, text, ct);
+                _blameKey = key;
+            }
+            var symbols = client.SupportsDocumentSymbols ? await client.DocumentSymbolsAsync(document.Uri, ct) : [];
+            var now = DateTimeOffset.Now;
+            foreach (var lens in lenses)
+            {
+                // The member the lens is for: the symbol whose name is where the lens is; its whole range is the span.
+                var symbol = symbols.FirstOrDefault(s => s.SelectionRange.StartLine == lens.Range.StartLine
+                                                         && s.SelectionRange.StartChar == lens.Range.StartChar)
+                             ?? symbols.FirstOrDefault(s => s.SelectionRange.StartLine == lens.Range.StartLine);
+                var first = (symbol?.Range.StartLine ?? lens.Range.StartLine) + 1;
+                var last = (symbol?.Range.EndLine ?? lens.Range.StartLine) + 1;
+                if (GitBlame.LastChange(_blame, first, last) is { } change)
+                    authors[lens] = GitBlame.Describe(change, now);
+            }
+        }
+        catch (Exception ex) when (ex is GitException or LspException or IOException or InvalidOperationException)
+        {
+            System.Diagnostics.Debug.WriteLine($"[code lens] blame: {ex.Message}");
+        }
+        return authors;
     }
 
     private void WatchRefresh(LspClient client)

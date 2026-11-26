@@ -437,6 +437,15 @@ public sealed class GitService
         return Directory.Exists(fullPath) ? relative.TrimEnd('/') + "/" : relative;
     }
 
+    /// <summary>
+    /// Who last changed each line of a file, with <paramref name="text"/> as its contents (the editor's, unsaved edits
+    /// included: those lines come back as not committed). <c>git blame --porcelain --contents -</c>.
+    /// </summary>
+    public async Task<IReadOnlyList<GitBlameLine>> BlameAsync(string repositoryRoot, string relativePath, string text,
+        CancellationToken cancellationToken = default)
+        => GitBlame.Parse(await RunAsync(repositoryRoot, ["blame", "--porcelain", "--contents", "-", "--", relativePath],
+            cancellationToken, text));
+
     /// <summary>The file's text in the last commit (HEAD), or null if it isn't in it (new file, or no commits yet).</summary>
     public Task<string?> ReadCommittedAsync(string repositoryRoot, string relativePath) => ReadObjectAsync(repositoryRoot, "HEAD:" + relativePath);
 
@@ -472,7 +481,8 @@ public sealed class GitService
     }
 
     /// <summary>Run git in <paramref name="workingDirectory"/> and return its output; throws <see cref="GitException"/> on failure.</summary>
-    private static async Task<string> RunAsync(string workingDirectory, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default)
+    private static async Task<string> RunAsync(string workingDirectory, IReadOnlyList<string> arguments, CancellationToken cancellationToken = default,
+        string? standardInput = null)
     {
         var startInfo = new ProcessStartInfo("git")
         {
@@ -500,10 +510,20 @@ public sealed class GitService
         {
             throw new GitException($"Couldn't run git ({ex.Message}). Is git installed?");
         }
-        process.StandardInput.Close();
-
         var output = process.StandardOutput.ReadToEndAsync(cancellationToken);
         var error = process.StandardError.ReadToEndAsync(cancellationToken);
+        if (standardInput is not null)
+        {
+            try
+            {
+                await process.StandardInput.WriteAsync(standardInput.AsMemory(), cancellationToken);
+            }
+            catch (IOException)
+            {
+                // git stopped reading (it failed): its exit code and message say why
+            }
+        }
+        process.StandardInput.Close();
         try
         {
             await process.WaitForExitAsync(cancellationToken);

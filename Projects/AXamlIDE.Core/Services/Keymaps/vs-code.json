@@ -5,6 +5,7 @@
     // ---- File
     "File.OpenFolder": "Ctrl+K, Ctrl+O",
     "File.Save": "Ctrl+S",
+    "File.PinTab": "Ctrl+K, Shift+Enter",
     "File.SaveAll": "Ctrl+K, S",
     "File.Close": ["Ctrl+W", "Ctrl+F4"],
     "File.CloseAll": "Ctrl+K, Ctrl+W",
@@ -12,6 +13,10 @@
     // ---- Edit
     "Edit.ToggleComment": "Ctrl+/",
     "Edit.CommentSelection": "Ctrl+K, Ctrl+C",
+    "Edit.ToggleBookmark": "Ctrl+K, Ctrl+K",
+    "Edit.NextBookmark": "Ctrl+K, Ctrl+N",
+    "Edit.PreviousBookmark": "Ctrl+K, Ctrl+P",
+    "Edit.ClearBookmarks": "Ctrl+K, Ctrl+L",
     "Edit.UncommentSelection": "Ctrl+K, Ctrl+U",
     "Edit.FormatDocument": "Ctrl+Shift+I",
     "Edit.Find": "Ctrl+F",

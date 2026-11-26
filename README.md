@@ -31,6 +31,8 @@ A desktop IDE for Avalonia and .NET projects, built with Avalonia.
   itself: `ui_open` runs a view of the app in a hidden headless window and gives its control tree as text, and
   `ui_act` clicks, types and presses keys in it and says what changed (`ui_tree` and `ui_screenshot` look again).
   Text costs Claude far less than screenshots and is exact.
+- **Tabs and navigation**: pinned tabs, bookmarks (Ctrl+K, Ctrl+K and friends), Back with a history drop-down,
+  and CodeLens showing who last changed each member (from Git).
 - **Other**: Search Everywhere (double Shift, as Rider's: types, files, symbols, IDE actions and options), search in
   files, go to file and symbol, Problems panel, terminal, image viewer, dockable and floating
   panels, open files reload when changed on disk.

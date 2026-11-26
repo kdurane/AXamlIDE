@@ -83,4 +83,24 @@ public class NavigationHistoryTests
         Assert.Equal([At("a.cs", 10), At("c.cs", 5)], history.Points);
         Assert.Equal(At("a.cs", 10), history.Back());
     }
+
+    [Fact]
+    public void The_back_list_is_nearest_first_and_a_jump_into_it_leaves_forward_through_the_skipped()
+    {
+        var history = new NavigationHistory();
+        var changes = 0;
+        history.Changed += () => changes++;
+        history.Record(At("a.cs", 1));
+        history.Record(At("b.cs", 2));
+        history.Record(At("c.cs", 3));
+        history.Record(At("d.cs", 4));
+        Assert.Equal(4, changes);
+
+        Assert.Equal([At("c.cs", 3), At("b.cs", 2)], history.BackPoints(2));
+        Assert.Equal(At("b.cs", 2), history.Back(2));
+        Assert.Equal([At("a.cs", 1)], history.BackPoints(10));
+        Assert.Equal(At("c.cs", 3), history.Forward());
+        Assert.Null(history.Back(5));
+        Assert.Equal(6, changes);
+    }
 }

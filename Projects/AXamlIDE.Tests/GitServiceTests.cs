@@ -33,6 +33,23 @@ public sealed class GitServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Blame_takes_the_editors_text_and_marks_unsaved_lines_as_not_committed()
+    {
+        _workspace.Write("A.cs", "a\nb\n");
+        Git("add", "A.cs");
+        await _git.CommitAsync(_workspace.Root, "First");
+
+        var lines = await _git.BlameAsync(_workspace.Root, "A.cs", "a\nb\nc\n");
+
+        Assert.Equal(3, lines.Count);
+        Assert.Equal(("Test", "First", true), (lines[0].Author, lines[0].Summary, lines[0].IsCommitted));
+        Assert.Equal(lines[0].Commit, lines[1].Commit);
+        Assert.False(lines[2].IsCommitted);
+        Assert.Equal("Not committed yet", GitBlame.Describe(GitBlame.LastChange(lines, 1, 3)!, DateTimeOffset.Now));
+        Assert.StartsWith("Test, ", GitBlame.Describe(GitBlame.LastChange(lines, 1, 2)!, DateTimeOffset.Now));
+    }
+
+    [Fact]
     public async Task Outside_a_repository_there_is_no_root()
     {
         using var other = new TempWorkspace();

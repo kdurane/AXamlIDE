@@ -61,6 +61,12 @@ public sealed record OpenFileState
     public string? PreviewSplit { get; init; }
     public bool PreviewFirst { get; init; }
 
+    /// <summary>Its tab was pinned.</summary>
+    public bool IsPinned { get; init; }
+
+    /// <summary>The bookmarked lines (1-based), or null for none.</summary>
+    public List<int>? Bookmarks { get; init; }
+
     /// <summary>The lines whose fold was collapsed (#regions, usings, braces), or null to use the defaults.</summary>
     public List<int>? CollapsedFolds { get; init; }
 }

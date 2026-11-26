@@ -105,6 +105,12 @@
                             <MenuItem Command="{Binding EditorCommands.ToggleComment}" Header="To_ggle Comment" />
                             <MenuItem Command="{Binding EditorCommands.CommentSelection}" Header="Comment _Selection" />
                             <MenuItem Command="{Binding EditorCommands.UncommentSelection}" Header="Uncomm_ent Selection" />
+                            <MenuItem Header="_Bookmarks">
+                                <MenuItem Command="{Binding DocumentCommands.ToggleBookmarkCommand}" Header="_Toggle Bookmark" />
+                                <MenuItem Command="{Binding DocumentCommands.PreviousBookmarkCommand}" Header="_Previous Bookmark" />
+                                <MenuItem Command="{Binding DocumentCommands.NextBookmarkCommand}" Header="_Next Bookmark" />
+                                <MenuItem Command="{Binding DocumentCommands.ClearBookmarksCommand}" Header="_Clear Bookmarks" />
+                            </MenuItem>
                             <Separator />
                             <MenuItem Command="{Binding EditorCommands.Find}" Header="_Find..." />
                             <MenuItem Command="{Binding EditorCommands.Replace}" Header="Rep_lace..." />
@@ -346,7 +352,9 @@
                         </MenuItem>
                         <!--  Visual Studio's Window menu: layout commands, then every open document.  -->
                         <MenuItem Header="_Window">
+                            <MenuItem Command="{Binding DocumentCommands.TogglePinCommand}" Header="Pi_n Tab" />
                             <MenuItem Command="{Binding DocumentCommands.CloseAllCommand}" Header="C_lose All Documents" />
+                            <MenuItem Command="{Binding DocumentCommands.CloseAllButPinnedCommand}" Header="Close All But Pinne_d" />
                             <Separator />
                             <MenuItem Command="{Binding ToggleExplorerCommand}" Header="Show/Hide Side _Bar" />
                             <MenuItem Command="{Binding TogglePanelCommand}" Header="Show/Hide _Panel" />
@@ -449,6 +457,21 @@
                                 </MenuFlyout>
                             </SplitButton.Flyout>
                         </SplitButton>
+                        <!--  Visual Studio's Start Without Debugging, beside the start button: build and run, no debugger.  -->
+                        <Button
+                            Padding="6,0"
+                            VerticalAlignment="Stretch"
+                            shell:KeyMap.ShortcutTip="Start Without Debugging"
+                            AutomationProperties.Name="Start Without Debugging"
+                            Background="Transparent"
+                            Command="{Binding Run.RunProjectCommand}"
+                            IsEnabled="{Binding !Run.IsRunning}">
+                            <PathIcon
+                                Width="16"
+                                Height="16"
+                                Data="{StaticResource Icon.PlayOutline}"
+                                Foreground="{DynamicResource DebugStartBrush}" />
+                        </Button>
                     </StackPanel>
 
                     <!--  Search Everywhere (double Shift), as Rider's: types, files, symbols, actions, and Text for the Search window.  -->
@@ -490,7 +513,7 @@
         </views:WindowTitleBar>
 
         <!--
-            Visual Studio's Standard toolbar: Navigate Backward / Forward, Save / Save All, Undo / Redo, then (on the right)
+            Visual Studio's Standard toolbar: Navigate Backward / Forward, Save / Save All, Undo / Redo, Comment / Uncomment, then (on the right)
             the window buttons that used to be a VS Code style activity bar: side bar, search, tests, terminal, panel.
         -->
         <Border
@@ -512,6 +535,16 @@
                 </Style>
                 <Style Selector="Button.toolbar:disabled PathIcon">
                     <Setter Property="Opacity" Value="0.4" />
+                </Style>
+                <Style Selector="SplitButton.toolbar">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="Padding" Value="5,3" />
+                    <Setter Property="MinHeight" Value="0" />
+                </Style>
+                <Style Selector="SplitButton.toolbar PathIcon">
+                    <Setter Property="Width" Value="15" />
+                    <Setter Property="Height" Value="15" />
                 </Style>
                 <Style Selector="Border.toolbarSeparator">
                     <Setter Property="Width" Value="1" />
@@ -577,13 +610,29 @@
                     </Button>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="1">
-                    <Button
+                    <!--  Visual Studio's Navigate Backward: the arrow goes back; the drop-down lists the places to jump back to.  -->
+                    <SplitButton
+                        x:Name="BackButton"
                         shell:KeyMap.ShortcutTip="Navigate Backward"
                         AutomationProperties.Name="Navigate Backward"
                         Classes="toolbar"
                         Command="{Binding NavigateBackCommand}">
                         <PathIcon Data="{DynamicResource Icon.ArrowLeft}" />
-                    </Button>
+                        <SplitButton.Flyout>
+                            <MenuFlyout ItemsSource="{Binding BackHistory}" Placement="BottomEdgeAlignedLeft">
+                                <MenuFlyout.ItemContainerTheme>
+                                    <ControlTheme
+                                        x:DataType="models:NavigationEntry"
+                                        BasedOn="{StaticResource {x:Type MenuItem}}"
+                                        TargetType="MenuItem">
+                                        <Setter Property="Header" Value="{Binding Title}" />
+                                        <Setter Property="Command" Value="{Binding #BackButton.((vm:MainWindowViewModel)DataContext).NavigateBackToCommand}" />
+                                        <Setter Property="CommandParameter" Value="{Binding}" />
+                                    </ControlTheme>
+                                </MenuFlyout.ItemContainerTheme>
+                            </MenuFlyout>
+                        </SplitButton.Flyout>
+                    </SplitButton>
                     <Button
                         shell:KeyMap.ShortcutTip="Navigate Forward"
                         AutomationProperties.Name="Navigate Forward"
@@ -628,6 +677,50 @@
                                 <RotateTransform Angle="45" />
                             </PathIcon.RenderTransform>
                         </PathIcon>
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
+                    <Button
+                        shell:KeyMap.ShortcutTip="Comment Selection"
+                        AutomationProperties.Name="Comment Selection"
+                        Classes="toolbar"
+                        Command="{Binding EditorCommands.CommentSelection}">
+                        <PathIcon Data="{DynamicResource Icon.CommentOutline}" />
+                    </Button>
+                    <Button
+                        shell:KeyMap.ShortcutTip="Uncomment Selection"
+                        AutomationProperties.Name="Uncomment Selection"
+                        Classes="toolbar"
+                        Command="{Binding EditorCommands.UncommentSelection}">
+                        <PathIcon Data="{DynamicResource Icon.CommentRemoveOutline}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
+                    <Button
+                        shell:KeyMap.ShortcutTip="Toggle Bookmark"
+                        AutomationProperties.Name="Toggle Bookmark"
+                        Classes="toolbar"
+                        Command="{Binding DocumentCommands.ToggleBookmarkCommand}">
+                        <PathIcon Data="{DynamicResource Icon.BookmarkOutline}" />
+                    </Button>
+                    <Button
+                        shell:KeyMap.ShortcutTip="Previous Bookmark"
+                        AutomationProperties.Name="Previous Bookmark"
+                        Classes="toolbar"
+                        Command="{Binding DocumentCommands.PreviousBookmarkCommand}">
+                        <PathIcon Data="{DynamicResource Icon.BookmarkPrevious}" />
+                    </Button>
+                    <Button
+                        shell:KeyMap.ShortcutTip="Next Bookmark"
+                        AutomationProperties.Name="Next Bookmark"
+                        Classes="toolbar"
+                        Command="{Binding DocumentCommands.NextBookmarkCommand}">
+                        <PathIcon Data="{DynamicResource Icon.BookmarkNext}" />
+                    </Button>
+                    <Button
+                        shell:KeyMap.ShortcutTip="Clear Bookmarks"
+                        AutomationProperties.Name="Clear Bookmarks"
+                        Classes="toolbar"
+                        Command="{Binding DocumentCommands.ClearBookmarksCommand}">
+                        <PathIcon Data="{DynamicResource Icon.BookmarkRemoveOutline}" />
                     </Button>
                 </StackPanel>
             </DockPanel>

@@ -58,6 +58,9 @@ public sealed record EditorFeatureSettings
     /// <summary>"3 references" above declarations (C#).</summary>
     public bool CodeLens { get; init; } = true;
 
+    /// <summary>With CodeLens: who last changed each member, and when ("Kieron, 28 days ago"), from Git, as VS shows.</summary>
+    public bool CodeLensAuthor { get; init; } = true;
+
     /// <summary>Parameter names before literal arguments: Process(force: true).</summary>
     public bool InlayParameterHints { get; init; } = true;
 

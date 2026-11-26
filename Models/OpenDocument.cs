@@ -24,6 +24,8 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
     }
 
     private readonly List<BreakpointEntry> _breakpoints = [];
+    // Bookmarks (VS's Ctrl+K, Ctrl+K): anchored to their line's start, so they move with edits.
+    private readonly List<ITextAnchor> _bookmarks = [];
 
     public string Path { get; }
     public string Uri => new Uri(Path).AbsoluteUri;                 // file:///home/...
@@ -316,8 +318,64 @@ public sealed class OpenDocument : INotifyPropertyChanged, ITextBuffer
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event Action? BreakpointsChanged;
+    public event Action? BookmarksChanged;
+
+    /// <summary>The bookmarked lines, in order (the margin draws them; Next / Previous Bookmark go through them).</summary>
+    public IReadOnlyList<int> BookmarkLines
+        => [.. _bookmarks.Where(anchor => !anchor.IsDeleted).Select(anchor => Document.GetLineByOffset(anchor.Offset).LineNumber).Distinct().Order()];
+
+    /// <summary>Edit > Bookmarks > Toggle Bookmark (Ctrl+K, Ctrl+K): add one on the line, or take it off.</summary>
+    public void ToggleBookmark(int lineNumber)
+    {
+        if (lineNumber < 1 || lineNumber > Document.LineCount)
+            return;
+        var existing = _bookmarks.Where(anchor => anchor.IsDeleted || Document.GetLineByOffset(anchor.Offset).LineNumber == lineNumber).ToList();
+        if (existing.Any(anchor => !anchor.IsDeleted))
+            _bookmarks.RemoveAll(existing.Contains);
+        else
+            AddBookmark(lineNumber);
+        BookmarksChanged?.Invoke();
+    }
+
+    /// <summary>Edit > Bookmarks > Clear Bookmarks (this document's).</summary>
+    public void ClearBookmarks()
+    {
+        if (_bookmarks.Count == 0)
+            return;
+        _bookmarks.Clear();
+        BookmarksChanged?.Invoke();
+    }
+
+    /// <summary>Put back the bookmarks of the last session (lines past the end are skipped).</summary>
+    public void RestoreBookmarks(IEnumerable<int> lines)
+    {
+        var known = BookmarkLines;
+        foreach (var line in lines.Where(line => line >= 1 && line <= Document.LineCount && !known.Contains(line)))
+            AddBookmark(line);
+        BookmarksChanged?.Invoke();
+    }
+
+    private void AddBookmark(int lineNumber)
+    {
+        var anchor = Document.CreateAnchor(Document.GetLineByNumber(lineNumber).Offset);
+        anchor.SurviveDeletion = true;
+        _bookmarks.Add(anchor);
+    }
     private void Raise([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    /// <summary>Its tab is pinned (VS, VS Code, Rider): it stays where it is, and is left open by Close All
+    /// But This and Close All But Pinned. Saved with the workspace.</summary>
+    public bool IsPinned
+    {
+        get;
+        set
+        {
+            if (field == value) return;
+            field = value;
+            Raise();
+        }
+    }
 
     /// <summary>The file changed on disk while this had unsaved edits (the tab offers Reload / Keep mine).</summary>
     public bool ChangedOnDisk { get; private set { field = value; Raise(); } }

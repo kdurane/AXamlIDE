@@ -161,6 +161,8 @@
                             <TextBlock Classes="SettingsHeading" Text="CodeLens (C#)" />
                             <CheckBox Content="Show references" IsChecked="{Binding CodeLens, Mode=TwoWay}" />
                             <TextBlock Classes="SettingHint" Text="&quot;3 references&quot; above declarations; click it for the list." />
+                            <CheckBox Content="Show who last changed it" IsChecked="{Binding CodeLensAuthor, Mode=TwoWay}" IsEnabled="{Binding CodeLens}" />
+                            <TextBlock Classes="SettingHint" Text="From Git, beside the references: &quot;Kieron, 28 days ago&quot; for the latest change anywhere in the class or member, or &quot;Not committed yet&quot;." />
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>

@@ -280,6 +280,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { SemanticHighlighting = value });
     }
 
+    public bool CodeLensAuthor
+    {
+        get => Features.CodeLensAuthor;
+        set => SetFeatures(Features with { CodeLensAuthor = value });
+    }
+
     public bool CodeLens
     {
         get => Features.CodeLens;

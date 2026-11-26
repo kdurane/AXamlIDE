@@ -85,6 +85,16 @@ public sealed partial class DocumentDockable : Document
     [RelayCommand] private Task CloseTab() => _actions.Documents.CloseDocumentCommand.ExecuteAsync(Document);
     [RelayCommand] private Task CloseOtherTabs() => _actions.Documents.CloseOthersCommand.ExecuteAsync(Document);
     [RelayCommand] private Task CloseAllTabs() => _actions.Documents.CloseAllCommand.ExecuteAsync(null);
+    [RelayCommand] private Task CloseAllButPinnedTabs() => _actions.Documents.CloseAllButPinnedCommand.ExecuteAsync(null);
+    [RelayCommand] private void TogglePinTab() => _actions.Documents.TogglePinCommand.Execute(Document);
+
+    /// <summary>The tab is pinned: its pin button shows, and its menu says Unpin Tab.</summary>
+    public bool IsPinned => Document.IsPinned;
+
+    public string PinHeader => Document.IsPinned ? "Unpi_n Tab" : "Pi_n Tab";
+
+    /// <summary>The tab's pin button's tooltip.</summary>
+    public string PinTip => Document.IsPinned ? "Unpin Tab" : "Pin Tab";
     [RelayCommand] private Task SaveTab() => _actions.Documents.SaveDocumentCommand.ExecuteAsync(Document);
     [RelayCommand] private Task CopyFullPath() => _actions.Clipboard.SetTextAsync(Document.Path);
     [RelayCommand] private Task OpenContainingFolder() => _actions.Dialogs.OpenContainingFolderAsync(Document.Path);
@@ -93,5 +103,11 @@ public sealed partial class DocumentDockable : Document
     {
         if (e.PropertyName == nameof(OpenDocument.DisplayTitle))
             Title = Document.DisplayTitle;
+        else if (e.PropertyName == nameof(OpenDocument.IsPinned))
+        {
+            OnPropertyChanged(nameof(IsPinned));
+            OnPropertyChanged(nameof(PinHeader));
+            OnPropertyChanged(nameof(PinTip));
+        }
     }
 }

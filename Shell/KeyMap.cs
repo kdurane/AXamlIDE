@@ -51,15 +51,15 @@ public sealed class KeyMap
     /// when it opens, as in VS Code ("Hide Panel (Ctrl+J)").
     /// </summary>
     public static readonly AttachedProperty<string?> ShortcutTipProperty =
-        AvaloniaProperty.RegisterAttached<KeyMap, Button, string?>("ShortcutTip");
+        AvaloniaProperty.RegisterAttached<KeyMap, Control, string?>("ShortcutTip");
 
-    public static string? GetShortcutTip(Button button) => button.GetValue(ShortcutTipProperty);
-    public static void SetShortcutTip(Button button, string? value) => button.SetValue(ShortcutTipProperty, value);
+    public static string? GetShortcutTip(Control button) => button.GetValue(ShortcutTipProperty);
+    public static void SetShortcutTip(Control button, string? value) => button.SetValue(ShortcutTipProperty, value);
 
     static KeyMap()
     {
         // Something to open: the key is added when it does (the keymap can change in Settings).
-        ShortcutTipProperty.Changed.AddClassHandler<Button>((button, e) => ToolTip.SetTip(button, e.NewValue));
+        ShortcutTipProperty.Changed.AddClassHandler<Control>((button, e) => ToolTip.SetTip(button, e.NewValue));
     }
 
     private readonly SettingsViewModel _settings;
@@ -79,7 +79,7 @@ public sealed class KeyMap
 
         // Every menu item, in any window or popup, shows its key when it appears.
         Control.LoadedEvent.AddClassHandler<MenuItem>((item, _) => ShowShortcut(item));
-        ToolTip.ToolTipOpeningEvent.AddClassHandler<Button>((button, _) => ShowShortcut(button));
+        ToolTip.ToolTipOpeningEvent.AddClassHandler<Control>((button, _) => ShowShortcut(button));
     }
 
     /// <summary>The active keymap's shortcuts.</summary>
@@ -111,6 +111,8 @@ public sealed class KeyMap
             ["File.SaveAll"] = (documents.SaveAllCommand, null),
             ["File.Close"] = (documents.CloseDocumentCommand, null),
             ["File.CloseAll"] = (documents.CloseAllCommand, null),
+            ["File.CloseAllButPinned"] = (documents.CloseAllButPinnedCommand, null),
+            ["File.PinTab"] = (documents.TogglePinCommand, null),
             ["File.NewItem"] = (shell.Explorer.NewItemCommand, null),   // into the explorer selection
             ["File.NewClass"] = (shell.Explorer.NewClassCommand, null),
             ["File.NewFolder"] = (shell.Explorer.NewFolderCommand, null),
@@ -119,6 +121,10 @@ public sealed class KeyMap
             ["Edit.CommentSelection"] = (editor.CommentSelection, null),
             ["Edit.UncommentSelection"] = (editor.UncommentSelection, null),
             ["Edit.FormatDocument"] = (documents.FormatDocumentCommand, null),
+            ["Edit.ToggleBookmark"] = (documents.ToggleBookmarkCommand, null),
+            ["Edit.NextBookmark"] = (documents.NextBookmarkCommand, null),
+            ["Edit.PreviousBookmark"] = (documents.PreviousBookmarkCommand, null),
+            ["Edit.ClearBookmarks"] = (documents.ClearBookmarksCommand, null),
             ["Edit.Find"] = (editor.Find, null),
             ["Edit.Replace"] = (editor.Replace, null),
             ["Edit.GoToLine"] = (editor.GoToLine, null),
@@ -384,11 +390,12 @@ public sealed class KeyMap
             slot.Text = entry.Shortcut.ToString();
     }
 
-    private void ShowShortcut(Button button)
+    /// <summary>A button's (or split button's) tooltip with its command's key.</summary>
+    private void ShowShortcut(Control button)
     {
-        if (GetShortcutTip(button) is not { } tip)
+        if (button is not ICommandSource source || GetShortcutTip(button) is not { } tip)
             return;
-        var id = IdFor(button.Command, button.CommandParameter);
+        var id = IdFor(source.Command, source.CommandParameter);
         var entry = Entries.FirstOrDefault(e => e.Info.Id == id);
         ToolTip.SetTip(button, entry is null ? tip : $"{tip} ({entry.Shortcut})");
     }

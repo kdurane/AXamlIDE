@@ -332,6 +332,8 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <SolidColorBrush Color="{DynamicResource editor.stackFrameHighlightBackground}" x:Key="StackFrameHighlightBrush" />
     <SolidColorBrush Color="{DynamicResource editor.focusedStackFrameHighlightBackground}" x:Key="FocusedStackFrameHighlightBrush" />
     <SolidColorBrush Color="{DynamicResource debugIcon.breakpointCurrentStackframeForeground}" x:Key="CurrentStatementArrowBrush" />
+    <!--  Bookmarks in the gutter: the theme's link colour (VS Code has no bookmark colour of its own).  -->
+    <SolidColorBrush Color="{DynamicResource textLink.foreground}" x:Key="BookmarkBrush" />
     <SolidColorBrush Color="{DynamicResource debugIcon.breakpointStackframeForeground}" x:Key="StackFrameArrowBrush" />
     <SolidColorBrush Color="{DynamicResource widget.shadow}" x:Key="WidgetShadowBrush" />
 

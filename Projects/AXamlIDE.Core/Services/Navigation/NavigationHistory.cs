@@ -29,8 +29,20 @@ public sealed class NavigationHistory
     public bool CanGoBack => _index > 0;
     public bool CanGoForward => _index >= 0 && _index < _points.Count - 1;
 
-    /// <summary>The points, oldest first (for tests and a future drop-down).</summary>
+    /// <summary>The points, oldest first.</summary>
     public IReadOnlyList<NavigationPoint> Points => _points;
+
+    /// <summary>The list or the current point changed (the Back button's drop-down follows it).</summary>
+    public event Action? Changed;
+
+    /// <summary>Where Back would go, nearest first: up to <paramref name="max"/> points before the current one.</summary>
+    public IReadOnlyList<NavigationPoint> BackPoints(int max)
+    {
+        var points = new List<NavigationPoint>();
+        for (var i = _index - 1; i >= 0 && points.Count < max; i--)
+            points.Add(_points[i]);
+        return points;
+    }
 
     /// <summary>
     /// The user is here now. Anything after the current point (undone by Back) is dropped, as in Visual Studio.
@@ -45,6 +57,7 @@ public sealed class NavigationHistory
         if (_index >= 0 && Near(_points[_index], point, sameLineTolerance))
         {
             _points[_index] = point;   // the exact spot, for a later Back
+            Changed?.Invoke();
             return;
         }
 
@@ -55,13 +68,32 @@ public sealed class NavigationHistory
         if (_points.Count > Capacity)
             _points.RemoveAt(0);
         _index = _points.Count - 1;
+        Changed?.Invoke();
     }
 
     /// <summary>The previous point (now the current one), or null when at the start.</summary>
-    public NavigationPoint? Back() => CanGoBack ? _points[--_index] : null;
+    public NavigationPoint? Back() => Back(1);
+
+    /// <summary>The point <paramref name="steps"/> back (now the current one: Forward comes back through the ones
+    /// skipped), or null when there aren't that many. The Back button's drop-down.</summary>
+    public NavigationPoint? Back(int steps)
+    {
+        if (steps < 1 || _index - steps < 0)
+            return null;
+        _index -= steps;
+        Changed?.Invoke();
+        return _points[_index];
+    }
 
     /// <summary>The next point (now the current one), or null when at the end.</summary>
-    public NavigationPoint? Forward() => CanGoForward ? _points[++_index] : null;
+    public NavigationPoint? Forward()
+    {
+        if (!CanGoForward)
+            return null;
+        _index++;
+        Changed?.Invoke();
+        return _points[_index];
+    }
 
     /// <summary>Run <paramref name="apply"/> for a Back / Forward move, without it being recorded as a new jump.</summary>
     public void Navigating(Action apply)
@@ -90,12 +122,14 @@ public sealed class NavigationHistory
         }
         if (_index < 0 && _points.Count > 0)
             _index = 0;
+        Changed?.Invoke();
     }
 
     public void Clear()
     {
         _points.Clear();
         _index = -1;
+        Changed?.Invoke();
     }
 
     private bool Near(NavigationPoint a, NavigationPoint b, int tolerance)

@@ -60,6 +60,23 @@ public sealed class NavigationService :
     /// <summary>Navigate Backward (Ctrl+-): to where the user was before the last jump or tab switch.</summary>
     public void Back() => GoTo(_history.Back());
 
+    /// <summary>The Back button's drop-down: straight to a place further back.</summary>
+    public void Back(int steps) => GoTo(_history.Back(steps));
+
+    /// <summary>
+    /// How the Back drop-down names a place, as Visual Studio's does: "Program.cs: Line 12" (just the file's name when
+    /// it isn't open, since the line comes from its text).
+    /// </summary>
+    public string Describe(NavigationPoint point)
+    {
+        var name = Path.GetFileName(point.Path);
+        var open = _manager.Documents.FirstOrDefault(document => document.Path == point.Path);
+        if (open is null)
+            return name;
+        var line = open.Document.GetLineByOffset(Math.Clamp(point.Offset, 0, open.Document.TextLength)).LineNumber;
+        return $"{name}: Line {line}";
+    }
+
     /// <summary>Navigate Forward (Ctrl+Shift+-): undo a Back.</summary>
     public void Forward() => GoTo(_history.Forward());
 

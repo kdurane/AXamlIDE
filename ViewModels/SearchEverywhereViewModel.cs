@@ -416,6 +416,7 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             new("Inlay hints: parameter names", "Inline Hints", () => s.InlayParameterHints, v => s.InlayParameterHints = v, "Parameter names"),
             new("Inlay hints: types", "Inline Hints", () => s.InlayTypeHints, v => s.InlayTypeHints = v, "Types"),
             new("CodeLens: show references", "Inline Hints", () => s.CodeLens, v => s.CodeLens = v, "Show references"),
+            new("CodeLens: show who last changed it", "Inline Hints", () => s.CodeLensAuthor, v => s.CodeLensAuthor = v, "Show who last changed it"),
             new("Show inline values while debugging", "Debugging", () => s.InlineDebugValues, v => s.InlineDebugValues = v, "Show inline values"),
             new("Just My Code", "Debugging", () => s.JustMyCode, v => s.JustMyCode = v),
             new("Break when any exception is thrown", "Debugging", () => s.BreakOnAllExceptions, v => s.BreakOnAllExceptions = v),

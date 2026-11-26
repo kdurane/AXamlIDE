@@ -192,7 +192,8 @@ public sealed class GitChangeController : IDisposable
     }
 
     /// <summary>The path relative to the repository, with '/' as git writes it, or null when it's outside.</summary>
-    private static string? RelativePath(string repositoryRoot, string path)
+    /// <summary>The path relative to the repository with '/', or null when it's outside it.</summary>
+    internal static string? RelativePath(string repositoryRoot, string path)
     {
         var relative = Path.GetRelativePath(repositoryRoot, path);
         return relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative)

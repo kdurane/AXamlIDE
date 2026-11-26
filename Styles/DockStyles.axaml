@@ -50,6 +50,19 @@
                     Header="Close _All Documents"
                     IsVisible="{ReflectionBinding IsFileTab,
                                                   FallbackValue=False}" />
+                <MenuItem
+                    shell:KeyMap.CommandId="File.CloseAllButPinned"
+                    Command="{ReflectionBinding CloseAllButPinnedTabsCommand}"
+                    Header="Close All But Pinne_d"
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
+                <MenuItem
+                    shell:KeyMap.CommandId="File.PinTab"
+                    Command="{ReflectionBinding TogglePinTabCommand}"
+                    Header="{ReflectionBinding PinHeader,
+                                               FallbackValue=''}"
+                    IsVisible="{ReflectionBinding IsFileTab,
+                                                  FallbackValue=False}" />
                 <Separator IsVisible="{ReflectionBinding IsFileTab, FallbackValue=False}" />
                 <MenuItem
                     shell:KeyMap.CommandId="File.Save"
@@ -75,6 +88,14 @@
                     IsVisible="{Binding CanFloat}" />
             </ContextMenu>
         </Setter>
+    </Style>
+
+    <!--
+        The side bar's title bar (Explorer, Git, Debug; Properties under it) has no drop-down menu: those tabs can't be
+        floated, docked elsewhere or closed from it, so it would be empty.
+    -->
+    <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=ExplorerTools] ToolChromeControl /template/ Button#PART_MenuButton, ToolDockControl[(AutomationProperties.AutomationId)=PropertiesTools] ToolChromeControl /template/ Button#PART_MenuButton">
+        <Setter Property="IsVisible" Value="False" />
     </Style>
 
     <!--  No title bar: the content (the tabs and the selected tool), with the panel's own buttons over the tab row's right end.  -->
@@ -140,6 +161,55 @@
     </Style>
     <Style Selector="ToolDockControl[(AutomationProperties.AutomationId)=BottomTools] ToolTabStrip:singleitem /template/ ItemsPresenter#PART_ItemsPresenter">
         <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <!--
+        A document tab's header: its title, then its pin, as in Visual Studio (with "Show pin button in unpinned tabs"):
+        a pin outline that pins the tab while the pointer is over it, and the solid pin, always there, on a pinned tab,
+        which unpins it. The space is kept, so tabs don't jump about under the pointer. Page tabs (NuGet, a diff) have
+        no IsFileTab, so never show it.
+    -->
+    <Style Selector="DocumentControl">
+        <Setter Property="HeaderTemplate">
+            <DataTemplate x:DataType="core:IDockable">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock
+                        Padding="{DynamicResource DockHeaderContentPadding}"
+                        VerticalAlignment="Center"
+                        Text="{Binding Title}" />
+                    <Button
+                        AutomationProperties.Name="{ReflectionBinding PinTip,
+                                                                      FallbackValue=''}"
+                        shell:KeyMap.ShortcutTip="{ReflectionBinding PinTip,
+                                                                     FallbackValue=''}"
+                        Classes="icon tabPin"
+                        Classes.pinned="{ReflectionBinding IsPinned,
+                                                           FallbackValue=False}"
+                        Command="{ReflectionBinding TogglePinTabCommand}"
+                        IsVisible="{ReflectionBinding IsFileTab,
+                                                      FallbackValue=False}">
+                        <PathIcon />
+                    </Button>
+                </StackPanel>
+            </DataTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.tabPin">
+        <Setter Property="Margin" Value="2,0,0,0" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="DocumentTabStripItem:pointerover Button.tabPin, Button.tabPin.pinned">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.tabPin PathIcon">
+        <Setter Property="Width" Value="11" />
+        <Setter Property="Height" Value="11" />
+        <Setter Property="Data" Value="{DynamicResource Icon.PinOutline}" />
+    </Style>
+    <Style Selector="Button.tabPin.pinned PathIcon">
+        <Setter Property="Data" Value="{DynamicResource Icon.Pin}" />
     </Style>
 
     <!--  Set here, not in the template: a template's own values lose to Button.icon's.  -->

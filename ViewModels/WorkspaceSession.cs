@@ -104,6 +104,8 @@ public sealed class WorkspaceSession
                 PreviewMode = tab?.PreviewMode.ToString(),
                 PreviewSplit = tab?.PreviewSplit.ToString(),
                 PreviewFirst = tab?.PreviewFirst ?? false,
+                IsPinned = document.IsPinned,
+                Bookmarks = document.BookmarkLines is { Count: > 0 } bookmarks ? [.. bookmarks] : null,
                 CollapsedFolds = document.CollapsedFolds?.ToList()
             };
         }).ToList();
@@ -185,6 +187,9 @@ public sealed class WorkspaceSession
             }
 
             document.CaretOffset = Math.Clamp(file.CaretOffset, 0, document.Document.TextLength);
+            document.IsPinned = file.IsPinned;
+            if (file.Bookmarks is { Count: > 0 } bookmarks)
+                document.RestoreBookmarks(bookmarks);
             document.VerticalOffset = Math.Max(0, file.VerticalOffset);
             if (file.CollapsedFolds is { } folds)
                 document.RestoreFolds(folds);

@@ -10,7 +10,8 @@ namespace AXamlIDE.Editor.CodeLens;
 /// <summary>
 /// A resolved code lens, anchored to its symbol (the anchor moves with edits until the lenses are fetched again).
 /// </summary>
-internal sealed record CodeLensItem(TextAnchor Anchor, string Title, LspCodeLens Lens);
+/// <param name="Author">Who last changed the member and when ("Kieron, 28 days ago"), shown after the title; null without Git.</param>
+internal sealed record CodeLensItem(TextAnchor Anchor, string Title, LspCodeLens Lens, string? Author = null);
 
 /// <summary>
 /// Puts each code lens (<see cref="CodeLensControl"/>) into the line it belongs above: the declaration's line, or

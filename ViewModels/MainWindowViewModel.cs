@@ -76,6 +76,7 @@ public sealed partial class MainWindowViewModel : ObservableObject,
         _trust = trust;
         _snippets = snippets;
         _navigation = navigation;
+        navigation.History.Changed += RefreshBackHistory;
         _documents = documents;
         _saver = saver;
         _languages = languages;
@@ -184,6 +185,25 @@ public sealed partial class MainWindowViewModel : ObservableObject,
     /// <summary>Navigate Backward / Forward (Ctrl+-, Ctrl+Shift+-), as in Visual Studio.</summary>
     [RelayCommand]
     private void NavigateBack() => _navigation.Back();
+
+    /// <summary>The Back button's drop-down, as Visual Studio's: the places Back goes through, nearest first.</summary>
+    public System.Collections.ObjectModel.ObservableCollection<NavigationEntry> BackHistory { get; } = [];
+
+    /// <summary>A place in the Back drop-down: straight there (Forward then comes back through the ones skipped).</summary>
+    [RelayCommand]
+    private void NavigateBackTo(NavigationEntry? entry)
+    {
+        if (entry is not null)
+            _navigation.Back(entry.Steps);
+    }
+
+    private void RefreshBackHistory()
+    {
+        BackHistory.Clear();
+        var steps = 0;
+        foreach (var point in _navigation.History.BackPoints(15))
+            BackHistory.Add(new NavigationEntry(_navigation.Describe(point), ++steps));
+    }
 
     [RelayCommand]
     private void NavigateForward() => _navigation.Forward();

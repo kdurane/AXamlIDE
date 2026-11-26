@@ -177,7 +177,7 @@ public partial class EditorPaneView : UserControl,
         _conflicts = new ConflictRenderer(_ctx);
         Editor.TextArea.TextView.BackgroundRenderers.Add(_conflicts);
         _hover = new HoverController(_ctx, _codeActions, HoverPopup, new DataTips(services.DebugSnapshots, services.Messenger, services.Clipboard));
-        _codeLens = new CodeLensController(_ctx, services.Navigation, ReferencesPopup, ReferencesTree, ReferencesTitle);
+        _codeLens = new CodeLensController(_ctx, services.Navigation, services.Git, services.GitStatus, ReferencesPopup, ReferencesTree, ReferencesTitle);
         // Not kept in fields: these wire themselves to the editor's events and live as long as it does.
         _ = new ColorSwatchController(_ctx, ColorPopup, ColorPicker);
         _signatureHelp = new SignatureHelpController(_ctx);

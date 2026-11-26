@@ -59,11 +59,11 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
     public IRootDock CreateLayout(bool explorerOnRight)
     {
         // The explorer side bar stays put (moved with the swap-sides button), so it can't be dragged,
-        // floated or have other tabs dropped into it. Tools added to its dock later (e.g. Git) become tabs there.
-        var explorer = new ToolDockable(ToolTab.Explorer, "Explorer") { CanDrag = false, CanFloat = false };
-        var git = new ToolDockable(ToolTab.Git, "Git") { CanDrag = false, CanFloat = false };
+        // floated, docked as a document (there'd be no way back) or have other tabs dropped into it. Tools added to its dock later (e.g. Git) become tabs there.
+        var explorer = new ToolDockable(ToolTab.Explorer, "Explorer") { CanDrag = false, CanFloat = false, CanDockAsDocument = false };
+        var git = new ToolDockable(ToolTab.Git, "Git") { CanDrag = false, CanFloat = false, CanDockAsDocument = false };
         // Opened from the explorer's right-click menu, under the explorer; closed with its X (as in Visual Studio).
-        var properties = new ToolDockable(ToolTab.Properties, "Properties") { CanDrag = false, CanFloat = false, CanClose = true };
+        var properties = new ToolDockable(ToolTab.Properties, "Properties") { CanDrag = false, CanFloat = false, CanDockAsDocument = false, CanClose = true };
         var problems = new ToolDockable(ToolTab.Problems, "Problems");
         var output = new ToolDockable(ToolTab.Output, "Output");
         var console = new ToolDockable(ToolTab.Console, "Debug Console");
@@ -72,7 +72,7 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
         var tests = new ToolDockable(ToolTab.Tests, "Tests") { CanClose = true };
         var search = new ToolDockable(ToolTab.Search, "Search");
         // In the side bar while debugging (DockLayoutViewModel adds and removes it).
-        var debug = new ToolDockable(ToolTab.Debug, "Debug") { CanDrag = false, CanFloat = false };
+        var debug = new ToolDockable(ToolTab.Debug, "Debug") { CanDrag = false, CanFloat = false, CanDockAsDocument = false };
         Tools = new[] { explorer, git, debug, properties, problems, output, console, terminal, run, tests, search }
             .ToDictionary(tool => tool.Id);
 

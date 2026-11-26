@@ -21,6 +21,8 @@ internal sealed class CodeLensControl : Control, ICustomHitTest
     private readonly TextView _textView;
     private readonly Action<CodeLensControl> _clicked;
     private readonly FormattedText _text;
+    private readonly FormattedText? _author;
+    private readonly double _authorGap;   // about two spaces, as "3 references  |  Kieron, 28 days ago"
     private readonly double _lensHeight;
     private bool _hovered;
 
@@ -34,6 +36,11 @@ internal sealed class CodeLensControl : Control, ICustomHitTest
         // A little smaller than the code, in the editor's font, as VS Code does.
         _text = new FormattedText(item.Title, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
             new Typeface(font), Math.Max(9, fontSize * 0.85), null);
+
+        _authorGap = Math.Round(Math.Max(9, fontSize * 0.85) * 1.1);
+        if (item.Author is { } author)
+            _author = new FormattedText("|  " + author, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+                new Typeface(font), Math.Max(9, fontSize * 0.85), null);
 
         ClipToBounds = false;
         Cursor = new Cursor(StandardCursorType.Hand);
@@ -57,7 +64,14 @@ internal sealed class CodeLensControl : Control, ICustomHitTest
     {
         _text.SetForegroundBrush(ThemeBrushes.Get(_hovered ? "LinkBrush" : "CodeLensForegroundBrush") ?? Brushes.Gray);
         _text.SetTextDecorations(_hovered ? TextDecorations.Underline : []);
-        context.DrawText(_text, new Point(0, Math.Max(0, (_lensHeight - _text.Height) / 2)));
+        var top = Math.Max(0, (_lensHeight - _text.Height) / 2);
+        context.DrawText(_text, new Point(0, top));
+        if (_author is not null)
+        {
+            // Not clickable, as the count is: just who last changed it.
+            _author.SetForegroundBrush(ThemeBrushes.Get("CodeLensForegroundBrush") ?? Brushes.Gray);
+            context.DrawText(_author, new Point(_text.Width + _authorGap, top));
+        }
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

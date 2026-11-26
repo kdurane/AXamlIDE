@@ -8,6 +8,7 @@
     "File.OpenSolution": "Ctrl+Shift+O",
     "File.NewProject": "Ctrl+Shift+N",
     "File.Save": "Ctrl+S",
+    "File.PinTab": "Ctrl+K, Shift+Enter",
     "File.SaveAll": "Ctrl+Shift+S",
     "File.Close": ["Ctrl+W", "Ctrl+F4"],
     "File.NewItem": "Ctrl+Shift+A",
@@ -17,6 +18,10 @@
     // ---- Edit (undo, cut, copy... are the editor's own keys)
     "Edit.ToggleComment": ["Ctrl+/", "Ctrl+K, Ctrl+/"],
     "Edit.CommentSelection": "Ctrl+K, Ctrl+C",
+    "Edit.ToggleBookmark": "Ctrl+K, Ctrl+K",
+    "Edit.NextBookmark": "Ctrl+K, Ctrl+N",
+    "Edit.PreviousBookmark": "Ctrl+K, Ctrl+P",
+    "Edit.ClearBookmarks": "Ctrl+K, Ctrl+L",
     "Edit.UncommentSelection": "Ctrl+K, Ctrl+U",
     "Edit.FormatDocument": ["Ctrl+Shift+I", "Ctrl+K, Ctrl+D"],
     "Edit.Find": "Ctrl+F",

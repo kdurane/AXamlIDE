@@ -103,12 +103,73 @@ public sealed partial class DocumentCommands(
     [RelayCommand]
     private Task CloseAllAsync() => CloseManyAsync(documents.Documents.ToArray());
 
-    /// <summary>The tab's menu: Close All But This.</summary>
+    /// <summary>The tab's menu: Close All But This (pinned tabs stay too, as in Visual Studio).</summary>
     [RelayCommand]
     private Task CloseOthersAsync(OpenDocument? keep)
     {
         keep ??= documents.Active;
-        return CloseManyAsync(documents.Documents.Where(d => !ReferenceEquals(d, keep)).ToArray());
+        return CloseManyAsync(documents.Documents.Where(d => !ReferenceEquals(d, keep) && !d.IsPinned).ToArray());
+    }
+
+    /// <summary>Window > Close All But Pinned: every tab that isn't pinned.</summary>
+    [RelayCommand]
+    private Task CloseAllButPinnedAsync() => CloseManyAsync(documents.Documents.Where(d => !d.IsPinned).ToArray());
+
+    // ---------------------------------------------------------------- bookmarks (Visual Studio's)
+
+    /// <summary>Edit > Bookmarks > Toggle Bookmark (Ctrl+K, Ctrl+K): on the caret's line.</summary>
+    [RelayCommand]
+    private void ToggleBookmark()
+    {
+        if (documents.Active is { } document)
+            document.ToggleBookmark(document.Document.GetLineByOffset(Math.Min(document.CaretOffset, document.Document.TextLength)).LineNumber);
+    }
+
+    /// <summary>Edit > Bookmarks > Next Bookmark (Ctrl+K, Ctrl+N): the next one after the caret, on through the open
+    /// documents in tab order, and round to the first.</summary>
+    [RelayCommand]
+    private void NextBookmark() => GoToBookmark(forward: true);
+
+    /// <summary>Edit > Bookmarks > Previous Bookmark (Ctrl+K, Ctrl+P).</summary>
+    [RelayCommand]
+    private void PreviousBookmark() => GoToBookmark(forward: false);
+
+    /// <summary>Edit > Bookmarks > Clear Bookmarks (Ctrl+K, Ctrl+L): in every open document, as VS's Delete All Bookmarks.</summary>
+    [RelayCommand]
+    private void ClearBookmarks()
+    {
+        foreach (var document in documents.Documents)
+            document.ClearBookmarks();
+    }
+
+    private void GoToBookmark(bool forward)
+    {
+        var all = documents.Documents
+            .SelectMany((document, index) => document.BookmarkLines.Select(line => (Index: index, Document: document, Line: line)))
+            .ToList();
+        if (all.Count == 0)
+        {
+            messenger.Send(new StatusMessage("There are no bookmarks. Add one with Toggle Bookmark."));
+            return;
+        }
+
+        var here = documents.Active is { } active
+            ? (Index: documents.Documents.IndexOf(active),
+               Line: active.Document.GetLineByOffset(Math.Min(active.CaretOffset, active.Document.TextLength)).LineNumber)
+            : (Index: -1, Line: 0);
+        var target = forward
+            ? all.FirstOrDefault(b => b.Index > here.Index || b.Index == here.Index && b.Line > here.Line, all[0])
+            : all.LastOrDefault(b => b.Index < here.Index || b.Index == here.Index && b.Line < here.Line, all[^1]);
+        messenger.Send(new NavigateToSearchResultMessage(new WorkspaceSearchResult(target.Document.Path, target.Line, 0, ""), ""));
+    }
+
+    /// <summary>Window > Pin Tab (Ctrl+K, Shift+Enter), the tab's pin button and its menu: pin the tab, or unpin it.</summary>
+    [RelayCommand]
+    private void TogglePin(OpenDocument? document)
+    {
+        document ??= documents.Active;
+        if (document is not null)
+            document.IsPinned = !document.IsPinned;
     }
 
     /// <summary>

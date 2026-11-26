@@ -12,8 +12,9 @@ using AXamlIDE.Models;
 namespace AXamlIDE.Editor.Debugging;
 
 /// <summary>
-/// A custom margin that draws document-owned breakpoint markers, and Visual Studio's arrow at the current statement
-/// while paused (yellow; green for another frame picked in the Call Stack).
+/// A custom margin that draws document-owned breakpoint markers, bookmarks (behind a breakpoint on the same line, as
+/// in Visual Studio), and Visual Studio's arrow at the current statement while paused (yellow; green for another
+/// frame picked in the Call Stack).
 /// </summary>
 public sealed class BreakpointMargin : AbstractMargin
 {
@@ -65,10 +66,12 @@ public sealed class BreakpointMargin : AbstractMargin
     public void SetDocument(OpenDocument? document)
     {
         _document?.BreakpointsChanged -= OnBreakpointsChanged;
+        _document?.BookmarksChanged -= OnBreakpointsChanged;
 
         _document = document;
 
         _document?.BreakpointsChanged += OnBreakpointsChanged;
+        _document?.BookmarksChanged += OnBreakpointsChanged;
 
         InvalidateVisual();
     }
@@ -208,6 +211,23 @@ public sealed class BreakpointMargin : AbstractMargin
         context.DrawGeometry(fill, new Pen(Brushes.Black, 0.8), geometry);
     }
 
+    /// <summary>A bookmark ribbon (a rectangle with a notch at the bottom), the breakpoint dot's height.</summary>
+    private static void DrawBookmark(DrawingContext context, double y, double radius, IBrush brush)
+    {
+        var (left, right, top, bottom) = (10 - radius * 0.7, 10 + radius * 0.7, y - radius, y + radius);
+        var geometry = new StreamGeometry();
+        using (var g = geometry.Open())
+        {
+            g.BeginFigure(new Point(left, top), true);
+            g.LineTo(new Point(right, top));
+            g.LineTo(new Point(right, bottom));
+            g.LineTo(new Point(10, bottom - radius * 0.5));
+            g.LineTo(new Point(left, bottom));
+            g.EndFigure(true);
+        }
+        context.DrawGeometry(brush, null, geometry);
+    }
+
     public override void Render(DrawingContext context)
     {
         context.DrawRectangle(_backgroundBrush, null, Bounds);
@@ -215,6 +235,8 @@ public sealed class BreakpointMargin : AbstractMargin
         if (TextView?.VisualLinesValid == true)
         {
             var breakpoints = _document?.Breakpoints;   // once per render, not per line
+            var bookmarks = _document?.BookmarkLines ?? [];
+            var bookmarkBrush = Views.ThemeBrushes.Get("BookmarkBrush") ?? Brushes.SteelBlue;
             // VS's dot is about two thirds of the line height; it grows and shrinks with the font.
             var radius = Math.Clamp(TextView.DefaultLineHeight * 0.34, 4, 8);
             foreach (var visualLine in TextView.VisualLines)
@@ -223,6 +245,8 @@ public sealed class BreakpointMargin : AbstractMargin
                 var centre = new Point(10, y);
 
                 var lineNumber = visualLine.FirstDocumentLine.LineNumber;
+                if (bookmarks.Contains(lineNumber))
+                    DrawBookmark(context, y, radius, bookmarkBrush);
                 if (breakpoints?.FirstOrDefault(b => b.Line == lineNumber) is { } breakpoint)
                 {
                     // VS: a filled dot; hollow when disabled; a white plus inside when it has Conditions.
