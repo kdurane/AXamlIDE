@@ -51,6 +51,27 @@ public class DebugValueProviderTests
         => new(name, value, type, reference, evaluateName);
 
     [Fact]
+    public async Task A_table_opens_an_adapters_item_ranges_so_each_item_is_a_row()
+    {
+        // SharpDbg past 100 items: [0..99], [100..199], ... then Raw View. Each range was taken as a row with its items
+        // as columns (200,000 columns for a big list: gigabytes).
+        var debugger = new FakeDebugger { FormatsValues = true };
+        debugger.Locals.Add(Var("people", "Count = 150", "System.Collections.Generic.List<Person>", 1, "people"));
+        debugger.Children[1] = [Var("[0..99]", "", "", 2, "[0..99]"), Var("[100..149]", "", "", 3, "[100..149]"), Var("Raw View", "", "", 4, "Raw View")];
+        debugger.Children[2] = [.. Enumerable.Range(0, 100).Select(i => Var($"[{i}]", $"P{i}", "Person", 100 + i, $"[{i}]"))];
+        debugger.Children[3] = [.. Enumerable.Range(100, 50).Select(i => Var($"[{i}]", $"P{i}", "Person", 100 + i, $"[{i}]"))];
+        foreach (var i in Enumerable.Range(0, 150))
+            debugger.Children[100 + i] = [Var("Id", $"{i}", "int", 0, "Id"), Var("Name", $"\"P{i}\"", "string", 0, "Name")];
+        var provider = new DebugValueProvider(debugger, frameId: 1);
+
+        var table = await provider.TableAsync((await provider.LocalsAsync())[0]);
+
+        Assert.Equal(["Index", "Id", "Name"], table.Columns);
+        Assert.Equal(150, table.Rows.Count);
+        Assert.Equal(["[149]", "149", "\"P149\""], table.Rows[149]);
+    }
+
+    [Fact]
     public async Task An_adapter_that_formats_values_is_taken_as_it_comes_with_expressions_built_from_the_parent()
     {
         // SharpDbg: DebuggerDisplay applied, type proxies as children, a Raw View row, child names only as evaluateName.

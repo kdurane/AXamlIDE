@@ -26,8 +26,14 @@ public sealed partial class DebugSession : IDisposable
 
     public IReadOnlyCollection<string> LoadedModules => _modules.Keys.ToArray();
 
-    /// <summary>The debuggee's process id (from the adapter's "process" event).</summary>
+    /// <summary>
+    /// The debuggee's process id: from the adapter's "process" event, or from the IDE starting it in the terminal
+    /// (SharpDbg's runInTerminal sends no process event).
+    /// </summary>
     public int? ProcessId { get; private set; }
+
+    /// <summary>The debuggee started: its process id, once, however it was learnt.</summary>
+    public event Action<int>? ProcessStarted;
 
     public event Action<string>? OutputReceived;
     public event Action<JsonElement>? EventReceived;
@@ -244,6 +250,14 @@ public sealed partial class DebugSession : IDisposable
         }
     }
 
+    private void OnProcessStarted(int processId)
+    {
+        if (ProcessId == processId)
+            return;
+        ProcessId = processId;
+        ProcessStarted?.Invoke(processId);
+    }
+
     /// <summary>
     /// A request from the adapter (DAP's "reverse requests"). Only runInTerminal is answered with success: start the
     /// program in the IDE's terminal and reply with its process id. Anything else is refused.
@@ -260,7 +274,10 @@ public sealed partial class DebugSession : IDisposable
                 && request.TryGetProperty("arguments", out var arguments) && TerminalLaunch.From(arguments) is { } launch)
             {
                 if (await run(launch) is { } processId)
+                {
                     body = new { processId };
+                    OnProcessStarted(processId);
+                }
                 else
                     error = "The program couldn't be started in the terminal.";
             }
@@ -334,7 +351,7 @@ public sealed partial class DebugSession : IDisposable
                         RememberModule(root);
                     else if (eventName == "process" && root.TryGetProperty("body", out var process)
                              && process.TryGetProperty("systemProcessId", out var pid) && pid.TryGetInt32(out var id))
-                        ProcessId = id;
+                        OnProcessStarted(id);
                     EventReceived?.Invoke(root.Clone());
                 }
             }

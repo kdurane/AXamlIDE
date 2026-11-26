@@ -135,6 +135,11 @@ public partial class RunViewModel
             _messenger.Send(new ShowToolTabMessage(ToolTab.Console));
             session.OutputReceived += AppendConsoleOutput;
             session.EventReceived += message => OnDebugAdapterEvent(session, message);
+            session.ProcessStarted += processId => Dispatcher.UIThread.Post(() =>
+            {
+                if (ReferenceEquals(_debugSession, session))
+                    _messenger.Send(new DebuggeeStartedMessage(processId));
+            });
             session.Failed += error => Dispatcher.UIThread.Post(() =>
                 EndDebugSession(session, $"Debugger failed: {error.Message}"));
 
@@ -317,15 +322,6 @@ public partial class RunViewModel
                         DebugStatus = "Debugging.";
                     }
                 });
-                break;
-            case "process":
-                if (message.TryGetProperty("body", out var processBody)
-                    && processBody.TryGetProperty("systemProcessId", out var pid) && pid.TryGetInt32(out var processId))
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (ReferenceEquals(_debugSession, session))
-                            _messenger.Send(new DebuggeeStartedMessage(processId));
-                    });
                 break;
             case "terminated":
                 Dispatcher.UIThread.Post(() => EndDebugSession(session, "Debug session ended."));

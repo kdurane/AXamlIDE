@@ -11,6 +11,13 @@ public sealed partial class DebugValueProvider
     /// <summary>Rows the table visualizer reads at most (objects take a request per row, ~2 ms each, so they stream).</summary>
     public const int MaxTableRows = 100_000;
 
+    /// <summary>
+    /// Rows read through an adapter that formats values (SharpDbg) when the memory read can't be used. It keeps every
+    /// value it has shown until the program resumes (~3.5 KB each, a row being the item and each member), so 100,000
+    /// rows of a wide object ran it to gigabytes.
+    /// </summary>
+    public const int MaxFormattedTableRows = 5_000;
+
     /// <summary>Rows whose cells get the evaluated display (ToString, [DebuggerDisplay]); later rows show the raw one.</summary>
     private const int TableRefineRows = 20;
 
@@ -27,7 +34,8 @@ public sealed partial class DebugValueProvider
     /// <see cref="TableReportEvery"/>. The visualizer shows them while the rest load.</param>
     public async Task<DebugTable> TableAsync(DebugValue collection, IProgress<DebugTable>? partial = null, CancellationToken ct = default)
     {
-        var items = (await ItemsAsync(collection, MaxTableRows, ct).ConfigureAwait(false)).Where(item => item.Kind != DebugValueKind.More).ToList();
+        var maxRows = debugger.FormatsValues ? MaxFormattedTableRows : MaxTableRows;
+        var items = (await ItemsAsync(collection, maxRows, ct).ConfigureAwait(false)).Where(item => item.Kind != DebugValueKind.More).ToList();
         var total = collection.Count ?? items.Count;
 
         if (TwoDimensional(items) is { } grid)
@@ -90,7 +98,9 @@ public sealed partial class DebugValueProvider
     {
         if (debugger.ProcessId is not { } processId || collection.Expression is not { } expression || collection.Type is not { } type)
             return null;
-        if (!CollectionShapes.IsArray(type) && collection.Children is not CollectionChildren { Shape: not (CollectionShape.ImmutableArray or CollectionShape.Indexed) })
+        // netcoredbg's values carry their shape; SharpDbg's come as the adapter shows them, so go by the type.
+        var shape = collection.Children is CollectionChildren children ? children.Shape : CollectionShapes.For(type);
+        if (!CollectionShapes.IsArray(type) && shape is null or CollectionShape.ImmutableArray or CollectionShape.Indexed)
             return null;
         if (CollectionShapes.IsArray(type) && type.Contains("[,"))
             return null;   // a rectangular array ("int[3, 2]") is read quickly enough the usual way
@@ -100,7 +110,7 @@ public sealed partial class DebugValueProvider
         if (count is not { } items)
             return null;
         int? version = null;
-        if (collection.Children is CollectionChildren { Shape: var shape })
+        if (shape is not null)
             version = await IntAsync(shape == CollectionShape.Wrapper ? $"{expression}.Items._version" : $"{expression}._version", ct).ConfigureAwait(false);
 
         return await Task.Run(() => HeapTables.TryRead(processId, new HeapFingerprint(type, items, version), MaxTableRows, ct), ct).ConfigureAwait(false);

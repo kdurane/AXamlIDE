@@ -60,11 +60,35 @@ public sealed partial class DebugValueProvider
             ArrayChildren array => await ArrayItemsAsync(array.Reference, value.Expression, limit, ct),
             CollectionChildren collection => await CollectionItemsAsync(collection, value.Expression, limit, ct),
             ResultsChildren results => await ResultsAsync(results.Expression, ct),
-            // An adapter that shows type proxies: the proxy's items, without its Raw View row.
             MemberChildren members when debugger.FormatsValues && value.Kind == DebugValueKind.Collection
-                => (await MembersAsync(members, value.Expression, ct)).Where(item => item.Name != RawView).Take(limit).ToList(),
+                => await AdapterItemsAsync(members, value.Expression, limit, ct),
             _ => []
         };
+
+    /// <summary>
+    /// The items of a collection as an adapter that shows type proxies gives them, without its Raw View row. Past 100
+    /// items SharpDbg groups them into ranges ("[0..99]", "[100..199]"): those are opened, so each item is a row.
+    /// </summary>
+    private async Task<List<DebugValue>> AdapterItemsAsync(MemberChildren source, string? collectionExpression, int limit, CancellationToken ct)
+    {
+        var items = new List<DebugValue>();
+        foreach (var item in await MembersAsync(source, collectionExpression, ct))
+        {
+            if (items.Count >= limit)
+                break;
+            if (item.Name == RawView)
+                continue;
+            if (IsRange(item.Name) && item.Children is MemberChildren range)
+                items.AddRange(await AdapterItemsAsync(range, collectionExpression, limit - items.Count, ct));
+            else
+                items.Add(item);
+        }
+        return items;
+    }
+
+    /// <summary>An adapter's group of items, "[100..199]".</summary>
+    private static bool IsRange(string name)
+        => name.StartsWith('[') && name.EndsWith(']') && name.Contains("..", StringComparison.Ordinal);
 
     // ---------------------------------------------------------------- members
 
