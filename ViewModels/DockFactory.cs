@@ -132,7 +132,16 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
     public override IDockWindow? CreateWindowFrom(IDockable dockable)
     {
         var window = base.CreateWindowFrom(dockable);
-        window?.Title = dockable is ToolDockable tool ? tool.Title ?? "AXamlIDE" : "AXamlIDE";
+        if (window is null)
+            return null;
+        window.Title = dockable is ToolDockable tool ? tool.Title ?? "AXamlIDE" : "AXamlIDE";
+
+        // A tab dragged out gets a window of its own, as in Visual Studio: not owned by the main window, so it
+        // minimises on its own and can go behind it. (An owned window stays above its owner, minimises with it, and
+        // gets asked first when the main window closes, where our closing handler would keep both open.)
+        // Search floats by default as a popup over the IDE, so it keeps the main window as its owner (Default).
+        if (dockable is not ToolDockable search || !FloatsByDefault(search))
+            window.OwnerMode = DockWindowOwnerMode.None;
         return window;
     }
 

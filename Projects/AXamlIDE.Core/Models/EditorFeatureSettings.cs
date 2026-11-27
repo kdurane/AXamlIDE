@@ -21,6 +21,12 @@ public sealed record EditorFeatureSettings
 
     // ---- Formatting
 
+    /// <summary>Typing } formats the block it closes (the language server's on-type formatting). VS: "Automatically format completed block on }".</summary>
+    public bool FormatBlockOnBrace { get; init; } = true;
+
+    /// <summary>Typing ; formats the statement it ends. VS: "Automatically format completed statement on ;".</summary>
+    public bool FormatStatementOnSemicolon { get; init; } = true;
+
     /// <summary>Format-on-save includes AXAML (when format-on-save is on). Off: AXAML is formatted only by Format Document.</summary>
     public bool FormatXamlOnSave { get; init; } = true;
 

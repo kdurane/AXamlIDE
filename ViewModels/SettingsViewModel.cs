@@ -238,6 +238,18 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { FileScopedNamespaceOnSemicolon = value });
     }
 
+    public bool FormatBlockOnBrace
+    {
+        get => Features.FormatBlockOnBrace;
+        set => SetFeatures(Features with { FormatBlockOnBrace = value });
+    }
+
+    public bool FormatStatementOnSemicolon
+    {
+        get => Features.FormatStatementOnSemicolon;
+        set => SetFeatures(Features with { FormatStatementOnSemicolon = value });
+    }
+
     public bool CompletionWhileTyping
     {
         get => Features.CompletionWhileTyping;

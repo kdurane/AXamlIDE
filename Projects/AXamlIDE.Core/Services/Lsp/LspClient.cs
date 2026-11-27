@@ -59,6 +59,12 @@ public sealed partial class LspClient : ILspSender, IDisposable
     public bool SupportsCodeActionResolve { get; private set; }
     public bool SupportsDocumentFormatting { get; private set; }
 
+    /// <summary>
+    /// textDocument/onTypeFormatting's characters: typing one formats what it completes (Roslyn: '}' a block,
+    /// ';' a statement, newline). Empty when the server doesn't do it.
+    /// </summary>
+    public IReadOnlySet<string> OnTypeFormattingTriggerCharacters { get; private set; } = new HashSet<string>();
+
     /// <summary>textDocument/codeLens: the "N references" lines above declarations.</summary>
     public bool SupportsCodeLens { get; private set; }
 
@@ -278,6 +284,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
                     },
                     hover = new { contentFormat = _hoverContext },
                     codeLens = new { dynamicRegistration = true },
+                    onTypeFormatting = new { dynamicRegistration = false },
                     completion = new
                     {
                         completionItem = new
@@ -372,6 +379,7 @@ public sealed partial class LspClient : ILspSender, IDisposable
                                        && resolveProvider.ValueKind == JsonValueKind.True;
             _staticDocumentFormatting = HasProvider(caps, "documentFormattingProvider");
             _staticCodeLens = HasProvider(caps, "codeLensProvider");
+            OnTypeFormattingTriggerCharacters = OnTypeFormattingTriggers(caps);
             SupportsDefinition = _staticDefinition || _dynamicCapabilities.Contains("textDocument/definition");
             SupportsReferences = _staticReferences || _dynamicCapabilities.Contains("textDocument/references");
             SupportsRename = _staticRename || _dynamicCapabilities.Contains("textDocument/rename");

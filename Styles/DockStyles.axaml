@@ -228,4 +228,118 @@
         <Setter Property="Width" Value="10" />
         <Setter Property="Height" Value="10" />
     </Style>
+
+    <!--
+        The drop guides shown while dragging a tab (Dock's DockTarget, and GlobalDockTarget at the window's edges):
+        Dock's theme draws them from old bitmaps; these are drawn in the theme's colours instead (Styles/ThemeResources,
+        DockGuide*Brush). Only the pictures change: Dock's template, sizes (DockTargetSelectorSize) and hit-testing stay,
+        and Dock fades them in and out itself (Opacity), so nothing here sets that.
+    -->
+    <Styles.Resources>
+        <DrawingImage x:Key="DockGuideLeftImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{DynamicResource DockGuideBackgroundBrush}" Geometry="M6,1 H34 A5,5 0 0 1 39,6 V34 A5,5 0 0 1 34,39 H6 A5,5 0 0 1 1,34 V6 A5,5 0 0 1 6,1 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideBorderBrush}" Thickness="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M11,11 H19 V29 H11 Z" />
+                </DrawingGroup>
+                <GeometryDrawing Geometry="M11,11 H29 V29 H11 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideGlyphBrush}" Thickness="1.5" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M8,16 L4,20 L8,24 Z" />
+            </DrawingGroup>
+        </DrawingImage>
+        <DrawingImage x:Key="DockGuideRightImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{DynamicResource DockGuideBackgroundBrush}" Geometry="M6,1 H34 A5,5 0 0 1 39,6 V34 A5,5 0 0 1 34,39 H6 A5,5 0 0 1 1,34 V6 A5,5 0 0 1 6,1 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideBorderBrush}" Thickness="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M21,11 H29 V29 H21 Z" />
+                </DrawingGroup>
+                <GeometryDrawing Geometry="M11,11 H29 V29 H11 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideGlyphBrush}" Thickness="1.5" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M32,16 L36,20 L32,24 Z" />
+            </DrawingGroup>
+        </DrawingImage>
+        <DrawingImage x:Key="DockGuideTopImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{DynamicResource DockGuideBackgroundBrush}" Geometry="M6,1 H34 A5,5 0 0 1 39,6 V34 A5,5 0 0 1 34,39 H6 A5,5 0 0 1 1,34 V6 A5,5 0 0 1 6,1 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideBorderBrush}" Thickness="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M11,11 H29 V19 H11 Z" />
+                </DrawingGroup>
+                <GeometryDrawing Geometry="M11,11 H29 V29 H11 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideGlyphBrush}" Thickness="1.5" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M16,8 L20,4 L24,8 Z" />
+            </DrawingGroup>
+        </DrawingImage>
+        <DrawingImage x:Key="DockGuideBottomImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{DynamicResource DockGuideBackgroundBrush}" Geometry="M6,1 H34 A5,5 0 0 1 39,6 V34 A5,5 0 0 1 34,39 H6 A5,5 0 0 1 1,34 V6 A5,5 0 0 1 6,1 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideBorderBrush}" Thickness="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M11,21 H29 V29 H11 Z" />
+                </DrawingGroup>
+                <GeometryDrawing Geometry="M11,11 H29 V29 H11 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideGlyphBrush}" Thickness="1.5" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M16,32 L20,36 L24,32 Z" />
+            </DrawingGroup>
+        </DrawingImage>
+        <DrawingImage x:Key="DockGuideCenterImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{DynamicResource DockGuideBackgroundBrush}" Geometry="M6,1 H34 A5,5 0 0 1 39,6 V34 A5,5 0 0 1 34,39 H6 A5,5 0 0 1 1,34 V6 A5,5 0 0 1 6,1 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideBorderBrush}" Thickness="1" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <DrawingGroup Opacity="0.6">
+                    <GeometryDrawing Brush="{DynamicResource DockGuideAccentBrush}" Geometry="M11,11 H29 V29 H11 Z" />
+                </DrawingGroup>
+                <GeometryDrawing Geometry="M11,11 H29 V29 H11 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="{DynamicResource DockGuideGlyphBrush}" Thickness="1.5" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage>
+    </Styles.Resources>
+
+    <Style Selector=":is(DockTargetBase) /template/ Image#PART_LeftSelector">
+        <Setter Property="Source" Value="{StaticResource DockGuideLeftImage}" />
+    </Style>
+    <Style Selector=":is(DockTargetBase) /template/ Image#PART_RightSelector">
+        <Setter Property="Source" Value="{StaticResource DockGuideRightImage}" />
+    </Style>
+    <Style Selector=":is(DockTargetBase) /template/ Image#PART_TopSelector">
+        <Setter Property="Source" Value="{StaticResource DockGuideTopImage}" />
+    </Style>
+    <Style Selector=":is(DockTargetBase) /template/ Image#PART_BottomSelector">
+        <Setter Property="Source" Value="{StaticResource DockGuideBottomImage}" />
+    </Style>
+    <Style Selector=":is(DockTargetBase) /template/ Image#PART_CenterSelector">
+        <Setter Property="Source" Value="{StaticResource DockGuideCenterImage}" />
+    </Style>
 </Styles>

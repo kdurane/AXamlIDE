@@ -125,6 +125,20 @@ public sealed partial class LspClient
                 .ToArray()
             : [];
 
+    /// <summary>The server's documentOnTypeFormattingProvider: its firstTriggerCharacter and moreTriggerCharacter, as one set.</summary>
+    private static HashSet<string> OnTypeFormattingTriggers(JsonElement capabilities)
+    {
+        var triggers = new HashSet<string>();
+        if (!capabilities.TryGetProperty("documentOnTypeFormattingProvider", out var options)
+            || options.ValueKind != JsonValueKind.Object)
+            return triggers;
+        if (Str(options, "firstTriggerCharacter") is { Length: > 0 } first)
+            triggers.Add(first);
+        foreach (var more in ReadStringArray(options, "moreTriggerCharacter"))
+            triggers.Add(more);
+        return triggers;
+    }
+
     private static bool HasProvider(JsonElement capabilities, string name)
         => capabilities.TryGetProperty(name, out var provider)
            && provider.ValueKind is not (JsonValueKind.False or JsonValueKind.Null);

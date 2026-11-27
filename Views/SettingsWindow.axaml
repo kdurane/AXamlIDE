@@ -102,6 +102,10 @@
                             <TextBlock Classes="SettingHint" Text="Typing ; after namespace X removes the namespace's braces and indentation (Ctrl+Z undoes it)." />
 
                             <TextBlock Classes="SettingsHeading" Text="Formatting" />
+                            <CheckBox Content="Automatically format completed block on }" IsChecked="{Binding FormatBlockOnBrace, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Only the block, not the file, as the project's formatting rules (.editorconfig) say. C#; Ctrl+Z undoes it." />
+                            <CheckBox Content="Automatically format completed statement on ;" IsChecked="{Binding FormatStatementOnSemicolon, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="Only the statement just ended." />
                             <CheckBox Content="Format documents on save when supported" IsChecked="{Binding FormatOnSave, Mode=TwoWay}" />
                             <CheckBox
                                 Margin="24,0,0,0"

@@ -292,6 +292,38 @@ public sealed class LanguageSessionService
         }
     }
 
+    /// <summary>
+    /// <paramref name="character"/> was just typed, leaving the caret at <paramref name="caret"/>: let the language
+    /// server format what it completed ('}' its block, ';' its statement), as Visual Studio does, in one undo step
+    /// of its own (so Ctrl+Z takes the formatting back and leaves the character). Quiet: nothing happens when the
+    /// server doesn't do it for that character, has nothing to change, or the text changed while it was asked.
+    /// </summary>
+    public async Task FormatOnTypeAsync(OpenDocument document, int caret, string character)
+    {
+        if (document.IsReadOnly
+            || ConnectionFor(document) is not { Client: var client, Sync: var sync }
+            || !client.OnTypeFormattingTriggerCharacters.Contains(character))
+            return;
+
+        sync.Flush();
+        var version = sync.Version;
+        var location = document.Document.GetLocation(caret);
+        try
+        {
+            var edits = await client.OnTypeFormattingAsync(
+                document.Uri, location.Line - 1, location.Column - 1, character, tabSize: 4, insertSpaces: true);
+
+            // Typed on in the meantime: the edits are for the older text.
+            if (edits.Count == 0 || sync.HasPendingChanges || sync.Version != version)
+                return;
+            ApplyTextEdits(document, edits.Select(edit => (edit.Range, edit.NewText)));
+        }
+        catch (Exception)
+        {
+            // Not worth interrupting the typing for: the text stays as typed, and Format Document still works.
+        }
+    }
+
     /// <summary>XAML Styler formatting (no language server involved), applied as line edits in one undo step.</summary>
     private bool FormatXaml(OpenDocument document, bool reportUnchanged)
     {

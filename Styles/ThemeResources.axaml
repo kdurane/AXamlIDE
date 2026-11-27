@@ -393,6 +393,13 @@ file in Styles/Themes/), then use it in the view as {DynamicResource ...}.
     <!--  Preview design grid (Views/PreviewGridLines)  -->
     <SolidColorBrush Color="{DynamicResource app.preview.gridLine}" x:Key="PreviewGridLineBrush" />
     <SolidColorBrush Color="{DynamicResource app.preview.gridLineMajor}" x:Key="PreviewGridLineMajorBrush" />
+
+    <!--  Dragging a tab: the drop guides (Styles/DockStyles.axaml) and where it would land (Dock's, shown half see-through).  -->
+    <SolidColorBrush Color="{DynamicResource editorWidget.background}" x:Key="DockGuideBackgroundBrush" />
+    <SolidColorBrush Color="{DynamicResource editorWidget.border}" x:Key="DockGuideBorderBrush" />
+    <SolidColorBrush Color="{DynamicResource editor.foreground}" x:Key="DockGuideGlyphBrush" />
+    <SolidColorBrush Color="{DynamicResource focusBorder}" x:Key="DockGuideAccentBrush" />
+    <SolidColorBrush Color="{DynamicResource focusBorder}" x:Key="DockTargetIndicatorBrush" />
     <DrawingBrush x:Key="CheckerboardBrush" DestinationRect="0,0,16,16" TileMode="Tile">
         <DrawingBrush.Drawing>
             <DrawingGroup>

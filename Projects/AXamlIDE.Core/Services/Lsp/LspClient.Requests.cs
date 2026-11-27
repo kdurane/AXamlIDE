@@ -474,7 +474,34 @@ public sealed partial class LspClient
             textDocument = new { uri },
             options = new { tabSize, insertSpaces }
         }, ct);
+        return ParseTextEdits(result);
+    }
 
+    /// <summary>
+    /// textDocument/onTypeFormatting: <paramref name="character"/> was just typed, leaving the caret at
+    /// <paramref name="line"/>/<paramref name="column"/>. The edits format only what it completed (a block, a statement).
+    /// </summary>
+    public async Task<IReadOnlyList<LspTextEdit>> OnTypeFormattingAsync(
+        string uri,
+        int line,
+        int column,
+        string character,
+        int tabSize,
+        bool insertSpaces,
+        CancellationToken ct = default)
+    {
+        var result = await RequestAsync("textDocument/onTypeFormatting", new
+        {
+            textDocument = new { uri },
+            position = new { line, character = column },
+            ch = character,
+            options = new { tabSize, insertSpaces }
+        }, ct);
+        return ParseTextEdits(result);
+    }
+
+    private static IReadOnlyList<LspTextEdit> ParseTextEdits(JsonElement result)
+    {
         if (result.ValueKind != JsonValueKind.Array)
             return [];
 

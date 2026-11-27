@@ -16,7 +16,8 @@ namespace AXamlIDE.Editor;
 
 /// <summary>
 /// Reacts to typed characters: auto-closes XAML tags and C# braces, makes a namespace file-scoped when ';'
-/// is typed after it, and decides when to open completion or signature help.
+/// is typed after it, formats the C# block or statement a '}' or ';' finishes, and decides when to open
+/// completion or signature help.
 ///
 /// It owns no popups itself; it just calls the other controllers.
 /// </summary>
@@ -81,6 +82,7 @@ public sealed class TypingController
                 TryMakeNamespaceFileScoped(doc.Document);
                 break;
         }
+        FormatOnType(doc, e.Text);
 
         var client = _ctx.Languages.ClientFor(doc);   // null when the document has no server connection
 
@@ -167,6 +169,15 @@ public sealed class TypingController
         };
     }
 
+    /// <summary>'}' or ';' typed in C#: format the block or statement it finished (see LanguageSessionService.FormatOnTypeAsync).</summary>
+    private void FormatOnType(OpenDocument doc, string text)
+    {
+        var features = _ctx.Settings.Features;
+        if (doc.LanguageId == LanguageIds.CSharp
+            && ((text == "}" && features.FormatBlockOnBrace) || (text == ";" && features.FormatStatementOnSemicolon)))
+            _ = _ctx.Languages.FormatOnTypeAsync(doc, _ctx.Editor.CaretOffset, text);
+    }
+
     private void OnTextEntering(object? sender, TextInputEventArgs e)
     {
         // Typing the '}' that auto-close already put there: step over it instead of adding a second one
@@ -176,6 +187,8 @@ public sealed class TypingController
         {
             editor.CaretOffset = caret + 1;
             e.Handled = true;   // the '}' is never inserted, so TextEntered doesn't fire either
+            if (_ctx.Active is { } doc)
+                FormatOnType(doc, "}");   // still the block being finished, as in Visual Studio
             return;
         }
 

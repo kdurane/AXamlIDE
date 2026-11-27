@@ -47,7 +47,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
     public async Task<SaveChoice> AskSaveAsync(IReadOnlyList<OpenDocument> documents)
     {
-        var window = new SaveChangesWindow { DataContext = new SaveChangesViewModel(documents.Select(d => d.Path).ToList()) };
+        var window = new SaveChangesWindow { DataContext = new SaveChangesViewModel([.. documents.Select(d => d.Path)]) };
         // Closed any other way (Alt+F4) = Cancel.
         return await window.ShowDialog<SaveChoice?>(Owner) ?? SaveChoice.Cancel;
     }
@@ -235,7 +235,7 @@ public sealed class DialogService(SettingsViewModel settings) : IDialogService
 
         Button Make(string text, bool accept)
         {
-            var button = new Button { Content = text, MinWidth = 90 };
+            var button = new Button { Content = text, MinWidth = 90, HorizontalContentAlignment = HorizontalAlignment.Center };
             button.Click += (_, _) =>
             {
                 confirmed = accept;

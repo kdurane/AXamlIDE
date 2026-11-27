@@ -91,14 +91,14 @@ public partial class MainWindow : Window
     private void UpdateBoundsForDocking(DockLayoutViewModel docking)
         => docking.MainWindowBounds = (Position.X, Position.Y, Bounds.Width, Bounds.Height);
 
-    private HostWindow CreateFloatingWindow()
+    private FloatingWindow CreateFloatingWindow()
     {
         // Dock's style lets a lone tool's header stand in for the window's title bar. That hides the system
         // close button, and dragging the header becomes a plain window move, which can't drop into a dock.
         // So it keeps a title bar: ours, as every window has (customChrome, Styles/WindowStyles.axaml), with
         // its close button (its tabs go back, see DockLayoutViewModel). The tool's header stays a Dock drag
         // handle, so the tool can be dragged back into a dock.
-        var window = new HostWindow { ToolChromeControlsWholeWindow = false };
+        var window = new FloatingWindow { ToolChromeControlsWholeWindow = false };
         window.Classes.Add("customChrome");
         window.Bind(BackgroundProperty, window.GetResourceObservable("AppWindowBackgroundBrush"));
         _keyMap.AttachTo(window);
