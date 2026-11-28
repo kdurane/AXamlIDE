@@ -96,6 +96,8 @@
                             <TextBlock Classes="SettingsHeading" Text="Typing" />
                             <CheckBox Content="Automatic brace completion" IsChecked="{Binding AutoCloseBraces, Mode=TwoWay}" />
                             <TextBlock Classes="SettingHint" Text="Typing { adds the matching }." />
+                            <CheckBox Content="Surround the selection with quotes and brackets" IsChecked="{Binding SurroundSelection, Mode=TwoWay}" />
+                            <TextBlock Classes="SettingHint" Text="With text selected, typing &quot; ' ` ( [ or { puts the pair around it instead of replacing it." />
                             <CheckBox Content="Close AXAML tags" IsChecked="{Binding AutoCloseXamlTags, Mode=TwoWay}" />
                             <TextBlock Classes="SettingHint" Text="Typing the &gt; of a start tag adds its end tag." />
                             <CheckBox Content="Make namespaces file-scoped on ;" IsChecked="{Binding FileScopedNamespaceOnSemicolon, Mode=TwoWay}" />

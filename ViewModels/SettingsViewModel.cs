@@ -211,6 +211,12 @@ public sealed partial class SettingsViewModel : ObservableObject, IEditorSetting
         set => SetFeatures(Features with { AutoCloseBraces = value });
     }
 
+    public bool SurroundSelection
+    {
+        get => Features.SurroundSelection;
+        set => SetFeatures(Features with { SurroundSelection = value });
+    }
+
     public bool AutoCloseXamlTags
     {
         get => Features.AutoCloseXamlTags;

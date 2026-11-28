@@ -318,6 +318,29 @@ public sealed class AcpClientTests : IAsyncDisposable
 
         Assert.False(_client.CanListSessions);
         Assert.False(_client.CanLoadSessions);
+        Assert.False(_client.CanSteer);
+    }
+
+    [Theory]
+    [InlineData("injected", true)]
+    [InlineData("promptRequired", false)]   // the turn ended meanwhile: send it as a prompt
+    public async Task Steers_a_message_into_the_running_turn(string outcome, bool injected)
+    {
+        var initialize = _client.InitializeAsync();
+        var request = await ReceiveAsync();
+        await SendAsync($$$$$"""{"jsonrpc":"2.0","id":{{{{{request["id"]}}}}},"result":{"protocolVersion":1,"_meta":{"steering":{"supported":true}}}}""");
+        await initialize.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(_client.CanSteer);
+
+        var steer = _client.SteerAsync("s1", [new AcpPromptBlock.Text("not that")]);
+        request = await ReceiveAsync();
+        Assert.Equal("_session/steering", (string?)request["method"]);
+        Assert.Equal("s1", (string?)request["params"]!["sessionId"]);
+        Assert.Equal("not that", (string?)request["params"]!["prompt"]![0]!["text"]);
+        Assert.Equal("promptRequired", (string?)request["params"]!["_meta"]!["steering"]!["idleBehavior"]);
+        await SendAsync($$$"""{"jsonrpc":"2.0","id":{{{request["id"]}}},"result":{"outcome":"{{{outcome}}}"}}""");
+
+        Assert.Equal(injected, await steer.WaitAsync(TimeSpan.FromSeconds(10)));
     }
 
     [Fact]

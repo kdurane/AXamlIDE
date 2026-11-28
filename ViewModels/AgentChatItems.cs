@@ -26,6 +26,13 @@ public sealed partial class UserMessageItem(string text, IReadOnlyList<PromptAtt
 
     public IReadOnlyList<PromptAttachment> Attachments { get; } = attachments;
     public bool HasAttachments => Attachments.Count > 0;
+
+    /// <summary>How a message typed while Claude was working went (steered in, queued, not sent); null for a normal one.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasDelivery))]
+    public partial string? Delivery { get; set; }
+
+    public bool HasDelivery => Delivery is not null;
 }
 
 /// <summary>

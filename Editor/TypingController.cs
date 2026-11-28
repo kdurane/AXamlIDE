@@ -9,13 +9,14 @@ using AXamlIDE.Editor.SignatureHelp;
 using AXamlIDE.Models;
 using AXamlIDE.Services.CSharp;
 using AXamlIDE.Services.Lsp;
+using AXamlIDE.Services.Typing;
 using AXamlIDE.Services.Xaml;
 using static AXamlIDE.Editor.NameChars;
 
 namespace AXamlIDE.Editor;
 
 /// <summary>
-/// Reacts to typed characters: auto-closes XAML tags and C# braces, makes a namespace file-scoped when ';'
+/// Reacts to typed characters: puts quotes and brackets around the selection, auto-closes XAML tags and C# braces, makes a namespace file-scoped when ';'
 /// is typed after it, formats the C# block or statement a '}' or ';' finishes, and decides when to open
 /// completion or signature help.
 ///
@@ -180,6 +181,12 @@ public sealed class TypingController
 
     private void OnTextEntering(object? sender, TextInputEventArgs e)
     {
+        if (TrySurroundSelection(e.Text))
+        {
+            e.Handled = true;   // nothing replaced the selection, so TextEntered (auto-close, completion) doesn't fire
+            return;
+        }
+
         // Typing the '}' that auto-close already put there: step over it instead of adding a second one
         var editor = _ctx.Editor;
         var caret = editor.CaretOffset;
@@ -205,6 +212,30 @@ public sealed class TypingController
         _completion.HandleTextEntering(e);
     }
 
+    /// <summary>
+    /// A quote or opening bracket typed with text selected: put the pair around the selection, in one undo step, and
+    /// keep the text inside selected (so typing another wraps it again: ("text")). A box selection is left to replace.
+    /// </summary>
+    private bool TrySurroundSelection(string? text)
+    {
+        var area = _ctx.Editor.TextArea;
+        if (!_ctx.Settings.Features.SurroundSelection || text is not { Length: 1 } || _ctx.Editor.IsReadOnly
+            || area.Selection is not { IsEmpty: false } selection || selection is AvaloniaEdit.Editing.RectangleSelection
+            || SurroundPairs.ClosingFor(text[0]) is not { } closing)
+            return false;
+
+        var start = selection.SurroundingSegment.Offset;
+        var end = selection.SurroundingSegment.EndOffset;
+        var document = _ctx.Editor.Document;
+        using (document.RunUpdate())
+        {
+            document.Insert(end, closing.ToString());
+            document.Insert(start, text);
+        }
+        _completion.Close();
+        _ctx.Editor.Select(start + 1, end - start);
+        return true;
+    }
 
     private void TryInsertXamlClosingTag(TextDocument document)
     {

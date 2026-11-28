@@ -18,6 +18,14 @@ App-wide button looks, picked with a class (Classes="icon"). Colours come from S
         </StackPanel>
     </Design.PreviewWith>
 
+    <!--
+    Every button's text in the middle, as in Visual Studio (Fluent leaves it at the left of a button wider than its
+    text: OK and Cancel with a MinWidth). First, so the class styles below (row, startAction...) still win.
+    -->
+    <Style Selector="Button">
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
     <!--  icon: a small flat button holding a PathIcon (refresh, stage, new item...), in panel headers and list rows.  -->
     <Style Selector="Button.icon">
         <Setter Property="Background" Value="Transparent" />

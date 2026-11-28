@@ -206,6 +206,10 @@ public sealed partial class AcpClient : IDisposable
                             && prompts.TryGetProperty("image", out var image) && image.ValueKind == JsonValueKind.True;
         }
 
+        CanSteer = result.TryGetProperty("_meta", out var meta) && meta.ValueKind == JsonValueKind.Object
+                   && meta.TryGetProperty("steering", out var steering) && steering.ValueKind == JsonValueKind.Object
+                   && steering.TryGetProperty("supported", out var supported) && supported.ValueKind == JsonValueKind.True;
+
         AuthMethods = AcpParser.AuthMethods(result, _command);
 
         if (result.TryGetProperty("agentInfo", out var info))
@@ -256,7 +260,34 @@ public sealed partial class AcpClient : IDisposable
     /// </summary>
     public async Task<string> PromptAsync(string sessionId, IReadOnlyList<AcpPromptBlock> prompt)
     {
-        var blocks = prompt.Select(block => block switch
+        var result = await RequestAsync("session/prompt", new { sessionId, prompt = Blocks(prompt) });
+        return AcpParser.String(result, "stopReason") ?? "end_turn";
+    }
+
+    /// <summary>
+    /// The agent takes a message while it's working (Claude's "_session/steering", advertised as
+    /// _meta.steering.supported in its initialize answer): it reads it at its next step, as the Claude Code
+    /// extension's messages typed mid-turn.
+    /// </summary>
+    public bool CanSteer { get; private set; }
+
+    /// <summary>
+    /// Give the running turn another message (<see cref="CanSteer"/>). False when no turn is running any more (it
+    /// ended meanwhile): then send it with <see cref="PromptAsync"/>. The turn's own PromptAsync answers for both.
+    /// </summary>
+    public async Task<bool> SteerAsync(string sessionId, IReadOnlyList<AcpPromptBlock> prompt)
+    {
+        var result = await RequestAsync("_session/steering", new
+        {
+            sessionId,
+            prompt = Blocks(prompt),
+            _meta = new { steering = new { idleBehavior = "promptRequired" } }
+        });
+        return AcpParser.String(result, "outcome") == "injected";
+    }
+
+    private static object[] Blocks(IReadOnlyList<AcpPromptBlock> prompt)
+        => prompt.Select(block => block switch
         {
             AcpPromptBlock.File file => (object)new
             {
@@ -268,10 +299,6 @@ public sealed partial class AcpClient : IDisposable
             AcpPromptBlock.Image image => new { type = "image", data = Convert.ToBase64String(image.Data), mimeType = image.MimeType },
             _ => throw new ArgumentOutOfRangeException(nameof(prompt))
         }).ToArray();
-
-        var result = await RequestAsync("session/prompt", new { sessionId, prompt = blocks });
-        return AcpParser.String(result, "stopReason") ?? "end_turn";
-    }
 
     /// <summary>
     /// Ask the agent to stop the running turn. It answers <see cref="PromptAsync"/> with "cancelled" once it has.

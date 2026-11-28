@@ -196,6 +196,8 @@ public partial class RunViewModel : ObservableObject, IDisposable
             return;
 
         var configuration = Configuration;
+        _messenger.Send(new RunSessionChangedMessage(IsRunning: true));   // before the build shows the Output
+        var keepOutput = true;   // a failed build, start or run leaves its output in view
         BeginBuildOutput($"Building {Path.GetFileName(projectPath)} ({configuration}) before running");
         IsBusy = true;
 
@@ -220,6 +222,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
             ShowStatus(_runStopRequested ? $"{name} stopped."
                 : exitCode is null ? $"{name} couldn't be started."
                 : exitCode == 0 ? $"{name} exited." : $"{name} exited with code {exitCode}.");
+            keepOutput = exitCode is null || (exitCode != 0 && !_runStopRequested);
         }
         catch (Exception ex)
         {
@@ -230,6 +233,7 @@ public partial class RunViewModel : ObservableObject, IDisposable
             IsRunning = false;
             _runStopRequested = false;
             IsBusy = false;
+            _messenger.Send(new RunSessionChangedMessage(IsRunning: false, keepOutput));
         }
     }
 

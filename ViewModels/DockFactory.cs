@@ -165,6 +165,20 @@ public sealed class DockFactory(WelcomeViewModel welcome) : Factory
                || Root.Windows?.Any(window => ReferenceEquals(window.Layout, current)) == true;
     }
 
+    /// <summary>True when the dockable is shown in the main window (not hidden, and not in a floating window).</summary>
+    public bool IsInMainWindow(IDockable dockable)
+    {
+        var current = dockable;
+        while (current.Owner is IDock owner)
+        {
+            if (owner.VisibleDockables?.Contains(current) != true)
+                return false;
+            current = owner;
+        }
+
+        return ReferenceEquals(current, Root);
+    }
+
     /// <summary>All document, page and tool tabs inside <paramref name="dock"/> (at any depth).</summary>
     public static IEnumerable<IDockable> TabsIn(IDockable dock)
     {

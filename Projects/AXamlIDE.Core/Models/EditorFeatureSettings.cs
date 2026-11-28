@@ -13,6 +13,9 @@ public sealed record EditorFeatureSettings
     /// <summary>Typing { adds the } (C#, and in an AXAML attribute value). VS: "Automatic brace completion".</summary>
     public bool AutoCloseBraces { get; init; } = true;
 
+    /// <summary>Typing a quote or an opening bracket with text selected puts the pair around it. VS Code: "Auto Surround".</summary>
+    public bool SurroundSelection { get; init; } = true;
+
     /// <summary>Typing the > of an AXAML start tag adds its end tag. VS: "Auto insert close tag".</summary>
     public bool AutoCloseXamlTags { get; init; } = true;
 

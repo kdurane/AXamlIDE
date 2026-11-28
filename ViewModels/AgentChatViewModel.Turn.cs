@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -15,26 +16,88 @@ public sealed partial class AgentChatViewModel
     private readonly Dictionary<string, ToolCallItem> _toolCalls = [];
     private readonly List<PermissionItem> _pendingPermissions = [];
 
-    /// <summary>The send button and Enter in the prompt box.</summary>
-    [RelayCommand(CanExecute = nameof(CanSend))]
+    /// <summary>Messages typed while Claude was working, sent one at a time when its turn ends (see <see cref="Send"/>).</summary>
+    private readonly Queue<UserMessageItem> _queued = [];
+
+    /// <summary>
+    /// The send button and Enter in the prompt box. While Claude is working the message still goes, as in the Claude
+    /// Code extension: into the running turn when the agent takes that (it reads it at its next step), else queued
+    /// as the next message. Stop sends what's queued straight away (an interrupt).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanSend), AllowConcurrentExecutions = true)]
     private async Task Send()
     {
-        if (_client is not { } client || WorkspaceFolder is not { } folder)
+        if (_client is null || WorkspaceFolder is null)
             return;
 
-        var text = PromptText.Trim();
-        var attachments = TakeAttachments();
+        var message = new UserMessageItem(PromptText.Trim(), TakeAttachments());
         PromptText = "";
-        Items.Add(new UserMessageItem(text, attachments));
+        Items.Add(message);
+
+        if (IsTurnRunning)
+            await SteerOrQueueAsync(message);
+        else
+            await RunTurnAsync(message);
+    }
+
+    private async Task SteerOrQueueAsync(UserMessageItem message)
+    {
+        if (_client is { CanSteer: true } client && _session is { } session && _queued.Count == 0)
+        {
+            message.Delivery = "Sent while Claude was working";
+            try
+            {
+                if (await client.SteerAsync(session.Id, PromptFor(message)))
+                    return;
+            }
+            catch (AcpException)
+            {
+                // queued instead, below
+            }
+        }
+
+        message.Delivery = "Queued: sent when Claude finishes (Stop sends it now).";
+        _queued.Enqueue(message);
+        if (!IsTurnRunning)   // the turn ended while it was being steered in
+            SendNextQueued();
+    }
+
+    /// <summary>The turn ended: send the next message typed during it, if any.</summary>
+    private void SendNextQueued()
+    {
+        if (IsTurnRunning || State != AgentChatState.Ready || !_queued.TryDequeue(out var next))
+            return;
+        next.Delivery = null;
+        _ = RunTurnAsync(next);
+    }
+
+    /// <summary>The agent stopped: what was queued for it isn't going to be sent (it's back in the box to send again).</summary>
+    private void DropQueued()
+    {
+        if (_queued.Count == 0)
+            return;
+        foreach (var message in _queued)
+            message.Delivery = "Not sent: Claude stopped.";
+        if (PromptText.Length == 0)
+            PromptText = string.Join(Environment.NewLine + Environment.NewLine, _queued.Select(message => message.Text));
+        _queued.Clear();
+    }
+
+    private static List<AcpPromptBlock> PromptFor(UserMessageItem message)
+        => [new AcpPromptBlock.Text(message.Text), .. message.Attachments.Select(attachment => attachment.ToPromptBlock())];
+
+    private async Task RunTurnAsync(UserMessageItem message)
+    {
+        if (_client is not { } client)
+            return;
+
         IsTurnRunning = true;
         try
         {
             if (await EnsureSessionAsync() is not { } session)
                 return;
 
-            List<AcpPromptBlock> prompt = [new AcpPromptBlock.Text(text), .. attachments.Select(attachment => attachment.ToPromptBlock())];
-
-            var stopReason = await client.PromptAsync(session.Id, prompt);
+            var stopReason = await client.PromptAsync(session.Id, PromptFor(message));
             if (StopReasonNotice(stopReason) is { } notice)
                 Items.Add(new NoticeItem(notice, isError: stopReason != "cancelled"));
         }
@@ -42,7 +105,7 @@ public sealed partial class AgentChatViewModel
         {
             // The login expired: back in the box to send again once signed in (NeedSignIn reopens this chat).
             if (PromptText.Length == 0)
-                PromptText = text;
+                PromptText = message.Text;
             NeedSignIn(ExpiredReason);
         }
         catch (AcpException ex)
@@ -59,9 +122,15 @@ public sealed partial class AgentChatViewModel
                 call.Status = "cancelled";   // the agent finished without saying (stopped mid-tool)
             _toolCalls.Clear();
         }
+
+        if (ReferenceEquals(client, _client))
+            SendNextQueued();
     }
 
-    private bool CanSend() => State == AgentChatState.Ready && !IsTurnRunning && !IsLoadingSession && !string.IsNullOrWhiteSpace(PromptText);
+    private bool CanSend() => State == AgentChatState.Ready && !IsLoadingSession && !string.IsNullOrWhiteSpace(PromptText);
+
+    /// <summary>The send button shows while Claude is working too, once there's a message for it (beside Stop).</summary>
+    public bool ShowSend => !IsTurnRunning || !string.IsNullOrWhiteSpace(PromptText);
 
     /// <summary>
     /// The send button's tooltip. It's greyed out until there's something to send (as in VS Code), so it says why,
@@ -71,6 +140,7 @@ public sealed partial class AgentChatViewModel
     {
         AgentChatState.Ready when IsLoadingSession => "Loading the chat...",
         AgentChatState.Ready when string.IsNullOrWhiteSpace(PromptText) => "Type a message to send",
+        AgentChatState.Ready when IsTurnRunning => "Send now (Enter): Claude reads it at its next step",
         AgentChatState.Ready => "Send (Enter)",
         AgentChatState.Starting or AgentChatState.Installing or AgentChatState.Idle => "Claude is starting...",
         AgentChatState.SignIn => "Sign in to Claude first",
@@ -180,6 +250,7 @@ public sealed partial class AgentChatViewModel
         _session = null;
         _sessionFolder = null;
         _toolCalls.Clear();
+        _queued.Clear();
         Items.Clear();
         Title = "Claude";
         UsageText = "";

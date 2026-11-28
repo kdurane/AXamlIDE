@@ -404,6 +404,7 @@ public sealed partial class SearchEverywhereViewModel : ObservableObject
             new("Highlight other occurrences of the selection", "Text Editor", () => s.HighlightSelectionOccurrences, v => s.HighlightSelectionOccurrences = v),
             new("Colour swatches", "Text Editor", () => s.ColorSwatches, v => s.ColorSwatches = v),
             new("Automatic brace completion", "Text Editor", () => s.AutoCloseBraces, v => s.AutoCloseBraces = v),
+            new("Surround the selection with quotes and brackets", "Text Editor", () => s.SurroundSelection, v => s.SurroundSelection = v),
             new("Close AXAML tags", "Text Editor", () => s.AutoCloseXamlTags, v => s.AutoCloseXamlTags = v),
             new("Format documents on save", "Text Editor", () => s.FormatOnSave, v => s.FormatOnSave = v, "Format documents on save when supported"),
             new("Show the completion list while typing", "IntelliSense", () => s.CompletionWhileTyping, v => s.CompletionWhileTyping = v),

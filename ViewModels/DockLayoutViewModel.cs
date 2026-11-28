@@ -35,10 +35,13 @@ namespace AXamlIDE.ViewModels;
 ///
 /// Nothing else talks to the dock model; the views (DockControl, DockViewCache) only show it.
 /// </summary>
-public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecipient<DebugSessionChangedMessage>
+public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecipient<DebugSessionChangedMessage>, IRecipient<RunSessionChangedMessage>
 {
-    /// <summary>The bottom panel's tabs that can be closed and are remembered (Settings.Panel.OpenTools).</summary>
-    private static readonly string[] OptionalTools = [ToolTab.Terminal, ToolTab.Run, ToolTab.Tests];
+    /// <summary>
+    /// The bottom panel's tabs that can be closed and are remembered (Settings.Panel.OpenTools). Not Run: it comes
+    /// with a running program and goes when it ends (an empty one from last time would be no use).
+    /// </summary>
+    private static readonly string[] OptionalTools = [ToolTab.Terminal, ToolTab.Tests];
 
     private readonly DockFactory _factory;
     private readonly DocumentManager _documents;
@@ -48,6 +51,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private readonly Dictionary<OpenDocument, DocumentDockable> _tabs = [];
     private readonly Dictionary<string, PageDockable> _pages = [];
     private IDock? _lastActiveDock;
+    private IDocumentDock? _lastMainStrip;   // the main window's tab strip the user was last in (new tabs go there)
     private PageDockable? _activePage;   // the page tab the user is in (then DocumentManager.Active is null)
     private PreviewMode _previewMode = PreviewMode.Split;      // new AXAML tabs start like the last one changed
     private PreviewSplit _previewSplit = PreviewSplit.SideBySide;
@@ -56,6 +60,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
     private bool _shuttingDown;
     private bool _debugging;
     private bool _hidePanelAfterDebugging;
+    private PanelBeforeRun? _panelBeforeRun;   // how the bottom panel was when Run started (put back when it ends)
     private bool _hideSideBarAfterDebugging;
     private IDockable? _sideBarTabBeforeDebugging;   // what the side bar goes back to when the Debug tab leaves
     private (double X, double Y, double Width, double Height)? _searchWindowBounds;
@@ -171,6 +176,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         {
             _factory.HideBottomPanel();
             _hidePanelAfterDebugging = false;   // hidden on purpose: no need to hide it again
+            _panelBeforeRun = null;   // nor to put it back after Run
             SavePanel();
             return;
         }
@@ -218,6 +224,40 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
             _factory.HideExplorerColumn();
         _hidePanelAfterDebugging = false;
         _hideSideBarAfterDebugging = false;
+    }
+
+    /// <summary>The bottom panel as Run found it: whether it was showing, and the tab in front.</summary>
+    private sealed record PanelBeforeRun(bool PanelShown, IDockable? FrontTab);
+
+    /// <summary>
+    /// Run (without debugging) started: remember the bottom panel. It ended: the Run tab goes (only running a program
+    /// brings it) and the panel is put back as it was, hidden again if it was hidden (as after debugging). Not when the program failed, or its
+    /// build did: the output is what the user needs to see then.
+    /// </summary>
+    public void Receive(RunSessionChangedMessage message)
+    {
+        var run = _factory.Tools[ToolTab.Run];
+        var panel = _factory.Tools[ToolTab.Output].Owner as IDock;
+        if (message.IsRunning)
+        {
+            var inFront = panel?.ActiveDockable;
+            _panelBeforeRun = new PanelBeforeRun(_factory.IsBottomPanelShown, ReferenceEquals(inFront, run) ? null : inFront);
+            return;
+        }
+
+        if (_panelBeforeRun is not { } before || message.KeepOutput)
+        {
+            _panelBeforeRun = null;
+            return;
+        }
+        _panelBeforeRun = null;
+
+        _factory.RemoveTool(run);
+        if (before.FrontTab is { } front && panel?.VisibleDockables?.Contains(front) == true)
+            panel.ActiveDockable = front;
+        if (!before.PanelShown && !_debugging)
+            _factory.HideBottomPanel();
+        SavePanel();
     }
 
     /// <summary>Open the remembered optional tabs, then hide the panel if it was left hidden.</summary>
@@ -287,11 +327,25 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
             _previewFirst = tab.PreviewFirst;
     }
 
-    /// <summary>New documents open beside the selected tab (in its window), else in the main window.</summary>
+    /// <summary>
+    /// New documents open in the main window, as in Visual Studio: beside the selected tab when it's there, else in
+    /// the main window's strip the user was last in (with the editor split), else the main strip. A tab dragged out to
+    /// its own window keeps that window to itself.
+    /// </summary>
     private IDock TargetDocumentDock()
-        => ((IDockable?)ActiveTab ?? _activePage) is { Owner: IDocumentDock dock } front && _factory.IsInLayout(front)
-            ? dock
-            : _factory.MainDocuments;
+    {
+        if (((IDockable?)ActiveTab ?? _activePage) is { Owner: IDocumentDock dock } && _factory.IsInMainWindow(dock))
+            return dock;
+        return _lastMainStrip is { } strip && _factory.IsInMainWindow(strip) ? strip : _factory.MainDocuments;
+    }
+
+    /// <summary>The tab strip the user is working in now (see <see cref="IsWorkingStrip"/>).</summary>
+    private void RememberStrip(IDock? dock)
+    {
+        _lastActiveDock = dock;
+        if (dock is IDocumentDock strip && _factory.IsInMainWindow(strip))
+            _lastMainStrip = strip;
+    }
 
     private DocumentDockable? ActiveTab
         => _documents.Active is { } active && _tabs.TryGetValue(active, out var tab) ? tab : null;
@@ -317,7 +371,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
             if (tab.Owner is IDock owner)
             {
                 _factory.SetFocusedDockable(owner, tab);
-                _lastActiveDock = owner;
+                RememberStrip(owner);
             }
         }
         finally
@@ -360,7 +414,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         {
             _activePage = null;
             _documents.Active = tab.Document;
-            _lastActiveDock = tab.Owner as IDock;
+            RememberStrip(tab.Owner as IDock);
         }
         finally
         {
@@ -379,7 +433,7 @@ public sealed class DockLayoutViewModel : IRecipient<ShowToolTabMessage>, IRecip
         {
             _activePage = page;
             _documents.Active = null;
-            _lastActiveDock = page.Owner as IDock;
+            RememberStrip(page.Owner as IDock);
         }
         finally
         {

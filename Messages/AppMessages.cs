@@ -28,3 +28,9 @@ public sealed record BuildProblemsMessage(IReadOnlyList<Services.Running.BuildDi
 /// window, the recent list, a clone or a new project. Handled by MainWindowViewModel.
 /// </summary>
 public sealed record OpenWorkspaceMessage(string Path);
+
+/// <summary>
+/// Run (without debugging) started, before its build, or ended. DockLayoutViewModel puts the bottom panel back as it
+/// was when the program ends, unless <paramref name="KeepOutput"/> (it failed: its output is worth reading).
+/// </summary>
+public sealed record RunSessionChangedMessage(bool IsRunning, bool KeepOutput = false);

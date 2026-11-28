@@ -123,6 +123,7 @@ public static partial class DesignData
         plan.Show([new AcpPlanEntry("Find where Customer is read", "completed"), new AcpPlanEntry("Make Customer nullable", "in_progress"),
             new AcpPlanEntry("Show \"(none)\" in the list", "pending")]);
         chat.Items.Add(plan);
+        chat.Items.Add(new UserMessageItem("Keep the old converter, don't add a new one", []) { Delivery = "Sent while Claude was working" });
         chat.Items.Add(new AgentTextItem(isThought: false, null)
         {
             Text = "`Order.Customer` can be null for orders imported from the old system, and the list reads `Customer.Name`.\n\n" +

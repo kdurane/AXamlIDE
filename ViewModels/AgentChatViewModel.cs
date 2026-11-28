@@ -131,12 +131,13 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
     /// <summary>The message being typed.</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand))]
-    [NotifyPropertyChangedFor(nameof(SendToolTip))]
+    [NotifyPropertyChangedFor(nameof(SendToolTip), nameof(ShowSend))]
     public partial string PromptText { get; set; } = "";
 
-    /// <summary>A turn is running: the send button becomes a stop button.</summary>
+    /// <summary>A turn is running: the send button becomes a stop button (with send beside it once something's typed).</summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SendCommand), nameof(StopCommand))]
+    [NotifyPropertyChangedFor(nameof(SendToolTip), nameof(ShowSend))]
     public partial bool IsTurnRunning { get; set; }
 
     /// <summary>Send the front tab's file with the message when its clicked</summary>
@@ -282,6 +283,7 @@ public sealed partial class AgentChatViewModel : ObservableObject, IDisposable
         _session = null;
         _sessionFolder = null;
         Settings.Clear();
+        DropQueued();
         IsTurnRunning = false;
         client?.Dispose();
     }

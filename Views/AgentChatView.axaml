@@ -236,6 +236,12 @@
                         LineHeight="20"
                         Text="{Binding Text}"
                         TextWrapping="Wrap" />
+                    <TextBlock
+                        Classes="dim"
+                        FontSize="11"
+                        IsVisible="{Binding HasDelivery}"
+                        Text="{Binding Delivery}"
+                        TextWrapping="Wrap" />
                     <ItemsControl
                         IsVisible="{Binding HasAttachments}"
                         ItemTemplate="{StaticResource SentAttachmentTemplate}"
@@ -928,12 +934,15 @@
                                 Text="IDE" />
                         </StackPanel>
                     </ToggleButton>
-                    <Panel DockPanel.Dock="Right">
+                    <StackPanel
+                        DockPanel.Dock="Right"
+                        Orientation="Horizontal"
+                        Spacing="4">
                         <Button
                             AutomationProperties.Name="Send"
                             Classes="send"
                             Command="{Binding SendCommand}"
-                            IsVisible="{Binding !IsTurnRunning}"
+                            IsVisible="{Binding ShowSend}"
                             ToolTip.ShowOnDisabled="True"
                             ToolTip.Tip="{Binding SendToolTip}">
                             <PathIcon Data="{StaticResource Icon.ArrowUp}" />
@@ -946,7 +955,7 @@
                             ToolTip.Tip="Stop (Escape)">
                             <PathIcon Data="{StaticResource Icon.Stop}" />
                         </Button>
-                    </Panel>
+                    </StackPanel>
                     <!--  The agent's settings for this conversation (Mode, Model); they appear with the first message  -->
                     <ItemsControl ItemsSource="{Binding Settings}">
                         <ItemsControl.ItemsPanel>
